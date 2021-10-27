@@ -19,7 +19,11 @@ bin-release/
 *.so
 # gpu lock
 *.glock
+*.mp3
+*.png
 
+# pytorch model
+*.pt
 core
 
 __pycache__/

@@ -1,8 +1,8 @@
 {
     "config.py->GlobalConfig": {
         "note": "50vs50-train",
-        "env_name":"fortattack_ma",
-        "env_path":"MISSIONS.gym_fortattack_ma",
+        "env_name":"collective_assult",
+        "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
@@ -14,13 +14,13 @@
         "backup_files":[
             "ALGORITHM/concentration/net.py",
             "ALGORITHM/concentration/ppo.py",
-            "MISSIONS/gym_fortattack_ma/envs/fortattack_env_v1.py",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py",
             "ALGORITHM/concentration/trajectory.py"
         ]
 
     },
 
-    "MISSIONS.gym_fortattack_ma.fortattack_parallel_run.py->ScenarioConfig": {
+    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
         "size": "5",
         "random_jam_prob": 0.05,
         "introduce_terrain":"True",
