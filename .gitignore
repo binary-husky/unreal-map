@@ -1,0 +1,53 @@
+# Build and Release Folders
+bin-debug/
+bin-release/
+
+*/__pycache__
+[Oo]bj/
+[Bb]in/
+
+# Other files and folders
+.settings/
+
+# Executables
+*.swf
+*.air
+*.ipa
+*.apk
+*.so
+*.pyc
+*.so
+# gpu lock
+*.glock
+
+core
+
+__pycache__/
+build/
+ALGORITHM/Starcraft/result/
+ALGORITHM/Starcraft/model/
+ZipResults/
+VISUALIZE/train no aWiseAttn
+VISUALIZE/train-half-death-reward
+ZipResults/Starcraft/
+result
+.vscode/
+.vscode/settings.json
+forattack-train/
+full-cargo/
+T*/
+checkpoint/
+ZHECKPOINT/
+PROFILE/
+RECYCLE/
+test_only_*.py
+test_only_log
+test_only_profile.txt
+test_only_profilex.txt
+debug_change_self_n_agent.json.profile.txt
+debug2-2500pt-test_only_profile.txt
+test_only_logdebug_change_self_n_agent.json.log
+test_only_profiledebug_change_self_n_agent.json.txt
+xx_profile_n_agents2.py
+xx_profile_n_agents3.py
+xx_profile_n_agents4.py
