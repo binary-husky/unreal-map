@@ -3,16 +3,16 @@ import importlib
 
 
 class MMPlatform(object):
-    # supports centralized training of agents in a team
+
     def __init__(self, mcv, envs):
         from config import GlobalConfig
-        self.n_t =       GlobalConfig.scenario_config.N_TEAM
-        n_agents_each_t = GlobalConfig.scenario_config.N_AGENT_EACH_TEAM
-        t_member_list =  GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM
-        self.t_name =    GlobalConfig.scenario_config.TEAM_NAMES
+        self.n_t =           GlobalConfig.scenario_config.N_TEAM                # n_t => n_teams
+        n_agents_each_t =    GlobalConfig.scenario_config.N_AGENT_EACH_TEAM     # n_agents_each_t => n_agents_each_team
+        self.t_member_list = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM
+        self.t_name =        GlobalConfig.scenario_config.TEAM_NAMES
         self.align_episode = GlobalConfig.align_episode
-        # env give reward of each team instead of agent
-        self.RewardAsUnity = False
+        self.n_thread =      GlobalConfig.num_threads
+        self.RewardAsUnity = False # env give reward of each team instead of agent
         if hasattr(GlobalConfig.scenario_config, 'RewardAsUnity'):
             self.RewardAsUnity = GlobalConfig.scenario_config.RewardAsUnity 
         self.ActAsUnity = False
@@ -22,27 +22,23 @@ class MMPlatform(object):
         if hasattr(GlobalConfig.scenario_config, 'ObsAsUnity'):
             self.ObsAsUnity = GlobalConfig.scenario_config.ObsAsUnity
 
-        self.t_member_list = t_member_list
-        self.t_member = t_member_list
-        self.n_thread = GlobalConfig.num_threads
-        self.algo_foundations = []
-        space = envs.get_space()
+        space = envs.get_space()    # get observation space and action space
 
+        self.algo_foundations = []  # import and initialize algorithms
         for t in range(self.n_t):
-            assert len(t_member_list[t]) == n_agents_each_t[t]
+            assert len(self.t_member_list[t]) == n_agents_each_t[t]
             assert '->' in self.t_name[t]
             module_, class_ = self.t_name[t].split('->')
             init_f = getattr(importlib.import_module(module_), class_)
             self.algo_foundations.append(
                 init_f(n_agent=n_agents_each_t[t], n_thread=self.n_thread, space=space, mcv=mcv)
             )
-        # self.L_RUNNING = None
         pass
 
 
     def act(self, runner_info):
         actions_list = []
-        for t_name, t_members, algo_fdn, t_index in zip(self.t_name, self.t_member, self.algo_foundations, range(self.n_t)):
+        for t_name, t_members, algo_fdn, t_index in zip(self.t_name, self.t_member_list, self.algo_foundations, range(self.n_t)):
             # split info such as reward and observation
             _t_intel_ = self._split_intel(runner_info, t_members, t_name, t_index)
             # each t (controlled by their different algorithm) interacts with env and act
@@ -52,32 +48,39 @@ class MMPlatform(object):
             append_op = actions_list.append if self.ActAsUnity else actions_list.extend; append_op(_act_)
             # loop back internal states registered in _t_intel_  (e.g._division_obs_)
             if _t_intel_ is None: continue
+            # process internal states loop back, featured with keys that startswith and endswith '_'
             for key in _t_intel_:
                 if key.startswith('_') and key.endswith('_'): 
                     self._update_runner(runner_info, runner_info['ENV-PAUSE'], t_name, key, _t_intel_[key])
         pass
 
-        # $n_agent(n_t if ActAsUnity).$n_thread --> $n_thread.$n_agent(n_t if ActAsUnity)
+        # swapaxes:
+        #   [n_agent(n_teams if ActAsUnity), n_thread] 
+        #                       --> 
+        #   [n_thread, $n_agent(n_teams if ActAsUnity)]
         actions_list = np.swapaxes(np.array(actions_list, dtype=np.double), 0, 1) 
 
+        # in align_episode mod, threads that are paused are forced to give NaN action
         ENV_PAUSE = runner_info['ENV-PAUSE']
-        #debug
-        # assert (actions_list[ENV_PAUSE,:] == -1).all()
-        if ENV_PAUSE.any() and self.align_episode:  actions_list[ENV_PAUSE,:] = np.nan
+        if ENV_PAUSE.any() and self.align_episode: actions_list[ENV_PAUSE,:] = np.nan
         return actions_list, runner_info
 
     def _update_runner(self, runner_info, ENV_PAUSE, t_name, key, content):
         u_key = t_name+key
-        if (u_key in runner_info) and hasattr(content, '__len__') and\
+        if (u_key in runner_info) and hasattr(content, '__len__') and \
                 len(content)==self.n_thread and ENV_PAUSE.any():
             runner_info[u_key][~ENV_PAUSE] = content[~ENV_PAUSE]
             return
         runner_info[u_key] = content
         return
 
-
+    # seperate observation between teams
     def _split_intel(self, runner_info, t_members, t_name, t_index):
         RUNNING = ~runner_info['ENV-PAUSE']
+        # Team_Info and ter_obs_echo are None when runner_info['Latest-Team-Info'] is absent
+        Team_Info = None
+        ter_obs_echo = None
+        # load Team_Info and ter_obs_echo
         if runner_info['Latest-Team-Info'] is not None:
             assert isinstance(runner_info['Latest-Team-Info'][0], dict)
             Team_Info = runner_info['Latest-Team-Info']
@@ -85,12 +88,10 @@ class MMPlatform(object):
             ter_obs_echo = np.array([self.__split_obs_thread(Team_Info[thread_idx]['obs-echo'], t_index)
                             if done and ('obs-echo' in Team_Info[thread_idx]) else None 
                             for thread_idx, done in enumerate(runner_info['Env-Suffered-Reset'])], dtype=object)
-        else:
-            Team_Info = None
-            ter_obs_echo = None
 
         o = self.__split_obs(runner_info['Latest-Obs'], t_index)
         reward = runner_info['Latest-Reward']
+
         # summary
         t_intel_basic = {
             'Team_Name':            t_name,
@@ -104,8 +105,6 @@ class MMPlatform(object):
             'Current-Obs-Step':     runner_info['Current-Obs-Step']
         }
 
-
-
         for key in runner_info:
             if not (t_name in key): continue
             # otherwise t_name in key
@@ -117,16 +116,8 @@ class MMPlatform(object):
             runner_info[key] = t_intel_basic[s_key] = None
 
         # t_intel_basic = self.filter_running(t_intel_basic, RUNNING)
-        # self.L_RUNNING = RUNNING
         return t_intel_basic
 
-    # def filter_running(self, intel_basic, running):
-    #     intel_basic_ = intel_basic.copy()
-    #     for key in intel_basic:
-    #         if hasattr(intel_basic[key], '__len__') and \
-    #                 len(intel_basic[key]) == self.n_thread and key != 'ENV-PAUSE':
-    #             intel_basic_[key] = intel_basic[key][running]
-    #     return intel_basic_
 
     def deal_with_hook(self, hook, t_intel_basic):
         # use the hook left by algorithm to callback some function 
@@ -141,7 +132,7 @@ class MMPlatform(object):
                 })
 
     def __split_obs(self, obs, t_index):
-        # obs $n_thread.$n_team/n_agent.$coredim
+        # obs [n_thread, n_team/n_agent, coredim]
         if obs[0] is None:
             o = None
         elif self.ObsAsUnity:
@@ -149,17 +140,11 @@ class MMPlatform(object):
         else:   # in most cases
             o = obs[:, self.t_member_list[t_index]]
         return o
+
     def __split_obs_thread(self, obs, t_index):
-        # obs $n_thread.$n_team/n_agent.$coredim
+        # obs [n_thread, n_team/n_agent, coredim]
         if self.ObsAsUnity:
             o = obs[t_index]
         else:   # in most cases
             o = obs[self.t_member_list[t_index]]
         return o
-
-
-    # def _NaN(self, dtype):
-    #     if np.issubdtype(dtype, np.floating):
-    #         return np.nan
-    #     else:
-    #         return np.iinfo(dtype).min

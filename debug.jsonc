@@ -3,7 +3,6 @@
         "note": "revise-100vs100-train",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
-        "interested_agent_num":100,
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
@@ -22,8 +21,6 @@
     },
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
-        "num_guards": 100,
-        "num_attackers": 100,
         "size": "5",
         "random_jam_prob": 0.05,
         "introduce_terrain":"True",
@@ -40,7 +37,7 @@
     },
 
     "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
-        "n_focus_on": 4,
+        "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
 

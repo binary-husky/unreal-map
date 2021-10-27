@@ -28,67 +28,52 @@ def make_parallel_envs(process_pool, marker=''):
 
     return envs
 
+import_path_ref = {
+    "collective_assult": ("MISSIONS.collective_assult.collective_assult_parallel_run",          'ScenarioConfig'),
+    "collective_assult_pvp": ("MISSIONS.collective_assult_pvp.collective_assult_parallel_run",  'ScenarioConfig'),
+    "air_fight": ("MISSIONS.air_fight.environment.air_fight_compat",                            'ScenarioConfig'),
+    "native_gym": ("MISSIONS.native_gym.native_gym_config",                                     'ScenarioConfig'),
+    "starcraft2": ("MISSIONS.starcraft.sc2_env_wrapper",                                        'ScenarioConfig'),
+    "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'ScenarioConfig'),
+    "sr_tasks->cargo": ("MISSIONS.sr_tasks.multiagent.scenarios.cargo",                         'ScenarioConfig'),
+}
+
+env_init_function_ref = {
+    "collective_assult": ("MISSIONS.collective_assult.collective_assult_parallel_run",          'make_collective_assult_env'),
+    "collective_assult_pvp": ("MISSIONS.collective_assult_pvp.collective_assult_parallel_run",  'make_collective_assult_env'),
+    "air_fight": ("MISSIONS.air_fight.environment.air_fight_compat",                            'make_air_fight_env'),
+    "native_gym": ("MISSIONS.native_gym.native_gym_config",                                     'env_init_function'),
+    "starcraft2": ("MISSIONS.starcraft.sc2_env_wrapper",                                        'make_sc2_env'),
+    "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'make_env'),
+    "sr_tasks->cargo": ("MISSIONS.sr_tasks.multiagent.scenarios.cargo",                         'ScenarioConfig'),
+}
 
 def load_scenario_config():
-    env_name = GlobalConfig.env_name
-    if env_name == 'collective_assult':
-        from MISSIONS.collective_assult.collective_assult_parallel_run import ScenarioConfig    
-    elif env_name == 'collective_assult_pvp':
-        from MISSIONS.collective_assult_pvp.collective_assult_parallel_run import ScenarioConfig
-    elif env_name == 'collective_assult':
-        from MISSIONS.collective_assult.collective_assult_parallel_run import ScenarioConfig
-    elif env_name == 'air_fight':
-        from MISSIONS.air_fight.environment.air_fight_compat import ScenarioConfig
-    elif 'native_gym' in env_name:
-        from MISSIONS.native_gym.native_gym_config import ScenarioConfig
-    elif 'sr_tasks' in env_name:
-        assert '->' in env_name
-        _, _env_name = env_name.split('->')
-        ScenarioConfig = getattr(importlib.import_module('MISSIONS.sr_tasks.multiagent.scenarios.'+_env_name), 'ScenarioConfig')
-    elif env_name == 'starcraft2':
-        from MISSIONS.starcraft.sc2_env_wrapper import ScenarioConfig
-    elif env_name == 'unity_game':
-        from MISSIONS.unity_game.unity_game_wrapper import ScenarioConfig
-    else:
+    if GlobalConfig.env_name in import_path_ref:
         assert False, ('need to find path of ScenarioConfig')
-    GlobalConfig.scenario_config = ScenarioConfig
+    import_path, ScenarioConfig = import_path_ref[GlobalConfig.env_name]
+    GlobalConfig.scenario_config = getattr(importlib.import_module(import_path), ScenarioConfig)
+
 
 def make_env_function(env_name, rank):
     load_scenario_config()
-    
-    if env_name == 'collective_assult':
-        from MISSIONS.collective_assult.collective_assult_parallel_run import make_collective_assult_env as env_init_function
-    elif env_name == 'collective_assult':
-        from MISSIONS.collective_assult.collective_assult_parallel_run import make_collective_assult_env as env_init_function
-    elif env_name == 'collective_assult_pvp':
-        from MISSIONS.collective_assult_pvp.collective_assult_parallel_run import make_collective_assult_env as env_init_function
-    elif env_name == 'air_fight':
-        from MISSIONS.air_fight.environment.air_fight_compat import make_air_fight_env as env_init_function
-    elif env_name == 'starcraft2':
-        from MISSIONS.starcraft.sc2_env_wrapper import make_sc2_env as env_init_function
-    elif env_name == 'unity_game':
-        from MISSIONS.unity_game.unity_game_wrapper import make_env as env_init_function
-    elif 'native_gym' in env_name:
+    ref_env_name = env_name
+
+    if 'native_gym' in env_name:
         assert '->' in env_name
-        _, native_gym_env_name = env_name.split('->')
-        def env_init_function(placeholder, rank):
-            import gym
-            env = gym.make(native_gym_env_name)
-            return env
+        ref_env_name, env_name = env_name.split('->')
     elif 'sr_tasks' in env_name:
         assert '->' in env_name
-        _, _env_name = env_name.split('->')
-        env_init_function = sr_tasks_env
-    else:
-        assert False, ('what is this env?', env_name)
+        ref_env_name, env_name = env_name.split('->')
 
+    import_path, func_name = env_init_function_ref[ref_env_name]
+    env_init_function = getattr(importlib.import_module(import_path), func_name)
+    return lambda: env_init_function(env_name, rank)
 
-    def _init_lambda_():
-        env = env_init_function(env_name, rank)
-        return env
+    # def _init_lambda_():
+    #     env = env_init_function(env_name, rank)
+    #     return env
         
-    return _init_lambda_
-
 
 def sr_tasks_env(env_id, rank):
     import multiagent.scenarios as scenarios

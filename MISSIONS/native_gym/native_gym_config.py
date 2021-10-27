@@ -5,3 +5,8 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     TEAM_NAMES = ['ALGORITHM.stable_baselines3.my_sac->BaselineFoundation'] 
 
     SingleAgentCompat = True
+
+def env_init_function(native_gym_env_name, rank):
+    import gym
+    env = gym.make(native_gym_env_name)
+    return env
