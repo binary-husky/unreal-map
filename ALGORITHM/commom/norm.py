@@ -1,5 +1,5 @@
 """
-    ****************************
+    CASIA, fuqingxu
     live vector normalization using pytorch, 
     therefore the parameter of normalization (mean and var) 
     can be save together with network parameters
@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
+# from UTILS.tensor_ops import Args2tensor_Return2numpy
 
 class DynamicNorm(nn.Module):
     # ! warning! this module will mess with multi-gpu setting!!
@@ -62,5 +63,9 @@ class DynamicNorm(nn.Module):
         x = torch.clip_((x - self.mean) / torch.sqrt_(self.var + 1e-8), -10, 10)
         return x
 
+
+    # @Args2tensor_Return2numpy
+    # def get_mean_var(self, x):
+        # return self.forward(x, get_mu_var=True)
 
 

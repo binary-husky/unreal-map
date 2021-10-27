@@ -14,7 +14,7 @@ class ExampleFoundation():
         info = team_intel['Latest-Team-Info']
         done = team_intel['Env-Suffered-Reset']
         step_cnt = team_intel['Current-Obs-Step']
-        action_list = []
-        return action_list, None
+        action_list = np.zeros(shape=(self.n_agent, self.n_thread, 1))
+        return action_list, team_intel
 
 

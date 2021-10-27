@@ -35,6 +35,8 @@ class EnvWithRay(object):
             return self.echo
         # ! step here
         ob, reward, done, info = self.env.step(act)
+        if isinstance(ob, list): ob = np.array(ob, dtype=object)
+        
         if np.any(done):
             # if the environment is terminated, 
             # first, put terminal obs into 'info'

@@ -594,3 +594,13 @@ def pad_at_dim(array, dim, n):
     extra_n = n-array.shape[dim]
     padding = zeros_like_except_dim(array, except_dim=dim, n=extra_n)
     return torch.cat((array, padding), axis=dim)
+
+def stack_vec_with_padding(arr_list):
+    _len = [arr.len() for arr in arr_list]
+    max_len = max(_len)
+    n_subject = arr_list.len()
+    dtype = arr_list[0].dtype
+    arr_np = np.zeros(shape=(n_subject, max_len), dtype=dtype)
+    for i, arr in enumerate(arr_list):
+        arr_np[i,:_len[i]] = arr
+    return arr_np

@@ -159,7 +159,7 @@ class Runner(object):
                 # If the test run reach its end:
                 if (self.test_info_runner['Thread-Episode-Cnt']>=ntimesthread).all():
                     reward_of_each_ep = np.stack(self.test_info_runner['Recent-Reward-Sum']).squeeze()
-                    reward_avg_itr_agent = reward_of_each_ep[:, self.interested_agents_uid].mean()
+                    reward_avg_itr_agent = reward_of_each_ep[:, self.interested_agents_uid].mean() if not self.RewardAsUnity else np.stack(reward_of_each_ep).mean()
                     win_rate = np.array(self.test_info_runner['win']).mean()
                     self.mcv.rec(reward_avg_itr_agent, 'test-reward')
                     self.mcv.rec(win_rate, 'test-win-rate')

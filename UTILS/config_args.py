@@ -40,6 +40,9 @@ def override_config_file(cfg_group, new_cfg, vb):
         print绿(''.join(['-']*len(str_pro)),)
         arg_summary(default_configs, new_cfg, altered_cv)
         print绿(''.join(['-']*len(str_pro)),'\n\n\n')
+    if 'TEAM_NAMES' in new_cfg:
+        return [item.split('->')[0] for item in new_cfg['TEAM_NAMES']]
+    return None
         
 def check_config_relevence(json_data):
     env_name = json_data['config.py->GlobalConfig']['env_name']
@@ -49,7 +52,10 @@ def check_config_relevence(json_data):
 
 def load_config_via_json(json_data, vb):
     for cfg_group in json_data:
-        override_config_file(cfg_group, json_data[cfg_group], vb)
+        dependency = override_config_file(cfg_group, json_data[cfg_group], vb)
+        if dependency is not None:
+            for dep in dependency:
+                assert any([dep in k for k in json_data.keys()]), 'Arg check failure, There is a something missing!'
     check_config_relevence(json_data)
     return None
 
@@ -62,7 +68,7 @@ def get_core_args(vb=True):
     if load_via_json:
         if len(unknown) > 0 and vb:  
             print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
-        import json
+        import commentjson as json
         with open(args.cfg) as f: json_data = json.load(f)
         core_group = 'config.py->GlobalConfig'
         override_config_file(core_group, json_data[core_group], vb)
@@ -85,7 +91,7 @@ def get_args(vb=True):
     if load_via_json:
         if len(unknown) > 0 and vb: 
             print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
-        import json
+        import commentjson as json
         with open(args.cfg) as f:
             json_data = json.load(f)
         new_args = load_config_via_json(json_data, vb)
@@ -116,6 +122,7 @@ def check_experiment_log_path(logdir):
     res = None
     if os.path.exists(logdir):
         if os.path.exists(logdir+'test_stage'): return None
+        print亮红('Current log path:', logdir)
         print亮红('Warning! you will overwrite old logs if continue!')
         print亮红("Pause for 60 seconds before continue (or enter NEW note name!)")
         try:
@@ -179,6 +186,8 @@ def my_setattr(conf_class, key, new_value, vb):
             replace_item = True
         elif replace_item == 'False':
             replace_item = False
+        elif isinstance(replace_item, bool):
+            replace_item = original_item
         else:
             assert False, ('enter True or False, but have:', replace_item)
     elif isinstance(original_item, int):

@@ -7,8 +7,8 @@
         "num_threads": "64",
         "report_reward_interval": "64",
         "test_interval": "2048",
-        "device": "cuda:0",
-        "gpu_party": "CUDA0_P1",
+        // "device": "cuda:0",
+        // "gpu_party": "CUDA0_P1",
         "fold": "1",
         "seed": 9995,
         "backup_files":[

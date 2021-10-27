@@ -56,7 +56,9 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     # Matlab Plot Bridge switch on/off
     show_curlve = False
 
+    interested_agent_num = 50
     interested_agent_uid = range(0,50)
+    interested_agent_uid_cv = ChainVar(lambda interested_agent_num:range(0,interested_agent_num), chained_with=['interested_agent_num']) 
     train_time_testing = True
     test_only = False
 

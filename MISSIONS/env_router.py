@@ -47,6 +47,8 @@ def load_scenario_config():
         ScenarioConfig = getattr(importlib.import_module('MISSIONS.sr_tasks.multiagent.scenarios.'+_env_name), 'ScenarioConfig')
     elif env_name == 'starcraft2':
         from MISSIONS.starcraft.sc2_env_wrapper import ScenarioConfig
+    elif env_name == 'unity_game':
+        from MISSIONS.unity_game.unity_game_wrapper import ScenarioConfig
     else:
         assert False, ('need to find path of ScenarioConfig')
     GlobalConfig.scenario_config = ScenarioConfig
@@ -64,6 +66,8 @@ def make_env_function(env_name, rank):
         from MISSIONS.air_fight.environment.air_fight_compat import make_air_fight_env as env_init_function
     elif env_name == 'starcraft2':
         from MISSIONS.starcraft.sc2_env_wrapper import make_sc2_env as env_init_function
+    elif env_name == 'unity_game':
+        from MISSIONS.unity_game.unity_game_wrapper import make_env as env_init_function
     elif 'native_gym' in env_name:
         assert '->' in env_name
         _, native_gym_env_name = env_name.split('->')
