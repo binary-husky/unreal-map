@@ -194,6 +194,19 @@ class v2d_family():
         # self.v_name_list = {  'char_index':{ 'color': ?,'pos':(x,y),'shape':(xxxx,yyyy) }   }
         # self.style_list = {'red': {'style_name_list':[], 'plot_handle':handle} }
 
+        # from UTILS.tensor_ops import my_view
+        # X = np.arange(-6, 6, 0.1)
+        # Y = np.arange(-6, 6, 0.1)
+        # X, Y = np.meshgrid(X, Y)    # 100
+        # X = my_view(X, [-1,1])
+        # Y = my_view(Y, [-1,1])
+        # arr = np.concatenate((X,Y), -1)
+        # Z = self.get_terrain(arr, self.theta)
+        # d = int(np.sqrt(X.shape[0]))
+        # X = X.reshape(d,d)
+        # Y = Y.reshape(d,d)
+        # Z = Z.reshape(d,d)
+        # plt.contourf(X, Y, Z)
         from UTILS.tensor_ops import my_view
         X = np.arange(-6, 6, 0.1)
         Y = np.arange(-6, 6, 0.1)
@@ -206,7 +219,11 @@ class v2d_family():
         X = X.reshape(d,d)
         Y = Y.reshape(d,d)
         Z = Z.reshape(d,d)
-        plt.contourf(X, Y, Z)
+        from matplotlib.colors import LinearSegmentedColormap
+        cmap_name = 'my_list'
+        colors = [(0.4,0.4,0.4),(0.7,0.7,0.7)]
+        cmap = LinearSegmentedColormap.from_list(cmap_name, colors, N=10)
+        plt.contourf(X, Y, Z, levels= 10,cmap=cmap)
 
         for style in self.style_list.keys(): 
             style_name_list = self.style_list[style]['style_name_list']
@@ -258,7 +275,7 @@ class v2d_family():
     def v2d_show(self):
         self.v2d_draw()
         plt.draw()
-        plt.pause(0.1)
+        plt.pause(0.02)
         # print('v2d_show')
 
 

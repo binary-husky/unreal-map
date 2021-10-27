@@ -31,12 +31,12 @@ def make_parallel_envs(process_pool, marker=''):
 
 def load_scenario_config():
     env_name = GlobalConfig.env_name
-    if env_name == 'fortattack':
-        from MISSIONS.gym_fortattack.fortattack_parallel_run import ScenarioConfig    
-    elif env_name == 'fortattack_pvp':
-        from MISSIONS.gym_fortattack_pvp.fortattack_parallel_run import ScenarioConfig
-    elif env_name == 'fortattack_ma':
-        from MISSIONS.gym_fortattack_ma.fortattack_parallel_run import ScenarioConfig
+    if env_name == 'collective_assult':
+        from MISSIONS.collective_assult.collective_assult_parallel_run import ScenarioConfig    
+    elif env_name == 'collective_assult_pvp':
+        from MISSIONS.collective_assult_pvp.collective_assult_parallel_run import ScenarioConfig
+    elif env_name == 'collective_assult':
+        from MISSIONS.collective_assult.collective_assult_parallel_run import ScenarioConfig
     elif env_name == 'air_fight':
         from MISSIONS.air_fight.environment.air_fight_compat import ScenarioConfig
     elif 'native_gym' in env_name:
@@ -54,12 +54,12 @@ def load_scenario_config():
 def make_env_function(env_name, rank):
     load_scenario_config()
     
-    if env_name == 'fortattack':
-        from MISSIONS.gym_fortattack.fortattack_parallel_run import make_fortattack_env as env_init_function
-    elif env_name == 'fortattack_ma':
-        from MISSIONS.gym_fortattack_ma.fortattack_parallel_run import make_fortattack_env as env_init_function
-    elif env_name == 'fortattack_pvp':
-        from MISSIONS.gym_fortattack_pvp.fortattack_parallel_run import make_fortattack_env as env_init_function
+    if env_name == 'collective_assult':
+        from MISSIONS.collective_assult.collective_assult_parallel_run import make_collective_assult_env as env_init_function
+    elif env_name == 'collective_assult':
+        from MISSIONS.collective_assult.collective_assult_parallel_run import make_collective_assult_env as env_init_function
+    elif env_name == 'collective_assult_pvp':
+        from MISSIONS.collective_assult_pvp.collective_assult_parallel_run import make_collective_assult_env as env_init_function
     elif env_name == 'air_fight':
         from MISSIONS.air_fight.environment.air_fight_compat import make_air_fight_env as env_init_function
     elif env_name == 'starcraft2':

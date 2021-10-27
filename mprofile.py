@@ -20,8 +20,8 @@ conf_override = {
 
 base_conf = {
     "config.py->GlobalConfig": {
-        "env_name":"fortattack_ma",
-        "env_path":"MISSIONS.gym_fortattack_ma",
+        "env_name":"collective_assult",
+        "env_path":"MISSIONS.collective_assult",
         "note": "benchIDL50",
         "num_threads": "50",
         "report_reward_interval": "50",
@@ -31,7 +31,7 @@ base_conf = {
         "seed": 777
     },
 
-    "MISSIONS.gym_fortattack_ma.fortattack_parallel_run.py->ScenarioConfig": {
+    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
         "size": "5",
         "num_steps": "200",
         "render": "False",
