@@ -1,8 +1,8 @@
 {
     "config.py->GlobalConfig": {
-        "note": "revise-100vs100-train",
-        "env_name":"collective_assult",
-        "env_path":"MISSIONS.collective_assult",
+        "note": "revisit-cargo",
+        "env_name":"sr_tasks->cargo",
+        "env_path":"MISSIONS.sr_tasks.multiagent.scenarios.cargo",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
@@ -12,25 +12,15 @@
         "fold": "1",
         "seed": 9995,
         "backup_files":[
-            "ALGORITHM/concentration/net.py",
-            "ALGORITHM/concentration/ppo.py",
-            "MISSIONS/collective_assult/envs/collective_assult_env.py",
-            "ALGORITHM/concentration/trajectory.py"
+            "MISSIONS/sr_tasks/multiagent/scenarios/cargo.py"
         ]
 
     },
 
-    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
-        "size": "5",
-        "random_jam_prob": 0.05,
-        "introduce_terrain":"True",
-        "terrain_parameters": [0.05, 0.2],
-        "num_steps": "180",
-        "render":"False",
-        "render_with_unity":"False",
-        "MCOM_DEBUG":"False",
-        "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
-        "half_death_reward": "True",
+    "MISSIONS.sr_tasks.multiagent.scenarios.cargo.py->ScenarioConfig": {
+        "n_worker": 100,
+        "weight_percent": 0.85,
+        "n_cargo":5,
         "TEAM_NAMES": [
             "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
         ]

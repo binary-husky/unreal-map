@@ -24,24 +24,6 @@ def convert_to_pole2D(vec):
     return Range, angle
 
 
-def sr_tasks_env(env_id, rank):
-    import multiagent.scenarios as scenarios
-    from multiagent.environment import MultiAgentEnv
-    assert 'sr_tasks' in env_id
-    assert '->' in env_id
-    _, env_id = env_id.split('->')
-    Scenario = getattr(importlib.import_module('MISSIONS.sr_tasks.multiagent.scenarios.'+env_id), 'Scenario')
-    scenario = Scenario(process_id=rank)
-    world = scenario.make_world()
-    env = MultiAgentEnv(world=world,
-                        reset_callback=scenario.reset_world,
-                        reward_callback=scenario.reward,
-                        observation_callback=scenario.observation,
-                        info_callback=scenario.info if hasattr(scenario, 'info') else None,
-                        discrete_action=True,
-                        done_callback=scenario.done)
-    return env
-
 
 
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!

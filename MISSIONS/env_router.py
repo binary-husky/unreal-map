@@ -20,7 +20,6 @@ def make_parallel_envs(process_pool, marker=''):
         from MISSIONS.air_fight.environment.pytransform import pyarmor_runtime
         pyarmor_runtime()
 
-
     if GlobalConfig.num_threads > 1:
         envs = SuperpoolEnv(process_pool, env_args_dict_list)
     else:
@@ -45,11 +44,11 @@ env_init_function_ref = {
     "native_gym": ("MISSIONS.native_gym.native_gym_config",                                     'env_init_function'),
     "starcraft2": ("MISSIONS.starcraft.sc2_env_wrapper",                                        'make_sc2_env'),
     "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'make_env'),
-    "sr_tasks->cargo": ("MISSIONS.sr_tasks.multiagent.scenarios.cargo",                         'ScenarioConfig'),
+    "sr_tasks": ("MISSIONS.sr_tasks.multiagent.scenario",                                       'sr_tasks_env'),
 }
 
 def load_scenario_config():
-    if GlobalConfig.env_name in import_path_ref:
+    if GlobalConfig.env_name not in import_path_ref:
         assert False, ('need to find path of ScenarioConfig')
     import_path, ScenarioConfig = import_path_ref[GlobalConfig.env_name]
     GlobalConfig.scenario_config = getattr(importlib.import_module(import_path), ScenarioConfig)
@@ -75,22 +74,22 @@ def make_env_function(env_name, rank):
     #     return env
         
 
-def sr_tasks_env(env_id, rank):
-    import multiagent.scenarios as scenarios
-    from multiagent.environment import MultiAgentEnv
-    assert 'sr_tasks' in env_id
-    assert '->' in env_id
-    _, env_id = env_id.split('->')
-    Scenario = getattr(importlib.import_module('MISSIONS.sr_tasks.multiagent.scenarios.'+env_id), 'Scenario')
+# def sr_tasks_env(env_id, rank):
+#     import multiagent.scenarios as scenarios
+#     from multiagent.environment import MultiAgentEnv
+#     assert 'sr_tasks' in env_id
+#     assert '->' in env_id
+#     _, env_id = env_id.split('->')
+#     Scenario = getattr(importlib.import_module('MISSIONS.sr_tasks.multiagent.scenarios.'+env_id), 'Scenario')
 
-    scenario = Scenario(process_id=rank)
-    world = scenario.make_world()
+#     scenario = Scenario(process_id=rank)
+#     world = scenario.make_world()
 
-    env = MultiAgentEnv(world=world,
-                        reset_callback=scenario.reset_world,
-                        reward_callback=scenario.reward,
-                        observation_callback=scenario.observation,
-                        info_callback=scenario.info if hasattr(scenario, 'info') else None,
-                        discrete_action=True,
-                        done_callback=scenario.done)
-    return env
+#     env = MultiAgentEnv(world=world,
+#                         reset_callback=scenario.reset_world,
+#                         reward_callback=scenario.reward,
+#                         observation_callback=scenario.observation,
+#                         info_callback=scenario.info if hasattr(scenario, 'info') else None,
+#                         discrete_action=True,
+#                         done_callback=scenario.done)
+#     return env

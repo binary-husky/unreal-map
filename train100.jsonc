@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "revise-100vs100-train",
+        "note": "revise-100vs100-train-test-new-launch2",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "interested_agent_num":100,
