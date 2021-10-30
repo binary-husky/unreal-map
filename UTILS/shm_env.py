@@ -1,6 +1,7 @@
 import numpy as np
 import time
 from MISSIONS.env_router import make_env_function
+from UTILS.colorful import print亮红
 
 N = lambda x: np.array(x)
 
@@ -35,7 +36,9 @@ class EnvWithRay(object):
             return self.echo
         # ! step here
         ob, reward, done, info = self.env.step(act)
-        if isinstance(ob, list): ob = np.array(ob, dtype=object)
+        if isinstance(ob, list): 
+            print('warning ob is list, which is low-efficient')
+            ob = np.array(ob, dtype=object)
         
         if np.any(done):
             # if the environment is terminated, 
@@ -74,11 +77,16 @@ class EnvWithRay(object):
         return None
 
     def get_act_space(self):
-        return str(self.action_space)
+        return self.action_space
 
     def get_obs_space(self):
-        return str(self.observation_space)
+        return self.observation_space
 
+    def get_act_space_str(self):
+        return str(self.action_space)
+
+    def get_obs_space_str(self):
+        return str(self.observation_space)
 
 
 # ! this class execute in main process
@@ -89,10 +97,15 @@ class SuperpoolEnv(object):
         self.env_name_marker = env_args_dict_list[0][0]['marker']
         self.env = 'env' + self.env_name_marker
         self.SuperPool.add_target(name=self.env, lam=EnvWithRay, args_list=env_args_dict_list)
-        self.observation_space = self.SuperPool.exec_target(name=self.env, dowhat='get_obs_space')[0]
-        self.action_space =      self.SuperPool.exec_target(name=self.env, dowhat='get_act_space')[0]
-        # just be careful
-        # this program has not yet consider different action spaces in parallel environments
+        try:
+            self.observation_space = self.SuperPool.exec_target(name=self.env, dowhat='get_obs_space')[0]
+            self.action_space =      self.SuperPool.exec_target(name=self.env, dowhat='get_act_space')[0]
+        except:
+            print亮红('Gym Space is unable to transfer between processes, using string instead')
+            self.observation_space = self.SuperPool.exec_target(name=self.env, dowhat='get_obs_space_str')[0]
+            self.action_space =      self.SuperPool.exec_target(name=self.env, dowhat='get_act_space_str')[0]
+        # self.observation_space = self.SuperPool.exec_target(name=self.env, dowhat='get_obs_space_str')[0]
+        # self.action_space =      self.SuperPool.exec_target(name=self.env, dowhat='get_act_space_str')[0]
         return
 
     def get_space(self):

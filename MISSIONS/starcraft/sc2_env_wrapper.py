@@ -1,5 +1,5 @@
 import os,sys
-
+import numpy as np
 class ChainVar(object):
     def __init__(self, chain_func, chained_with):
         self.chain_func = chain_func
@@ -31,16 +31,16 @@ class ChainVar(object):
     2c_vs_64zg      2       64      400    
 '''
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
-    map_ = '27m_vs_30m'
+    map_ = 'corridor'
     step_mul = 8
     difficulty = '7'
     game_version = 'latest'
     replay_dir = ''
-    episode_limit = 180
+    episode_limit = 400
 
     N_TEAM = 1  
-    N_AGENT_EACH_TEAM = [27,]    # because map_ = '3m'
-    AGENT_ID_EACH_TEAM = [range(0,27),]
+    N_AGENT_EACH_TEAM = [6,]    # because map_ = '3m'
+    AGENT_ID_EACH_TEAM = [range(0,6),]
     TEAM_NAMES = [  
                     'ALGORITHM.Starcraft.star_foundation->StarFoundation',
                 ] 
@@ -51,11 +51,11 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     avail_act_provided = True
 
     obs_vec_length = 6
-    max_steps_episode = 180
+    max_steps_episode = episode_limit
     max_steps_episode_cv = ChainVar(lambda episode_limit:episode_limit, chained_with=['episode_limit']) 
     return_mat = False
 
-    n_action = 36
+    n_action = 30
 
 def make_sc2_env(env_id, rank):
     return Env_Compat_Wrapper(rank)
@@ -93,30 +93,31 @@ class Env_Compat_Wrapper():
         self.action_space =  {'n_actions': env_info["n_actions"], 
                               'n_agents':  env_info["n_agents"]}
 
-        assert env_info["n_agents"] == ScenarioConfig.N_AGENT_EACH_TEAM[0], ('Changed a map? Reconfig ScenarioConfig Above!!')
-        assert env_info["episode_limit"] == ScenarioConfig.episode_limit, ('Changed a map? Reconfig ScenarioConfig Above!!',env_info["episode_limit"])
+        assert env_info["n_agents"] == ScenarioConfig.N_AGENT_EACH_TEAM[0], ('Changed a map? Reconfig ScenarioConfig Above!! n_agents:', env_info["n_agents"])
+        assert env_info["episode_limit"] == ScenarioConfig.episode_limit, ('Changed a map? Reconfig ScenarioConfig Above!! episode_limit:',env_info["episode_limit"])
+        assert env_info["n_actions"] == ScenarioConfig.n_action, ('Changed a map? Reconfig ScenarioConfig Above!! n_action:', env_info["n_actions"])
 
         self.id = rank
         pass
 
     def step(self, act):
-        with HiddenPrints():
-            reward, terminated, info = self.env.step(act)
-            reward = [reward]
-            done = terminated
-            ob = self.env.get_obs()
-            info['state'] = self.env.get_state()
-            info['avail-act'] = self.env.get_avail_actions()
-            return (ob, reward, done, info)
+        # with HiddenPrints():
+        reward, terminated, info = self.env.step(act)
+        reward = [reward]
+        done = terminated
+        ob = np.array(self.env.get_obs())
+        info['state'] = self.env.get_state()
+        info['avail-act'] = self.env.get_avail_actions()
+        return (ob, reward, done, info)
 
     def reset(self):
-        with HiddenPrints():
-            self.env.reset()
-            ob = self.env.get_obs()
-            info = {}
-            info['state'] = self.env.get_state()
-            info['avail-act'] = self.env.get_avail_actions()
-            return ob, info
+        # with HiddenPrints():
+        self.env.reset()
+        ob = self.env.get_obs()
+        info = {}
+        info['state'] = self.env.get_state()
+        info['avail-act'] = self.env.get_avail_actions()
+        return ob, info
 
     def render(self):
         return

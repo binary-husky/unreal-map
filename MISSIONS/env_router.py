@@ -33,6 +33,7 @@ import_path_ref = {
     "air_fight": ("MISSIONS.air_fight.environment.air_fight_compat",                            'ScenarioConfig'),
     "native_gym": ("MISSIONS.native_gym.native_gym_config",                                     'ScenarioConfig'),
     "starcraft2": ("MISSIONS.starcraft.sc2_env_wrapper",                                        'ScenarioConfig'),
+    "sc2": ("MISSIONS.starcraft.sc2_env_wrapper",                                               'ScenarioConfig'),
     "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'ScenarioConfig'),
     "sr_tasks->cargo": ("MISSIONS.sr_tasks.multiagent.scenarios.cargo",                         'ScenarioConfig'),
 }
@@ -43,6 +44,7 @@ env_init_function_ref = {
     "air_fight": ("MISSIONS.air_fight.environment.air_fight_compat",                            'make_air_fight_env'),
     "native_gym": ("MISSIONS.native_gym.native_gym_config",                                     'env_init_function'),
     "starcraft2": ("MISSIONS.starcraft.sc2_env_wrapper",                                        'make_sc2_env'),
+    "sc2": ("MISSIONS.starcraft.sc2_env_wrapper",                                               'make_sc2_env'),
     "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'make_env'),
     "sr_tasks": ("MISSIONS.sr_tasks.multiagent.scenario",                                       'sr_tasks_env'),
 }

@@ -52,6 +52,8 @@ def opti_numpy_object(obj, shm):
                     shm_pointer = deepin(item2, shm_pointer)
                     obj[i_th] = tuple(item2)
                 elif isinstance(obj[i_th], np.ndarray):
+                    if obj[i_th].dtype == 'object':
+                        print('dtype is object, which is low efficient and may cause error!')
                     NID, shm_pointer = convert_ndarray(obj[i_th], shm_pointer, shm)
                     obj[i_th] = NID
                 else:

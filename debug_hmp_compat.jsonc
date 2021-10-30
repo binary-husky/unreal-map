@@ -1,0 +1,33 @@
+{
+    "config.py->GlobalConfig": {
+        "note": "pymarl-compat",
+        "env_name":"sc2",
+        "env_path":"MISSIONS.starcraft.sc2_env_wrapper",
+        "draw_mode": "Img",
+        "num_threads": "8",
+        "report_reward_interval": "8",
+        "test_interval": "2048",
+        // "device": "cuda:0",
+        // "gpu_party": "CUDA0_P1",
+        "fold": "1",
+        "seed": 9995,
+        "backup_files":[
+            // "MISSIONS/sr_tasks/multiagent/scenarios/cargo.py"
+        ]
+
+    },
+
+    "MISSIONS.starcraft.sc2_env_wrapper.py->ScenarioConfig": {
+        // "n_worker": 100,
+        // "weight_percent": 0.85,
+        // "n_cargo":5,
+        "TEAM_NAMES": [
+            "ALGORITHM.pymarl2_compat.pymarl2_compat->PymarlFoundation"
+        ]
+    },
+
+    "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig": {
+        "load_checkpoint": "False"
+    }
+}
+
