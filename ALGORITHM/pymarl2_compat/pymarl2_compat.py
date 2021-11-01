@@ -1,21 +1,43 @@
 from scipy.optimize import linear_sum_assignment
 import numpy as np
 import copy
-import math
+import time
 import random
 import redis, pickle
+import subprocess
+from UTILS.colorful import print亮紫
 
 class AlgorithmConfig():
     load_checkpoint = False
     episode_limit = 400 # int(100e3)
 
 class PymarlFoundation():
+    def init_pymarl(self):
+        fp = open('RECYCLE/unity.log', 'w+')
+        import uuid 
+        self.remote_uuid = uuid.uuid1().hex   # use uuid to identify threads
+        self.redis = redis.Redis(host='127.0.0.1', port=6379)
+        # self.redis.delete()
+        subprocess.Popen(["python", 
+            "/home/fuqingxu/pymarl2/pymarl2src/main.py", 
+            "--config=qmix", 
+            "--env-config=HMP_compat",
+            "with",
+            "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
+        time.sleep(5)
+
+    def __del__(self):
+        print('PymarlFoundation end, cleaning redis')
+        # self.shared_memory.close()
+        self.redis.delete('>>hmp%s'%self.remote_uuid)
+        for uuid, which_env in self.uuid2threads.items():
+            self.redis.delete('<<hmp%s'%uuid)
+
+
     def __init__(self, n_agent, n_thread, space, mcv):
         self.n_thread = n_thread
         self.n_agent = n_agent
         self.handler = [None for _  in range(self.n_thread)]
-        self.redis = redis.Redis(host='127.0.0.1', port=6379)
-        self.redis.flushall()
         self.remote_pymarl_start_cmd = ""
         self.remote_pymarl_interface = ""
         self.team_intel = None
@@ -24,29 +46,34 @@ class PymarlFoundation():
         self.current_actions = [None for _ in range(self.n_thread)]
         self.previous_action = None
         self.previous_ENV_PAUSE = None
-        # self.redis.rpop(key)
-        # self.redis.lpush(key, value)
+        self.register_step_call = [False for _ in range(self.n_thread)]
+        self.init_pymarl()
+
+        # missing :{'battle_won': False, 'dead_allies': 6, 'dead_enemies': 0}
 
     def basic_io(self):
-        _, buf = self.redis.brpop('>>hmp')
+        _, buf = self.redis.brpop('>>hmp%s'%self.remote_uuid)
         cmd_arg = pickle.loads(buf)
         cmd, args, uuid = cmd_arg
-        print('pop (cmd) %s'%cmd)
+        # print('pop (cmd) %s'%cmd)
         # if args is None: args = ()
         self.current_uuid = uuid
         res = getattr(self, cmd)(*args)
-        if cmd!='step_of': # only step function need a delay
+        if cmd=='step_of': # only step function need a delay
+            pass
+        elif cmd=='close':
+            raise ReferenceError
+        else:
             self.redis.lpush('<<hmp%s'%uuid, pickle.dumps(res))
-            print('push (cmd) %s'%cmd)
+            # print('push (cmd) %s'%cmd)
     
     def step_callback_pymarl(self):
         for uuid, which_env in self.uuid2threads.items():
             if uuid == 'thread_cnt': continue
-            # If the env is being frozen
-            if self.team_intel['ENV-PAUSE'][which_env] and (not self.previous_ENV_PAUSE[which_env]): continue
-
-            # If the env is being unfrozen, or everything just init
-            if (not self.team_intel['ENV-PAUSE'][which_env]) and (self.previous_ENV_PAUSE is None or self.previous_ENV_PAUSE[which_env]): continue
+            if not self.register_step_call[which_env]: continue
+            self.register_step_call[which_env] = False
+            # if self.team_intel['Env-Suffered-Reset'][which_env]: 
+            #     print('s')
 
             reward = self.team_intel['Latest-Reward'][which_env]
             terminated = self.team_intel['Env-Suffered-Reset'][which_env]
@@ -55,13 +82,13 @@ class PymarlFoundation():
                 if key in env_info: env_info.pop(key)
             res = (reward, terminated, env_info)
             self.redis.lpush('<<hmp%s'%uuid, pickle.dumps(res))
-            if self.get_env_with_currentuuid()==0:
-                print('push (reward, terminated, env_info) step_callback_pymarl')
+            # print('push (reward, terminated, env_info) step_callback_pymarl')
     
     # @basic_io_call
     def step_of(self, act):
         which_env = self.get_env_with_currentuuid()
         self.current_actions[which_env] = act
+        self.register_step_call[which_env] = True
 
     # @basic_io_call
     def get_state_size(self):
@@ -87,6 +114,11 @@ class PymarlFoundation():
     def confirm_reset(self):
         # reset 函数在 parallel_runner.py中调用
         return True
+
+    # @basic_io_call
+    def close(self):
+        # reset 函数在 parallel_runner.py中调用
+        return
 
     # @basic_io_call
     def get_stats_of(self):
@@ -131,21 +163,25 @@ class PymarlFoundation():
             self.basic_io()
             # print('basic_io fin')
 
-
-    def interact_with_env(self, team_intel):
-        self.team_intel = team_intel
-
-        # finish previous step call
-        self.step_callback_pymarl()
-
-        # clear all actions
+    def clear_actions(self):
         self.current_actions = [None for i in range(self.n_thread)]
-        # set 'NaN' action for Paused threads, note that 'NaN' differs from 'None'!
-        for ith, paused in enumerate(team_intel['ENV-PAUSE']):
+        for ith, paused in enumerate(self.team_intel['ENV-PAUSE']):
             if paused: 
                 assert self.previous_action[ith] is not None
                 self.current_actions[ith] = self.previous_action[ith]+np.nan
 
+
+    def interact_with_env(self, team_intel):
+        self.team_intel = team_intel
+        # print亮紫(self.team_intel['ENV-PAUSE'])
+
+        # finish previous step call
+        self.step_callback_pymarl()
+        # check step_call register
+        assert not any(self.register_step_call)
+
+        # clear all actions, set 'NaN' action for Paused threads, note that 'NaN' differs from 'None'!
+        self.clear_actions()
         self.deal_with_pymarl()
 
         # info = team_intel['Latest-Team-Info']

@@ -1,8 +1,11 @@
 {
     "config.py->GlobalConfig": {
         "note": "pymarl-compat",
+        "train_time_testing": "False", // do not manage train time testing, pymarl env manage the testing itself
+        "heartbeat_on":"False", // just some fancy visual effect
         "env_name":"sc2",
         "env_path":"MISSIONS.starcraft.sc2_env_wrapper",
+        "interested_agent_num":100,
         "draw_mode": "Img",
         "num_threads": "8",
         "report_reward_interval": "8",
@@ -18,9 +21,10 @@
     },
 
     "MISSIONS.starcraft.sc2_env_wrapper.py->ScenarioConfig": {
-        // "n_worker": 100,
-        // "weight_percent": 0.85,
-        // "n_cargo":5,
+        "map_": "corridor",
+        "SINGLE_TEAM_N_AGENT": 6,
+        "episode_limit": 400,
+
         "TEAM_NAMES": [
             "ALGORITHM.pymarl2_compat.pymarl2_compat->PymarlFoundation"
         ]

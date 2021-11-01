@@ -39,8 +39,14 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     episode_limit = 400
 
     N_TEAM = 1  
-    N_AGENT_EACH_TEAM = [6,]    # because map_ = '3m'
-    AGENT_ID_EACH_TEAM = [range(0,6),]
+    SINGLE_TEAM_N_AGENT = 6
+
+    N_AGENT_EACH_TEAM = [SINGLE_TEAM_N_AGENT,] 
+    N_AGENT_EACH_TEAM_cv = ChainVar(lambda SINGLE_TEAM_N_AGENT:[SINGLE_TEAM_N_AGENT,], chained_with=['SINGLE_TEAM_N_AGENT'])
+
+    AGENT_ID_EACH_TEAM = [range(0,SINGLE_TEAM_N_AGENT),]
+    AGENT_ID_EACH_TEAM_cv = ChainVar(lambda SINGLE_TEAM_N_AGENT:[range(0,SINGLE_TEAM_N_AGENT),], chained_with=['SINGLE_TEAM_N_AGENT'])
+
     TEAM_NAMES = [  
                     'ALGORITHM.Starcraft.star_foundation->StarFoundation',
                 ] 

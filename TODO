@@ -1,0 +1,5 @@
+about pymarl2
+
+the args management in pymarl is chaos
+be careful about the alignment of HMP_compat.yaml and sc2.yaml, 
+because it has test interval parameters in it

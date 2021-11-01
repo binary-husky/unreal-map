@@ -31,6 +31,7 @@ class Runner(object):
         self.n_frame =  cfg.n_parallel_frame
         self.test_epoch=cfg.test_epoch
         self.note =     cfg.note   # experiment note
+        self.hb_on =    cfg.heartbeat_on and stdout.isatty()
         self.current_n_frame = 0
         self.current_n_episode = 0
         self.max_n_episode = cfg.max_n_episode
@@ -59,7 +60,7 @@ class Runner(object):
             # (If required, a test run will be started at proper time)
             self.info_runner = self.update_runner(done, obs, reward, info)
             toc=time.time(); dt = toc-tic; tic = toc
-            if stdout.isatty(): print('\r [task runner]: FPS %d, episode steping %s       '%(
+            if self.hb_on: print('\r [task runner]: FPS %d, episode steping %s       '%(
                 int(self.n_thread/dt), self.heartbeat()), end='', flush=True)
             if self._exit_early_: print('exit_early'); break
         # All task done! Time to shut down
