@@ -30,22 +30,62 @@ class ChainVar(object):
     bane_vs_bane    24      24      200    
     2c_vs_64zg      2       64      400    
 '''
+
+sc2map_info = {
+    "3m":               {"n_agents":3    ,  "n_hostile":   3    , "ep_limit":  60   },
+    "8m":               {"n_agents":8    ,  "n_hostile":   8    , "ep_limit":  120  },
+    "25m":              {"n_agents":25   ,  "n_hostile":   25   , "ep_limit":  150  },
+    "5m_vs_6m":         {"n_agents":5    ,  "n_hostile":   6    , "ep_limit":  70   },
+    "8m_vs_9m":         {"n_agents":8    ,  "n_hostile":   9    , "ep_limit":  120  },
+    "10m_vs_11m":       {"n_agents":10   ,  "n_hostile":   11   , "ep_limit":  150  },
+    "27m_vs_30m":       {"n_agents":27   ,  "n_hostile":   30   , "ep_limit":  180  },
+    "MMM":              {"n_agents":10   ,  "n_hostile":   10   , "ep_limit":  150  },
+    "MMM2":             {"n_agents":10   ,  "n_hostile":   12   , "ep_limit":  180  },
+    "2s3z":             {"n_agents":5    ,  "n_hostile":   5    , "ep_limit":  120  },
+    "3s5z":             {"n_agents":8    ,  "n_hostile":   8    , "ep_limit":  150  },
+    "3s5z_vs_3s6z":     {"n_agents":8    ,  "n_hostile":   9    , "ep_limit":  170  },
+    "3s_vs_3z":         {"n_agents":3    ,  "n_hostile":   3    , "ep_limit":  150  },
+    "3s_vs_4z":         {"n_agents":3    ,  "n_hostile":   4    , "ep_limit":  200  },
+    "3s_vs_5z":         {"n_agents":3    ,  "n_hostile":   5    , "ep_limit":  250  },
+    "1c3s5z":           {"n_agents":9    ,  "n_hostile":   9    , "ep_limit":  180  },
+    "2m_vs_1z":         {"n_agents":2    ,  "n_hostile":   1    , "ep_limit":  150  },
+    "corridor":         {"n_agents":6    ,  "n_hostile":   24   , "ep_limit":  400  },
+    "6h_vs_8z":         {"n_agents":6    ,  "n_hostile":   8    , "ep_limit":  150  },
+    "2s_vs_1sc":        {"n_agents":2    ,  "n_hostile":   1    , "ep_limit":  300  },
+    "so_many_baneling": {"n_agents":7    ,  "n_hostile":   32   , "ep_limit":  100  },
+    "bane_vs_bane":     {"n_agents":24   ,  "n_hostile":   24   , "ep_limit":  200  },
+    "2c_vs_64zg":       {"n_agents":2    ,  "n_hostile":   64   , "ep_limit":  400  },
+}
+
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
     map_ = 'corridor'
     step_mul = 8
     difficulty = '7'
     game_version = 'latest'
     replay_dir = ''
-    episode_limit = 400
+
+    # automatic select episode length limit
+    episode_limit = sc2map_info[map_]["ep_limit"]
+    episode_limit_cv = ChainVar(
+        lambda map_: sc2map_info[map_]["ep_limit"], 
+        chained_with=['map_']
+    )
+
 
     N_TEAM = 1  
     SINGLE_TEAM_N_AGENT = 6
 
     N_AGENT_EACH_TEAM = [SINGLE_TEAM_N_AGENT,] 
-    N_AGENT_EACH_TEAM_cv = ChainVar(lambda SINGLE_TEAM_N_AGENT:[SINGLE_TEAM_N_AGENT,], chained_with=['SINGLE_TEAM_N_AGENT'])
+    N_AGENT_EACH_TEAM_cv = ChainVar(
+        lambda SINGLE_TEAM_N_AGENT:[SINGLE_TEAM_N_AGENT,], 
+        chained_with=['SINGLE_TEAM_N_AGENT']
+    )
 
     AGENT_ID_EACH_TEAM = [range(0,SINGLE_TEAM_N_AGENT),]
-    AGENT_ID_EACH_TEAM_cv = ChainVar(lambda SINGLE_TEAM_N_AGENT:[range(0,SINGLE_TEAM_N_AGENT),], chained_with=['SINGLE_TEAM_N_AGENT'])
+    AGENT_ID_EACH_TEAM_cv = ChainVar(
+        lambda SINGLE_TEAM_N_AGENT:[range(0,SINGLE_TEAM_N_AGENT),], 
+        chained_with=['SINGLE_TEAM_N_AGENT']
+    )
 
     TEAM_NAMES = [  
                     'ALGORITHM.Starcraft.star_foundation->StarFoundation',
@@ -56,12 +96,26 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     state_provided = True
     avail_act_provided = True
 
-    obs_vec_length = 6
-    max_steps_episode = episode_limit
-    max_steps_episode_cv = ChainVar(lambda episode_limit:episode_limit, chained_with=['episode_limit']) 
-    return_mat = False
 
-    n_action = 30
+    max_steps_episode = sc2map_info[map_]["ep_limit"]
+    max_steps_episode_cv = ChainVar(
+        lambda map_: sc2map_info[map_]["ep_limit"], 
+        chained_with=['map_']
+    )
+
+    return_mat = False
+    n_action = 6 + sc2map_info[map_]["n_agents"]
+    n_action_cv = ChainVar(
+        lambda map_:6 + sc2map_info[map_]["n_agents"], 
+        chained_with=['map_']
+    )
+    obs_vec_length = 6
+    
+    # sc2map_info[map_]["n_agents"]
+    # n_action_cv = ChainVar(
+    #     lambda map_: sc2map_info[map_]["n_agents"], 
+    #     chained_with=['map_']
+    # )
 
 def make_sc2_env(env_id, rank):
     return Env_Compat_Wrapper(rank)

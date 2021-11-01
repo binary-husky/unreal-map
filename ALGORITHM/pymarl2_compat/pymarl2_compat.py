@@ -21,6 +21,8 @@ class PymarlFoundation():
         subprocess.Popen(["python", 
             "/home/fuqingxu/pymarl2/pymarl2src/main.py", 
             "--config=qmix", 
+            "with",
+            "batch_size_run=%d"%self.n_thread,
             "--env-config=HMP_compat",
             "with",
             "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
@@ -32,7 +34,6 @@ class PymarlFoundation():
         self.redis.delete('>>hmp%s'%self.remote_uuid)
         for uuid, which_env in self.uuid2threads.items():
             self.redis.delete('<<hmp%s'%uuid)
-
 
     def __init__(self, n_agent, n_thread, space, mcv):
         self.n_thread = n_thread
@@ -55,8 +56,6 @@ class PymarlFoundation():
         _, buf = self.redis.brpop('>>hmp%s'%self.remote_uuid)
         cmd_arg = pickle.loads(buf)
         cmd, args, uuid = cmd_arg
-        # print('pop (cmd) %s'%cmd)
-        # if args is None: args = ()
         self.current_uuid = uuid
         res = getattr(self, cmd)(*args)
         if cmd=='step_of': # only step function need a delay
@@ -65,15 +64,12 @@ class PymarlFoundation():
             raise ReferenceError
         else:
             self.redis.lpush('<<hmp%s'%uuid, pickle.dumps(res))
-            # print('push (cmd) %s'%cmd)
     
     def step_callback_pymarl(self):
         for uuid, which_env in self.uuid2threads.items():
             if uuid == 'thread_cnt': continue
             if not self.register_step_call[which_env]: continue
             self.register_step_call[which_env] = False
-            # if self.team_intel['Env-Suffered-Reset'][which_env]: 
-            #     print('s')
 
             reward = self.team_intel['Latest-Reward'][which_env]
             terminated = self.team_intel['Env-Suffered-Reset'][which_env]
@@ -82,7 +78,6 @@ class PymarlFoundation():
                 if key in env_info: env_info.pop(key)
             res = (reward, terminated, env_info)
             self.redis.lpush('<<hmp%s'%uuid, pickle.dumps(res))
-            # print('push (reward, terminated, env_info) step_callback_pymarl')
     
     # @basic_io_call
     def step_of(self, act):
