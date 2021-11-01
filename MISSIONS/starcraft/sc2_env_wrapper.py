@@ -110,7 +110,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
         chained_with=['map_']
     )
     obs_vec_length = 6
-    
+    reward_vec = False
     # sc2map_info[map_]["n_agents"]
     # n_action_cv = ChainVar(
     #     lambda map_: sc2map_info[map_]["n_agents"], 
@@ -143,7 +143,7 @@ class Env_Compat_Wrapper():
                             difficulty=ScenarioConfig.difficulty,
                             game_version=ScenarioConfig.game_version,
                             # return_mat=ScenarioConfig.return_mat,
-                            # reward_only_positive=False,
+                            reward_vec=ScenarioConfig.reward_vec,
                             replay_dir=ScenarioConfig.replay_dir)
 
         env_info = self.env.get_env_info()
@@ -161,23 +161,23 @@ class Env_Compat_Wrapper():
         pass
 
     def step(self, act):
-        # with HiddenPrints():
-        reward, terminated, info = self.env.step(act)
-        reward = [reward]
-        done = terminated
-        ob = np.array(self.env.get_obs())
-        info['state'] = self.env.get_state()
-        info['avail-act'] = self.env.get_avail_actions()
-        return (ob, reward, done, info)
+        with HiddenPrints():
+            reward, terminated, info = self.env.step(act)
+            reward = [reward]
+            done = terminated
+            ob = np.array(self.env.get_obs())
+            info['state'] = self.env.get_state()
+            info['avail-act'] = self.env.get_avail_actions()
+            return (ob, reward, done, info)
 
     def reset(self):
-        # with HiddenPrints():
-        self.env.reset()
-        ob = self.env.get_obs()
-        info = {}
-        info['state'] = self.env.get_state()
-        info['avail-act'] = self.env.get_avail_actions()
-        return ob, info
+        with HiddenPrints():
+            self.env.reset()
+            ob = self.env.get_obs()
+            info = {}
+            info['state'] = self.env.get_state()
+            info['avail-act'] = self.env.get_avail_actions()
+            return ob, info
 
     def render(self):
         return

@@ -187,7 +187,7 @@ def my_setattr(conf_class, key, new_value, vb):
         elif replace_item == 'False':
             replace_item = False
         elif isinstance(replace_item, bool):
-            replace_item = original_item
+            replace_item = replace_item
         else:
             assert False, ('enter True or False, but have:', replace_item)
     elif isinstance(original_item, int):
