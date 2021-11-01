@@ -43,15 +43,15 @@ class ShellEnvWrapper(object):
         self.mcv = mcv
         self.RL_functional = RL_functional
         self.n_basic_dim = scenario_config.obs_vec_length
-        self.n_entity = scenario_config.num_entity
-        self.agent_uid = scenario_config.uid_dictionary['agent_uid']
-        self.entity_uid = scenario_config.uid_dictionary['entity_uid']
-        self.dec = scenario_config.dec_dictionary
-        self.n_object = scenario_config.num_object
+        # self.n_entity = scenario_config.num_entity
+        # self.agent_uid = scenario_config.uid_dictionary['agent_uid']
+        # self.entity_uid = scenario_config.uid_dictionary['entity_uid']
+        # self.dec = scenario_config.dec_dictionary
+        # self.n_object = scenario_config.num_object
         self.load_checkpoint = alg_config.load_checkpoint
         self.cold_start = True
-        self._division_obsR_init = None
-        self._division_obsL_init = None
+        # self._division_obsR_init = None
+        # self._division_obsL_init = None
 
     @staticmethod
     def get_binary_array(n, n_bits, dtype=np.float32):
@@ -101,9 +101,8 @@ class ShellEnvWrapper(object):
         return actions_list, State_Recall 
 
     def solve_duplicate(self, obs_feed, prev_obs_feed):
-        obs_feed = my_view(obs_feed,[0,0,12,-1])
+        # obs_feed = my_view(obs_feed,[0, 0, -1, self.n_basic_dim])
         # prev_obs_feed = my_view(prev_obs_feed,[0,0,12,-1])
-        # TODO: 将过期的目标观测替换掉，但这个不期望能有提升
         # >> START get mask_and_id
         mask_and_id = self.get_mask_id(obs_feed)
         # prev_mask_and_id = self.get_mask_id(prev_obs_feed)

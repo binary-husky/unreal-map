@@ -14,7 +14,7 @@ class AlgorithmConfig():
 class PymarlFoundation():
     def init_pymarl(self):
         fp = open('RECYCLE/unity.log', 'w+')
-        import uuid 
+        import uuid, atexit
         self.remote_uuid = uuid.uuid1().hex   # use uuid to identify threads
         self.redis = redis.Redis(host='127.0.0.1', port=6379)
         # self.redis.delete()
@@ -25,6 +25,7 @@ class PymarlFoundation():
             "with",
             "batch_size_run=%d"%self.n_thread,
             "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
+        atexit.register(lambda: self.__del__()) # avoid redis leaking
         time.sleep(5)
 
     def __del__(self):

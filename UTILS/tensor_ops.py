@@ -78,12 +78,13 @@ def copy_clone(x):
             y = my_view(x, new_shape)
             y.shape = (4*5, 6, 7)
 
+(4, 5, 6); new_shape = [0, 0, -1, 3]
+
+(4, 5, 6); new_shape = [2, -1, 0, 0]
+(3, 4, 5, 6); new_shape = [0, 2, -1, 0, 0]
 """
 def my_view(x, shape):
-    assert -1 not in shape[1:-1]
-    # if shape like [-1, 0, 0], reverse_lookup=True
-    # if shape like [0, 0, -1], reverse_lookup=False
-    # if shape like [xx, -1, xx], do not support
+    if -1 in shape[1:-1]: return my_view_test(x, shape)
     reverse_lookup = True if shape[0] == -1 else False
     if not reverse_lookup:
         for i, dim in enumerate(shape):
@@ -95,7 +96,20 @@ def my_view(x, shape):
             dim = shape[ni]
             if dim == 0:
                 shape[ni] = x.shape[ni]
+    if isinstance(x, np.ndarray):
+        return x.reshape(*shape)
+    return x.view(*shape)
 
+def my_view_test(x, shape):
+    # fill both way until meet -1 
+    for i, dim in enumerate(shape):
+        if dim == 0: shape[i] = x.shape[i]
+        elif dim == -1: break
+    for i in range(len(shape)):
+        ni = -(i + 1); dim = shape[ni]
+        if dim == 0: shape[ni] = x.shape[ni]
+        elif dim == -1: break
+    # print(shape)
     if isinstance(x, np.ndarray):
         return x.reshape(*shape)
     return x.view(*shape)

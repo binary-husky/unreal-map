@@ -71,7 +71,8 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
         chained_with=['map_']
     )
 
-
+    num_entity = "not avail ?"
+    uid_dictionary = "not avail ?"
     N_TEAM = 1  
     SINGLE_TEAM_N_AGENT = 6
 
@@ -103,13 +104,13 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
         chained_with=['map_']
     )
 
-    return_mat = False
     n_action = 6 + sc2map_info[map_]["n_hostiles"]
     n_action_cv = ChainVar(
         lambda map_:6 + sc2map_info[map_]["n_hostiles"], 
         chained_with=['map_']
     )
     obs_vec_length = 6
+    return_mat = False
     reward_vec = False
     # sc2map_info[map_]["n_agents"]
     # n_action_cv = ChainVar(
@@ -142,7 +143,7 @@ class Env_Compat_Wrapper():
                             step_mul=ScenarioConfig.step_mul,
                             difficulty=ScenarioConfig.difficulty,
                             game_version=ScenarioConfig.game_version,
-                            # return_mat=ScenarioConfig.return_mat,
+                            return_mat=ScenarioConfig.return_mat,
                             reward_vec=ScenarioConfig.reward_vec,
                             replay_dir=ScenarioConfig.replay_dir)
 
