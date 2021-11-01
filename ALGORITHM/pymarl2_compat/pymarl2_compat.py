@@ -21,10 +21,9 @@ class PymarlFoundation():
         subprocess.Popen(["python", 
             "/home/fuqingxu/pymarl2/pymarl2src/main.py", 
             "--config=qmix", 
-            "with",
-            "batch_size_run=%d"%self.n_thread,
             "--env-config=HMP_compat",
             "with",
+            "batch_size_run=%d"%self.n_thread,
             "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
         time.sleep(5)
 

@@ -32,29 +32,29 @@ class ChainVar(object):
 '''
 
 sc2map_info = {
-    "3m":               {"n_agents":3    ,  "n_hostile":   3    , "ep_limit":  60   },
-    "8m":               {"n_agents":8    ,  "n_hostile":   8    , "ep_limit":  120  },
-    "25m":              {"n_agents":25   ,  "n_hostile":   25   , "ep_limit":  150  },
-    "5m_vs_6m":         {"n_agents":5    ,  "n_hostile":   6    , "ep_limit":  70   },
-    "8m_vs_9m":         {"n_agents":8    ,  "n_hostile":   9    , "ep_limit":  120  },
-    "10m_vs_11m":       {"n_agents":10   ,  "n_hostile":   11   , "ep_limit":  150  },
-    "27m_vs_30m":       {"n_agents":27   ,  "n_hostile":   30   , "ep_limit":  180  },
-    "MMM":              {"n_agents":10   ,  "n_hostile":   10   , "ep_limit":  150  },
-    "MMM2":             {"n_agents":10   ,  "n_hostile":   12   , "ep_limit":  180  },
-    "2s3z":             {"n_agents":5    ,  "n_hostile":   5    , "ep_limit":  120  },
-    "3s5z":             {"n_agents":8    ,  "n_hostile":   8    , "ep_limit":  150  },
-    "3s5z_vs_3s6z":     {"n_agents":8    ,  "n_hostile":   9    , "ep_limit":  170  },
-    "3s_vs_3z":         {"n_agents":3    ,  "n_hostile":   3    , "ep_limit":  150  },
-    "3s_vs_4z":         {"n_agents":3    ,  "n_hostile":   4    , "ep_limit":  200  },
-    "3s_vs_5z":         {"n_agents":3    ,  "n_hostile":   5    , "ep_limit":  250  },
-    "1c3s5z":           {"n_agents":9    ,  "n_hostile":   9    , "ep_limit":  180  },
-    "2m_vs_1z":         {"n_agents":2    ,  "n_hostile":   1    , "ep_limit":  150  },
-    "corridor":         {"n_agents":6    ,  "n_hostile":   24   , "ep_limit":  400  },
-    "6h_vs_8z":         {"n_agents":6    ,  "n_hostile":   8    , "ep_limit":  150  },
-    "2s_vs_1sc":        {"n_agents":2    ,  "n_hostile":   1    , "ep_limit":  300  },
-    "so_many_baneling": {"n_agents":7    ,  "n_hostile":   32   , "ep_limit":  100  },
-    "bane_vs_bane":     {"n_agents":24   ,  "n_hostile":   24   , "ep_limit":  200  },
-    "2c_vs_64zg":       {"n_agents":2    ,  "n_hostile":   64   , "ep_limit":  400  },
+    "3m":               {"n_agents":3    ,  "n_hostiles":   3    , "ep_limit":  60   },
+    "8m":               {"n_agents":8    ,  "n_hostiles":   8    , "ep_limit":  120  },
+    "25m":              {"n_agents":25   ,  "n_hostiles":   25   , "ep_limit":  150  },
+    "5m_vs_6m":         {"n_agents":5    ,  "n_hostiles":   6    , "ep_limit":  70   },
+    "8m_vs_9m":         {"n_agents":8    ,  "n_hostiles":   9    , "ep_limit":  120  },
+    "10m_vs_11m":       {"n_agents":10   ,  "n_hostiles":   11   , "ep_limit":  150  },
+    "27m_vs_30m":       {"n_agents":27   ,  "n_hostiles":   30   , "ep_limit":  180  },
+    "MMM":              {"n_agents":10   ,  "n_hostiles":   10   , "ep_limit":  150  },
+    "MMM2":             {"n_agents":10   ,  "n_hostiles":   12   , "ep_limit":  180  },
+    "2s3z":             {"n_agents":5    ,  "n_hostiles":   5    , "ep_limit":  120  },
+    "3s5z":             {"n_agents":8    ,  "n_hostiles":   8    , "ep_limit":  150  },
+    "3s5z_vs_3s6z":     {"n_agents":8    ,  "n_hostiles":   9    , "ep_limit":  170  },
+    "3s_vs_3z":         {"n_agents":3    ,  "n_hostiles":   3    , "ep_limit":  150  },
+    "3s_vs_4z":         {"n_agents":3    ,  "n_hostiles":   4    , "ep_limit":  200  },
+    "3s_vs_5z":         {"n_agents":3    ,  "n_hostiles":   5    , "ep_limit":  250  },
+    "1c3s5z":           {"n_agents":9    ,  "n_hostiles":   9    , "ep_limit":  180  },
+    "2m_vs_1z":         {"n_agents":2    ,  "n_hostiles":   1    , "ep_limit":  150  },
+    "corridor":         {"n_agents":6    ,  "n_hostiles":   24   , "ep_limit":  400  },
+    "6h_vs_8z":         {"n_agents":6    ,  "n_hostiles":   8    , "ep_limit":  150  },
+    "2s_vs_1sc":        {"n_agents":2    ,  "n_hostiles":   1    , "ep_limit":  300  },
+    "so_many_baneling": {"n_agents":7    ,  "n_hostiles":   32   , "ep_limit":  100  },
+    "bane_vs_bane":     {"n_agents":24   ,  "n_hostiles":   24   , "ep_limit":  200  },
+    "2c_vs_64zg":       {"n_agents":2    ,  "n_hostiles":   64   , "ep_limit":  400  },
 }
 
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
@@ -104,9 +104,9 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     )
 
     return_mat = False
-    n_action = 6 + sc2map_info[map_]["n_agents"]
+    n_action = 6 + sc2map_info[map_]["n_hostiles"]
     n_action_cv = ChainVar(
-        lambda map_:6 + sc2map_info[map_]["n_agents"], 
+        lambda map_:6 + sc2map_info[map_]["n_hostiles"], 
         chained_with=['map_']
     )
     obs_vec_length = 6

@@ -31,7 +31,7 @@ class Runner(object):
         self.n_frame =  cfg.n_parallel_frame
         self.test_epoch=cfg.test_epoch
         self.note =     cfg.note   # experiment note
-        self.hb_on =    cfg.heartbeat_on and stdout.isatty()
+        self.hb_on =    cfg.heartbeat_on and stdout.isatty()    # show the environment stepping heartbeat
         self.current_n_frame = 0
         self.current_n_episode = 0
         self.max_n_episode = cfg.max_n_episode
@@ -43,6 +43,9 @@ class Runner(object):
         self._exit_early_ = False
         self._init_interested_agent_logging() 
 
+    # -------------------------------------------------------------------------
+    # ------------------------------ Major Loop -------------------------------
+    # -------------------------------------------------------------------------
     def run(self):
         # all item in self.info_runner:  n_thread..n_agent/n_team..
         self.init_runner()
@@ -66,17 +69,6 @@ class Runner(object):
         # All task done! Time to shut down
         return
 
-    def heartbeat(self):
-        width = os.get_terminal_size().columns
-        sym = ['◐ ','◓ ','◑ ','◒ ','▂ ','▃ ','▅ ','▆ ']
-        res = self.info_runner['Current-Obs-Step']
-        res = res % len(sym)
-        # print(width)
-        res = res[:int(width*0.2)]
-        res.astype(np.int)
-        res = [sym[t] for t in res]
-        return ''.join(res)
-
     def init_runner(self):
         self.info_runner['Test-Flag'] = self.test_only  # not testing mode for rl methods
         self.info_runner['Recent-Reward-Sum'] = []
@@ -89,11 +81,9 @@ class Runner(object):
         self.info_runner['Latest-Reward']      = np.zeros(shape=(self.n_thread, self.n_agent))
         self.info_runner['Latest-Reward-Sum']  = np.zeros(shape=(self.n_thread, self.n_agent))
         self.info_runner['Thread-Episode-Cnt'] = np.array([0 for _ in range(self.n_thread)])
-        
         if self.RewardAsUnity:
             self.info_runner['Latest-Reward']  = np.zeros(shape=(self.n_thread, self.n_team))
             self.info_runner['Latest-Reward-Sum'] = np.zeros(shape=(self.n_thread, self.n_team))
-
         return
 
     def update_runner(self, done, obs, reward, info):
@@ -141,8 +131,9 @@ class Runner(object):
 
 
 
-
-    # -- About TEST RUN routine, almost a Mirror of above --
+    # ----------------------------------------------------------------------------------------------------------------------------------------------------
+    # ----------------------------------------------- About TEST RUN routine, almost a Mirror of above ---------------------------------------------------
+    # ----------------------------------------------------------------------------------------------------------------------------------------------------
     # -- I know these code below might merge with above for simplicity --
     # -- But I decide not, in order to make it easier to read and debug --
     if cfg.train_time_testing:
@@ -165,7 +156,6 @@ class Runner(object):
                     self.mcv.rec(reward_avg_itr_agent, 'test-reward')
                     self.mcv.rec(win_rate, 'test-win-rate')
                     self.mcv.rec_show()
-
                     print靛('\r[task runner]: test finished, reward average:%.2f, win rate %.2f'%(reward_avg_itr_agent, win_rate))
                     return
         def init_test_runner(self):
@@ -258,3 +248,14 @@ class Runner(object):
                         draw_mode=cfg.draw_mode)
         mcv.rec_init()
         return mcv
+
+    def heartbeat(self):
+        width = os.get_terminal_size().columns
+        sym = ['◐ ','◓ ','◑ ','◒ ','▂ ','▃ ','▅ ','▆ ']
+        res = self.info_runner['Current-Obs-Step']
+        res = res % len(sym)
+        # print(width)
+        res = res[:int(width*0.2)]
+        res.astype(np.int)
+        res = [sym[t] for t in res]
+        return ''.join(res)
