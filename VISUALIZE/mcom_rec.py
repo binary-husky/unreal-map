@@ -173,7 +173,11 @@ class rec_family(object):
                     limx1 = (limx1 - meanx)*1.1+meanx
                     limx2 = (limx2 - meanx)*1.1+meanx
                     target_subplot.set_xlim(limx1,limx2)
-
+                elif limx1 != limx2:
+                    meanx = limx1/2 + limx2/2
+                    limx1 = (limx1 - meanx)*1.1+meanx
+                    limx2 = (limx2 - meanx)*1.1+meanx
+                    target_subplot.set_xlim(limx1,limx2)
             
                 # plt.draw()
         # ##################################################
@@ -280,7 +284,11 @@ class rec_family(object):
                     target_subplot.set_xlim(limx1,limx2)
                     target_subplot.grid(visible=True)
                     target_subplot.legend(loc='best')
-
+                elif limx1 != limx2:
+                    meanx = limx1/2 + limx2/2
+                    limx1 = (limx1 - meanx)*1.1+meanx
+                    limx2 = (limx2 - meanx)*1.1+meanx
+                    target_subplot.set_xlim(limx1,limx2)
         # now end
         self.plt.tight_layout()
         if self.draw_mode == 'Web':

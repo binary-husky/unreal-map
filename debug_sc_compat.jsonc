@@ -1,13 +1,14 @@
 {
     "config.py->GlobalConfig": {
-        "note": "sc-compat",                            // experiment note, also means the log saving directory
+        "note": "sc-compat",                                // experiment note, also means the log saving directory
         "env_name":"sc2",                                   // starcraft 2
         "env_path":"MISSIONS.starcraft.sc2_env_wrapper",    // starcraft 2
-        "interested_agent_num":3,                           // only for reward logging, **not needed because sc2 use uniform team reward
+        "interested_agent_num":3,                           // only for reward logging
         "draw_mode": "Img",                                 // plot curlves as image
-        "num_threads": "16",                                 // number of parallel envs
-        "report_reward_interval": "32",                      // report the reward averaging x episodes
-        "test_interval": "256",                            // begin a test run every x episodes, test run is managed by pymarl side
+        "num_threads": "16",                                // number of parallel envs
+        "test_epoch": "64",
+        "report_reward_interval": "64",                     // report the reward averaging x episodes
+        "test_interval": "256",                             // begin a test run every x episodes, test run is managed by pymarl side
         // "device": "cuda:0",
         // "gpu_party": "CUDA0_P1",
         "fold": "1",                                        // each linux process handle x parallel envs
@@ -32,7 +33,7 @@
     "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
         "dual_conc": false,
         "n_focus_on": 4,
-        "lr": 5e-4,
+        "lr": 3e-4,
         "ppo_epoch": 24,
         "train_traj_needed": "64",
         "load_checkpoint": "False"
