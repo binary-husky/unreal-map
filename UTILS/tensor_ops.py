@@ -15,9 +15,16 @@ else:
     gpu_id = None
     device = GlobalConfig.device
 
-pt_dtype = torch.float64 if use_float64 else torch.float32
-pt_inf = torch.tensor(np.inf, dtype=pt_dtype, device=device) # np.float
-pt_nan = torch.tensor(np.nan, dtype=pt_dtype, device=device) # np.float
+def pt_inf():
+    pt_dtype = torch.float64 if use_float64 else torch.float32
+    return torch.tensor(np.inf, dtype=pt_dtype, device=GlobalConfig.device)
+
+def pt_nan():
+    pt_dtype = torch.float64 if use_float64 else torch.float32
+    return torch.tensor(np.nan, dtype=pt_dtype, device=GlobalConfig.device)
+
+# pt_inf = torch.tensor(np.inf, dtype=pt_dtype, device=GlobalConfig.device)
+# pt_nan = torch.tensor(np.nan, dtype=pt_dtype, device=GlobalConfig.device)
 
 def vis_mat(mat):
     mat = mat.astype(np.float)

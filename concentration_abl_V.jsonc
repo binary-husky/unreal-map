@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "justdoit",
+        "note": "justdoit-abl-V",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
@@ -12,10 +12,10 @@
         "fold": "1",
         "seed": 9995,
         "backup_files":[
-            "ALGORITHM/concentration/net.py",
-            "ALGORITHM/concentration/ppo.py",
+            "ALGORITHM/concentration_abl_V/net.py",
+            "ALGORITHM/concentration_abl_V/ppo.py",
             "MISSIONS/collective_assult/envs/collective_assult_env.py",
-            "ALGORITHM/concentration/trajectory.py"
+            "ALGORITHM/concentration_abl_V/trajectory.py"
         ]
 
     },
@@ -32,14 +32,15 @@
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration_abl_V.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.concentration_abl_V.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
+        "dual_conc": "False",
 
         "lr": 5e-4,
         "ppo_epoch": 24,

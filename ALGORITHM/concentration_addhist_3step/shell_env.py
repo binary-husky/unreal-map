@@ -71,12 +71,14 @@ class ShellEnvWrapper(object):
         n_thread = obs.shape[0]
 
         previous_obs = State_Recall['_Previous_Obs_'] if '_Previous_Obs_' in State_Recall else np.zeros_like(obs)
+        previousprevious_obs = State_Recall['_PreviousPrevious_Obs_'] if '_PreviousPrevious_Obs_' in State_Recall else np.zeros_like(obs)
 
         ENV_PAUSE = State_Recall['ENV-PAUSE']
         obs_feed = obs[~ENV_PAUSE]
         prev_obs_feed = previous_obs[~ENV_PAUSE]
+        previousprevious_obs_feed = previousprevious_obs[~ENV_PAUSE]
 
-        obs_feed_in = self.solve_duplicate(obs_feed, prev_obs_feed)
+        obs_feed_in = self.solve_duplicate(obs_feed, prev_obs_feed, previousprevious_obs_feed)
 
         I_State_Recall = {'obs':obs_feed_in, 
             'Test-Flag':State_Recall['Test-Flag'], 
@@ -99,25 +101,26 @@ class ShellEnvWrapper(object):
         if self.cold_start: self.cold_start = False
 
         # <2> call a empty frame to gather reward
+        State_Recall['_PreviousPrevious_Obs_'] = previous_obs.copy()
         State_Recall['_Previous_Obs_'] = obs
         State_Recall['_hook_'] = internal_recall['_hook_']
         assert State_Recall['_hook_'] is not None
         return actions_list, State_Recall 
 
-    def solve_duplicate(self, obs_feed, prev_obs_feed):
+    def solve_duplicate(self, obs_feed, prev_obs_feed, previousprevious_obs_feed):
         #  input might be (n_thread, n_agent, n_entity, basic_dim), or (n_thread, n_agent, n_entity*basic_dim)
         # both can be converted to (n_thread, n_agent, n_entity, basic_dim)
         obs_feed = my_view(obs_feed,[0, 0, -1, self.n_basic_dim])
+        prev_obs_feed = my_view(prev_obs_feed,[0, 0, -1, self.n_basic_dim])
+        previousprevious_obs_feed = my_view(previousprevious_obs_feed,[0, 0, -1, self.n_basic_dim])
+
+        # turn history into more entities
+        obs_feed = np.concatenate((obs_feed, prev_obs_feed, previousprevious_obs_feed), axis=-2)
 
         # turning all zero padding to NaN, used for normalization
         obs_feed[(obs_feed==0).all(-1)] = np.nan
-        # import copy
-        # obs_feed_tmp = copy.deepcopy(obs_feed)
-        # obs_feed_tmp[(obs_feed==0).all(-1)] = np.nan
-        # mask_and_id = self.get_mask_id(obs_feed)
-        # obs_feed[np.isnan(mask_and_id)] = np.nan
-        # assert __hash__(obs_feed_tmp) == __hash__(obs_feed)
-        # 'f96bddab83d2b4e002819b33bc7ddb64'
+
+
         return obs_feed
 
 

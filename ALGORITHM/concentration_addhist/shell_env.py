@@ -108,16 +108,15 @@ class ShellEnvWrapper(object):
         #  input might be (n_thread, n_agent, n_entity, basic_dim), or (n_thread, n_agent, n_entity*basic_dim)
         # both can be converted to (n_thread, n_agent, n_entity, basic_dim)
         obs_feed = my_view(obs_feed,[0, 0, -1, self.n_basic_dim])
+        prev_obs_feed = my_view(prev_obs_feed,[0, 0, -1, self.n_basic_dim])
+
+        # turn history into more entities
+        obs_feed = np.concatenate((obs_feed, prev_obs_feed), axis=-2)
 
         # turning all zero padding to NaN, used for normalization
         obs_feed[(obs_feed==0).all(-1)] = np.nan
-        # import copy
-        # obs_feed_tmp = copy.deepcopy(obs_feed)
-        # obs_feed_tmp[(obs_feed==0).all(-1)] = np.nan
-        # mask_and_id = self.get_mask_id(obs_feed)
-        # obs_feed[np.isnan(mask_and_id)] = np.nan
-        # assert __hash__(obs_feed_tmp) == __hash__(obs_feed)
-        # 'f96bddab83d2b4e002819b33bc7ddb64'
+
+
         return obs_feed
 
 

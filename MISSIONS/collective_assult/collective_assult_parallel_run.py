@@ -73,6 +73,8 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     MCOM_DEBUG = False
     DISALBE_RED_FUNCTION = False
     half_death_reward = True
+
+    n_actions = 7
     
 def make_collective_assult_env(env_id, rank):
     # scenario = gym.make('collective_assult-v1')

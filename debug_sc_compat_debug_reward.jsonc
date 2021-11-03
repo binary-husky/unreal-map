@@ -1,11 +1,12 @@
 {
     "config.py->GlobalConfig": {
-        "note": "sc-compat-128",                                // experiment note, also means the log saving directory
+        "note": "sc-compat-128_debug_reward",                                // experiment note, also means the log saving directory
         "env_name":"sc2",                                   // starcraft 2
         "env_path":"MISSIONS.starcraft.sc2_env_wrapper",    // starcraft 2
+        "heartbeat_on": false,
         "interested_agent_num":3,                           // only for reward logging
         "draw_mode": "Img",                                 // plot curlves as image
-        "num_threads": "16",                                // number of parallel envs
+        "num_threads": "1",                                // number of parallel envs
         "test_epoch": "64",
         "report_reward_interval": "128",                    // report the reward averaging x episodes
         "test_interval": "256",                             // begin a test run every x episodes, test run is managed by pymarl side
@@ -14,7 +15,6 @@
         "fold": "1",                                        // each linux process handle x parallel envs
         "seed": 9995,                                       // seed
         "backup_files":[
-            // "MISSIONS/sr_tasks/multiagent/scenarios/cargo.py"
         ]
 
     },

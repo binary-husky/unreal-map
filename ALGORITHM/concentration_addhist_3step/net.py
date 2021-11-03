@@ -238,7 +238,14 @@ class Net(nn.Module):
         act = self._act if self.dual_conc else self._act_singlec
         return act(*args, **kargs, eval_mode=True)
 
-    def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=12):
+    def div_entity(self, mat, type=[(0,), 
+                                    (1, 2, 3, 4, 5, 
+                                    12,13,14,15,16,17,
+                                    24,25,26,27,28,29), 
+                                    (6, 7, 8, 9,10,11,
+                                    18,19,20,21,22,23,
+                                    30,31,32,33,34,35)], 
+                                    n=36):
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
         elif mat.shape[-1]==n:

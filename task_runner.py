@@ -148,6 +148,7 @@ class Runner(object):
                 actions_list, self.test_info_runner = self.platform_controller.act(self.test_info_runner)
                 obs, reward, done, info = self.test_envs.step(actions_list)
                 self.test_info_runner = self.update_test_runner(done, obs, reward, info)
+                # print(self.test_info_runner['Thread-Episode-Cnt'])
                 # If the test run reach its end:
                 if (self.test_info_runner['Thread-Episode-Cnt']>=ntimesthread).all():
                     reward_of_each_ep = np.stack(self.test_info_runner['Recent-Reward-Sum']).squeeze()

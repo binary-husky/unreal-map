@@ -26,7 +26,8 @@ def weights_init(m):
         'SimpleMLP':None,'Extraction_Module':None,'SelfAttention_Module':None,
         'ReLU':None,'Softmax':None,'DynamicNorm':None,'EXTRACT':None,
         'LinearFinal':lambda m:init_Linear(m, final_layer=True),
-        'Linear':init_Linear, 'ResLinear':None, 'LeakyReLU':None,'SimpleAttention':None
+        'Linear':init_Linear, 'ResLinear':None, 'LeakyReLU':None,'SimpleAttention':None,
+        'Concentration_Noforward':None,
     }
 
     classname = m.__class__.__name__
@@ -92,13 +93,48 @@ class Concentration(nn.Module):
         v_C_final = self.AT_forward_mlp(v_C_flat)
         return v_C_final, v_M_final
 
-    # @staticmethod
-    # def mask_1d_to_2d(ve_dead_C):
-    #     vs_alive = torch.zeros_like(ve_dead_C[...,(0,)]).bool()
-    #     v_dead_stack = torch.cat((vs_alive, ve_dead_C), dim=-1)
-    #     v_dead_stack = repeat_at(v_dead_stack,insert_dim=-1,n_times=v_dead_stack.shape[-1])
-    #     v_dead_stack = v_dead_stack | v_dead_stack.transpose(2,3)
-    #     return v_dead_stack
+
+class Concentration_Noforward(nn.Module):
+    def __init__(self, n_focus_on, h_dim, skip_connect=False, skip_connect_dim=0, adopt_selfattn=False):
+        super().__init__()
+        self.n_focus_on = n_focus_on
+        self.skip_connect = skip_connect
+        self.skip_dim = h_dim+skip_connect_dim
+        self.CT_W_query = nn.Parameter(torch.Tensor(h_dim, h_dim))
+        self.CT_W_key = nn.Parameter(torch.Tensor(h_dim, h_dim))
+        self.CT_W_val = nn.Parameter(torch.Tensor(h_dim, h_dim))
+        self.CT_motivate_mlp = nn.Sequential(nn.Linear(h_dim * 2, h_dim), nn.ReLU(inplace=True))
+        self.AT_forward_mlp = nn.Sequential(nn.Linear((n_focus_on+1)*self.skip_dim, h_dim), nn.ReLU(inplace=True))
+        self.adopt_selfattn = adopt_selfattn
+        if self.adopt_selfattn:
+            self.AT_Attention = Extraction_Module(hidden_dim=self.skip_dim, activate_output=True)
+        self.init_parameters()
+
+    def init_parameters(self):
+        for param in self.parameters():
+            stdv = 1. / math.sqrt(param.size(-1))
+            param.data.uniform_(-stdv, stdv)
+
+    def forward(self, vs, ve, ve_dead, skip_connect_ze=None, skip_connect_zs=None):
+        mask = ve_dead
+        Q = torch.matmul(vs, self.CT_W_query) 
+        K = torch.matmul(ve, self.CT_W_key) 
+
+        norm_factor = 1 / math.sqrt(Q.shape[-1])
+        compat = norm_factor * torch.matmul(Q, K.transpose(2, 3)) 
+        assert compat.shape[-2] == 1
+        compat = compat.squeeze(-2)
+        compat[mask.bool()] = -math.inf
+        score = F.softmax(compat, dim=-1)
+        # nodes with no neighbours were softmax into nan, fix them to 0
+        score = torch.nan_to_num(score, 0)
+        # ----------- motivational brach -------------
+        Va = torch.matmul(score.unsqueeze(-2), torch.matmul(ve, self.CT_W_val)) 
+        v_M = torch.cat((vs, Va), -1).squeeze(-2) 
+        v_M_final = self.CT_motivate_mlp(v_M)
+        # -----------   forward branch   -------------
+
+        return v_M_final
 
 class SimpleAttention(nn.Module):
     def __init__(self, h_dim):
@@ -172,6 +208,8 @@ class Net(nn.Module):
         self.dual_conc = dual_conc
         from .foundation import AlgorithmConfig
         self.alternative_critic = AlgorithmConfig.alternative_critic
+
+
         # observation normalization
         if self.use_normalization:
             self._batch_norm = DynamicNorm(rawob_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
@@ -191,6 +229,11 @@ class Net(nn.Module):
                             adopt_selfattn=actor_attn_mod)
         else:
             self.MIX_conc_core = Concentration(
+                            n_focus_on=self.n_focus_on, h_dim=h_dim, 
+                            skip_connect=self.skip_connect, 
+                            skip_connect_dim=rawob_dim, 
+                            adopt_selfattn=actor_attn_mod)
+            self.conc_abl = Concentration_Noforward(
                             n_focus_on=self.n_focus_on, h_dim=h_dim, 
                             skip_connect=self.skip_connect, 
                             skip_connect_dim=rawob_dim, 
@@ -261,12 +304,13 @@ class Net(nn.Module):
         _, ve_dead = self.div_entity(mask_dead, type=[(0,), range(1,n_entity)], n=n_entity)
 
         # concentration module, ve_dead is just a mask filtering out invalid or padding entities
-        v_C, v_M = self.MIX_conc_core(vs=vs, ve=ve, ve_dead=ve_dead, skip_connect_ze=ze, skip_connect_zs=zs)
+        v_C, v_M_for_phi = self.MIX_conc_core(vs=vs, ve=ve, ve_dead=ve_dead, skip_connect_ze=ze, skip_connect_zs=zs)
+        v_M_for_v = self.conc_abl(vs=vs.detach(), ve=ve.detach(), ve_dead=ve_dead.detach(), skip_connect_ze=ze.detach(), skip_connect_zs=zs.detach())
         # fuse forward path
         logits = self.AT_get_logit_db(v_C) # diverge here
         # motivation objectives
-        value = self.CT_get_value(v_M)
-        threat = self.CT_get_threat(v_M)
+        value = self.CT_get_value(v_M_for_v)
+        threat = self.CT_get_threat(v_M_for_phi)
 
         if self.alternative_critic:
             # make previous value registered in return dictionary:
@@ -290,6 +334,7 @@ class Net(nn.Module):
 
 
     def _act(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None):
+        assert False
         eval_act = eval_actions if eval_mode else None
         others = {}; obs_raw = obs
         if self.use_normalization:

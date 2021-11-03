@@ -40,6 +40,7 @@ class AlgorithmConfig:
     dual_conc = True
     use_my_attn = True
     alternative_critic = False
+    
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
         self.n_thread = n_thread
