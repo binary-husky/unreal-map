@@ -57,6 +57,12 @@ class trajectory(TRAJ_BASE):
         # all done
         return
 
+    def reward_push_forward(self, dead_mask):
+        for i in reversed(range(self.time_pointer)):
+            if i==0: continue
+            self.reward[i-1] += self.reward[i]* dead_mask[i].astype(np.int)
+            self.reward[i] = self.reward[i]* (~dead_mask[i]).astype(np.int)
+
     # new finalize
     def finalize(self):
         self.readonly_lock = True
@@ -64,7 +70,8 @@ class trajectory(TRAJ_BASE):
         TJ = lambda key: getattr(self, key) 
         assert not np.isnan(TJ('reward')).any()
         # deadmask
-        dead_mask = (np.isnan(my_view(self.obs[:,:,:12,:], [0,0,-1]))).all(-1)
+        dead_mask = (np.isnan(my_view(self.obs, [0,0,-1]))).all(-1)
+        self.reward_push_forward(dead_mask) # push terminal reward forward
         threat = np.zeros(shape=dead_mask.shape) - 1
         assert dead_mask.shape[0] == self.time_pointer
         for i in reversed(range(self.time_pointer)):

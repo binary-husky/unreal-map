@@ -18,8 +18,8 @@ class TrajPoolSampler():
         self.container = {}
         self.warned = False
         assert flag=='train'
-        req_dict =        ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'value']
-        req_dict_rename = ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'state_value']
+        req_dict =        ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'avail_act', 'value']
+        req_dict_rename = ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'avail_act', 'state_value']
 
         return_rename = "return"
         value_rename =  "state_value"
@@ -240,12 +240,13 @@ class PPO():
         oldPi_actionLogProb = _2tensor(sample['actionLogProb'])
         real_value = _2tensor(sample['return'])
         real_threat = _2tensor(sample['threat'])
+        avail_act = _2tensor(sample['avail_act']) if 'avail_act' in sample else None
 
         batchsize = advantage.shape[0]#; print亮紫(batchsize)
         batch_agent_size = advantage.shape[0]*advantage.shape[1]
 
         assert flag == 'train'
-        newPi_value, newPi_actionLogProb, entropy, probs, others = self.policy_and_critic.evaluate_actions(obs, action=action, test_mode=False)
+        newPi_value, newPi_actionLogProb, entropy, probs, others = self.policy_and_critic.evaluate_actions(obs, eval_actions=action, test_mode=False, avail_act=avail_act)
         entropy_loss = entropy.mean()
 
 

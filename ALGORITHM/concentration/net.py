@@ -10,7 +10,7 @@ from ..commom.norm import DynamicNorm
 from ..commom.mlp import LinearFinal, SimpleMLP, ResLinear
 from UTILS.colorful import print亮紫
 from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, pad_at_dim
-from UTILS.tensor_ops import repeat_at, _2cpu2numpy, one_hot_with_nan, gather_righthand
+from UTILS.tensor_ops import _2cpu2numpy, one_hot_with_nan, gather_righthand, pt_inf
 
 
 def weights_init(m):
@@ -214,9 +214,9 @@ class Net(nn.Module):
         self.apply(weights_init)
         return
 
-
-    def logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None):
-        # dead_logits = torch.isnan(logits_agent_cluster).any(-1)
+    # two ways to support avail_act, but which one is better?
+    def logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf)
         act_dist = Categorical(logits = logits_agent_cluster)
         if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions
         else:              act = torch.argmax(act_dist.probs, axis=2)
@@ -229,15 +229,14 @@ class Net(nn.Module):
 
 
     @Args2tensor_Return2numpy
-    def act(self, obs, test_mode):
+    def act(self, *args, **kargs):
         act = self._act if self.dual_conc else self._act_singlec
-        return act(obs, test_mode)
+        return act(*args, **kargs)
 
     @Args2tensor
-    def evaluate_actions(self, obs, action, test_mode):
+    def evaluate_actions(self, *args, **kargs):
         act = self._act if self.dual_conc else self._act_singlec
-        return act(obs, test_mode, eval_mode=True, eval_actions=action)
-
+        return act(*args, **kargs, eval_mode=True)
 
     def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=12):
         if mat.shape[-2]==n:
@@ -246,7 +245,7 @@ class Net(nn.Module):
             tmp = (mat[..., t] for t in type)
         return tmp
 
-    def _act_singlec(self, obs, test_mode, eval_mode=False, eval_actions=None):
+    def _act_singlec(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None):
 
         eval_act = eval_actions if eval_mode else None
         others = {}; obs_raw = obs
@@ -255,12 +254,13 @@ class Net(nn.Module):
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
         v = self.AT_obs_encoder(obs)
+        
+        n_entity = obs.shape[-2]
+        zs, ze     = self.div_entity(obs,       type=[(0,), range(1,n_entity)], n=n_entity)
+        vs, ve     = self.div_entity(v,         type=[(0,), range(1,n_entity)], n=n_entity)
+        _, ve_dead = self.div_entity(mask_dead, type=[(0,), range(1,n_entity)], n=n_entity)
 
-        zs, ze     = self.div_entity(obs,       type=[(0,), range(1,12)])
-        vs, ve     = self.div_entity(v,         type=[(0,), range(1,12)])
-        _, ve_dead = self.div_entity(mask_dead, type=[(0,), range(1,12)])
-
-        # concentration module
+        # concentration module, ve_dead is just a mask filtering out invalid or padding entities
         v_C, v_M = self.MIX_conc_core(vs=vs, ve=ve, ve_dead=ve_dead, skip_connect_ze=ze, skip_connect_zs=zs)
         # fuse forward path
         logits = self.AT_get_logit_db(v_C) # diverge here
@@ -277,7 +277,7 @@ class Net(nn.Module):
             value = self.CT_get_value_alternative_critic(v_C)
 
         act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
-                                                test_mode=test_mode, eval_actions=eval_act)
+                                                test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 
         def re_scale(t):
             SAFE_LIMIT = 11
@@ -289,8 +289,7 @@ class Net(nn.Module):
         else:             return value, actLogProbs, distEntropy, probs, others
 
 
-    def _act(self, obs, test_mode, eval_mode=False, eval_actions=None):
-
+    def _act(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None):
         eval_act = eval_actions if eval_mode else None
         others = {}; obs_raw = obs
         if self.use_normalization:
@@ -321,7 +320,8 @@ class Net(nn.Module):
         assert not self.alternative_critic
 
 
-        act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, test_mode=test_mode, eval_actions=eval_act)
+        act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
+                                                                test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 
         def re_scale(t):
             SAFE_LIMIT = 11

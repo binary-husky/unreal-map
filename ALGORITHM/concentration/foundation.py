@@ -47,12 +47,13 @@ class ReinforceAlgorithmFoundation(object):
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
         scenario_config = GlobalConfig.scenario_config
+        n_actions = GlobalConfig.scenario_config.n_actions
         alg_config = AlgorithmConfig
         from .shell_env import ShellEnvWrapper
         self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, 
                                         alg_config, scenario_config)
         if 'm-cuda' in GlobalConfig.device:
-            assert False, ('not yet support anymore')
+            assert False, ('not support anymore')
             gpu_id = json.loads(GlobalConfig.device.split('->')[-1])
             device = 'cuda:%d'%gpu_id[0]
         else:
@@ -62,7 +63,7 @@ class ReinforceAlgorithmFoundation(object):
         self.device = device
 
         self.policy = Net(rawob_dim=scenario_config.obs_vec_length,
-                          n_action = 7, 
+                          n_action = n_actions, 
                           use_normalization=alg_config.use_normalization,
                           n_focus_on = AlgorithmConfig.n_focus_on, 
                           actor_attn_mod=AlgorithmConfig.actor_attn_mod,
@@ -108,16 +109,17 @@ class ReinforceAlgorithmFoundation(object):
 
         obs, threads_active_flag = State_Recall['obs'], State_Recall['threads_active_flag']
         assert len(obs) == sum(threads_active_flag), ('make sure we have the right batch of obs')
-
+        avail_act = State_Recall['avail_act'] if 'avail_act' in State_Recall else None
         # make decision
         with torch.no_grad():
-            action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode)
+            action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act)
 
 
         wait_reward_hook = self.commit_frag_hook({
             '_SKIP_':        ~threads_active_flag, # thread mask
             'value':         value,
             'actionLogProb': action_log_prob,
+            'avail_act':     avail_act,
             'obs':           obs,
             'action':        action,
         }, require_hook = True) if not test_mode else self.__dummy_hook

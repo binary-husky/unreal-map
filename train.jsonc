@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "revise-50vs50-train",
+        "note": "revise-50vs50-train-reshape1",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",

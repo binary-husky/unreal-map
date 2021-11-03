@@ -57,6 +57,9 @@ sc2map_info = {
     "2c_vs_64zg":       {"n_agents":2    ,  "n_hostiles":   64   , "ep_limit":  400  },
 }
 
+from smac.env.starcraft2.maps import smac_maps
+map_param_registry = smac_maps.get_smac_map_registry()
+
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
     map_ = 'corridor'
     step_mul = 8
@@ -75,6 +78,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     uid_dictionary = "not avail ?"
     N_TEAM = 1  
     SINGLE_TEAM_N_AGENT = 6
+    
 
     N_AGENT_EACH_TEAM = [SINGLE_TEAM_N_AGENT,] 
     N_AGENT_EACH_TEAM_cv = ChainVar(
@@ -92,7 +96,13 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
                     'ALGORITHM.Starcraft.star_foundation->StarFoundation',
                 ] 
     ActAsUnity = False
-    RewardAsUnity = True
+
+    reward_vec = False
+    RewardAsUnity = True if not reward_vec else False   
+    RewardAsUnity_cv = ChainVar(
+        lambda reward_vec: (not reward_vec), 
+        chained_with=['reward_vec']
+    )
 
     state_provided = True
     avail_act_provided = True
@@ -104,14 +114,15 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
         chained_with=['map_']
     )
 
-    n_action = 6 + sc2map_info[map_]["n_hostiles"]
-    n_action_cv = ChainVar(
+    n_actions = 6 + sc2map_info[map_]["n_hostiles"]
+    n_actions_cv = ChainVar(
         lambda map_:6 + sc2map_info[map_]["n_hostiles"], 
         chained_with=['map_']
     )
     obs_vec_length = 6
     return_mat = False
-    reward_vec = False
+    block_invalid_action = True # sc2 中，需要始终屏蔽掉不可用的动作
+    reward_sparse=False
     # sc2map_info[map_]["n_agents"]
     # n_action_cv = ChainVar(
     #     lambda map_: sc2map_info[map_]["n_agents"], 
@@ -143,6 +154,7 @@ class Env_Compat_Wrapper():
                             step_mul=ScenarioConfig.step_mul,
                             difficulty=ScenarioConfig.difficulty,
                             game_version=ScenarioConfig.game_version,
+                            reward_sparse=ScenarioConfig.reward_sparse,
                             return_mat=ScenarioConfig.return_mat,
                             reward_vec=ScenarioConfig.reward_vec,
                             replay_dir=ScenarioConfig.replay_dir)
@@ -156,7 +168,7 @@ class Env_Compat_Wrapper():
 
         assert env_info["n_agents"] == ScenarioConfig.N_AGENT_EACH_TEAM[0], ('Changed a map? Reconfig ScenarioConfig Above!! n_agents:', env_info["n_agents"])
         assert env_info["episode_limit"] == ScenarioConfig.episode_limit, ('Changed a map? Reconfig ScenarioConfig Above!! episode_limit:',env_info["episode_limit"])
-        assert env_info["n_actions"] == ScenarioConfig.n_action, ('Changed a map? Reconfig ScenarioConfig Above!! n_action:', env_info["n_actions"])
+        assert env_info["n_actions"] == ScenarioConfig.n_actions, ('Changed a map? Reconfig ScenarioConfig Above!! n_actions:', env_info["n_actions"])
 
         self.id = rank
         pass
@@ -164,7 +176,7 @@ class Env_Compat_Wrapper():
     def step(self, act):
         with HiddenPrints():
             reward, terminated, info = self.env.step(act)
-            reward = [reward]
+            if ScenarioConfig.RewardAsUnity: reward = [reward]
             done = terminated
             ob = np.array(self.env.get_obs())
             info['state'] = self.env.get_state()
@@ -174,7 +186,7 @@ class Env_Compat_Wrapper():
     def reset(self):
         with HiddenPrints():
             self.env.reset()
-            ob = self.env.get_obs()
+            ob = np.array(self.env.get_obs())
             info = {}
             info['state'] = self.env.get_state()
             info['avail-act'] = self.env.get_avail_actions()

@@ -20,7 +20,6 @@ def find_free_index(path):
             return t
 
 
-
 class tcp_client():
     def __init__(self, ip):
         TCP_IP, TCP_PORT = ip.split(':')
@@ -29,93 +28,182 @@ class tcp_client():
         self.socketx = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socketx.connect((TCP_IP, TCP_PORT))
 
-    def send(self, msg):
+        self.fixed_end = bytes('@end@', encoding='utf8') 
+
+    def send(self, str_msg):
+        msg = str_msg + '@end@'
         self.socketx.send(bytes(msg, encoding='utf8'))
-        
+
+    def send_bytes(self, b_msg):
+        msg = b_msg + self.fixed_end
+        self.socketx.send(msg)
+
+    def close(self):
+        self.socketx.close()
+
     def __del__(self):
         self.socketx.close()
 
+        
+class tcp_server():
+    def __init__(self, ip_port):
+        self.draw_cmd_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.draw_cmd_socket.bind(ip_port)
+        self.draw_cmd_socket.listen()
+        self.handler = None
+        self.queue = None
+        self.buff = ['']
+        
+    def wait_connection(self):
+        import threading
+        self.sock, _ = self.draw_cmd_socket.accept()
+        t = threading.Thread(target=self.listening_thread)
+        t.start()
 
-class MyHttp(Process):
-    def __init__(self, path_to_html):
-        super(MyHttp, self).__init__()
-        self.path_to_html = path_to_html
+    def listening_thread(self):
 
-    def run(self):
-        from flask import Flask
-        app = Flask(__name__)
-        @app.route("/")
-        def hello():
-            try:
-                with open(self.path_to_html,'r') as f:
-                    html = f.read()
-            except:
-                html = "no plot yet please wait"
-            return html
 
-        def find_free_port():
-            from contextlib import closing
-            with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-                s.bind(('', 0))
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                return s.getsockname()[1]
+        def handle_flag_breakdown():
+            split_ = self.buff[-1].split('@end@')
+            assert len(split_)==2
+            self.buff[-1] = split_[0]
+            self.buff.append('')
+            self.buff[-1] = split_[1]
+            return
 
-        avail_port = find_free_port()
-        app.run(port=avail_port)
+        assert (self.handler is None)     or (self.queue is None)
+        assert (self.handler is not None) or (self.queue is not None)
+
+        while True:
+            recvData = self.sock.recv(10240)
+            recvData = str(recvData, encoding = "utf-8")
+            ends_with_mark = recvData.endswith('@end@')
+            split_res = recvData.split('@end@')
+            assert len(split_res) != 0
+            if len(split_res) == 1:
+                # 说明没有终止符，直接将结果贴到buf最后一项
+                self.buff[-1] = self.buff[-1] + split_res[0]
+                if '@end@' in self.buff[-1]: 
+                    handle_flag_breakdown()
+            else:
+                n_split = len(split_res)
+                for i, r in enumerate(split_res):
+                    self.buff[-1] = self.buff[-1] + r
+                    if i == 0 and '@end@' in self.buff[-1]:
+                        handle_flag_breakdown()
+                    if i != n_split-1:
+                        self.buff.append('')
+                    else: # 最后一个
+                        if r == '': continue
+            buff_list = self.buff[:-1]
+            self.buff = self.buff[-1:]
+            if self.handler is not None: 
+                self.handler(buff_list)
+            if self.queue is not None: 
+                self.queue.put(buff_list)
+
+        return
+
+    def set_handler(self, handler):
+        self.handler = handler
+
+    def get_queue(self):
+        import queue
+        self.queue = queue.Queue()
+        return self.queue
+
+    def recv(self):
+        return
+
+    # def send(self, str_msg):
+    #     msg = '@start@' + str_msg + '@end@'
+    #     self.sock.send(bytes(msg, encoding='utf8'))
+
+    def send_bytes(self, b_msg):
+        msg = self.fixed_L + b_msg + self.fixed_R
+        self.sock.send(msg)
+
+    def close(self):
+        if hasattr(self, 'sock'): self.sock.close()
+        if hasattr(self, 'draw_cmd_socket'): self.draw_cmd_socket.close()        
+
+    def __del__(self):
+        self.close()
+
+
+
         
 class DrawProcess(Process):
-    def __init__(self, pipe, draw_mode):
+    def __init__(self, draw_udp_port, draw_mode):
         super(DrawProcess, self).__init__()
         self.draw_mode = draw_mode
+        self.draw_udp_port = draw_udp_port
+        self.tcp_connection = tcp_server(self.draw_udp_port)
 
-        import matplotlib.pyplot as plt
-        
-        if self.draw_mode == 'Web':
+
+        return
+
+    def init_matplot_lib(self):
+        import matplotlib
+        if self.draw_mode in ['Web', 'Img']:
+            matplotlib.use('Agg') # set the backend before importing pyplot
+            import matplotlib.pyplot as plt
             self.gui_reflesh = lambda: time.sleep(1) # plt.pause(0.1)
         elif self.draw_mode == 'Native':
-            self.gui_reflesh = lambda: plt.pause(0.1)
+            # matplotlib.use('Agg') # set the backend before importing pyplot
+            matplotlib.use('Qt5Agg')
+            import matplotlib.pyplot as plt
+            # canvas = plt.gca().figure.canvas
+            self.gui_reflesh = lambda: plt.pause(0.2) #canvas.start_event_loop(0.1) # plt.pause(0.2) #time.sleep(0.2) #
         else:
             assert False
-
         from config import GlobalConfig
-        note = GlobalConfig.note
-        if not os.path.exists('./VISUALIZE/%s'%note):
-            os.makedirs('./VISUALIZE/%s'%note)
-
+        logdir = GlobalConfig.logdir
+        if not os.path.exists(logdir):
+            os.makedirs(logdir)
         if self.draw_mode == 'Web':
-            my_http = MyHttp('./VISUALIZE/%s/html.html'%note)
+            self.avail_port = find_free_port()
+            my_http = MyHttp('%s/html.html'%logdir, self.avail_port)
             my_http.daemon = True
             my_http.start()
-
-        self.p = pipe
         self.libs_family = {
             'rec_init': 'rec', 'rec': 'rec', 'rec_show': 'rec',
-            'v2d_init': 'v2d', 'v2dx':'v2d', 'v2d_show': 'v2d','v2d_line_object':'v2d'
+            'v2d_init': 'v2d', 'v2dx':'v2d', 'v2d_show': 'v2d', 'v2d_pop':'v2d',
+            'v2d_line_object':'v2d', 'v2d_clear':'v2d', 'v2d_add_terrain': 'v2d',
         }
         self.libs_init_fns = {
             'rec': self.rec_init_fn,
             'v2d': self.v2d_init_fn,
         }
-        pass
 
     def run(self):
+        self.init_matplot_lib()
         try:
+            # self.tcp_connection.set_handler(self.run_handler)
+            from queue import Empty
+            queue = self.tcp_connection.get_queue()
+            # self.tcp_connection.set_handler(self.run_handler)
+            self.tcp_connection.wait_connection() # after this, the queue begin to work
             while True:
-                cmd_arrive = self.p.poll()
-                if cmd_arrive:
-                    cmd_str = self.p.recv_bytes()
-                    self.process_cmd(cmd_str)
-                else:
-                    self.gui_reflesh()
+                try: self.run_handler(queue.get(timeout=0.1))
+                except Empty: self.gui_reflesh()
+
+
         except KeyboardInterrupt:
             self.__del__()
         self.__del__()
 
+    def run_handler(self, buff_list):
+        for buff in buff_list:
+            self.process_cmd(buff)
+            # print('成功处理指令:', buff)
+
     def __del__(self):
-        self.p.close()
+        self.tcp_connection.close()
+
+
 
     def process_cmd(self, cmd_str):
-        cmd_str = cmd_str.decode()
         if '>>' in cmd_str:
             cmd_str_ = cmd_str[2:].strip('\n')
             if ')' not in cmd_str_:
@@ -128,7 +216,7 @@ class DrawProcess(Process):
         cmd_key = None
         func_name = cmd.split('(')[0]
         if func_name not in self.libs_family:
-            print('绘图函数不能处理：', cmd)
+            print蓝('绘图函数不能处理：', cmd)
             return None
         family_name = self.libs_family[func_name]
         if self.libs_init_fns[family_name] is not None:
@@ -136,7 +224,6 @@ class DrawProcess(Process):
             self.libs_init_fns[family_name] = None
         return 'self.%s'%family_name
 
-    # lib
     def rec_init_fn(self):
         from VISUALIZE.mcom_rec import rec_family
         self.rec = rec_family('r', self.draw_mode)
@@ -144,6 +231,8 @@ class DrawProcess(Process):
     def v2d_init_fn(self):
         from VISUALIZE.mcom_v2d import v2d_family
         self.v2d = v2d_family(self.draw_mode)
+
+
 
 
 def get_files_to_read(base_path):

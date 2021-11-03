@@ -15,8 +15,9 @@ else:
     gpu_id = None
     device = GlobalConfig.device
 
-
-
+pt_dtype = torch.float64 if use_float64 else torch.float32
+pt_inf = torch.tensor(np.inf, dtype=pt_dtype, device=device) # np.float
+pt_nan = torch.tensor(np.nan, dtype=pt_dtype, device=device) # np.float
 
 def vis_mat(mat):
     mat = mat.astype(np.float)
@@ -78,10 +79,15 @@ def copy_clone(x):
             y = my_view(x, new_shape)
             y.shape = (4*5, 6, 7)
 
-(4, 5, 6); new_shape = [0, 0, -1, 3]
+    eg.3    x.shape = (4, 5, 6); new_shape = [0, 0, -1, 3]
+            y = my_view(x, new_shape)
+            y.shape = [4, 5, 2, 3]
 
-(4, 5, 6); new_shape = [2, -1, 0, 0]
-(3, 4, 5, 6); new_shape = [0, 2, -1, 0, 0]
+    eg.4    x.shape = (3, 4, 5, 6); new_shape = [0, 2, -1, 0, 0]
+            y = my_view(x, new_shape)
+            y.shape = [3, 2, 2, 5, 6]
+
+
 """
 def my_view(x, shape):
     if -1 in shape[1:-1]: return my_view_test(x, shape)

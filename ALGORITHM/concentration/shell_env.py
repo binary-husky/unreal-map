@@ -2,7 +2,7 @@ import os, torch
 import numpy as np
 from numba import njit, jit
 from UTILS.colorful import *
-from UTILS.tensor_ops import copy_clone, my_view, add_onehot_id_at_last_dim, add_obs_container_subject
+from UTILS.tensor_ops import my_view, __hash__
 import pickle
 from config import GlobalConfig
 DEBUG = True
@@ -43,15 +43,15 @@ class ShellEnvWrapper(object):
         self.mcv = mcv
         self.RL_functional = RL_functional
         self.n_basic_dim = scenario_config.obs_vec_length
-        # self.n_entity = scenario_config.num_entity
-        # self.agent_uid = scenario_config.uid_dictionary['agent_uid']
-        # self.entity_uid = scenario_config.uid_dictionary['entity_uid']
-        # self.dec = scenario_config.dec_dictionary
-        # self.n_object = scenario_config.num_object
+
+        # whether to use avail_act to block forbiden actions
+        self.block_invalid_action = False
+        if hasattr(scenario_config, 'block_invalid_action'):
+            self.block_invalid_action = scenario_config.block_invalid_action 
+
+        # whether to load previously saved checkpoint
         self.load_checkpoint = alg_config.load_checkpoint
         self.cold_start = True
-        # self._division_obsR_init = None
-        # self._division_obsL_init = None
 
     @staticmethod
     def get_binary_array(n, n_bits, dtype=np.float32):
@@ -75,14 +75,16 @@ class ShellEnvWrapper(object):
         ENV_PAUSE = State_Recall['ENV-PAUSE']
         obs_feed = obs[~ENV_PAUSE]
         prev_obs_feed = previous_obs[~ENV_PAUSE]
+        if self.block_invalid_action:
+            avail_act = np.array([info['avail-act'] for info in np.array(State_Recall['Latest-Team-Info'][~ENV_PAUSE], dtype=object)])
 
-        obs_feed_in, _ = self.solve_duplicate(obs_feed, prev_obs_feed)
-
+        obs_feed_in = self.solve_duplicate(obs_feed, prev_obs_feed)
 
         I_State_Recall = {'obs':obs_feed_in, 
             'Test-Flag':State_Recall['Test-Flag'], 
             'threads_active_flag':~ENV_PAUSE, 
-            'Latest-Team-Info':State_Recall['Latest-Team-Info'][~ENV_PAUSE]}
+            'Latest-Team-Info':State_Recall['Latest-Team-Info'][~ENV_PAUSE],
+            'avail_act':avail_act}
         act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_State_Recall)
 
         act[~ENV_PAUSE] = act_active
@@ -101,20 +103,22 @@ class ShellEnvWrapper(object):
         return actions_list, State_Recall 
 
     def solve_duplicate(self, obs_feed, prev_obs_feed):
-        # obs_feed = my_view(obs_feed,[0, 0, -1, self.n_basic_dim])
-        # prev_obs_feed = my_view(prev_obs_feed,[0,0,12,-1])
-        # >> START get mask_and_id
-        mask_and_id = self.get_mask_id(obs_feed)
-        # prev_mask_and_id = self.get_mask_id(prev_obs_feed)
+        #  input might be (n_thread, n_agent, n_entity, basic_dim), or (n_thread, n_agent, n_entity*basic_dim)
+        # both can be converted to (n_thread, n_agent, n_entity, basic_dim)
+        obs_feed = my_view(obs_feed,[0, 0, -1, self.n_basic_dim])
 
-        obs_feed[np.isnan(mask_and_id)] = np.nan
-        # prev_obs_feed[np.isnan(prev_mask_and_id)] = np.nan
-        # comb_obs_feed = np.concatenate((obs_feed, prev_obs_feed), -2)           # concat alone the target dim
-        # comb_mask_and_id = np.concatenate((mask_and_id, prev_mask_and_id), -1)  # concat alone the target dim
-        # return comb_obs_feed, comb_mask_and_id
-        return obs_feed, mask_and_id
+        # turning all zero padding to NaN, used for normalization
+        obs_feed[(obs_feed==0).all(-1)] = np.nan
+        # import copy
+        # obs_feed_tmp = copy.deepcopy(obs_feed)
+        # obs_feed_tmp[(obs_feed==0).all(-1)] = np.nan
+        # mask_and_id = self.get_mask_id(obs_feed)
+        # obs_feed[np.isnan(mask_and_id)] = np.nan
+        # assert __hash__(obs_feed_tmp) == __hash__(obs_feed)
+        # 'f96bddab83d2b4e002819b33bc7ddb64'
+        return obs_feed
 
-        
+
     def get_mask_id(self, obs_feed):
         mask_and_id = np.zeros_like(obs_feed)[:,:,:, 0] # thread,agent,agent_obs
         binary = obs_feed[...,-8:]

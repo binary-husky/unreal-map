@@ -120,7 +120,12 @@ class SuperpoolEnv(object):
         #     assert not all(ENV_PAUSE)
         #     return self.stack(ENV_PAUSE, obs, rews, dones, infos)
         # else:
-        return np.stack(obs), np.stack(rews), np.stack(dones), np.stack(infos)
+        try:
+            return np.stack(obs), np.stack(rews), np.stack(dones), np.stack(infos)
+        except:
+            print('not align! ',obs, rews, dones)
+            assert False, ('unalign! ',obs, rews, dones)
+
 
     def reset(self):
         results = self.SuperPool.exec_target(name=self.env, dowhat='reset')
