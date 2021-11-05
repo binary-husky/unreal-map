@@ -1,0 +1,50 @@
+{
+    "config.py->GlobalConfig": {
+        "note": "justdoit_QuadConc_addhist_20interf",
+        "env_name":"collective_assult",
+        "env_path":"MISSIONS.collective_assult",
+        "draw_mode": "Img",
+        "num_threads": "64",
+        "report_reward_interval": "64",
+        "test_interval": "2048",
+        // "device": "cuda:0",
+        // "gpu_party": "CUDA0_P1",
+        "fold": "1",
+        "seed": 9995,
+        "backup_files":[
+            "ALGORITHM/concentration_addhist_quadconc/net.py",
+            "ALGORITHM/concentration_addhist_quadconc/ppo.py",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py",
+            "ALGORITHM/concentration_addhist_quadconc/trajectory.py"
+        ]
+    },
+
+    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
+        "size": "5",
+        "random_jam_prob": 0.2,
+        "introduce_terrain":"True",
+        "terrain_parameters": [0.05, 0.2],
+        "num_steps": "180",
+        "render":"False",
+        "render_with_unity":"False",
+        "MCOM_DEBUG":"False",
+        "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
+        "half_death_reward": "True",
+        "TEAM_NAMES": [
+            "ALGORITHM.concentration_addhist_quadconc.foundation->ReinforceAlgorithmFoundation"
+        ]
+    },
+
+    "ALGORITHM.concentration_addhist_quadconc.foundation.py->AlgorithmConfig": {
+        "n_focus_on": 2,
+        "actor_attn_mod": "False",
+        "extral_train_loop": "False",
+
+        "lr": 5e-4,
+        "ppo_epoch": 24,
+        "train_traj_needed": "64",
+        "load_checkpoint": "False"
+
+    }
+}
+
