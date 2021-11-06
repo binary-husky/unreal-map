@@ -241,57 +241,16 @@ class Net(nn.Module):
     def div_entity(self, mat, type=[(0,), # s
                                     (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,), 
                                     (12,13,14,15,16,17, 18,19,20,21,22,23,
-                                     24,25,26,27,28,29, 30,31,32,33,34,35)],   # e_fhis
-                                    n=36):
+                                    #  24,25,26,27,28,29, 30,31,32,33,34,35
+                                     )],   # e_fhis
+                                    # n=36
+                                    n=24
+                                    ):
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
         elif mat.shape[-1]==n:
             tmp = (mat[..., t] for t in type)
         return tmp
-
-    def _act_singlec(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None):
-        assert False
-        eval_act = eval_actions if eval_mode else None
-        others = {}; obs_raw = obs
-        if self.use_normalization:
-            obs = self._batch_norm(obs)
-        mask_dead = torch.isnan(obs).any(-1)    # find dead agents
-        obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
-        v = self.AT_obs_encoder(obs)
-        
-        n_entity = obs.shape[-2]
-        zs, ze     = self.div_entity(obs,       type=[(0,), range(1,n_entity)], n=n_entity)
-        vs, ve     = self.div_entity(v,         type=[(0,), range(1,n_entity)], n=n_entity)
-        _, ve_dead = self.div_entity(mask_dead, type=[(0,), range(1,n_entity)], n=n_entity)
-
-        # concentration module, ve_dead is just a mask filtering out invalid or padding entities
-        v_C, v_M = self.MIX_conc_core(vs=vs, ve=ve, ve_dead=ve_dead, skip_connect_ze=ze, skip_connect_zs=zs)
-        # fuse forward path
-        logits = self.AT_get_logit_db(v_C) # diverge here
-        # motivation objectives
-        value = self.CT_get_value(v_M)
-        threat = self.CT_get_threat(v_M)
-
-        if self.alternative_critic:
-            # make previous value registered in return dictionary:
-            others['motivation value'] = value
-            # empty pointer 
-            value = None
-            # the value for RL is shifted to this:
-            value = self.CT_get_value_alternative_critic(v_C)
-
-        act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
-                                                test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
-
-        def re_scale(t):
-            SAFE_LIMIT = 11
-            r = 1. /2. * SAFE_LIMIT
-            return (torch.tanh_(t/r) + 1.) * r
-
-        others['threat'] = re_scale(threat)
-        if not eval_mode: return act, value, actLogProbs
-        else:             return value, actLogProbs, distEntropy, probs, others
-
 
     def _act(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None):
         eval_act = eval_actions if eval_mode else None
@@ -309,7 +268,7 @@ class Net(nn.Module):
         # concentration module
         vh_C, vh_M = self.MIX_conc_core_h(vs=vs, ve=ve_h, ve_dead=ve_h_dead, skip_connect_ze=ze_h, skip_connect_zs=zs)
         vf_C, vf_M = self.MIX_conc_core_f(vs=vs, ve=ve_f, ve_dead=ve_f_dead, skip_connect_ze=ze_f, skip_connect_zs=zs)
-
+        print(ze_h[0,0,:,2])
         # fuse forward path
         v_C_fuse = torch.cat((vf_C, vh_C), dim=-1)  # (vs + vs + check_n + check_n)
         logits = self.AT_get_logit_db(v_C_fuse) # diverge here

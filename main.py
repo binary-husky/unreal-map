@@ -51,7 +51,7 @@ def pytorch_gpu_init(cfg, internal_threads):
 
 if __name__ == '__main__':
     import os, numpy
-    import pyximport; pyximport.install(build_dir='./RECYCLE/build/', inplace=True, language_level=3)
+    import pyximport; pyximport.install(build_dir='./RECYCLE/build/', inplace=True, language_level=3, setup_args={'include_dirs': numpy.get_include()})
     from atexit import register
     from UTILS.colorful import *
     from UTILS.config_args import get_args
