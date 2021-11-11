@@ -46,6 +46,8 @@ def pytorch_gpu_init(cfg, internal_threads):
     torch.cuda.set_device(gpu_index)
     cfg.device = 'cuda:%d'%gpu_index
     torch.cuda.manual_seed(seed)
+    if cfg.use_float64:
+        torch.set_default_dtype(torch.float64)
 
 
 

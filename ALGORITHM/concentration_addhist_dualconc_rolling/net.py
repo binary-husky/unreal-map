@@ -9,7 +9,7 @@ from ..commom.attention import MultiHeadAttention
 from ..commom.norm import DynamicNorm
 from ..commom.mlp import LinearFinal, SimpleMLP, ResLinear
 from UTILS.colorful import print亮紫
-from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, pad_at_dim
+from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, __hashn__,  pad_at_dim
 from UTILS.tensor_ops import _2cpu2numpy, one_hot_with_nan, gather_righthand, pt_inf
 
 
@@ -237,7 +237,7 @@ class Net(nn.Module):
     def evaluate_actions(self, *args, **kargs):
         act = self._act if self.dual_conc else self._act_singlec
         return act(*args, **kargs, eval_mode=True)
-
+    '''
     def div_entity(self, mat, type=[(0,), # s
                                     (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,), 
                                     (12,13,14,15,16,17, 18,19,20,21,22,23,
@@ -246,6 +246,17 @@ class Net(nn.Module):
                                     # n=36
                                     n=24
                                     ):
+
+    def div_entity(self, mat, type=[(0,), # s
+                                    (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,), 
+                                    (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,)]
+                                    ,
+                                    n=24
+                                    ):
+    '''
+
+    def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=24):
+
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
         elif mat.shape[-1]==n:
@@ -260,10 +271,22 @@ class Net(nn.Module):
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
         v = self.AT_obs_encoder(obs)
+        # __hash__(obs[:,:,:12,:]) 'a88be78c60ac0ff67c1ebfe0bd49383c'
+        # __hashn__(self.AT_obs_encoder.parameters()) '801edc1883edc2b19dbc77a6eb7b65b7'
+        # __hash__(v[:,:,:12,:]) = '443ebdc7fe4d8f0b5f3697fc4c7a532b'
 
         zs, ze_f, ze_h          = self.div_entity(obs)
-        vs, ve_f, ve_h          = self.div_entity(v)
+        vs, ve_f, ve_h          = self.div_entity(v)    # 'a8c8f1c28d351fb0b1bdf565b8560152', '329a69b60786881a83691daf83cf063b', '7ae838a4831f03f14151e1025fe4f7e8'
         _, ve_f_dead, ve_h_dead = self.div_entity(mask_dead)
+
+# vs[0,0]
+# tensor([[ 0.5554,  0.3083, -0.1345,  0.1323,  0.0194,  0.2556, -0.3194, -0.7459,
+#           0.2570,  0.8888, -0.0320,  0.3879, -0.2225,  0.1194,  0.4740,  0.3381,
+#           0.3374,  0.0425, -0.2731,  0.2848, -0.6046,  0.2279, -0.1464, -0.0814,
+#          -0.1240, -0.1027, -0.2241, -0.0602, -0.5858, -0.9224, -0.3742, -0.1352,
+#          -0.4311,  0.2867,  0.3889,  0.7059, -1.0662,  0.2792, -0.2713, -0.0888,
+#           0.2783, -0.0392, -0.3106,  0.5116, -0.3530,  0.3807, -0.1157, -0.9924]],
+#        device='cuda:0')
 
         # concentration module
         vh_C, vh_M = self.MIX_conc_core_h(vs=vs, ve=ve_h, ve_dead=ve_h_dead, skip_connect_ze=ze_h, skip_connect_zs=zs)
@@ -285,7 +308,18 @@ class Net(nn.Module):
 
         act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
                                                                 test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
-
+        # __hash__(actLogProbs) 
+        # 12fbcbf9131ee2a97ee71637154a99d5
+        # fb48b0e2e8290eaac19a167c823dabdf
+        # 8ac43d6d52f8b40300bec198fd495762
+        # eaee654f9ef9f8826bc23204ccb4ebe6
+        # 7f226bcf1e42f940719a9282cdbb002a
+        # 1226052d7479f10997ac3248ba396c60
+        # dd666993fdbc6a26978eb6f99b9be192
+        # 30e573bea807a63e1cdc47de75abb40c
+        # 449572bb6998a60347860d5c296d679f
+        # 8618549b112e1d8f9c734d95a5d65e19
+        # print(__hash__(actLogProbs))
         def re_scale(t):
             SAFE_LIMIT = 11
             r = 1. /2. * SAFE_LIMIT

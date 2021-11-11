@@ -1,11 +1,11 @@
 {
     "config.py->GlobalConfig": {
-        "note": "revise-100vs100-train-test-new-launch2",
+        "note": "revise-rec",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "interested_agent_num":100,
         "draw_mode": "Img",
-        "num_threads": "64",
+        "num_threads": "1",
         "report_reward_interval": "64",
         "test_interval": "2048",
         // "device": "cuda:0",
@@ -29,7 +29,7 @@
         "introduce_terrain":"True",
         "terrain_parameters": [0.05, 0.2],
         "num_steps": "180",
-        "render":"False",
+        "render":"True",
         "render_with_unity":"False",
         "MCOM_DEBUG":"False",
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",

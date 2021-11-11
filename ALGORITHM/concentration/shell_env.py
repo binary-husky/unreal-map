@@ -117,7 +117,8 @@ class ShellEnvWrapper(object):
         # mask_and_id = self.get_mask_id(obs_feed)
         # obs_feed[np.isnan(mask_and_id)] = np.nan
         # assert __hash__(obs_feed_tmp) == __hash__(obs_feed)
-        # 'f96bddab83d2b4e002819b33bc7ddb64'
+        # seed 9996  'c06b4f0b8ec658e475adc0e2bf1a56b9'
+        # 第二次 '0766b324646aee137fffc8de912db980'
         return obs_feed
 
 

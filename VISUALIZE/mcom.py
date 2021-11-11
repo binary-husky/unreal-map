@@ -338,7 +338,7 @@ class tcp_server():
         self.handler = None
         self.queue = None
         self.buff = ['']
-        
+ 
     def wait_connection(self):
         import threading
         self.sock, _ = self.draw_cmd_socket.accept()

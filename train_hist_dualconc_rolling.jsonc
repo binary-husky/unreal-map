@@ -1,16 +1,17 @@
 {
     "config.py->GlobalConfig": {
-        "note": "train_hist_dualconc_rolling_50interf-debug",
+        "note": "train_hist_dualconc_rolling_wtfdc2_db",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
         "test_interval": "2048",
+        "use_float64": true,
         // "device": "cuda:0",
         // "gpu_party": "CUDA0_P1",
         "fold": "1",
-        "seed": 9995,
+        "seed": 9996,
         "backup_files":[
             "ALGORITHM/concentration_addhist_dualconc_rolling/net.py",
             "ALGORITHM/concentration_addhist_dualconc_rolling/ppo.py",
