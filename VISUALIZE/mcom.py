@@ -1,31 +1,19 @@
-import socket
-import os,copy
-import time
-import traceback
+import os, copy, atexit, time, traceback
 import numpy as np
+from colorama import init; init()
 
-from UTILS.colorful import *
-from colorama import init
 from multiprocessing import Process, Pipe
-init()
+from UTILS.colorful import *
+
 def find_free_port():
+    import socket
     from contextlib import closing
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(('', 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
-'''
-    mcom core function: draw line, by assigning points one by one, 
-    for example 
-        uc.rec(100,'live loss valueX')
-        uc.rec(0.1,'entropy agentX')
-        uc.rec(99, 'live loss valueX')
-        uc.rec(0.3,'entropy agentX')
-        uc.rec(88, 'live loss valueX')
-        uc.rec(0.5,'entropy agentX')
-        uc.rec_show()
-'''
+
 class mcom():
     # as a recording programme, the design principle is:
     # Under No Circumstance should this program Interrupt the main program!
@@ -34,20 +22,18 @@ class mcom():
         # digit 默认8，可选4,16，越小程序负担越轻 (all is float, set valid digit number)
         # rapid_flush 当数据流不大时，及时倾倒文件缓存内容 (set 'False' if you'd like your SSD to survive longer)
         self.draw_mode = draw_mode
-        if draw_mode in ['Web', 'Native', 'Img']:
-            self.draw_process = True; print亮红('draw process active!')
+        if draw_mode in ['Web', 'Native', 'Img', 'Threejs']:
+            self.draw_process = True; print亮红('[mcom.py]: draw process active!')
             port = find_free_port()
             self.draw_tcp_port = ('localhost', port)
-            self.draw_proc = DrawProcess(self.draw_tcp_port, draw_mode)
-            self.draw_proc.daemon = True
+            DP = DrawProcess if draw_mode != 'Threejs' else DrawProcessThreejs
+            self.draw_proc = DP(self.draw_tcp_port, draw_mode)
             self.draw_proc.start()
             self.draw_tcp_client = tcp_client('localhost:%d'%port)
-            
         else:
-            print亮红('draw process off! no plot will be done')
+            print亮红('[mcom.py]: Draw process off! No plot will be done')
             self.draw_process = False
-        self.port = port
-        self.dst = (ip, port)
+
         self.path = path
         prev_start, prev_end, self.current_buffer_index = find_free_index(self.path)
         self.starting_file = self.path + '/mcom_buffer_%d____starting_session.txt' % (self.current_buffer_index)
@@ -56,17 +42,8 @@ class mcom():
         self.digit = digit
         self.rapid_flush = rapid_flush
         self.flow_cnt = 0
-        # if self.port is not None:
-        #     self.socketx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        #     str_tmp = ">>@" + str(self.current_buffer_index) + "@" + os.path.abspath(self.starting_file)
-        #     b_tmp = bytes(str_tmp, encoding='utf8')
-        #     self.socketx.sendto(b_tmp, self.dst)
-        #     with open(os.path.expanduser('~/trace.comv5.txt'), 'a+', encoding='utf8') as f:
-        #         f.writelines(['\n', time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()), '  |  ',
-        #                       os.path.abspath(self.starting_file), '\n'])
+        print蓝('[mcom.py]: log file at:' + self.starting_file)
 
-        print蓝('**************mcom service initialized**************')
-        print蓝('use MATLAB to open live log file at:' + self.starting_file)
         from config import GlobalConfig as cfg
         if cfg.recall_previous_session and prev_start is not None and self.draw_process:
             assert prev_start==prev_end,('暂时只处理这种回溯')
@@ -75,26 +52,48 @@ class mcom():
             self.current_file_handle = open(self.starting_file, 'ab')
         else:
             self.current_file_handle = open(self.starting_file, 'wb+')
+        atexit.register(lambda: self.__del__())
+
+
+    def __del__(self):
+        # on the end of the program
+        if hasattr(self, 'current_file_handle') and self.current_file_handle is not None:
+            end_file_flag = (b'><EndTaskFlag\n')
+            self.current_file_handle.write(end_file_flag)
+            self.current_file_handle.close()
+        if hasattr(self, 'port') and self.port is not None:
+            self.disconnect()
+        if hasattr(self, 'draw_proc') and self.draw_proc is not None:
+            try:
+                self.draw_proc.terminate()
+                self.draw_proc.join()
+            except:
+                pass
+        print蓝('[mcom.py]: mcom exited!')
+
+
+    def disconnect(self):
+        # self.draw_udp_client.close()
+        self.draw_tcp_client.close()
 
 
     def recall(self, starting_file):
         with open(starting_file,'rb') as f:
             lines = f.readlines()
-
         r = None
         for l in lines:
             if 'rec_show' in str(l, encoding='utf8'): 
                 r = copy.deepcopy(l)
                 continue
             self.draw_tcp_client.send_bytes(l)
-
         if r is not None:
             self.draw_tcp_client.send_bytes(r)
         return None
+
+
     '''
         mcom core function: send out/write raw bytes
     '''
-
     def send(self, data):
         # step 1: add to file
         self.file_lines_cnt += 1
@@ -112,12 +111,10 @@ class mcom():
             self.current_file_handle = open((self.path + '/mcom_buffer_%d.txt' % self.current_buffer_index), 'wb+')
             self.file_lines_cnt = 0
 
+        # # step 3: send directive to draw process
         if self.draw_process: 
             # self.draw_udp_client.sendto(data, self.draw_udp_port)
             self.draw_tcp_client.send_bytes(data)
-            # print('成功fasong指令:', data)
-        # # step 3: UDP send directly
-        # UDP function removed because it's not convenient
 
     def rec_init(self, color='k'):
         str_tmp = '>>rec_init(\'%s\')\n' % color
@@ -243,8 +240,6 @@ class mcom():
             print红('mcom：输入数组的维度大于2维，目前处理不了。')
         return strlist
 
-
-
     exec('def plot(self,*args):\n  self.other_cmd(*args)\n')
     exec('def figure(self,*args):\n  self.other_cmd(*args)\n')
     exec('def hold(self,*args):\n  self.other_cmd(*args)\n')
@@ -271,21 +266,6 @@ class mcom():
     exec('def v2d_clear(self,*args):\n  self.other_cmd(*args)\n')
     exec('def v2d_add_terrain(self,*args):\n  self.other_cmd(*args)\n')
 
-    def __del__(self):
-        # on the end of the program
-        if hasattr(self, 'current_file_handle') and self.current_file_handle is not None:
-            end_file_flag = (b'><EndTaskFlag\n')
-            self.current_file_handle.write(end_file_flag)
-            self.current_file_handle.close()
-        if hasattr(self, 'port') and self.port is not None:
-            self.disconnect()
-        print蓝('the program exited, mcom as well exited!')
-
-    def disconnect(self):
-        # self.draw_udp_client.close()
-        self.draw_tcp_client.close()
-
-
 
 def find_free_index(path):
     if not os.path.exists(path): os.makedirs(path)
@@ -308,6 +288,7 @@ def find_free_index(path):
 
 class tcp_client():
     def __init__(self, ip):
+        import socket
         TCP_IP, TCP_PORT = ip.split(':')
         TCP_PORT = int(TCP_PORT)
         BUFFER_SIZE = 10240
@@ -332,6 +313,7 @@ class tcp_client():
 
 class tcp_server():
     def __init__(self, ip_port):
+        import socket
         self.draw_cmd_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.draw_cmd_socket.bind(ip_port)
         self.draw_cmd_socket.listen()
@@ -437,12 +419,47 @@ class MyHttp(Process):
                 html = "no plot yet please wait"
             return html
         app.run(port=self.avail_port)
-        
 
 
 
+class DrawProcessThreejs(Process):
+    def __init__(self, draw_udp_port, draw_mode):
+        super(DrawProcessThreejs, self).__init__()
+        self.draw_mode = draw_mode
+        self.draw_udp_port = draw_udp_port
+        self.tcp_connection = tcp_server(self.draw_udp_port)
 
+    def init_threejs(self):
+        from .threejsmod.fr import FlaskProcess
+        self.flask_process = FlaskProcess(port=find_free_port())
+        self.flask_process.daemon = True
+        self.flask_process.start()
 
+    def run(self):
+        self.init_threejs()
+        try:
+            from queue import Empty
+            queue = self.tcp_connection.get_queue()
+            self.tcp_connection.wait_connection() # after this, the queue begin to work
+            while True:
+                self.run_handler(queue.get(timeout=60))
+        except KeyboardInterrupt:
+            self.__del__()
+        self.__del__()
+
+    def run_handler(self, buff_list):
+        # for buff in buff_list:
+        self.process_cmd(buff_list)
+
+    def process_cmd(self, cmd_str):
+        # if '>>' in cmd_str:
+        #     cmd_str_ = cmd_str[2:].strip('\n')
+        #     if ')' not in cmd_str_:
+        #         cmd_str_ = cmd_str_+'()'
+        #     prefix = self.get_cmd_lib(cmd_str_)
+        #     if prefix is not None: 
+        #         eval('%s.%s'%(prefix, cmd_str_))
+        pass
 class DrawProcess(Process):
     def __init__(self, draw_udp_port, draw_mode):
         super(DrawProcess, self).__init__()
@@ -450,23 +467,25 @@ class DrawProcess(Process):
         self.draw_udp_port = draw_udp_port
         self.tcp_connection = tcp_server(self.draw_udp_port)
 
-
         return
 
     def init_matplot_lib(self):
-        import matplotlib
         if self.draw_mode in ['Web', 'Img']:
+            import matplotlib
             matplotlib.use('Agg') # set the backend before importing pyplot
             import matplotlib.pyplot as plt
             self.gui_reflesh = lambda: time.sleep(1) # plt.pause(0.1)
         elif self.draw_mode == 'Native':
+            import matplotlib
             # matplotlib.use('Agg') # set the backend before importing pyplot
             matplotlib.use('Qt5Agg')
             import matplotlib.pyplot as plt
-            # canvas = plt.gca().figure.canvas
             self.gui_reflesh = lambda: plt.pause(0.2) #canvas.start_event_loop(0.1) # plt.pause(0.2) #time.sleep(0.2) #
+        elif self.draw_mode == 'Threejs':
+            assert False
         else:
             assert False
+
         from config import GlobalConfig
         logdir = GlobalConfig.logdir
         if not os.path.exists(logdir):
@@ -497,7 +516,6 @@ class DrawProcess(Process):
             while True:
                 try: self.run_handler(queue.get(timeout=0.1))
                 except Empty: self.gui_reflesh()
-
 
         except KeyboardInterrupt:
             self.__del__()

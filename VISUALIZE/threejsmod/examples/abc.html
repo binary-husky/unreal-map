@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>three.js webgl - layers</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="main.css">
+	<style>
+		body {
+			background-color: #f0f0f0;
+			color: #444;
+		}
+
+		a {
+			color: #08f;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="info">
+		<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - webgl layers
+	</div>
+
+	<script type="module">
+
+		import * as THREE from '/build/three.module.js';
+		import Stats from '/examples/jsm/libs/stats.module.js';
+		import { GUI } from '/examples/jsm/libs/dat.gui.module.js';
+		import { FlyControls } from '/examples/jsm/controls/FlyControls.js';
+		import { OrbitControls } from '/examples/jsm/controls/OrbitControls.js';
+
+		// 由于JavaScript的变量作用域实际上是函数内部，我们在for循环等语句块中是无法定义具有局部作用域的变量的
+		// 为了解决块级作用域，ES6引入了新的关键字let，用let替代var可以申明一个块级作用域的变量
+		let container, stats;
+		let camera, renderer;
+		var controls;
+		var scene;
+		let theta = 0;
+		// ES6标准引入了新的关键字const来定义常量，const与let都具有块级作用域：
+		const radius = 100;
+		const clock = new THREE.Clock();
+		// 历史轨迹
+		var core_L = [];
+		var core_Obj = [];
+		// global vars
+		var play_fps = 20;
+		var dt_since = 0;
+		var dt_threshold = 1 / play_fps;
+		var play_pointer = 0;
+		var buf_str = '';
+		// color dictionary 
+		var color_dic = {
+			k:0x000000,
+			r:0xff0000, 
+			g:0x00ff00, 
+			b:0x0000ff, 
+		};
+		var color_layer = {
+			k:0,
+			r:1, 
+			g:2, 
+			b:3, 
+		};
+		init();
+		animate();
+
+
+
+		function core_update(buf) {
+			core_L = buf.split('>>v2d_show()\n')
+			// alert('987')
+		}
+
+		var x = setInterval(function () {
+			// Get today's date and time
+			const request = new XMLHttpRequest();
+			request.open('POST', `/up`);
+			request.onload = () => {
+				core_update(request.responseText)
+			};
+			request.send();
+		}, 3000);
+
+
+		function addCoreObj(name, color_str, geometry, x, y, z){
+			const object = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: color_dic[color_str] }));
+			object.name = name;
+			object.color_str = color_str;
+			object.position.x = x; // -400 ~ 400
+			object.position.y = y; // -400 ~ 400
+			object.position.z = z; // -400 ~ 400
+			object.next_pos = Object.create(object.position);
+			object.prev_pos = Object.create(object.position);
+			object.rotation.x = 0;  //Math.random() * 2 * Math.PI; // 0 ~ 360
+			object.rotation.y = 0;  //Math.random() * 2 * Math.PI; // 0 ~ 360
+			object.rotation.z = 0;  //Math.random() * 2 * Math.PI; // 0 ~ 360
+
+			object.scale.x = 0.5; //Math.random() + 0.5;
+			object.scale.y = 0.5; //Math.random() + 0.5;
+			object.scale.z = 0.5; //Math.random() + 0.5;
+
+			object.layers.set(color_layer[color_str]);
+			// changeCoreObjColor(object, 'b')
+			scene.add(object);
+			core_Obj.push(object)
+		}
+
+		function removeEntity(object) {
+			var selectedObject = scene.getObjectByName(object.name);
+			scene.remove(selectedObject);
+		}
+		function changeCoreObjColor(object, color_str){
+			const colorjs = color_dic[color_str];
+			object.material.color.set(colorjs)
+			object.layers.set(color_layer[color_str])
+			object.color_str = color_str;
+		}
+
+		function init() {
+
+			container = document.createElement('div');
+			document.body.appendChild(container);
+			// 透视相机 
+			// Fov – 相机的视锥体的垂直视野角
+			// Aspect – 相机视锥体的长宽比
+			// Near – 相机视锥体的近平面
+			// Far – 相机视锥体的远平面
+			camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 10000);
+			// 一个 0 - 31 的整数
+			// Layers 对象为 Object3D 分配 1个到 32 个图层。32个图层从 0 到 31 编号标记。 
+			// 在内部实现上，每个图层对象被存储为一个 bit mask， 
+			// 默认的，所有 Object3D 对象都存储在第 0 个图层上。
+			for (let i = 0; i < Object.keys(color_layer).length; i++) {
+				camera.layers.enable(i); // 启动0图层
+			}
+
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color(0xa0a0a0);
+			// scene.background = new THREE.Color( 0xf0f0f0 );
+			// ground
+			const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false }));
+			// mesh.rotation.x = - Math.PI / 2;
+			mesh.receiveShadow = true;
+			scene.add(mesh);
+
+			const light = new THREE.PointLight(0xffffff, 1);
+			for (let i = 0; i < Object.keys(color_layer).length; i++) {
+				light.layers.enable(i); // 启动0图层
+			}
+
+			scene.add(camera);
+			camera.add(light);
+			//     scene        --->         camera       --->      light       --->     
+			//   background                  layers                 layers
+			//     object --> layers
+
+
+			// R G B
+			// const colors = [0xff0000, 0x00ff00, 0x0000ff];
+
+			// ??
+			const geometry = new THREE.BoxGeometry(20, 20, 20);
+
+			for (let i = 0; i < 10; i++) {
+
+				const layer = (i % 3);
+				let x = Math.random() * 800 - 400; // -400 ~ 400
+				let y = Math.random() * 800 - 400; // -400 ~ 400
+				let z = 0; // -400 ~ 400
+				let name = "id-"+i
+
+				addCoreObj(name, 'k', geometry, x, y, z)
+
+			}
+
+			renderer = new THREE.WebGLRenderer({ antialias: true });
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			container.appendChild(renderer.domElement);
+
+			stats = new Stats();
+			container.appendChild(stats.dom);
+
+			// fly controller
+			// controls = new FlyControls( camera, renderer.domElement );
+			// controls.movementSpeed = 1000;
+			// controls.domElement = container;
+			// controls.rollSpeed = Math.PI / 6;
+			// controls.autoForward = false;
+			// controls.dragToLook = true;
+
+			controls = new OrbitControls(camera, renderer.domElement);
+			controls.target.set(0, 0, 0); // 旋转的焦点在哪0,0,0即原点
+			camera.position.set(0, 0, 1000)
+			controls.update();
+			controls.autoRotate = false;
+
+			// control ?                 
+			const layers = {
+				'toggle black': function () {
+					camera.layers.toggle(0);
+				},
+				'toggle red': function () {
+					camera.layers.toggle(1);
+				},
+				'toggle green': function () {
+					camera.layers.toggle(2);
+				},
+				'toggle blue': function () {
+					camera.layers.toggle(3);
+				},
+				'enable all': function () {
+					camera.layers.enableAll();
+				},
+				'disable all': function () {
+					camera.layers.disableAll();
+				}
+			};
+
+			// Init gui
+			const gui = new GUI();
+			const keys = Object.keys(layers)
+			for (let i = 0; i < keys.length; i++) {
+				gui.add(layers, keys[i]);
+			}
+
+			window.addEventListener('resize', onWindowResize);
+		}
+
+		// name, xpos, ypos, dir=0, **kargs
+		function parse_update(buf_str) {
+			let each_line = buf_str.split('\n')
+			for (let i = 0; i < each_line.length; i++) {
+				var str = each_line[i]
+				if (str.search("v2dx") != -1) {
+					// ">>v2dx(x, y, dir, xxx)"
+					// each_line[i].replace('>>v2dx(')
+					let pattern = />>v2dx\('(.*)',([^,]*),([^,]*),(.*)\)/
+					let match_res = str.match(pattern)
+					let name = match_res[1]
+					let pos_x = parseFloat(match_res[2])
+					let pos_y = parseFloat(match_res[3])
+					// pattern.test(str)
+					let name_split = name.split('|')
+					let type = name_split[0]
+					let id = parseInt(name_split[1])
+					let color_str = name_split[2]
+					let size = name_split[3]
+					size = name_split[3]
+					if (id < core_Obj.length) {
+						let object = core_Obj[id]
+						object.prev_pos = Object.assign({}, object.next_pos);
+						object.next_pos.x = pos_x * 100; // -400 ~ 400
+						object.next_pos.y = pos_y * 100; // -400 ~ 400
+						object.next_pos.z = 0; // -400 ~ 400
+						if (color_str != object.color_str){
+							changeCoreObjColor(object, color_str)
+						}
+					}
+					else {
+						// create obj
+						const geometry2 = new THREE.BoxGeometry(20, 20, 20);
+						addCoreObj(name, color_str, geometry2, pos_x, pos_y)
+					}
+				}
+			}
+		}
+
+
+		function move_to_future(percent) {
+			for (let i = 0; i < core_Obj.length; i++) {
+				let object = core_Obj[i]
+				object.position.x = object.prev_pos.x * (1 - percent) + object.next_pos.x * percent
+				object.position.y = object.prev_pos.y * (1 - percent) + object.next_pos.y * percent
+				object.position.z = object.prev_pos.z * (1 - percent) + object.next_pos.z * percent
+			}
+		}
+
+
+		function set_next_play_frame() {
+			if (core_L.length == 0) { return; }
+			if (play_pointer >= core_L.length) { play_pointer = 0; }
+			buf_str = core_L[play_pointer]
+			parse_update(buf_str)
+			play_pointer = play_pointer + 1
+		}
+
+
+
+		function onWindowResize() {
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+		}
+
+		// 没变化
+
+		function animate() {
+			requestAnimationFrame(animate);
+
+			render();
+			stats.update();
+		}
+
+		function render() {
+			const delta = clock.getDelta();
+			dt_since = dt_since + delta;
+			if (dt_since > dt_threshold) {
+				dt_since = 0;
+				set_next_play_frame();
+			}
+			else {
+				let percent = Math.min(dt_since / dt_threshold, 1.0);
+				move_to_future(percent);
+			}
+			// controls.update( delta );
+			renderer.render(scene, camera);
+			// console.log(camera)
+
+
+		}
+
+	</script>
+
+</body>
+
+</html>
