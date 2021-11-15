@@ -9,7 +9,7 @@ from ..commom.attention import MultiHeadAttention
 from ..commom.norm import DynamicNorm
 from ..commom.mlp import LinearFinal, SimpleMLP, ResLinear
 from UTILS.colorful import print亮紫
-from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, pad_at_dim
+from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, __hashn__, pad_at_dim
 from UTILS.tensor_ops import _2cpu2numpy, one_hot_with_nan, gather_righthand, pt_inf
 
 
@@ -238,7 +238,7 @@ class Net(nn.Module):
         act = self._act if self.dual_conc else self._act_singlec
         return act(*args, **kargs, eval_mode=True)
 
-    def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=12):
+    def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5),(6, 7, 8, 9, 10, 11)], n=12):
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
         elif mat.shape[-1]==n:
@@ -297,10 +297,13 @@ class Net(nn.Module):
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
         v = self.AT_obs_encoder(obs)
+        # __hash__(obs) = 'a88be78c60ac0ff67c1ebfe0bd49383c'
+        # __hashn__(self.AT_obs_encoder.parameters()) = '801edc1883edc2b19dbc77a6eb7b65b7'
+        # __hash__(v) = '443ebdc7fe4d8f0b5f3697fc4c7a532b'
 
-        zs, ze_f, ze_h          = self.div_entity(obs)
-        vs, ve_f, ve_h          = self.div_entity(v)
-        _, ve_f_dead, ve_h_dead = self.div_entity(mask_dead)
+        zs, ze_f, ze_h          = self.div_entity(obs)  # '70c579d1b1bb85417451dd2085cf9368', '042c64fadda65d0cc4e9fc347cce9a80', 'cf2ef71f4a9e90c2f6013ba3b2257ed2'
+        vs, ve_f, ve_h          = self.div_entity(v)    # '31293283e566962a01e7ed58762d6e34', 'ca2aa154d9da5eba4e2fef9b1bfc1966', '0a7e922c79fd16e5b4fae2865b469b05'
+        _, ve_f_dead, ve_h_dead = self.div_entity(mask_dead)    #_, 'b509abde351715428326ce9f7190f22e', 'd475627568a85231588f83c2888d02b0'
 
         # concentration module
         vh_C, vh_M = self.MIX_conc_core_h(vs=vs, ve=ve_h, ve_dead=ve_h_dead, skip_connect_ze=ze_h, skip_connect_zs=zs)
@@ -322,7 +325,9 @@ class Net(nn.Module):
 
         act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
                                                                 test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
-
+        # __hash__(actLogProbs) '12fbcbf9131ee2a97ee71637154a99d5'
+        # 4bb49fb065aac94d957494c549d3071b
+        print(__hash__(actLogProbs))
         def re_scale(t):
             SAFE_LIMIT = 11
             r = 1. /2. * SAFE_LIMIT

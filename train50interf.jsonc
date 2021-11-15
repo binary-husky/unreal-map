@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "justdoit-30interference",
+        "note": "justdoit-20interference-single",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
@@ -22,7 +22,7 @@
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
         "size": "5",
-        "random_jam_prob": 0.3,
+        "random_jam_prob": 0.2,
         "introduce_terrain":"True",
         "terrain_parameters": [0.05, 0.2],
         "num_steps": "180",
@@ -40,6 +40,7 @@
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
+        "dual_conc": "False",
 
         "lr": 5e-4,
         "ppo_epoch": 24,

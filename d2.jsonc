@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "train_hist_dualconc_rolling_wtf_clip12_ISnormobserror",
+        "note": "train_hist_dualconc_rolling_wtf_clip12_ISnormobserror_resetShell_run2",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",

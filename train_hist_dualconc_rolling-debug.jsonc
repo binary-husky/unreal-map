@@ -1,22 +1,22 @@
 {
     "config.py->GlobalConfig": {
-        "note": "train_hist_dualconc_rolling_wtf_clip12_ISnormobserror",
+        "note": "train_hist_dualconc_rolling_wtfdc2_db",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
         "test_interval": "2048",
-        // "use_float64": true,
+        "use_float64": true,
         // "device": "cuda:0",
         // "gpu_party": "CUDA0_P1",
         "fold": "1",
-        "seed": 9997,
+        "seed": 9996,
         "backup_files":[
-            "ALGORITHM/concentration_addhist_dualconc_rolling/net.py",
-            "ALGORITHM/concentration_addhist_dualconc_rolling/ppo.py",
+            "ALGORITHM/concentration/net.py",
+            "ALGORITHM/concentration/ppo.py",
             "MISSIONS/collective_assult/envs/collective_assult_env.py",
-            "ALGORITHM/concentration_addhist_dualconc_rolling/trajectory.py"
+            "ALGORITHM/concentration/trajectory.py"
         ]
     },
 
@@ -32,11 +32,11 @@
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration_addhist_dualconc_rolling.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.concentration_addhist_dualconc_rolling.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
@@ -44,7 +44,7 @@
         "lr": 5e-4,
         "ppo_epoch": 24,
         "train_traj_needed": "64",
-        "load_checkpoint": false
+        "load_checkpoint": "False"
 
     }
 }

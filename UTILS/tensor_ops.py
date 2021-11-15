@@ -6,21 +6,21 @@ from config import GlobalConfig
 from functools import wraps
 from numba import jit
 
-use_float64 = GlobalConfig.use_float64
 if "m-cuda" in GlobalConfig.device:
     assert False, 'not supported anymore'
     gpu_id = json.loads(GlobalConfig.device.split("->")[-1])
     device = "cuda:%d" % gpu_id[0]
+    # 
 else:
     gpu_id = None
     device = GlobalConfig.device
 
 def pt_inf():
-    pt_dtype = torch.float64 if use_float64 else torch.float32
+    pt_dtype = torch.float64 if GlobalConfig.use_float64 else torch.float32
     return torch.tensor(np.inf, dtype=pt_dtype, device=GlobalConfig.device)
 
 def pt_nan():
-    pt_dtype = torch.float64 if use_float64 else torch.float32
+    pt_dtype = torch.float64 if GlobalConfig.use_float64 else torch.float32
     return torch.tensor(np.nan, dtype=pt_dtype, device=GlobalConfig.device)
 
 # pt_inf = torch.tensor(np.inf, dtype=pt_dtype, device=GlobalConfig.device)
@@ -166,9 +166,9 @@ def Args2tensor(f):
         if isinstance(x, torch.Tensor):
             return x.to(device)
         elif isinstance(x, np.ndarray):
-            if (not use_float64) and x.dtype == np.float64:
+            if (not GlobalConfig.use_float64) and x.dtype == np.float64:
                 x = x.astype(np.float32)
-            if use_float64 and x.dtype == np.float32:
+            if GlobalConfig.use_float64 and x.dtype == np.float32:
                 x = x.astype(np.float64)
             return torch.from_numpy(x).to(device)
         elif isinstance(x, dict):
@@ -198,9 +198,9 @@ def Args2tensor_Return2numpy(f):
         if isinstance(x, torch.Tensor):
             return x.to(device)
         elif isinstance(x, np.ndarray):
-            if (not use_float64) and x.dtype == np.float64:
+            if (not GlobalConfig.use_float64) and x.dtype == np.float64:
                 x = x.astype(np.float32)
-            if use_float64 and x.dtype == np.float32:
+            if GlobalConfig.use_float64 and x.dtype == np.float32:
                 x = x.astype(np.float64)
             return torch.from_numpy(x).to(device)
         elif isinstance(x, dict):
@@ -258,9 +258,9 @@ def _2tensor(x):
     if isinstance(x, torch.Tensor):
         return x.to(device)
     elif isinstance(x, np.ndarray):
-        if (not use_float64) and x.dtype == np.float64:
+        if (not GlobalConfig.use_float64) and x.dtype == np.float64:
             x = x.astype(np.float32)
-        if use_float64 and x.dtype == np.float32:
+        if GlobalConfig.use_float64 and x.dtype == np.float32:
             x = x.astype(np.float64)
         return torch.from_numpy(x).to(device)
     elif isinstance(x, dict):
