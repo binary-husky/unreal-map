@@ -176,23 +176,23 @@ class Env_Compat_Wrapper():
         pass
 
     def step(self, act):
-        # with HiddenPrints():
-        reward, terminated, info = self.env.step(act)
-        if ScenarioConfig.RewardAsUnity: reward = [reward]
-        done = terminated
-        ob = np.array(self.env.get_obs())
-        info['state'] = self.env.get_state()
-        info['avail-act'] = self.env.get_avail_actions()
-        return (ob, reward, done, info)
+        with HiddenPrints():
+            reward, terminated, info = self.env.step(act)
+            if ScenarioConfig.RewardAsUnity: reward = [reward]
+            done = terminated
+            ob = np.array(self.env.get_obs())
+            info['state'] = self.env.get_state()
+            info['avail-act'] = self.env.get_avail_actions()
+            return (ob, reward, done, info)
 
     def reset(self):
-        # with HiddenPrints():
-        self.env.reset()
-        ob = np.array(self.env.get_obs())
-        info = {}
-        info['state'] = self.env.get_state()
-        info['avail-act'] = self.env.get_avail_actions()
-        return ob, info
+        with HiddenPrints():
+            self.env.reset()
+            ob = np.array(self.env.get_obs())
+            info = {}
+            info['state'] = self.env.get_state()
+            info['avail-act'] = self.env.get_avail_actions()
+            return ob, info
 
     def render(self):
         return

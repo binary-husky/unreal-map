@@ -5,8 +5,9 @@ import time
 import random
 import redis, pickle
 import subprocess
+# from subprocess import DEVNULL
 from UTILS.colorful import print亮紫
-
+from UTILS.hidden_print import HiddenPrints
 class AlgorithmConfig():
     load_checkpoint = False
     episode_limit = 400 # int(100e3)
@@ -24,7 +25,8 @@ class PymarlFoundation():
             "--env-config=HMP_compat",
             "with",
             "batch_size_run=%d"%self.n_thread,
-            "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
+            "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
+            # "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
         atexit.register(lambda: self.__del__()) # avoid redis leaking
         time.sleep(5)
 

@@ -38,14 +38,14 @@
 
 @font-face {
 	font-family: 'Roboto Mono';
-	src: local('Roboto Mono'), local('RobotoMono-Regular'), url('../files/RobotoMono-Regular.woff2') format('woff2');
+	src: local('Roboto Mono'), local('RobotoMono-Regular'), url('./RobotoMono-Regular.woff2') format('woff2');
 	font-style: normal;
 	font-weight: 400;
 }
 
 @font-face {
 	font-family: 'Roboto Mono';
-	src: local('Roboto Mono Medium'), local('RobotoMono-Medium'), url('../files/RobotoMono-Medium.woff2') format('woff2');
+	src: local('Roboto Mono Medium'), local('RobotoMono-Medium'), url('./RobotoMono-Medium.woff2') format('woff2');
 	font-style: normal;
 	font-weight: 500;
 }

@@ -428,12 +428,13 @@ class DrawProcessThreejs(Process):
         self.draw_mode = draw_mode
         self.draw_udp_port = draw_udp_port
         self.tcp_connection = tcp_server(self.draw_udp_port)
+        self.buffer_list = []
 
     def init_threejs(self):
-        from .threejsmod.fr import FlaskProcess
-        self.flask_process = FlaskProcess(port=find_free_port())
-        self.flask_process.daemon = True
-        self.flask_process.start()
+        import threading
+        # t = threading.Thread(target=self.run_flask, args=(find_free_port(),))
+        t = threading.Thread(target=self.run_flask, args=(51241,))
+        t.start()
 
     def run(self):
         self.init_threejs()
@@ -447,19 +448,41 @@ class DrawProcessThreejs(Process):
             self.__del__()
         self.__del__()
 
-    def run_handler(self, buff_list):
-        # for buff in buff_list:
-        self.process_cmd(buff_list)
+    def run_handler(self, new_buff_list):
+        self.buffer_list.extend(new_buff_list)
+        # too many, delete with fifo
+        if len(self.buffer_list) > 1e4:
+            del self.buffer_list[:len(new_buff_list)]
 
-    def process_cmd(self, cmd_str):
-        # if '>>' in cmd_str:
-        #     cmd_str_ = cmd_str[2:].strip('\n')
-        #     if ')' not in cmd_str_:
-        #         cmd_str_ = cmd_str_+'()'
-        #     prefix = self.get_cmd_lib(cmd_str_)
-        #     if prefix is not None: 
-        #         eval('%s.%s'%(prefix, cmd_str_))
-        pass
+    def run_flask(self, port):
+        from flask import Flask, url_for, jsonify, request, send_from_directory, redirect
+        app = Flask(__name__)
+        dirname = os.path.dirname(__file__) + '/threejsmod'
+        @app.route("/up", methods=["POST"])
+        def upvote():
+            buf = ''.join(self.buffer_list)
+            self.buffer_list = []
+            return buf
+        @app.route("/<path:path>")
+        def static_dirx(path):
+            if path=='favicon.ico': 
+                return app.send_static_file('%s/files/favicon.ico'%dirname)
+            return send_from_directory("%s/"%dirname, path)
+        @app.route("/")
+        def main_app():
+            with open('%s/examples/abc.html'%dirname, 'r', encoding = "utf-8") as f:
+                buf = f.read()
+            return buf
+        app.run(host='0.0.0.0', port=port)
+    # def process_cmd(self, cmd_str):
+    #     # if '>>' in cmd_str:
+    #     #     cmd_str_ = cmd_str[2:].strip('\n')
+    #     #     if ')' not in cmd_str_:
+    #     #         cmd_str_ = cmd_str_+'()'
+    #     #     prefix = self.get_cmd_lib(cmd_str_)
+    #     #     if prefix is not None: 
+    #     #         eval('%s.%s'%(prefix, cmd_str_))
+    #     pass
 class DrawProcess(Process):
     def __init__(self, draw_udp_port, draw_mode):
         super(DrawProcess, self).__init__()
