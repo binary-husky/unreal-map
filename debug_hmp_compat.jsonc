@@ -25,6 +25,7 @@
         "map_": "3m",
         "SINGLE_TEAM_N_AGENT": 3,
         "episode_limit": 60,
+        "render":true,
         // "reward_vec": true,
         "TEAM_NAMES": [
             "ALGORITHM.pymarl2_compat.pymarl2_compat->PymarlFoundation"

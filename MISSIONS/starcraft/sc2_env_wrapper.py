@@ -123,6 +123,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     return_mat = False
     block_invalid_action = True # sc2 中，需要始终屏蔽掉不可用的动作
     reward_sparse=False
+    render = False
     # sc2map_info[map_]["n_agents"]
     # n_action_cv = ChainVar(
     #     lambda map_: sc2map_info[map_]["n_agents"], 
@@ -157,13 +158,14 @@ class Env_Compat_Wrapper():
                             reward_sparse=ScenarioConfig.reward_sparse,
                             return_mat=ScenarioConfig.return_mat,
                             reward_vec=ScenarioConfig.reward_vec,
+                            render=True if (rank==0 and ScenarioConfig.render) else False,
                             replay_dir=ScenarioConfig.replay_dir)
 
         env_info = self.env.get_env_info()
         self.observation_space = {'state_shape': env_info["state_shape"], 
                                   'obs_shape':   env_info["obs_shape"]}
 
-        self.action_space =  {'n_actions': env_info["n_actions"], 
+        self.action_space =  {'n_actions': env_info["n_actions"],
                               'n_agents':  env_info["n_agents"]}
 
         assert env_info["n_agents"] == ScenarioConfig.N_AGENT_EACH_TEAM[0], ('Changed a map? Reconfig ScenarioConfig Above!! n_agents:', env_info["n_agents"])
@@ -174,23 +176,23 @@ class Env_Compat_Wrapper():
         pass
 
     def step(self, act):
-        # with HiddenPrints():
-        reward, terminated, info = self.env.step(act)
-        if ScenarioConfig.RewardAsUnity: reward = [reward]
-        done = terminated
-        ob = np.array(self.env.get_obs())
-        info['state'] = self.env.get_state()
-        info['avail-act'] = self.env.get_avail_actions()
-        return (ob, reward, done, info)
+        with HiddenPrints():
+            reward, terminated, info = self.env.step(act)
+            if ScenarioConfig.RewardAsUnity: reward = [reward]
+            done = terminated
+            ob = np.array(self.env.get_obs())
+            info['state'] = self.env.get_state()
+            info['avail-act'] = self.env.get_avail_actions()
+            return (ob, reward, done, info)
 
     def reset(self):
-        # with HiddenPrints():
-        self.env.reset()
-        ob = np.array(self.env.get_obs())
-        info = {}
-        info['state'] = self.env.get_state()
-        info['avail-act'] = self.env.get_avail_actions()
-        return ob, info
+        with HiddenPrints():
+            self.env.reset()
+            ob = np.array(self.env.get_obs())
+            info = {}
+            info['state'] = self.env.get_state()
+            info['avail-act'] = self.env.get_avail_actions()
+            return ob, info
 
     def render(self):
         return
