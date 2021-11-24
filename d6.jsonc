@@ -1,7 +1,6 @@
-
 {
     "config.py->GlobalConfig": {
-        "note": "train_rolling_copy--(old resolve) r2",
+        "note": "train_rolling(push m2)(:12 -> net.py)",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
@@ -9,16 +8,18 @@
         "report_reward_interval": "64",
         "test_interval": "2048",
         // "use_float64": true,
-        // "device": "cuda:0",
-        // "gpu_party": "CUDA0_P1",
+        "device": "cuda:2",
+        "gpu_party": "Cuda2-Party0",
         "fold": "1",
-        "seed": 9998,
+        "seed": 9996,
         "backup_files":[
-            "ALGORITHM/concentration_addhist_copy/net.py",
-            "ALGORITHM/concentration_addhist_copy/ppo.py",
-            "ALGORITHM/concentration_addhist_copy/shell_env.py",
-            "MISSIONS/collective_assult/envs/collective_assult_env.py",
-            "ALGORITHM/concentration_addhist_copy/trajectory.py"
+            "ALGORITHM/concentration_addhist_push/net.py",
+            "ALGORITHM/concentration_addhist_push/ppo.py",
+            "ALGORITHM/concentration_addhist_push/shell_env.py",
+            "ALGORITHM/concentration_addhist_push/foundation.py",
+            "ALGORITHM/concentration_addhist_push/trajectory.py",
+            "ALGORITHM/concentration_addhist_push/cython_func.pyx",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py"
         ]
     },
 
@@ -34,20 +35,18 @@
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration_addhist_copy.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration_addhist_push.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.concentration_addhist_copy.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.concentration_addhist_push.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
-
         "lr": 5e-4,
         "ppo_epoch": 24,
         "train_traj_needed": "64",
         "load_checkpoint": false
-
     }
 }
 

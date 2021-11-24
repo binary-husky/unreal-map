@@ -1,7 +1,7 @@
 
 {
     "config.py->GlobalConfig": {
-        "note": "train_rolling_copy--(old resolve) r2",
+        "note": "train_hist_dualconc_rolling_replace_copy--_r2",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
@@ -12,7 +12,7 @@
         // "device": "cuda:0",
         // "gpu_party": "CUDA0_P1",
         "fold": "1",
-        "seed": 9998,
+        "seed": 9999,
         "backup_files":[
             "ALGORITHM/concentration_addhist_copy/net.py",
             "ALGORITHM/concentration_addhist_copy/ppo.py",

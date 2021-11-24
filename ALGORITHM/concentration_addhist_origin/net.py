@@ -9,7 +9,7 @@ from ..commom.attention import MultiHeadAttention
 from ..commom.norm import DynamicNorm
 from ..commom.mlp import LinearFinal, SimpleMLP, ResLinear
 from UTILS.colorful import print亮紫
-from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, __hashn__, pad_at_dim
+from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, __hashn__,  pad_at_dim
 from UTILS.tensor_ops import _2cpu2numpy, one_hot_with_nan, gather_righthand, pt_inf
 
 
@@ -238,7 +238,7 @@ class Net(nn.Module):
         act = self._act if self.dual_conc else self._act_singlec
         return act(*args, **kargs, eval_mode=True)
 
-    def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=12):
+    def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=24):
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
         elif mat.shape[-1]==n:
@@ -255,14 +255,14 @@ class Net(nn.Module):
         v = self.AT_obs_encoder(obs)
 
 
-        zs, ze_f, ze_h          = self.div_entity(obs)        
-        vs, ve_f, ve_h          = self.div_entity(v)          
-        _, ve_f_dead, ve_h_dead = self.div_entity(mask_dead)  
+        zs, ze_f, ze_h          = self.div_entity(obs)
+        vs, ve_f, ve_h          = self.div_entity(v)
+        _, ve_f_dead, ve_h_dead = self.div_entity(mask_dead)
 
         # concentration module
         vh_C, vh_M = self.MIX_conc_core_h(vs=vs, ve=ve_h, ve_dead=ve_h_dead, skip_connect_ze=ze_h, skip_connect_zs=zs)
         vf_C, vf_M = self.MIX_conc_core_f(vs=vs, ve=ve_f, ve_dead=ve_f_dead, skip_connect_ze=ze_f, skip_connect_zs=zs)
-
+        
         # fuse forward path
         v_C_fuse = torch.cat((vf_C, vh_C), dim=-1)  # (vs + vs + check_n + check_n)
         logits = self.AT_get_logit_db(v_C_fuse) # diverge here

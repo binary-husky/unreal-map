@@ -196,15 +196,18 @@ class Net(nn.Module):
                             skip_connect_dim=rawob_dim, 
                             adopt_selfattn=actor_attn_mod)
  
-        tmp_dim = h_dim if not self.dual_conc else h_dim*2
-        self.CT_get_value = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
-        self.CT_get_threat = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
+        tmp_dim = h_dim # if not self.dual_conc else h_dim*2
+        self.CT_get_mi_value = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True), Linear(h_dim, 1))
+        self.CT_get_mi_threat = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
+
+        self.CT_get_value_final = nn.Sequential(Linear(2, 4), nn.ReLU(inplace=True), Linear(4, 1))
 
         if self.alternative_critic:
             self.CT_get_value_alternative_critic = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
 
         # part3
         self.check_n = self.n_focus_on*2
+        tmp_dim = h_dim if not self.dual_conc else h_dim*2
         self.AT_get_logit_db = nn.Sequential(  
             nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),
             nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
@@ -238,7 +241,14 @@ class Net(nn.Module):
         act = self._act if self.dual_conc else self._act_singlec
         return act(*args, **kargs, eval_mode=True)
 
-    def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=12):
+    def div_entity(self, mat, type=[(0,), # self
+                                    (1, 2, 3, 4, 5, 6,  7, 8, 9, 10,11),     # current
+                                    (12,13,14,15,16,17, 18,19,20,21,22,23),  # history
+                                    ],   
+                                    n=24
+                                    ):
+        # def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=24):
+        # def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=12):
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
         elif mat.shape[-1]==n:
@@ -247,9 +257,10 @@ class Net(nn.Module):
 
     def _act(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None):
         eval_act = eval_actions if eval_mode else None
-        others = {}; obs_raw = obs
+        others = {}
         if self.use_normalization:
             obs = self._batch_norm(obs)
+        
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
         v = self.AT_obs_encoder(obs)
@@ -269,10 +280,11 @@ class Net(nn.Module):
 
 
         # motivation encoding fusion
-        v_M_fuse = torch.cat((vf_M, vh_M), dim=-1)
+        # v_M_fuse = torch.cat((vf_M, vh_M), dim=-1)
         # motivation objectives
-        value = self.CT_get_value(v_M_fuse)
-        threat = self.CT_get_threat(v_M_fuse)
+        mi_value = torch.cat([self.CT_get_mi_value(vf_M), self.CT_get_mi_value(vh_M)], -1) # [self.CT_get_mi_value(vf_M), self.CT_get_mi_value(vh_M)]
+        threat = torch.cat([self.CT_get_mi_threat(vf_M), self.CT_get_mi_threat(vh_M)], -1) # [self.CT_get_mi_threat(vf_M), self.CT_get_mi_threat(vh_M)]
+        value = self.CT_get_value_final(mi_value)
 
         assert not self.alternative_critic
 
@@ -285,7 +297,9 @@ class Net(nn.Module):
             r = 1. /2. * SAFE_LIMIT
             return (torch.tanh_(t/r) + 1.) * r
 
-        others['threat'] = re_scale(threat)
+        others['mi_threat'] = re_scale(threat)
+        others['mi_value'] = mi_value
+        
         if not eval_mode: return act, value, actLogProbs
         else:             return value, actLogProbs, distEntropy, probs, others
 

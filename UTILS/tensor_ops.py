@@ -366,7 +366,7 @@ def __hash__(x):
     #     md5.update(x)
     #     return md5.hexdigest()
     if hasattr(x, "cpu"):
-        md5.update(x.cpu().numpy().data.tobytes())
+        md5.update(x.detach().cpu().numpy().data.tobytes())
         return md5.hexdigest()
     elif hasattr(x, "numpy"):
         md5.update(x.numpy().data.tobytes())
@@ -389,7 +389,7 @@ def __hashm__(*args):
     for arg in args:
         x = arg
         if hasattr(x, "cpu"):
-            md5.update(x.cpu().numpy().data.tobytes())
+            md5.update(x.detach().cpu().numpy().data.tobytes())
         elif hasattr(x, "numpy"):
             md5.update(x.numpy().data.tobytes())
         elif hasattr(x, "data"):
@@ -414,7 +414,7 @@ def __hashn__(generator):
     for arg in generator:
         x = arg.data
         if hasattr(x, "cpu"):
-            md5.update(x.cpu().numpy().data.tobytes())
+            md5.update(x.detach().cpu().numpy().data.tobytes())
         elif hasattr(x, "numpy"):
             md5.update(x.numpy().data.tobytes())
         elif hasattr(x, "data"):

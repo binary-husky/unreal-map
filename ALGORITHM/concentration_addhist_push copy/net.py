@@ -238,7 +238,7 @@ class Net(nn.Module):
         act = self._act if self.dual_conc else self._act_singlec
         return act(*args, **kargs, eval_mode=True)
 
-    def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=12):
+    def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=24):
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
         elif mat.shape[-1]==n:
@@ -247,9 +247,12 @@ class Net(nn.Module):
 
     def _act(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None):
         eval_act = eval_actions if eval_mode else None
-        others = {}; obs_raw = obs
+        others = {}
         if self.use_normalization:
             obs = self._batch_norm(obs)
+
+        # obs = obs[:,:,:12]
+
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
         v = self.AT_obs_encoder(obs)

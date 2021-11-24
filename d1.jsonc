@@ -1,7 +1,6 @@
-
 {
     "config.py->GlobalConfig": {
-        "note": "train_rolling_copy--(old resolve) r2",
+        "note": "train_rolling_d1",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
@@ -14,11 +13,10 @@
         "fold": "1",
         "seed": 9998,
         "backup_files":[
-            "ALGORITHM/concentration_addhist_copy/net.py",
-            "ALGORITHM/concentration_addhist_copy/ppo.py",
-            "ALGORITHM/concentration_addhist_copy/shell_env.py",
+            "ALGORITHM/concentration_addhist_dualconc_rolling/net.py",
+            "ALGORITHM/concentration_addhist_dualconc_rolling/ppo.py",
             "MISSIONS/collective_assult/envs/collective_assult_env.py",
-            "ALGORITHM/concentration_addhist_copy/trajectory.py"
+            "ALGORITHM/concentration_addhist_dualconc_rolling/trajectory.py"
         ]
     },
 
@@ -34,11 +32,11 @@
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration_addhist_copy.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration_addhist_dualconc_rolling.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.concentration_addhist_copy.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.concentration_addhist_dualconc_rolling.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",

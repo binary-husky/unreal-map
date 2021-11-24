@@ -5,6 +5,7 @@ from UTILS.colorful import *
 from UTILS.tensor_ops import my_view, __hash__
 import pickle
 from config import GlobalConfig
+from .cython_func import new_method
 DEBUG = True
 
 # @njit
@@ -70,13 +71,22 @@ class ShellEnvWrapper(object):
         obs = State_Recall['Latest-Obs']
         n_thread = obs.shape[0]
 
-        previous_obs = State_Recall['_Previous_Obs_'] if '_Previous_Obs_' in State_Recall else np.zeros_like(obs)
+        # previous_obs = State_Recall['_Previous_Obs_'] if '_Previous_Obs_' in State_Recall else np.zeros_like(obs)
+        his_pool_obs = State_Recall['_Histpool_Obs_'] if '_Histpool_Obs_' in State_Recall \
+            else my_view(np.zeros_like(obs),[0, 0, -1, self.n_basic_dim])
+            # else my_view(np.zeros_like(np.concatenate((obs,obs), -1)),[0, 0, -1, self.n_basic_dim])
 
         ENV_PAUSE = State_Recall['ENV-PAUSE']
         obs_feed = obs[~ENV_PAUSE]
-        prev_obs_feed = previous_obs[~ENV_PAUSE]
+        # prev_obs_feed = previous_obs[~ENV_PAUSE]
+        his_pool_obs_feed = his_pool_obs[~ENV_PAUSE]
+        # his_pool_obs_feed[ENV_PAUSE] = 0    # clear ended
 
-        obs_feed_in = self.solve_duplicate(obs_feed, prev_obs_feed)
+        obs_feed_in, his_pool_next = self.solve_duplicate_old(obs_feed, his_pool_obs_feed)
+        his_pool_obs[~ENV_PAUSE] = his_pool_next
+        his_pool_obs[ENV_PAUSE] = 0
+        
+        obs_feed_in = obs_feed_in[:,:,:12]
 
         I_State_Recall = {'obs':obs_feed_in, 
             'Test-Flag':State_Recall['Test-Flag'], 
@@ -99,12 +109,14 @@ class ShellEnvWrapper(object):
         if self.cold_start: self.cold_start = False
 
         # <2> call a empty frame to gather reward
-        State_Recall['_Previous_Obs_'] = obs
+        # State_Recall['_Previous_Obs_'] = obs
+        State_Recall['_Histpool_Obs_'] = his_pool_obs
+        
         State_Recall['_hook_'] = internal_recall['_hook_']
         assert State_Recall['_hook_'] is not None
-        return actions_list, State_Recall 
+        return actions_list, State_Recall
 
-    def solve_duplicate(self, obs_feed, prev_obs_feed):
+    def solve_duplicate_old(self, obs_feed, prev_obs_feed):
         #  input might be (n_thread, n_agent, n_entity, basic_dim), or (n_thread, n_agent, n_entity*basic_dim)
         # both can be converted to (n_thread, n_agent, n_entity, basic_dim)
         obs_feed = my_view(obs_feed,[0, 0, -1, self.n_basic_dim])
@@ -119,8 +131,39 @@ class ShellEnvWrapper(object):
         # assert __hash__(obs_feed_tmp) == __hash__(obs_feed)
         # seed 9996  'c06b4f0b8ec658e475adc0e2bf1a56b9'
         # 第二次 '0766b324646aee137fffc8de912db980'
-        return obs_feed
+        return obs_feed, prev_obs_feed
 
+    def solve_duplicate(self, obs_feed_new, prev_his_pool):
+        #  input might be (n_thread, n_agent, n_entity, basic_dim), or (n_thread, n_agent, n_entity*basic_dim)
+        # both can be converted to (n_thread, n_agent, n_entity, basic_dim)
+        obs_feed_new = my_view(obs_feed_new,[0, 0, -1, self.n_basic_dim])
+        prev_obs_feed = my_view(prev_his_pool,[0, 0, -1, self.n_basic_dim])
+
+        # turn history into more entities
+        obs_feed = np.concatenate((obs_feed_new, prev_obs_feed), axis=-2)
+
+        # turning all zero padding to NaN, which is excluded in normalization
+        obs_feed[(obs_feed==0).all(-1)] = np.nan
+        obs_feed_new[(obs_feed_new==0).all(-1)] = np.nan
+        valid_mask = ~np.isnan(obs_feed_new).any(-1)    #
+
+        next_his_pool = np.zeros_like(prev_obs_feed) # twice size  (64 threads, 50 agents, 12 subjects)
+        # set self as not valid to avoid buffering self obs! valid_mask
+        valid_mask[:,:,0] = False
+        N_valid = valid_mask.sum(-1)
+        next_his_pool = new_method(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool)
+
+        return obs_feed, next_his_pool
+
+    # @staticmethod
+    # @jit(forceobj=True)
+    # def new_method(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool):
+    #     for th in range(N_valid.shape[0]):
+    #         for a in range(N_valid.shape[1]):
+    #             n_v = N_valid[th,a]
+    #             next_his_pool[th,a,:n_v] = obs_feed_new[th,a,valid_mask[th,a]]
+    #             next_his_pool[th,a,n_v:] = prev_obs_feed[th,a,:(24-n_v)]
+    #     return next_his_pool
 
     def get_mask_id(self, obs_feed):
         mask_and_id = np.zeros_like(obs_feed)[:,:,:, 0] # thread,agent,agent_obs
