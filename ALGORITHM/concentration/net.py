@@ -327,7 +327,7 @@ class Net(nn.Module):
                                                                 test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
         # __hash__(actLogProbs) '12fbcbf9131ee2a97ee71637154a99d5'
         # 4bb49fb065aac94d957494c549d3071b
-        print(__hash__(actLogProbs))
+        # print(__hash__(actLogProbs))
         def re_scale(t):
             SAFE_LIMIT = 11
             r = 1. /2. * SAFE_LIMIT

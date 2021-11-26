@@ -631,3 +631,17 @@ def stack_vec_with_padding(arr_list):
     for i, arr in enumerate(arr_list):
         arr_np[i,:_len[i]] = arr
     return arr_np
+
+
+def objdump(obj):
+    import pickle
+    with open('objdump.tmp', 'wb+') as f:
+        pickle.dump(obj, f)
+    return
+
+def objload():
+    import pickle, os
+    if not os.path.exists('objdump.tmp'): 
+        return
+    with open('objdump.tmp', 'rb') as f:
+        return pickle.load(f)

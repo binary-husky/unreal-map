@@ -23,14 +23,12 @@ class gpu_share_unit():
 
     def get_gpu_lock(self):
         if self.manual_gpu_ctl:
-            print('wait for gpu...', end='', flush=True)
-            self.gpu_lock_file = None
-            self.gpu_lock = None
-            # print(self.lock_path+'/lock_gpu_%s_%s'%(self.device, self.gpu_party))
+            print('Waiting for GPU %s %s...'%(self.device, self.gpu_party), end='', flush=True)
+            self.gpu_lock, self.gpu_lock_file = (None, None)
             self.gpu_lock_file = open(self.lock_path+'/lock_gpu_%s_%s.glock'%(self.device, self.gpu_party), 'w+')
             self.gpu_lock = flock.Flock(self.gpu_lock_file, flock.LOCK_EX)
             self.gpu_lock.__enter__()
-            print('get!')
+            print('Get GPU!')
         return
 
     def release_gpu_lock(self):
