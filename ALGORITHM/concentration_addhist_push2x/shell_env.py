@@ -5,7 +5,7 @@ from UTILS.colorful import *
 from UTILS.tensor_ops import my_view, __hash__
 import pickle
 from config import GlobalConfig
-from .cython_func import new_method
+from .cython_func import roll_hisory
 DEBUG = True
 
 # @njit
@@ -133,7 +133,7 @@ class ShellEnvWrapper(object):
         # set self as not valid to avoid buffering self obs! valid_mask
         valid_mask[:,:,0] = False
         N_valid = valid_mask.sum(-1)
-        next_his_pool = new_method(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool)
+        next_his_pool = roll_hisory(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool)
 
         # a very important assumption: if an agent observe itself as NaN *When and Only When* it is dead
         alive_mask = ~np.isnan(obs_feed_new[:,:,0]).any(-1) 
@@ -143,7 +143,7 @@ class ShellEnvWrapper(object):
 
     # @staticmethod
     # @jit(forceobj=True)
-    # def new_method(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool):
+    # def roll_hisory(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool):
     #     for th in range(N_valid.shape[0]):
     #         for a in range(N_valid.shape[1]):
     #             n_v = N_valid[th,a]

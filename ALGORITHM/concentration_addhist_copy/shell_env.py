@@ -5,7 +5,7 @@ from UTILS.colorful import *
 from UTILS.tensor_ops import my_view, __hash__
 import pickle
 from config import GlobalConfig
-from .cython_func import new_method
+from .cython_func import roll_hisory
 DEBUG = True
 
 # @njit
@@ -150,7 +150,7 @@ class ShellEnvWrapper(object):
         valid_mask = ~np.isnan(obs_feed_new).any(-1)
         valid_mask[:,:,0] = False
         N_valid = valid_mask.sum(-1)
-        next_his_pool = new_method(obs_feed_new, prev_obs_feed, valid_mask, N_valid, np.zeros_like(prev_obs_feed))
+        next_his_pool = roll_hisory(obs_feed_new, prev_obs_feed, valid_mask, N_valid, np.zeros_like(prev_obs_feed))
 
         return obs_feed, next_his_pool
 
@@ -172,13 +172,13 @@ class ShellEnvWrapper(object):
         valid_mask = ~np.isnan(obs_feed_new).any(-1)
         valid_mask[:,:,0] = False
         N_valid = valid_mask.sum(-1)
-        next_his_pool = new_method(obs_feed_new, prev_obs_feed, valid_mask, N_valid, np.zeros_like(prev_obs_feed))
+        next_his_pool = roll_hisory(obs_feed_new, prev_obs_feed, valid_mask, N_valid, np.zeros_like(prev_obs_feed))
 
         return obs_feed, next_his_pool
 
     # @staticmethod
     # @jit(forceobj=True)
-    # def new_method(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool):
+    # def roll_hisory(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool):
     #     for th in range(N_valid.shape[0]):
     #         for a in range(N_valid.shape[1]):
     #             n_v = N_valid[th,a]

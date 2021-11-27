@@ -1,7 +1,6 @@
 {
-    // python main.py -c d11-cython
     "config.py->GlobalConfig": {
-        "note": "train_rolling(his_dualing_sep_moti_reg 80itf cython)",
+        "note": "train_rolling(his_dualing)(80 itf)",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
@@ -9,17 +8,17 @@
         "report_reward_interval": "64",
         "test_interval": "2048",
         // "use_float64": true,
-        "device": "cuda:0",
-        "gpu_party": "Cuda0-Party0",
+        // "device": "cuda:2",
+        // "gpu_party": "Cuda2-Party0",
         "fold": "1",
         "seed": 9996,
         "backup_files":[
-            "ALGORITHM/concentration_addhist_push2x_sepconcreg/net.py",
-            "ALGORITHM/concentration_addhist_push2x_sepconcreg/ppo.py",
-            "ALGORITHM/concentration_addhist_push2x_sepconcreg/shell_env.py",
-            "ALGORITHM/concentration_addhist_push2x_sepconcreg/foundation.py",
-            "ALGORITHM/concentration_addhist_push2x_sepconcreg/trajectory.py",
-            "ALGORITHM/concentration_addhist_push2x_sepconcreg/cython_func.pyx",
+            "ALGORITHM/concentration_addhist_push2x/net.py",
+            "ALGORITHM/concentration_addhist_push2x/ppo.py",
+            "ALGORITHM/concentration_addhist_push2x/shell_env.py",
+            "ALGORITHM/concentration_addhist_push2x/foundation.py",
+            "ALGORITHM/concentration_addhist_push2x/trajectory.py",
+            "ALGORITHM/concentration_addhist_push2x/cython_func.pyx",
             "MISSIONS/collective_assult/envs/collective_assult_env.py"
         ]
     },
@@ -36,11 +35,11 @@
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration_addhist_push2x_sepconcreg.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration_addhist_push2x.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.concentration_addhist_push2x_sepconcreg.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.concentration_addhist_push2x.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
