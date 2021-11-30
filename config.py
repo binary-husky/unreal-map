@@ -65,3 +65,5 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     backup_files = []                                   # a list of files that needs to be backed up at each run
     matlab_logger = None                                # this is just a global logger, although we do not use matlab anymore...
     heartbeat_on = True
+    
+    cfg_ready = False

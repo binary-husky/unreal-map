@@ -8,8 +8,8 @@
         "report_reward_interval": "64",
         "test_interval": "2048",
         // "use_float64": true,
-        "device": "cuda:1",
-        "gpu_party": "Cuda1-Party0",
+        "device": "cuda:4",
+        "gpu_party": "Cuda4-Party0",
         "fold": "1",
         "seed": 9995,
         "backup_files":[

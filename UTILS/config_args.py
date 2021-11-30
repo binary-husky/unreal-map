@@ -108,6 +108,7 @@ def get_args(vb=True):
     if load_via_json and (not cfg.recall_previous_session): 
         copyfile(args.cfg, '%s/experiment.json'%cfg.logdir)
         backup_files(cfg.backup_files, cfg.logdir)
+    cfg.cfg_ready = True
     return cfg
 
 def backup_files(files, logdir):
