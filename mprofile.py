@@ -8,42 +8,71 @@ from UTILS.colorful import *
 # ubuntu command to kill process: kill -9 $(ps -ef | grep xrdp | grep -v grep | awk '{print $ 2}')
 
 arg_base = ['python', 'main.py']
-log_dir = './T1-bench-IDL50/'
+log_dir = 'orig/'
 run_group = "bench"
 # base_conf = 'train.json'
 
 n_run = 3
 conf_override = {
-    "config.py->GlobalConfig-->note":       ["run-%d-%s"%(i+1, run_group)    for i in range(n_run)],
-    "config.py->GlobalConfig-->seed":       [777+i                           for i in range(n_run)],
+    "config.py->GlobalConfig-->note":       ["train_origin_T(80itf)", "train_origin_T(60itf)", "train_origin_T(40itf)"],
+    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
+                                            [0.80, 0.60, 0.40],
+    # "config.py->GlobalConfig-->seed":       [777+i                           for i in range(n_run)],
 }
 
 base_conf = {
+    # // python main.py -c d12-conc-orig.jsonc
     "config.py->GlobalConfig": {
+        "note": "train_origin_T(80itf)",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
-        "note": "benchIDL50",
-        "num_threads": "50",
-        "report_reward_interval": "50",
-        "test_interval": "4096",
-        "device": "cuda",
+        "draw_mode": "Img",
+        "num_threads": "64",
+        "report_reward_interval": "64",
+        "test_interval": "2048",
+        # // "use_float64": true,
+        # // "device": "cuda:4",
+        # // "gpu_party": "Cuda4-Party0",
         "fold": "1",
-        "seed": 777
+        "seed": 9995,
+        "backup_files":[
+            "ALGORITHM/concentration/net.py",
+            "ALGORITHM/concentration/ppo.py",
+            "ALGORITHM/concentration/shell_env.py",
+            "ALGORITHM/concentration/foundation.py",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py",
+            "ALGORITHM/concentration/trajectory.py"
+        ]
     },
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
         "size": "5",
-        "num_steps": "200",
-        "render": "False",
+        "random_jam_prob": 0.80,
+        "introduce_terrain":"True",
+        "terrain_parameters": [0.05, 0.2],
+        "num_steps": "180",
+        "render":"False",
+        "render_with_unity":"False",
+        "MCOM_DEBUG":"False",
+        "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
+        "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.hmp_ak_iagent.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.hmp_ak.foundation.py->AlgorithmConfig": {
-        "train_traj_needed": "50"
+    "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
+        "n_focus_on": 2,
+        "actor_attn_mod": "False",
+        "extral_train_loop": "False",
+        "lr": 5e-4,
+        "ppo_epoch": 24,
+        "train_traj_needed": "64",
+        "load_checkpoint": False
     }
 }
+
+
 
 assert '_' not in run_group, ('下划线在matlab中的显示效果不好')
 log_dir = log_dir+run_group
@@ -112,7 +141,7 @@ if __name__ == '__main__':
         if any(is_alive):
             time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
             print(time_now, 'I am still running!', is_alive)
-            print靛('current scipt:%s, current log:%s'%(os.path.abspath(__file__), log_dir))
+            print靛('current scipt:%s, current log:%s'%(os.path.abspath(__file__), 'PROFILE/%s'%log_dir))
             time.sleep(120)
         else:
             break

@@ -433,7 +433,7 @@ class DrawProcessThreejs(Process):
     def init_threejs(self):
         import threading
         # t = threading.Thread(target=self.run_flask, args=(find_free_port(),))
-        t = threading.Thread(target=self.run_flask, args=(51241,))
+        t = threading.Thread(target=self.run_flask, args=(find_free_port(),))
         t.start()
 
     def run(self):

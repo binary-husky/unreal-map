@@ -68,28 +68,31 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     replay_dir = ''
 
     # automatic select episode length limit
-    episode_limit = sc2map_info[map_]["ep_limit"]
+    episode_limit = map_param_registry[map_]['limit'] # sc2map_info[map_]["ep_limit"]
     episode_limit_cv = ChainVar(
-        lambda map_: sc2map_info[map_]["ep_limit"], 
+        lambda map_: map_param_registry[map_]['limit'], 
         chained_with=['map_']
     )
 
     num_entity = "not avail ?"
     uid_dictionary = "not avail ?"
     N_TEAM = 1  
-    SINGLE_TEAM_N_AGENT = 6
-    
-
-    N_AGENT_EACH_TEAM = [SINGLE_TEAM_N_AGENT,] 
-    N_AGENT_EACH_TEAM_cv = ChainVar(
-        lambda SINGLE_TEAM_N_AGENT:[SINGLE_TEAM_N_AGENT,], 
-        chained_with=['SINGLE_TEAM_N_AGENT']
+    SINGLE_TEAM_N_AGENT = map_param_registry[map_]['n_agents']
+    SINGLE_TEAM_N_AGENT_cv = ChainVar(
+        lambda map_:map_param_registry[map_]['n_agents'], 
+        chained_with=['map_']
     )
 
-    AGENT_ID_EACH_TEAM = [range(0,SINGLE_TEAM_N_AGENT),]
+    N_AGENT_EACH_TEAM = [map_param_registry[map_]['n_agents'],] 
+    N_AGENT_EACH_TEAM_cv = ChainVar(
+        lambda map_:[map_param_registry[map_]['n_agents'],], 
+        chained_with=['map_']
+    )
+
+    AGENT_ID_EACH_TEAM = [range(0,map_param_registry[map_]['n_agents']),]
     AGENT_ID_EACH_TEAM_cv = ChainVar(
-        lambda SINGLE_TEAM_N_AGENT:[range(0,SINGLE_TEAM_N_AGENT),], 
-        chained_with=['SINGLE_TEAM_N_AGENT']
+        lambda map_:[range(0,map_param_registry[map_]['n_agents']),], 
+        chained_with=['map_']
     )
 
     TEAM_NAMES = [  
@@ -108,15 +111,15 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     avail_act_provided = True
 
 
-    max_steps_episode = sc2map_info[map_]["ep_limit"]
+    max_steps_episode = map_param_registry[map_]['limit']
     max_steps_episode_cv = ChainVar(
-        lambda map_: sc2map_info[map_]["ep_limit"], 
+        lambda map_: map_param_registry[map_]['limit'], 
         chained_with=['map_']
     )
 
-    n_actions = 6 + sc2map_info[map_]["n_hostiles"]
+    n_actions = 6 + map_param_registry[map_]['n_enemies']
     n_actions_cv = ChainVar(
-        lambda map_:6 + sc2map_info[map_]["n_hostiles"], 
+        lambda map_:6 + map_param_registry[map_]['n_enemies'], 
         chained_with=['map_']
     )
     obs_vec_length = 6
@@ -124,11 +127,6 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     block_invalid_action = True # sc2 中，需要始终屏蔽掉不可用的动作
     reward_sparse=False
     render = False
-    # sc2map_info[map_]["n_agents"]
-    # n_action_cv = ChainVar(
-    #     lambda map_: sc2map_info[map_]["n_agents"], 
-    #     chained_with=['map_']
-    # )
 
 def make_sc2_env(env_id, rank):
     return Env_Compat_Wrapper(rank)
