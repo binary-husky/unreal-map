@@ -55,7 +55,7 @@ def load_config_via_json(json_data, vb):
         dependency = override_config_file(cfg_group, json_data[cfg_group], vb)
         if dependency is not None:
             for dep in dependency:
-                assert any([dep in k for k in json_data.keys()]), 'Arg check failure, There is a something missing!'
+                assert any([dep in k for k in json_data.keys()]), 'Arg check failure, There is something missing!'
     check_config_relevence(json_data)
     return None
 

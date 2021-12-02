@@ -8,15 +8,18 @@ from UTILS.colorful import *
 # ubuntu command to kill process: kill -9 $(ps -ef | grep xrdp | grep -v grep | awk '{print $ 2}')
 
 arg_base = ['python', 'main.py']
-log_dir = 'orig/'
+log_dir = 'origr3/'
 run_group = "bench"
 # base_conf = 'train.json'
 
-n_run = 3
+n_run = 6
 conf_override = {
-    "config.py->GlobalConfig-->note":       ["train_origin_T(80itf)", "train_origin_T(60itf)", "train_origin_T(40itf)"],
+    "config.py->GlobalConfig-->note":       
+                ["train_origin_T(80itf) r3", "train_origin_T(60itf) r3", "train_origin_T(40itf) r3",        "train_origin_T(80itf) r4", "train_origin_T(60itf) r4", "train_origin_T(40itf) r4"],
+    "config.py->GlobalConfig-->seed":       
+                [9992, 9992, 9992,                                                                                                          9993, 9993, 9993],
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
-                                            [0.80, 0.60, 0.40],
+                [0.80, 0.60, 0.40,                                                                                                          0.80, 0.60, 0.40],
     # "config.py->GlobalConfig-->seed":       [777+i                           for i in range(n_run)],
 }
 
@@ -76,13 +79,14 @@ base_conf = {
 
 assert '_' not in run_group, ('下划线在matlab中的显示效果不好')
 log_dir = log_dir+run_group
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
+if not os.path.exists('PROFILE/%s'%log_dir):
+    os.makedirs('PROFILE/%s'%log_dir)
+    os.makedirs('PROFILE/%s-json'%(log_dir))
 
 new_json_paths = []
 for i in range(n_run):
     conf = copy.deepcopy(base_conf)
-    new_json_path = '%s/run-%d.json'%(log_dir, i+1)
+    new_json_path = 'PROFILE/%s-json/run-%d.json'%(log_dir, i+1)
     for key in conf_override:
         tree_path, item = key.split('-->')
         conf[tree_path][item] = conf_override[key][i]
@@ -112,7 +116,7 @@ for ith_run in range(n_run):
     print('')
 
 def worker(ith_run):
-    log_path = open('PROFILE/%s/run-%d.log'%(log_dir, ith_run+1), 'w+')
+    log_path = open('PROFILE/%s-json/run-%d.log'%(log_dir, ith_run+1), 'w+')
     printX[ith_run%len(printX)](final_arg_list[ith_run])
     subprocess.run(final_arg_list[ith_run], stdout=log_path, stderr=log_path)
 
@@ -132,7 +136,7 @@ if __name__ == '__main__':
         thread.setDaemon(True)
         thread.start()
         print('错峰执行，启动', thread)
-        for i in range(300):
+        for i in range(30):
             print('\r 错峰执行，启动倒计时%d     '%(300-i), end='', flush=True)
             time.sleep(1)
 
@@ -141,7 +145,7 @@ if __name__ == '__main__':
         if any(is_alive):
             time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
             print(time_now, 'I am still running!', is_alive)
-            print靛('current scipt:%s, current log:%s'%(os.path.abspath(__file__), 'PROFILE/%s'%log_dir))
+            print靛('current scipt:%s, current log:%s'%(os.path.abspath(__file__), 'PROFILE/%s-json/run-%d.log'%(log_dir, ith_run+1)))
             time.sleep(120)
         else:
             break

@@ -27,10 +27,11 @@ def SET_NUM_THREADS(internal_threads):
     os.environ['OMP_NUM_THREADS'] = str(internal_threads)
 SET_NUM_THREADS(1)
 
-def pytorch_gpu_init(cfg, internal_threads):
+# do NOT edit this func
+def pytorch_gpu_init(cfg):
     import os, torch
     from UTILS.auto_gpu import sel_gpu
-    torch.set_num_threads(int(internal_threads))
+    torch.set_num_threads(int(os.environ['NUM_THREADS']))
     seed = cfg.seed; device = cfg.device
     torch.manual_seed(seed)
     # e.g. device='cpu
@@ -67,7 +68,7 @@ if __name__ == '__main__':
     register(smart_pool.party_over)  # Failsafe, handles shm leak
 
     # Pytorch has to be init AFTER the process pool starts, set pytorch seed
-    pytorch_gpu_init(cfg=cfg, internal_threads=os.environ['NUM_THREADS'])
+    pytorch_gpu_init(cfg=cfg)
 
     # Prepare everything else
     from task_runner import Runner
