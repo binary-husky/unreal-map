@@ -13,32 +13,35 @@ class ChainVar(object):
 class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     '''__  config may changed when launched with json __'''
 
-    # In align mode, all 'thread's begin new episode at the same time, 
-    # a thread that ends early has to 'wait' for other threads before starting new
-    # If 'False', threads will not 'wait' for others, 'reset' immediately on 'done'
-    align_episode = True
+    
+    # In align mode, all threads begin new episode synchronously, 
+    # which means a thread that ends early has to 'wait' for other threads before restarting
+    # If set to 'False', threads will not wait for each others, and will 'reset' immediately on 'done' 
+    align_episode = True                                # ! please try to understand this with TOP priority
 
     env_name = 'sr_tasks->cargo'                        # which environment, see ./MISSIONS/env_router.py
     env_path = 'MISSIONS.sr_tasks.multiagent.cargo'     # path of environment
-    draw_mode = 'OFF'                                   # 'Web','Native'
-    activate_logger = True                              # activate plot bridge
+    draw_mode = 'OFF'                                   # 'Web','Native','Img','Threejs' 
+    activate_logger = True                              # activate data plotting (Tensorboard is not used because I do not like it)
     
-    seed = np.random.randint(0, 100000)                 # seed
+    seed = np.random.randint(0, 100000)                 # seed for numpy and pytorch
 
+    # ! warning, the note also determine where the experiment log is stored, typically at ./ZHECKPOINT/$note/*
     note = 'more_testing'                               # in case you forget the purpose of this trainning session, write a note
     logdir = './ZHECKPOINT/%s/'%note
     logdir_cv = ChainVar(lambda note: './ZHECKPOINT/%s/'%note, chained_with=['note']) 
     recall_previous_session = False                     # continue previously interrupted training session
 
-    test_only = False                                   # only testing, no training
-    test_logger = 'test_only_profile.txt'               # writing win rate at
-    
-    device = 'cuda'                                     # use GPU or not
-    gpu_party = 'off'                                   # GPU memory is precious, assign multiple training process to a 'party', they will share GPU memory
-    manual_gpu_ctl = False                              # auto variable, do not alter
+    test_only = False                                   # only testing and no training, it controlls a flag sending to Alg side
+    test_logger = 'test_only_profile.txt'               # logger path, experimental, writing win rate in a file
+ 
+    device = 'cuda'                                     # choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU)
+    gpu_party = 'off'                                   # GPU memory is precious! assign multiple training process to a 'party', they will share GPU memory
+    manual_gpu_ctl = False                              # auto variable, do not alter! do not change!
     
     num_threads = 64                                    # run N parallel envs, a 'env' is refered to as a 'thread'
-    fold = 1                                            # A 'linux process' can handle multiple envs ('thread'), run N parallel envs, on N//fold processes, 
+    fold = 1                                            # A 'linux process' can handle multiple envs ('thread'), run N parallel envs, on (N//fold) processes
+                                                        # this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
     
     n_parallel_frame = int(5e6)                         # Number of frames to run (in each frame, all parallel-envs step once)
     max_n_episode = int(20e4)                           # max number of episodes
@@ -64,6 +67,6 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
 
     backup_files = []                                   # a list of files that needs to be backed up at each run
     matlab_logger = None                                # this is just a global logger, although we do not use matlab anymore...
-    heartbeat_on = True
+    heartbeat_on = True                                 # some fancy commandline visual effect to show that envirenment is running
     
-    cfg_ready = False
+    cfg_ready = False                                   # to show that json configuration is all locked-and-loaded

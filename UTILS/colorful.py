@@ -7,6 +7,7 @@ else:
     from colorama import init
     init()
 
+# Do you like the elegance of Chinese characters?
 def print红(*kw,**kargs):
     print("\033[0;31m",*kw,"\033[0m",**kargs)
 def print绿(*kw,**kargs):
@@ -34,7 +35,7 @@ def print亮靛(*kw,**kargs):
     print("\033[1;36m",*kw,"\033[0m",**kargs)
 
 if not stdout.isatty():
-    # avoid a fucked up log file
+    # redirection, avoid a fucked up log file
     print红 = print
     print绿 = print
     print黄 = print
