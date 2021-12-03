@@ -8,52 +8,155 @@ from UTILS.colorful import *
 # ubuntu command to kill process: kill -9 $(ps -ef | grep xrdp | grep -v grep | awk '{print $ 2}')
 
 arg_base = ['python', 'main.py']
-log_dir = './T1-bench-IDL50/'
+log_dir = 'origr3/'
 run_group = "bench"
 # base_conf = 'train.json'
 
-n_run = 3
+n_run = 9
 conf_override = {
-    "config.py->GlobalConfig-->note":       ["run-%d-%s"%(i+1, run_group)    for i in range(n_run)],
-    "config.py->GlobalConfig-->seed":       [777+i                           for i in range(n_run)],
+    "config.py->GlobalConfig-->note":       
+                [
+                    "HistoryRolling(40itf) r1",
+                    "HistoryRolling(60itf) r1",
+                    "HistoryRolling(80itf) r1",
+
+                    "HistoryRolling(40itf) r2",
+                    "HistoryRolling(60itf) r2",
+                    "HistoryRolling(80itf) r2",
+
+                    "HistoryRolling(40itf) r3",
+                    "HistoryRolling(60itf) r3",
+                    "HistoryRolling(80itf) r3",
+                ],
+    "config.py->GlobalConfig-->seed":       
+                [
+                    9992,
+                    9992,
+                    9992,
+
+                    9993,
+                    9993,
+                    9993,
+
+                    9994,
+                    9994,
+                    9994,
+
+
+                ],
+    "config.py->GlobalConfig-->device":       
+                [
+                    "cuda:0",
+                    "cuda:0",
+                    "cuda:1",
+
+                    "cuda:1",
+                    "cuda:2",
+                    "cuda:2",
+
+                    "cuda:3",
+                    "cuda:3",
+                    "cuda:4",
+                    
+
+                ],
+    "config.py->GlobalConfig-->gpu_party":       
+                [
+                    "Cuda0-Party0",
+                    "Cuda0-Party0",
+                    "Cuda1-Party0",
+
+                    "Cuda1-Party0",
+                    "Cuda2-Party0",
+                    "Cuda2-Party0",
+
+                    "Cuda3-Party0",
+                    "Cuda3-Party0",
+                    "Cuda4-Party0",
+
+                ],
+    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
+                [
+                    0.40,
+                    0.60,
+                    0.80,
+
+                    0.40,
+                    0.60,
+                    0.80,
+
+                    0.40,
+                    0.60,
+                    0.80,
+                ],
+
 }
 
 base_conf = {
     "config.py->GlobalConfig": {
+        "note": "train_rolling(his_dualing)(80 itf)",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
-        "note": "benchIDL50",
-        "num_threads": "50",
-        "report_reward_interval": "50",
-        "test_interval": "4096",
-        "device": "cuda",
+        "draw_mode": "Img",
+        "num_threads": "64",
+        "report_reward_interval": "64",
+        "test_interval": "2048",
+        "device": "cuda:2",
+        "gpu_party": "Cuda2-Party0",
         "fold": "1",
-        "seed": 777
+        "seed": 9996,
+        "backup_files":[
+            "ALGORITHM/concentration_addhist_push2x/net.py",
+            "ALGORITHM/concentration_addhist_push2x/ppo.py",
+            "ALGORITHM/concentration_addhist_push2x/shell_env.py",
+            "ALGORITHM/concentration_addhist_push2x/foundation.py",
+            "ALGORITHM/concentration_addhist_push2x/trajectory.py",
+            "ALGORITHM/concentration_addhist_push2x/cython_func.pyx",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py"
+        ]
     },
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
         "size": "5",
-        "num_steps": "200",
-        "render": "False",
+        "random_jam_prob": 0.80,
+        "introduce_terrain":"True",
+        "terrain_parameters": [0.05, 0.2],
+        "num_steps": "180",
+        "render":"False",
+        "render_with_unity":"False",
+        "MCOM_DEBUG":"False",
+        "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
+        "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.hmp_ak_iagent.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration_addhist_push2x.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.hmp_ak.foundation.py->AlgorithmConfig": {
-        "train_traj_needed": "50"
+    "ALGORITHM.concentration_addhist_push2x.foundation.py->AlgorithmConfig": {
+        "n_focus_on": 2,
+        "actor_attn_mod": "False",
+        "extral_train_loop": "False",
+        "lr": 5e-4,
+        "ppo_epoch": 24,
+        "train_traj_needed": "64",
+        "load_checkpoint": False
     }
 }
 
+
+
+
+
 assert '_' not in run_group, ('下划线在matlab中的显示效果不好')
 log_dir = log_dir+run_group
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
+if not os.path.exists('PROFILE/%s'%log_dir):
+    os.makedirs('PROFILE/%s'%log_dir)
+    os.makedirs('PROFILE/%s-json'%(log_dir))
 
 new_json_paths = []
 for i in range(n_run):
     conf = copy.deepcopy(base_conf)
-    new_json_path = '%s/run-%d.json'%(log_dir, i+1)
+    new_json_path = 'PROFILE/%s-json/run-%d.json'%(log_dir, i+1)
     for key in conf_override:
         tree_path, item = key.split('-->')
         conf[tree_path][item] = conf_override[key][i]
@@ -83,7 +186,7 @@ for ith_run in range(n_run):
     print('')
 
 def worker(ith_run):
-    log_path = open('PROFILE/%s/run-%d.log'%(log_dir, ith_run+1), 'w+')
+    log_path = open('PROFILE/%s-json/run-%d.log'%(log_dir, ith_run+1), 'w+')
     printX[ith_run%len(printX)](final_arg_list[ith_run])
     subprocess.run(final_arg_list[ith_run], stdout=log_path, stderr=log_path)
 
@@ -103,8 +206,8 @@ if __name__ == '__main__':
         thread.setDaemon(True)
         thread.start()
         print('错峰执行，启动', thread)
-        for i in range(300):
-            print('\r 错峰执行，启动倒计时%d     '%(300-i), end='', flush=True)
+        for i in range(30):
+            print('\r 错峰执行，启动倒计时%d     '%(30-i), end='', flush=True)
             time.sleep(1)
 
     while True:
@@ -112,7 +215,7 @@ if __name__ == '__main__':
         if any(is_alive):
             time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
             print(time_now, 'I am still running!', is_alive)
-            print靛('current scipt:%s, current log:%s'%(os.path.abspath(__file__), log_dir))
+            print靛('current scipt:%s, current log:%s'%(os.path.abspath(__file__), 'PROFILE/%s-json/run-%d.log'%(log_dir, ith_run+1)))
             time.sleep(120)
         else:
             break
