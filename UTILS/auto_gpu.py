@@ -82,8 +82,8 @@ class sel_gpu():
         for gpu in self.gpus:
             gpu['specified']=False
         self.gpu_num=len(self.gpus)
-        if not self.check_gpus():
-            raise ImportError('GPU available check failed')
+        # if not self.check_gpus():
+        #     raise ImportError('GPU available check failed')
 
         for old_infos,new_infos in zip(self.gpus,self.query_gpu(self.qargs)):
             old_infos.update(new_infos)

@@ -2,29 +2,45 @@ import copy, json
 import numpy as np
 import torch
 import torch.nn.functional as F
-from config import GlobalConfig
 from functools import wraps
-from numba import jit
 
-if "m-cuda" in GlobalConfig.device:
-    assert False, 'not supported anymore'
-    gpu_id = json.loads(GlobalConfig.device.split("->")[-1])
-    device = "cuda:%d" % gpu_id[0]
-    # 
-else:
-    gpu_id = None
-    device = GlobalConfig.device
+
+class ConfigCache(object):
+    def __init__(self) -> None:
+        super().__init__()
+        self.init = False
+
+    def read_cfg(self):
+        from config import GlobalConfig
+        if GlobalConfig.cfg_ready:
+            self.device_ = GlobalConfig.device
+            self.use_float64_ = GlobalConfig.use_float64
+            self.init = True
+
+    @property
+    def device(self):
+        if not self.init: self.read_cfg()
+        assert self.init, ('cfg not ready!')
+        return self.device_
+
+    @property
+    def use_float64(self):
+        if not self.init: self.read_cfg()
+        assert self.init, ('cfg not ready!')
+        return self.use_float64_
+
+cfg = ConfigCache()
 
 def pt_inf():
-    pt_dtype = torch.float64 if GlobalConfig.use_float64 else torch.float32
-    return torch.tensor(np.inf, dtype=pt_dtype, device=GlobalConfig.device)
+    # if not cfg.init: cfg.read_cfg()
+    pt_dtype = torch.float64 if cfg.use_float64 else torch.float32
+    return torch.tensor(np.inf, dtype=pt_dtype, device=cfg.device)
 
 def pt_nan():
-    pt_dtype = torch.float64 if GlobalConfig.use_float64 else torch.float32
-    return torch.tensor(np.nan, dtype=pt_dtype, device=GlobalConfig.device)
+    # if not cfg.init: cfg.read_cfg()
+    pt_dtype = torch.float64 if cfg.use_float64 else torch.float32
+    return torch.tensor(np.nan, dtype=pt_dtype, device=cfg.device)
 
-# pt_inf = torch.tensor(np.inf, dtype=pt_dtype, device=GlobalConfig.device)
-# pt_nan = torch.tensor(np.nan, dtype=pt_dtype, device=GlobalConfig.device)
 
 def vis_mat(mat):
     mat = mat.astype(np.float)
@@ -162,15 +178,16 @@ def add_obs_container_subject(container_emb, subject_emb, div):
     Turning numpy array to torch.Tensor, then put it on the right GPU / CPU
 """
 def Args2tensor(f):
+    # if not cfg.init: cfg.read_cfg()
     def _2tensor(x):
         if isinstance(x, torch.Tensor):
-            return x.to(device)
+            return x.to(cfg.device)
         elif isinstance(x, np.ndarray):
-            if (not GlobalConfig.use_float64) and x.dtype == np.float64:
+            if (not cfg.use_float64) and x.dtype == np.float64:
                 x = x.astype(np.float32)
-            if GlobalConfig.use_float64 and x.dtype == np.float32:
+            if cfg.use_float64 and x.dtype == np.float32:
                 x = x.astype(np.float64)
-            return torch.from_numpy(x).to(device)
+            return torch.from_numpy(x).to(cfg.device)
         elif isinstance(x, dict):
             y = {}
             for key in x:
@@ -194,15 +211,16 @@ def Args2tensor(f):
     When returning, convert all torch.Tensor to numpy array
 """
 def Args2tensor_Return2numpy(f):
+    # if not cfg.init: cfg.read_cfg()
     def _2tensor(x):
         if isinstance(x, torch.Tensor):
-            return x.to(device)
+            return x.to(cfg.device)
         elif isinstance(x, np.ndarray):
-            if (not GlobalConfig.use_float64) and x.dtype == np.float64:
+            if (not cfg.use_float64) and x.dtype == np.float64:
                 x = x.astype(np.float32)
-            if GlobalConfig.use_float64 and x.dtype == np.float32:
+            if cfg.use_float64 and x.dtype == np.float32:
                 x = x.astype(np.float64)
-            return torch.from_numpy(x).to(device)
+            return torch.from_numpy(x).to(cfg.device)
         elif isinstance(x, dict):
             y = {}
             for key in x:
@@ -255,14 +273,15 @@ def _2cpu2numpy(x):
 
 
 def _2tensor(x):
+    # if not cfg.init: cfg.read_cfg()
     if isinstance(x, torch.Tensor):
-        return x.to(device)
+        return x.to(cfg.device)
     elif isinstance(x, np.ndarray):
-        if (not GlobalConfig.use_float64) and x.dtype == np.float64:
+        if (not cfg.use_float64) and x.dtype == np.float64:
             x = x.astype(np.float32)
-        if GlobalConfig.use_float64 and x.dtype == np.float32:
+        if cfg.use_float64 and x.dtype == np.float32:
             x = x.astype(np.float64)
-        return torch.from_numpy(x).to(device)
+        return torch.from_numpy(x).to(cfg.device)
     elif isinstance(x, dict):
         y = {}
         for key in x:

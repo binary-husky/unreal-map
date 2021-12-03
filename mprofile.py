@@ -93,6 +93,7 @@ conf_override = {
 }
 
 base_conf = {
+    # // python main.py -c d12-conc-orig.jsonc
     "config.py->GlobalConfig": {
         "note": "train_rolling(his_dualing)(80 itf)",
         "env_name":"collective_assult",

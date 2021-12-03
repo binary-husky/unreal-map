@@ -55,7 +55,7 @@ def load_config_via_json(json_data, vb):
         dependency = override_config_file(cfg_group, json_data[cfg_group], vb)
         if dependency is not None:
             for dep in dependency:
-                assert any([dep in k for k in json_data.keys()]), 'Arg check failure, There is a something missing!'
+                assert any([dep in k for k in json_data.keys()]), 'Arg check failure, There is something missing!'
     check_config_relevence(json_data)
     return None
 
@@ -108,6 +108,7 @@ def get_args(vb=True):
     if load_via_json and (not cfg.recall_previous_session): 
         copyfile(args.cfg, '%s/experiment.json'%cfg.logdir)
         backup_files(cfg.backup_files, cfg.logdir)
+    cfg.cfg_ready = True
     return cfg
 
 def backup_files(files, logdir):
