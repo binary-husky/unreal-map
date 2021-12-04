@@ -12,71 +12,82 @@ log_dir = '%s/'%time.time()
 run_group = "bench"
 # base_conf = 'train.json'
 
-n_run = 6
+n_run = 9
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "HistoryRolling(60itf, dc=4) r1",
-                    "HistoryRolling(60itf, dc=4) r2",
-                    "HistoryRolling(60itf, dc=4) r3",
+                    "HistoryRolling(40itf) r1",
+                    "HistoryRolling(60itf) r1",
+                    "HistoryRolling(80itf) r1",
 
-                    "HistoryRolling(60itf, dc=6) r1",
-                    "HistoryRolling(60itf, dc=6) r2",
-                    "HistoryRolling(60itf, dc=6) r3",
+                    "HistoryRolling(40itf) r2",
+                    "HistoryRolling(60itf) r2",
+                    "HistoryRolling(80itf) r2",
 
+                    "HistoryRolling(40itf) r3",
+                    "HistoryRolling(60itf) r3",
+                    "HistoryRolling(80itf) r3",
                 ],
-
-    "ALGORITHM.concentration_addhist_push2x.foundation.py->AlgorithmConfig-->n_focus_on":       
-                [
-                    4,
-                    4,
-                    4,
-
-                    6,
-                    6,
-                    6,
-                ],
-
     "config.py->GlobalConfig-->seed":       
                 [
                     9992,
+                    9992,
+                    9992,
+
                     9993,
+                    9993,
+                    9993,
+
+                    9994,
+                    9994,
                     9994,
 
-                    9992,
-                    9993,
-                    9994,
 
                 ],
     "config.py->GlobalConfig-->device":       
                 [
                     "cuda:0",
+                    "cuda:0",
                     "cuda:1",
+
+                    "cuda:1",
+                    "cuda:2",
                     "cuda:2",
 
                     "cuda:3",
+                    "cuda:3",
                     "cuda:4",
-                    "cuda:4",
+                    
+
                 ],
     "config.py->GlobalConfig-->gpu_party":       
                 [
                     "Cuda0-Party0",
+                    "Cuda0-Party0",
                     "Cuda1-Party0",
+
+                    "Cuda1-Party0",
+                    "Cuda2-Party0",
                     "Cuda2-Party0",
 
                     "Cuda3-Party0",
+                    "Cuda3-Party0",
                     "Cuda4-Party0",
-                    "Cuda4-Party0",
+
                 ],
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
                 [
+                    0.40,
                     0.60,
-                    0.60,
-                    0.60,
+                    0.80,
 
+                    0.40,
                     0.60,
+                    0.80,
+
+                    0.40,
                     0.60,
-                    0.60,
+                    0.80,
                 ],
 
 }

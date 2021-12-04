@@ -35,12 +35,14 @@ def pytorch_gpu_init(cfg):
     seed = cfg.seed; device = cfg.device
     torch.manual_seed(seed)
     # e.g. device='cpu
+    os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
     if not 'cuda' in device: return
     if 'm-cuda' in device: assert False # m-gpu is not functional yet
     if device == 'cuda': gpu_index = sel_gpu().auto_choice()
     else: # e.g. device='cuda:0'
         gpu_index = int(device.split(':')[-1])
         cfg.manual_gpu_ctl = True
+        if cfg.gpu_fraction!=1: torch.cuda.set_per_process_memory_fraction(cfg.gpu_fraction, gpu_index)
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_index)
     cfg.device = 'cuda' # remove ':x', the selected gpu is cuda:0 from now on
     torch.cuda.manual_seed(seed)

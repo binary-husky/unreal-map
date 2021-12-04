@@ -38,7 +38,8 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     device = 'cuda'                                     # choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU)
     gpu_party = 'off'                                   # GPU memory is precious! assign multiple training process to a 'party', they will share GPU memory
     manual_gpu_ctl = False                              # auto variable, do not alter! do not change!
-    
+    gpu_fraction = 1.0
+
     num_threads = 64                                    # run N parallel envs, a 'env' is refered to as a 'thread'
     fold = 1                                            # A 'linux process' can handle multiple envs ('thread'), run N parallel envs, on (N//fold) processes
                                                         # this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
