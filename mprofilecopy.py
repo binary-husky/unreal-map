@@ -16,17 +16,17 @@ n_run = 9
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "HistoryRolling(40itf) r1",
-                    "HistoryRolling(60itf) r1",
-                    "HistoryRolling(80itf) r1",
+                    "HistoryRollingSep(40itf) r1",
+                    "HistoryRollingSep(60itf) r1",
+                    "HistoryRollingSep(80itf) r1",
 
-                    "HistoryRolling(40itf) r2",
-                    "HistoryRolling(60itf) r2",
-                    "HistoryRolling(80itf) r2",
+                    "HistoryRollingSep(40itf) r2",
+                    "HistoryRollingSep(60itf) r2",
+                    "HistoryRollingSep(80itf) r2",
 
-                    "HistoryRolling(40itf) r3",
-                    "HistoryRolling(60itf) r3",
-                    "HistoryRolling(80itf) r3",
+                    "HistoryRollingSep(40itf) r3",
+                    "HistoryRollingSep(60itf) r3",
+                    "HistoryRollingSep(80itf) r3",
                 ],
     "config.py->GlobalConfig-->seed":       
                 [
@@ -47,32 +47,32 @@ conf_override = {
     "config.py->GlobalConfig-->device":       
                 [
                     "cuda:0",
-                    "cuda:0",
-                    "cuda:1",
-
                     "cuda:1",
                     "cuda:2",
-                    "cuda:2",
 
-                    "cuda:3",
                     "cuda:3",
                     "cuda:4",
+                    "cuda:5",
+
+                    "cuda:1",
+                    "cuda:2",
+                    "cuda:3",
                     
 
                 ],
     "config.py->GlobalConfig-->gpu_party":       
                 [
                     "Cuda0-Party0",
-                    "Cuda0-Party0",
-                    "Cuda1-Party0",
-
                     "Cuda1-Party0",
                     "Cuda2-Party0",
-                    "Cuda2-Party0",
 
-                    "Cuda3-Party0",
                     "Cuda3-Party0",
                     "Cuda4-Party0",
+                    "Cuda5-Party0",
+
+                    "Cuda1-Party0",
+                    "Cuda2-Party0",
+                    "Cuda3-Party0",
 
                 ],
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
@@ -93,26 +93,25 @@ conf_override = {
 }
 
 base_conf = {
-    # // python main.py -c d12-conc-orig.jsonc
     "config.py->GlobalConfig": {
-        "note": "train_rolling(his_dualing)(80 itf)",
+        "note": "train_rolling(his_dualing_sep_moti_reg 80itf cython)",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
         "test_interval": "2048",
-        "device": "cuda:2",
-        "gpu_party": "Cuda2-Party0",
+        "device": "cuda:6",
+        "gpu_party": "Cuda0-Party0",
         "fold": "1",
         "seed": 9996,
         "backup_files":[
-            "ALGORITHM/concentration_addhist_push2x/net.py",
-            "ALGORITHM/concentration_addhist_push2x/ppo.py",
-            "ALGORITHM/concentration_addhist_push2x/shell_env.py",
-            "ALGORITHM/concentration_addhist_push2x/foundation.py",
-            "ALGORITHM/concentration_addhist_push2x/trajectory.py",
-            "ALGORITHM/concentration_addhist_push2x/cython_func.pyx",
+            "ALGORITHM/concentration_addhist_push2x_sepconcreg/net.py",
+            "ALGORITHM/concentration_addhist_push2x_sepconcreg/ppo.py",
+            "ALGORITHM/concentration_addhist_push2x_sepconcreg/shell_env.py",
+            "ALGORITHM/concentration_addhist_push2x_sepconcreg/foundation.py",
+            "ALGORITHM/concentration_addhist_push2x_sepconcreg/trajectory.py",
+            "ALGORITHM/concentration_addhist_push2x_sepconcreg/cython_func.pyx",
             "MISSIONS/collective_assult/envs/collective_assult_env.py"
         ]
     },
@@ -129,11 +128,11 @@ base_conf = {
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration_addhist_push2x.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration_addhist_push2x_sepconcreg.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.concentration_addhist_push2x.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.concentration_addhist_push2x_sepconcreg.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
@@ -143,7 +142,6 @@ base_conf = {
         "load_checkpoint": False
     }
 }
-
 
 
 
