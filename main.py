@@ -56,9 +56,9 @@ if __name__ == '__main__':
     import pyximport; pyximport.install(build_dir='./RECYCLE/build/', inplace=True, language_level=3, setup_args={'include_dirs': numpy.get_include()})
     from atexit import register
     from UTILS.colorful import *
-    from UTILS.config_args import get_args
+    from UTILS.config_args import prepare_args
     from UTILS.shm_pool import SmartPool
-    cfg = get_args()
+    cfg = prepare_args()
 
     # Set numpy seed
     numpy.random.seed(cfg.seed)
@@ -83,3 +83,6 @@ if __name__ == '__main__':
     smart_pool.party_over()
     print绿('All jobs finished')
 
+    # upload results to storage server via SSH
+    from UTILS.exp_upload import upload_experiment_results
+    upload_experiment_results(cfg)

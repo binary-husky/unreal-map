@@ -82,8 +82,8 @@ def reverse_opti_numpy_object(obj, shm):
 
 def child_process_load_config():
     # important! load json config or cmdline config to child process
-    from config_args import get_args
-    get_args(vb=False)
+    from config_args import prepare_args
+    prepare_args(vb=False)
     pass
 
 
@@ -117,8 +117,8 @@ class SuperProc(Process):
     def automatic_execution(self, name, dowhat, *arg):
         return getattr(getattr(self, name), dowhat)(*arg)
 
-    def add_targets(self, new_target_args):
-        for new_target_arg in new_target_args:
+    def add_targets(self, new_tarprepare_args):
+        for new_target_arg in new_tarprepare_args:
             name, gen_fn, arg = new_target_arg
             if arg is None:              
                 self.automatic_generation(name, gen_fn)

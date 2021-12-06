@@ -16,37 +16,47 @@ n_run = 6
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "HistoryRolling(60itf, dc=4) r1",
-                    "HistoryRolling(60itf, dc=4) r2",
-                    "HistoryRolling(60itf, dc=4) r3",
+                    "HistoryRolling(10itf) rx",
+                    "HistoryRolling(20itf) rx",
+                    "HistoryRolling(30itf) rx",
 
-                    "HistoryRolling(60itf, dc=6) r1",
-                    "HistoryRolling(60itf, dc=6) r2",
-                    "HistoryRolling(60itf, dc=6) r3",
+                    "HistoryRolling(40itf) rx",
+                    "HistoryRolling(50itf) rx",
+                    "HistoryRolling(60itf) rx",
 
+                    "HistoryRolling(70itf) rx",
+                    "HistoryRolling(80itf) rx",
+                    "HistoryRolling(90itf) rx",
                 ],
 
-    "ALGORITHM.concentration_addhist_push2x.foundation.py->AlgorithmConfig-->n_focus_on":       
+    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
                 [
-                    4,
-                    4,
-                    4,
+                    0.10,
+                    0.20,
+                    0.30,
 
-                    6,
-                    6,
-                    6,
+                    0.40,
+                    0.50,
+                    0.60,
+
+                    0.70,
+                    0.80,
+                    0.90,
                 ],
 
     "config.py->GlobalConfig-->seed":       
                 [
-                    9992,
-                    9993,
-                    9994,
+                    9996,
+                    9996,
+                    9996,
 
-                    9992,
-                    9993,
-                    9994,
+                    9996,
+                    9996,
+                    9996,
 
+                    9996,
+                    9996,
+                    9996,
                 ],
     "config.py->GlobalConfig-->device":       
                 [
@@ -56,7 +66,11 @@ conf_override = {
 
                     "cuda:3",
                     "cuda:4",
+                    "cuda:5",
+
+                    "cuda:3",
                     "cuda:4",
+                    "cuda:5",
                 ],
     "config.py->GlobalConfig-->gpu_party":       
                 [
@@ -66,17 +80,11 @@ conf_override = {
 
                     "Cuda3-Party0",
                     "Cuda4-Party0",
-                    "Cuda4-Party0",
-                ],
-    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
-                [
-                    0.60,
-                    0.60,
-                    0.60,
+                    "Cuda5-Party0",
 
-                    0.60,
-                    0.60,
-                    0.60,
+                    "Cuda3-Party0",
+                    "Cuda4-Party0",
+                    "Cuda5-Party0",
                 ],
 
 }

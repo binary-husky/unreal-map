@@ -81,7 +81,7 @@ def get_core_args(vb=True):
 
 
 
-def get_args(vb=True):
+def prepare_args(vb=True):
     parser = argparse.ArgumentParser(description='HMP')
     parser.add_argument('-c', '--cfg', help='Path of the configuration file')
     parser.add_argument('-s', '--skip', action='store_true', help='skip logdir check')

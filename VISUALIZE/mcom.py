@@ -58,17 +58,20 @@ class mcom():
     def __del__(self):
         # on the end of the program
         if hasattr(self, 'current_file_handle') and self.current_file_handle is not None:
-            end_file_flag = (b'><EndTaskFlag\n')
-            self.current_file_handle.write(end_file_flag)
-            self.current_file_handle.close()
+            try:
+                end_file_flag = (b'><EndTaskFlag\n')
+                self.current_file_handle.write(end_file_flag)
+                self.current_file_handle.close()
+            except: pass
         if hasattr(self, 'port') and self.port is not None:
-            self.disconnect()
+            try:
+                self.disconnect()
+            except: pass
         if hasattr(self, 'draw_proc') and self.draw_proc is not None:
             try:
                 self.draw_proc.terminate()
                 self.draw_proc.join()
-            except:
-                pass
+            except: pass
         print蓝('[mcom.py]: mcom exited!')
 
 
