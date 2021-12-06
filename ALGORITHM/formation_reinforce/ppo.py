@@ -174,7 +174,7 @@ class PPO():
             self.trivial_dict[key] = self.trivial_dict[key].mean()
             print_buf.append(' %s:%.3f, '%(key, self.trivial_dict[key]))
             if self.mcv is not None:  self.mcv.rec(self.trivial_dict[key], key)
-        print亮紫(''.join(print_buf))
+        print紫(''.join(print_buf))
         if self.mcv is not None:
             self.mcv.rec_show()
         self.trivial_dict = None

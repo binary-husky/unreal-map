@@ -12,7 +12,7 @@ log_dir = '%s/'%time.time()
 run_group = "bench"
 # base_conf = 'train.json'
 
-n_run = 6
+n_run = 9
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
@@ -103,6 +103,7 @@ base_conf = {
         "gpu_party": "Cuda2-Party0",
         "fold": "1",
         "seed": 9996,
+        "upload_after_test": "True",
         "backup_files":[
             "ALGORITHM/concentration_addhist_push2x/net.py",
             "ALGORITHM/concentration_addhist_push2x/ppo.py",
@@ -156,6 +157,7 @@ for i in range(n_run):
     conf = copy.deepcopy(base_conf)
     new_json_path = 'PROFILE/%s-json/run-%d.json'%(log_dir, i+1)
     for key in conf_override:
+        assert n_run == len(conf_override[key]), ('检查！n_run是否对应')
         tree_path, item = key.split('-->')
         conf[tree_path][item] = conf_override[key][i]
     with open(new_json_path,'w') as f:
@@ -204,8 +206,9 @@ if __name__ == '__main__':
         thread.setDaemon(True)
         thread.start()
         print('错峰执行，启动', thread)
-        for i in range(30):
-            print('\r 错峰执行，启动倒计时%d     '%(30-i), end='', flush=True)
+        DELAY = 3
+        for i in range(DELAY):
+            print('\r 错峰执行，启动倒计时%d     '%(DELAY-i), end='', flush=True)
             time.sleep(1)
 
     while True:

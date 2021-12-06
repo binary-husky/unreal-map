@@ -85,4 +85,4 @@ if __name__ == '__main__':
 
     # upload results to storage server via SSH
     from UTILS.exp_upload import upload_experiment_results
-    upload_experiment_results(cfg)
+    if cfg.allow_res_upload: upload_experiment_results(cfg)

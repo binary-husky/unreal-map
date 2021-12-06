@@ -1,19 +1,19 @@
 {
     // python main.py -c d14.jsonc
     "config.py->GlobalConfig": {
-        "note": "test_upload_test2",
+        "note": "test_upload_test3",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
-        "test_interval": "2048",
-        "n_parallel_frame":500,
+        "test_interval": "128",
         // "use_float64": true,
         "device": "cuda:2",
         "gpu_party": "Cuda2-Party0",
         "fold": "1",
         "seed": 9996,
+        "upload_after_test": true,
         "backup_files":[
             "ALGORITHM/concentration_addhist_push2x/net.py",
             "ALGORITHM/concentration_addhist_push2x/ppo.py",

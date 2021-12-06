@@ -1,5 +1,5 @@
 import paramiko, os
-from UTILS.colorful import print亮靛
+from UTILS.colorful import print亮紫, print亮靛
 
 # great thank to skoll for sharing this at stackoverflow:
 # https://stackoverflow.com/questions/4409502/directory-transfers-with-paramiko
@@ -49,9 +49,10 @@ def upload_experiment_results_(cfg):
     ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
     ssh.connect(addr, username=usr, password=pwd)
     sftp = MySFTPClient.from_transport(ssh.get_transport())
-    print亮靛('uploading results: %s --> %s'%(path, '%s/%s'%(remote_path, name)))
+    print亮紫('uploading results: %s --> %s'%(path, '%s/%s'%(remote_path, name)))
     sftp.mkdir(remote_path, ignore_existing=True)
     sftp.mkdir('%s/%s'%(remote_path, name), ignore_existing=True)
     sftp.put_dir(path, '%s/%s'%(remote_path, name))
     sftp.close()
-    print亮靛('upload complete')
+    print亮紫('upload complete')
+    

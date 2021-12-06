@@ -11,7 +11,7 @@ class ChainVar(object):
         self.chained_with = chained_with
 
 class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
-    '''__  config may changed when launched with json __'''
+    '''__  config will be Changed when launched with json __'''
 
     
     # In align mode, all threads begin new episode synchronously, 
@@ -34,7 +34,7 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
 
     test_only = False                                   # only testing and no training, it controlls a flag sending to Alg side
     test_logger = 'test_only_profile.txt'               # logger path, experimental, writing win rate in a file
- 
+
     device = 'cuda'                                     # choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU)
     gpu_party = 'off'                                   # GPU memory is precious! assign multiple training process to a 'party', they will share GPU memory
     manual_gpu_ctl = False                              # auto variable, do not alter! do not change!
@@ -71,3 +71,7 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     heartbeat_on = True                                 # some fancy commandline visual effect to show that envirenment is running
     
     cfg_ready = False                                   # to show that json configuration is all locked-and-loaded
+
+    # ! uploading "./ZHECKPOINT/$note" to a data storage server 
+    allow_res_upload = True                             # upload results to a data storage server when exiting
+    upload_after_test = False                           # upload results to a data storage server when completing a test run

@@ -10,10 +10,10 @@
 import time, os
 import numpy as np
 from UTILS.colorful import *
+from UTILS.exp_upload import upload_experiment_results
 from multi_team import MMPlatform
 from config import GlobalConfig as cfg
 from MISSIONS.env_router import make_parallel_envs
-
 class Runner(object):
     def __init__(self, process_pool):
         self.process_pool = process_pool
@@ -158,6 +158,7 @@ class Runner(object):
                     self.mcv.rec(win_rate, 'test-win-rate')
                     self.mcv.rec_show()
                     print靛('\r[task runner]: test finished, reward average:%.2f, win rate %.2f'%(reward_avg_itr_agent, win_rate))
+                    if cfg.upload_after_test: upload_experiment_results(cfg)
                     return
         def init_test_runner(self):
             if not hasattr(self, 'test_envs'):

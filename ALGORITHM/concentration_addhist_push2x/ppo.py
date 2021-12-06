@@ -195,7 +195,7 @@ class PPO():
                 loss_final, others = self.establish_pytorch_graph(task, sample, e)
                 loss_final = loss_final*0.5 /self.n_div
                 if (e+i)==0:
-                    print亮红('Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
+                    print('Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
                 loss_final.backward()
                 # log
                 ppo_valid_percent_list.append(others.pop('PPO valid percent').item())
@@ -208,7 +208,7 @@ class PPO():
 
         print亮黄(np.array(ppo_valid_percent_list))
         self.log_trivial_finalize()
-        print亮红('Leaky Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
+        # print亮红('Leaky Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
 
         self.ppo_update_cnt += 1
         return self.ppo_update_cnt
@@ -228,7 +228,7 @@ class PPO():
             self.trivial_dict[key] = self.trivial_dict[key].mean()
             print_buf.append(' %s:%.3f, '%(key, self.trivial_dict[key]))
             if self.mcv is not None:  self.mcv.rec(self.trivial_dict[key], key)
-        if print: print亮紫(''.join(print_buf))
+        if print: print紫(''.join(print_buf))
         if self.mcv is not None:
             self.mcv.rec_show()
         self.trivial_dict = {}
