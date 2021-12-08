@@ -108,8 +108,32 @@ def prepare_args(vb=True):
     if load_via_json and (not cfg.recall_previous_session): 
         copyfile(args.cfg, '%s/experiment.json'%cfg.logdir)
         backup_files(cfg.backup_files, cfg.logdir)
+        register_others(cfg.logdir)
     cfg.cfg_ready = True
     return cfg
+
+def register_others(logdir):
+    import socket, json
+    def get_host_ip():
+        ip = None
+        try:
+            s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8',80))
+            ip=s.getsockname()[0]
+        finally:
+            s.close()
+        return ip
+
+    info = {
+        'HostIP': get_host_ip(),
+        'RunPath': os.getcwd(),
+        'StartDateTime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    }
+    if 'DockerContainerHash' in os.environ:
+        info['DockerContainerHash'] = os.environ['DockerContainerHash']
+    with open('%s/info.json'%logdir, 'w+') as f:
+        json.dump(info, f, indent=4)
+
 
 def backup_files(files, logdir):
     for file in files:
