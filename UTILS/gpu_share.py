@@ -10,8 +10,7 @@ class gpu_share_unit():
             self.manual_gpu_ctl = False
         
         if self.lock_path is None: 
-            self.lock_path='./RECYCLE/' # os.path.dirname(__file__)
-            
+            self.lock_path = os.path.expanduser('~/GpuLock')
         if not os.path.exists(self.lock_path): os.makedirs(self.lock_path)
 
     def __enter__(self):

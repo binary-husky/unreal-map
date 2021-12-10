@@ -25,6 +25,7 @@ def SET_NUM_THREADS(internal_threads):
     os.environ['OPENBLAS_NUM_THREADS'] = str(internal_threads)
     os.environ['MKL_NUM_THREADS'] = str(internal_threads)
     os.environ['OMP_NUM_THREADS'] = str(internal_threads)
+
 SET_NUM_THREADS(1)
 
 # do NOT edit this func
@@ -49,7 +50,24 @@ def pytorch_gpu_init(cfg):
     if cfg.use_float64:
         torch.set_default_dtype(torch.float64)
 
-
+def clean_up():
+    # upload results to storage server via SSH
+    print('upload')
+    from UTILS.exp_upload import upload_experiment_results
+    if cfg.allow_res_upload: upload_experiment_results(cfg)
+    def clean_child_process(pid):
+        import psutil, time
+        parent = psutil.Process(pid)
+        for child in parent.children(recursive=True):
+            try:
+                print亮红('sending Terminate signal to', child)
+                child.terminate()
+                time.sleep(1)
+                print亮红('sending Kill signal to', child)
+                child.kill()
+            except: pass
+        parent.kill()
+    clean_child_process(os.getpid())
 
 if __name__ == '__main__':
     import os, numpy
@@ -59,6 +77,7 @@ if __name__ == '__main__':
     from UTILS.config_args import prepare_args
     from UTILS.shm_pool import SmartPool
     cfg = prepare_args()
+    register(clean_up)  # ...Failsafe, handles mem leak
 
     # Set numpy seed
     numpy.random.seed(cfg.seed)
@@ -67,7 +86,7 @@ if __name__ == '__main__':
     # Get mem-sharing process pool
     assert cfg.num_threads % cfg.fold == 0, ('Use n process to run n*m parallel threads!')
     smart_pool = SmartPool(fold=cfg.fold, proc_num=cfg.num_threads // cfg.fold, base_seed=cfg.seed)
-    register(smart_pool.party_over)  # Failsafe, handles shm leak
+    register(smart_pool.party_over)  # exe first ...Failsafe, handles shm leak
 
     # Pytorch has to be init AFTER the process pool starts, set pytorch seed
     pytorch_gpu_init(cfg=cfg)
@@ -80,9 +99,5 @@ if __name__ == '__main__':
     runner.run() 
 
     # DONE!
+    print绿('--- All jobs finished ---')
     smart_pool.party_over()
-    print绿('All jobs finished')
-
-    # upload results to storage server via SSH
-    from UTILS.exp_upload import upload_experiment_results
-    if cfg.allow_res_upload: upload_experiment_results(cfg)

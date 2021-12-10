@@ -211,6 +211,8 @@ class SuperProc(Process):
 
 class SmartPool(object):
     def __init__(self, proc_num, fold, base_seed=None):
+        import signal
+        signal.signal(signal.SIGCHLD, signal.SIG_IGN)
         self.proc_num = proc_num
         self.task_fold = fold
         self.base_seed = int(np.random.rand()*1e5) if base_seed is None else base_seed
@@ -333,23 +335,40 @@ class SmartPool(object):
             self.semaphore_push[j].release()  # notify all child process
 
     def party_over(self):
+        print('[shm_pool]: party over')
         self.__del__()
 
     def __del__(self):
-        print('executing superpool del')
+        print('[shm_pool]: executing superpool del')
         try:
+            print('[shm_pool]: already terminated, skipping ~~')
             if hasattr(self, 'terminated'): return
-        except: return
+        except: 
+            print('[shm_pool]: ???')
+            return
         try:
             for i in range(self.proc_num): self._send_squence(send_obj=-1, target_proc=i)
             self.notify_all_children()
+            print('[shm_pool]: self.notify_all_children()')
             time.sleep(1)
         except: pass
-        for proc in self.proc_pool: proc.terminate()
 
+        print('[shm_pool]: proc.terminate()')
+        for proc in self.proc_pool: 
+            try: proc.terminate()
+            except: pass
+
+        print('[shm_pool]: proc.kill()')
+        for proc in self.proc_pool: 
+            try: proc.kill()
+            except: pass
+            
+        print('[shm_pool]: shm.close(); shm.unlink()')
         for shm in self.shared_memory_io_buffer_handle:
-            shm.close()
-            shm.unlink()
+            try: shm.close(); shm.unlink()
+            except: pass
+
+        print('[shm_pool]: __del__ finish')
         time.sleep(1)
         self.terminated = True
 

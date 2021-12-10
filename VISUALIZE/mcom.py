@@ -18,7 +18,7 @@ class mcom():
     # as a recording programme, the design principle is:
     # Under No Circumstance should this program Interrupt the main program!
 
-    def __init__(self, ip=None, port=None, path=None, digit=8, rapid_flush=True, draw_mode=False):
+    def __init__(self, ip=None, port=None, path=None, digit=8, rapid_flush=True, draw_mode=False, tag='default'):
         # digit 默认8，可选4,16，越小程序负担越轻 (all is float, set valid digit number)
         # rapid_flush 当数据流不大时，及时倾倒文件缓存内容 (set 'False' if you'd like your SSD to survive longer)
         self.draw_mode = draw_mode
@@ -33,7 +33,7 @@ class mcom():
         else:
             print亮红('[mcom.py]: Draw process off! No plot will be done')
             self.draw_process = False
-
+        self.tag = tag
         self.path = path
         prev_start, prev_end, self.current_buffer_index = find_free_index(self.path)
         self.starting_file = self.path + '/mcom_buffer_%d____starting_session.txt' % (self.current_buffer_index)
@@ -72,7 +72,7 @@ class mcom():
                 self.draw_proc.terminate()
                 self.draw_proc.join()
             except: pass
-        print蓝('[mcom.py]: mcom exited!')
+        print蓝('[mcom.py]: mcom exited! tag: %s'%self.tag)
 
 
     def disconnect(self):
@@ -154,33 +154,6 @@ class mcom():
         str_tmp = bytes(str_tmp, encoding='utf8')
         self.send(str_tmp)
 
-    def 发送虚幻4数据流(self, x, y, z, pitch, yaw, roll):
-        x = float(x)
-        y = float(y)
-        z = float(z)
-        pitch = float(pitch)
-        yaw = float(yaw)
-        roll = float(roll)
-        str_tmp = 'UE4>>(\"agent#1\",%.6e,%.6e,%.6e,%.6e,%.6e,%.6e)\n' % (x, y, z, pitch, yaw, roll)
-        str_tmp = bytes(str_tmp, encoding='utf8')
-        self.send(str_tmp)
-
-    def 发送虚幻4数据流_多智能体(self, x_, y_, z_, pitch_, yaw_, roll_):
-        str_list = ['UE4>>']
-        for x, y, z, pitch, yaw, roll in zip(x_, y_, z_, pitch_, yaw_, roll_):
-            x = float(x)
-            y = float(y)
-            z = float(z)
-            pitch = float(pitch)
-            yaw = float(yaw)
-            roll = float(roll)
-            str_tmp = '(\"agent#1\",%.5e,%.5e,%.5e,%.5e,%.5e,%.5e)' % (x, y, z, pitch, yaw, roll)
-            str_list.append(str_tmp)
-            str_list.append(';')
-        str_list.append('\n')
-
-        cmd = ''.join(str_list)
-        self.send(bytes(cmd, encoding='utf8'))
 
     def other_cmd(self, *args, **kargs):
         func_name = traceback.extract_stack()[-2][2]
@@ -331,7 +304,6 @@ class tcp_server():
         t.start()
 
     def listening_thread(self):
-
 
         def handle_flag_breakdown():
             split_ = self.buff[-1].split('@end@')

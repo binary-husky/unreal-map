@@ -105,6 +105,7 @@ class ReinforceAlgorithmFoundation(object):
 
 
     def action_making(self, State_Recall, test_mode):
+
         assert State_Recall['obs'] is not None, ('make sure obs is oks')
 
         obs, threads_active_flag = State_Recall['obs'], State_Recall['threads_active_flag']
@@ -184,6 +185,10 @@ class ReinforceAlgorithmFoundation(object):
             toc = time.time()
             print('训练用时:',toc-tic)
             self.__save_model(update_cnt)
+
+            # # debug mem leak
+            # from UTILS.memleak_finder import memdb_print_diff
+            # memdb_print_diff()
 
 
 

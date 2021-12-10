@@ -5,10 +5,10 @@ import time
 import json
 from UTILS.colorful import *
 
-# ubuntu command to kill process: kill -9 $(ps -ef | grep python |grep fuqingxu | grep -v grep | awk '{print $ 2}')
+# ubuntu command to kill process: kill -9 $(ps -ef | grep xrdp | grep -v grep | awk '{print $ 2}')
 
 arg_base = ['python', 'main.py']
-log_dir = '%s/'%time.time()
+log_dir = '%s/'%time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
 run_group = "bench"
 # base_conf = 'train.json'
 
@@ -16,17 +16,17 @@ n_run = 9
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "HistoryRolling(10itf) rx",
-                    "HistoryRolling(20itf) rx",
-                    "HistoryRolling(30itf) rx",
+                    "train_origin_T(10itf) rx2",
+                    "train_origin_T(20itf) rx2",
+                    "train_origin_T(30itf) rx2",
 
-                    "HistoryRolling(40itf) rx",
-                    "HistoryRolling(50itf) rx",
-                    "HistoryRolling(60itf) rx",
+                    "train_origin_T(40itf) rx2",
+                    "train_origin_T(50itf) rx2",
+                    "train_origin_T(60itf) rx2",
 
-                    "HistoryRolling(70itf) rx",
-                    "HistoryRolling(80itf) rx",
-                    "HistoryRolling(90itf) rx",
+                    "train_origin_T(70itf) rx2",
+                    "train_origin_T(80itf) rx2",
+                    "train_origin_T(90itf) rx2",
                 ],
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
@@ -46,72 +46,73 @@ conf_override = {
 
     "config.py->GlobalConfig-->seed":       
                 [
-                    9996,
-                    9996,
-                    9996,
+                    8877,
+                    8877,
+                    8877,
 
-                    9996,
-                    9996,
-                    9996,
+                    8877,
+                    8877,
+                    8877,
 
-                    9996,
-                    9996,
-                    9996,
+                    8877,
+                    8877,
+                    8877,
                 ],
     "config.py->GlobalConfig-->device":       
                 [
                     "cuda:0",
                     "cuda:1",
+                    "cuda:1",
+
+                    "cuda:0",
+                    "cuda:1",
                     "cuda:2",
 
+                    "cuda:0",
                     "cuda:3",
                     "cuda:4",
-                    "cuda:5",
-
-                    "cuda:3",
-                    "cuda:4",
-                    "cuda:5",
                 ],
     "config.py->GlobalConfig-->gpu_party":       
                 [
                     "Cuda0-Party0",
                     "Cuda1-Party0",
+                    "Cuda1-Party0",
+
+                    "Cuda0-Party0",
+                    "Cuda1-Party0",
                     "Cuda2-Party0",
 
+                    "Cuda0-Party0",
                     "Cuda3-Party0",
                     "Cuda4-Party0",
-                    "Cuda5-Party0",
-
-                    "Cuda3-Party0",
-                    "Cuda4-Party0",
-                    "Cuda5-Party0",
                 ],
 
 }
 
+
+
 base_conf = {
     # // python main.py -c d12-conc-orig.jsonc
     "config.py->GlobalConfig": {
-        "note": "train_rolling(his_dualing)(80 itf)",
+        "note": "train_origin_T(80itf)",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
         "test_interval": "2048",
-        "device": "cuda:2",
-        "gpu_party": "Cuda2-Party0",
+        # // "use_float64": true,
+        # // "device": "cuda:4",
+        # // "gpu_party": "Cuda4-Party0",
         "fold": "1",
-        "seed": 9996,
-        "upload_after_test": "True",
+        "seed": 9995,
         "backup_files":[
-            "ALGORITHM/concentration_addhist_push2x/net.py",
-            "ALGORITHM/concentration_addhist_push2x/ppo.py",
-            "ALGORITHM/concentration_addhist_push2x/shell_env.py",
-            "ALGORITHM/concentration_addhist_push2x/foundation.py",
-            "ALGORITHM/concentration_addhist_push2x/trajectory.py",
-            "ALGORITHM/concentration_addhist_push2x/cython_func.pyx",
-            "MISSIONS/collective_assult/envs/collective_assult_env.py"
+            "ALGORITHM/concentration/net.py",
+            "ALGORITHM/concentration/ppo.py",
+            "ALGORITHM/concentration/shell_env.py",
+            "ALGORITHM/concentration/foundation.py",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py",
+            "ALGORITHM/concentration/trajectory.py"
         ]
     },
 
@@ -127,11 +128,11 @@ base_conf = {
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration_addhist_push2x.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.concentration_addhist_push2x.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",

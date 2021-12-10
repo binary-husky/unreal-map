@@ -247,7 +247,8 @@ class Runner(object):
                         path='%s/logger/'%logdir,
                         digit=16,
                         rapid_flush=True,
-                        draw_mode=cfg.draw_mode)
+                        draw_mode=cfg.draw_mode,
+                        tag='[task_runner.py]')
         mcv.rec_init()
         return mcv
 
