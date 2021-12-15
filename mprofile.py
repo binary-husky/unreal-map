@@ -4,7 +4,7 @@ import copy, os
 import time
 import json
 from UTILS.colorful import *
-
+# test sync to github
 # ubuntu command to kill process: kill -9 $(ps -ef | grep xrdp | grep -v grep | awk '{print $ 2}')
 
 arg_base = ['python', 'main.py']
