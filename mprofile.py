@@ -5,113 +5,71 @@ import time
 import json
 from UTILS.colorful import *
 
-# ubuntu command to kill process: kill -9 $(ps -ef | grep python |grep fuqingxu | grep -v grep | awk '{print $ 2}')
+# ubuntu command to kill process: kill -9 $(ps -ef | grep xrdp | grep -v grep | awk '{print $ 2}')
 
 arg_base = ['python', 'main.py']
-log_dir = '%s/'%time.time()
+log_dir = '%s/'%time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
 run_group = "bench"
 # base_conf = 'train.json'
 
-n_run = 9
+n_run = 2
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "HistoryRolling(10itf) rx",
-                    "HistoryRolling(20itf) rx",
-                    "HistoryRolling(30itf) rx",
-
-                    "HistoryRolling(40itf) rx",
-                    "HistoryRolling(50itf) rx",
-                    "HistoryRolling(60itf) rx",
-
-                    "HistoryRolling(70itf) rx",
-                    "HistoryRolling(80itf) rx",
-                    "HistoryRolling(90itf) rx",
+                    "train_origin_T(5itf) rx4",
+                    "train_origin_T(5itf) rx4",
                 ],
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
                 [
-                    0.10,
-                    0.20,
-                    0.30,
+                    0.05,
+                    0.05,
 
-                    0.40,
-                    0.50,
-                    0.60,
-
-                    0.70,
-                    0.80,
-                    0.90,
                 ],
 
     "config.py->GlobalConfig-->seed":       
                 [
-                    9996,
-                    9996,
-                    9996,
-
-                    9996,
-                    9996,
-                    9996,
-
-                    9996,
-                    9996,
-                    9996,
+                    55,
+                    66,
                 ],
     "config.py->GlobalConfig-->device":       
                 [
                     "cuda:0",
-                    "cuda:1",
-                    "cuda:2",
+                    "cuda:0",
 
-                    "cuda:3",
-                    "cuda:4",
-                    "cuda:5",
-
-                    "cuda:3",
-                    "cuda:4",
-                    "cuda:5",
                 ],
     "config.py->GlobalConfig-->gpu_party":       
                 [
                     "Cuda0-Party0",
-                    "Cuda1-Party0",
-                    "Cuda2-Party0",
-
-                    "Cuda3-Party0",
-                    "Cuda4-Party0",
-                    "Cuda5-Party0",
-
-                    "Cuda3-Party0",
-                    "Cuda4-Party0",
-                    "Cuda5-Party0",
+                    "Cuda0-Party0",
                 ],
 
 }
 
+
+
 base_conf = {
     # // python main.py -c d12-conc-orig.jsonc
     "config.py->GlobalConfig": {
-        "note": "train_rolling(his_dualing)(80 itf)",
+        "note": "train_origin_T(80itf)",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
         "test_interval": "2048",
-        "device": "cuda:2",
-        "gpu_party": "Cuda2-Party0",
+        # // "use_float64": true,
+        # // "device": "cuda:4",
+        # // "gpu_party": "Cuda4-Party0",
         "fold": "1",
-        "seed": 9996,
-        "upload_after_test": "True",
+        "seed": 9995,
         "backup_files":[
-            "ALGORITHM/concentration_addhist_push2x/net.py",
-            "ALGORITHM/concentration_addhist_push2x/ppo.py",
-            "ALGORITHM/concentration_addhist_push2x/shell_env.py",
-            "ALGORITHM/concentration_addhist_push2x/foundation.py",
-            "ALGORITHM/concentration_addhist_push2x/trajectory.py",
-            "ALGORITHM/concentration_addhist_push2x/cython_func.pyx",
-            "MISSIONS/collective_assult/envs/collective_assult_env.py"
+            "ALGORITHM/concentration/net.py",
+            "ALGORITHM/concentration/ppo.py",
+            "ALGORITHM/concentration/shell_env.py",
+            "ALGORITHM/concentration/foundation.py",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py",
+            "ALGORITHM/concentration/trajectory.py"
         ]
     },
 
@@ -127,11 +85,11 @@ base_conf = {
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration_addhist_push2x.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.concentration_addhist_push2x.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
@@ -145,17 +103,19 @@ base_conf = {
 
 
 
-
 assert '_' not in run_group, ('下划线在matlab中的显示效果不好')
-log_dir = log_dir+run_group
-if not os.path.exists('PROFILE/%s'%log_dir):
-    os.makedirs('PROFILE/%s'%log_dir)
-    os.makedirs('PROFILE/%s-json'%(log_dir))
+exp_log_dir = log_dir+'exp_log'
+if not os.path.exists('PROFILE/%s'%exp_log_dir):
+    os.makedirs('PROFILE/%s'%exp_log_dir)
+exp_json_dir = log_dir+'exp_json'
+if not os.path.exists('PROFILE/%s'%exp_json_dir):
+    os.makedirs('PROFILE/%s'%exp_json_dir)
+
 
 new_json_paths = []
 for i in range(n_run):
     conf = copy.deepcopy(base_conf)
-    new_json_path = 'PROFILE/%s-json/run-%d.json'%(log_dir, i+1)
+    new_json_path = 'PROFILE/%s/run-%d.json'%(exp_json_dir, i+1)
     for key in conf_override:
         assert n_run == len(conf_override[key]), ('检查！n_run是否对应')
         tree_path, item = key.split('-->')
@@ -186,9 +146,29 @@ for ith_run in range(n_run):
     print('')
 
 def worker(ith_run):
-    log_path = open('PROFILE/%s-json/run-%d.log'%(log_dir, ith_run+1), 'w+')
+    log_path = open('PROFILE/%s/run-%d.log'%(exp_log_dir, ith_run+1), 'w+')
     printX[ith_run%len(printX)](final_arg_list[ith_run])
-    subprocess.run(final_arg_list[ith_run], stdout=log_path, stderr=log_path)
+    res = subprocess.run(final_arg_list[ith_run], stdout=log_path, stderr=log_path)
+    print('worker end')
+
+def clean_process(pid):
+    import psutil
+    parent = psutil.Process(pid)
+    for child in parent.children(recursive=True):
+        try:
+            print亮红('sending Terminate signal to', child)
+            child.terminate()
+            time.sleep(5)
+            print亮红('sending Kill signal to', child)
+            child.kill()
+        except: pass
+    parent.kill()
+
+def clean_up():
+    print亮红('clean up!')
+    parent_pid = os.getpid()   # my example
+    clean_process(parent_pid)
+
 
 if __name__ == '__main__':
         
@@ -211,13 +191,15 @@ if __name__ == '__main__':
             print('\r 错峰执行，启动倒计时%d     '%(DELAY-i), end='', flush=True)
             time.sleep(1)
 
+    from atexit import register
+    register(clean_up)
     while True:
         is_alive = [thread.is_alive() for thread in threads]
         if any(is_alive):
             time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
             print(time_now, 'I am still running!', is_alive)
-            print靛('current scipt:%s, current log:%s'%(os.path.abspath(__file__), 'PROFILE/%s-json/run-%d.log'%(log_dir, ith_run+1)))
-            time.sleep(120)
+            print靛('current scipt:%s, current log:%s'%(os.path.abspath(__file__), 'PROFILE/%s/run-%d.log'%(exp_log_dir, ith_run+1)))
+            time.sleep(60)
         else:
             break
     print('[profile] All task done!')
