@@ -1,6 +1,6 @@
 Author: Fu Qingxu, CASIA
 # Introduction
-Hybrid Multi-agent Playground (HMP) is a experimental environment designed for reinforcement researchers.
+Hybrid Multi-agent Playground (HMP) is a experimental framework designed for RL researchers.
 Unlike any other framework, 
 HMP completely isolate algorithm from the framework.
 
