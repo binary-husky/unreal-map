@@ -11,12 +11,9 @@
         "fold": "1",                                    // this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
         "seed": 8887,                                   // seed controls pytorch and numpy
         "backup_files": [                               // backup files, pack them up
-            "ALGORITHM/conc/net.py",
-            "ALGORITHM/conc/ppo.py",
-            "ALGORITHM/conc/shell_env.py",
-            "ALGORITHM/conc/foundation.py",
-            "MISSIONS/collective_assult/envs/collective_assult_env.py",
-            "ALGORITHM/conc/trajectory.py"
+            "example.jsonc",
+            "ALGORITHM/conc",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py"
         ],
         "device": "cuda:0",                             // choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU) 
         // GPU memory is precious! assign multiple training process to a 'party', then they will share GPU memory 

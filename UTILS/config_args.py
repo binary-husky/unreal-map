@@ -1,5 +1,5 @@
 import argparse, os, time, func_timeout
-from shutil import copyfile
+from shutil import copyfile, copytree, ignore_patterns
 from .colorful import *
 
 def secure_chained_vars(default_cfg, new_cfg, vb):
@@ -113,34 +113,33 @@ def prepare_args(vb=True):
     return cfg
 
 def register_others(logdir):
-    import socket, json
-    def get_host_ip():
-        ip = None
-        try:
-            s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-            s.connect(('8.8.8.8',80))
-            ip=s.getsockname()[0]
-        finally:
-            s.close()
-        return ip
-
+    import socket, json, subprocess
+    from .network import get_host_ip
     info = {
         'HostIP': get_host_ip(),
         'RunPath': os.getcwd(),
         'StartDateTime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     }
-    if 'DockerContainerHash' in os.environ:
-        info['DockerContainerHash'] = os.environ['DockerContainerHash']
+    try:
+        info['DockerContainerHash'] = subprocess.getoutput(r'cat /proc/self/cgroup | grep -o -e "docker/.*"| head -n 1 |sed "s/docker\\/\\(.*\\)/\\1/" |cut -c1-12')
+    except: pass
     with open('%s/info.json'%logdir, 'w+') as f:
         json.dump(info, f, indent=4)
 
 
 def backup_files(files, logdir):
     for file in files:
-        print绿('[config] Backup File:',file)
-        bkdir = '%s/backup_files/'%logdir
-        if not os.path.exists(bkdir): os.makedirs(bkdir)
-        copyfile(file, '%s/%s'%(bkdir, os.path.basename(file)))
+        if os.path.isfile(file):
+            print绿('[config] Backup File:',file)
+            bkdir = '%s/backup_files/'%logdir
+            if not os.path.exists(bkdir): os.makedirs(bkdir)
+            copyfile(file, '%s/%s'%(bkdir, os.path.basename(file)))
+        else:
+            print亮绿('[config] Backup Folder:',file)
+            assert os.path.isdir(file), ('cannot find', file)
+            copytree(file, '%s/backup_files/%s'%(logdir, os.path.basename(file)), 
+                dirs_exist_ok=True, ignore=ignore_patterns("__pycache__"))
+
     return 
 
 def check_experiment_log_path(logdir):
