@@ -11,12 +11,12 @@
         "fold": "1",                                    // this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
         "seed": 8887,                                   // seed controls pytorch and numpy
         "backup_files": [                               // backup files, pack them up
-            "ALGORITHM/concentration/net.py",
-            "ALGORITHM/concentration/ppo.py",
-            "ALGORITHM/concentration/shell_env.py",
-            "ALGORITHM/concentration/foundation.py",
+            "ALGORITHM/conc/net.py",
+            "ALGORITHM/conc/ppo.py",
+            "ALGORITHM/conc/shell_env.py",
+            "ALGORITHM/conc/foundation.py",
             "MISSIONS/collective_assult/envs/collective_assult_env.py",
-            "ALGORITHM/concentration/trajectory.py"
+            "ALGORITHM/conc/trajectory.py"
         ],
         "device": "cuda:0",                             // choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU) 
         // GPU memory is precious! assign multiple training process to a 'party', then they will share GPU memory 
@@ -40,11 +40,11 @@
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.conc.foundation->ReinforceAlgorithmFoundation"
         ]
     },
-    "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
-        // please checkout ./ALGORITHM/concentration/foundation.py for information
+    "ALGORITHM.conc.foundation.py->AlgorithmConfig": {
+        // please checkout ./ALGORITHM/conc/foundation.py for information
         "n_focus_on": 4,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
