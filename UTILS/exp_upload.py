@@ -1,5 +1,15 @@
 import paramiko, os
 from UTILS.colorful import print亮紫, print亮靛
+class ChainVar(object):
+    def __init__(self, chain_func, chained_with):
+        self.chain_func = chain_func
+        self.chained_with = chained_with
+
+class DataCentralServer(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
+    addr = 'None'
+    usr = 'None'
+    pwd = 'None'
+
 
 # great thank to skoll for sharing this at stackoverflow:
 # https://stackoverflow.com/questions/4409502/directory-transfers-with-paramiko
@@ -35,12 +45,14 @@ def upload_experiment_results_(cfg):
     path = cfg.logdir
     name = cfg.note
     try:
-        from UTILS.keys import KEY
-        addr = KEY.addr     # ssh ubuntu address
-        usr = KEY.usr       # ubuntu user
-        pwd = KEY.pwd       # ubuntu password
+        addr = DataCentralServer.addr     # ssh ubuntu address
+        usr = DataCentralServer.usr      # ubuntu user
+        pwd = DataCentralServer.pwd      # ubuntu password
+        assert addr != 'None' and (addr is not None)
+        assert usr != 'None' and (usr is not None)
+        assert pwd != 'None' and (pwd is not None)
     except:
-        print('No data center is configured 没有配置中央服务器')
+        print('No experiment data central server is configured, 没有配置中央日志服务器')
         return
 
     remote_path = '/home/%s/CenterHmp/'%usr

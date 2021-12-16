@@ -75,3 +75,4 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     # ! uploading "./ZHECKPOINT/$note" to a data storage server 
     allow_res_upload = True                             # upload results to a data storage server when exiting
     upload_after_test = False                           # upload results to a data storage server when completing a test run
+    # KEY = {"addr": None, "usr":None, "pwd":None}        # data storage server ip addr, username and password

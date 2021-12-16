@@ -51,22 +51,11 @@ def pytorch_gpu_init(cfg):
         torch.set_default_dtype(torch.float64)
 
 def clean_up():
-    # upload results to storage server via SSH
-    print('upload')
+    print('upload results to storage server via SSH')
     from UTILS.exp_upload import upload_experiment_results
+    from UTILS.shm_pool import clean_child_process
     if cfg.allow_res_upload: upload_experiment_results(cfg)
-    def clean_child_process(pid):
-        import psutil, time
-        parent = psutil.Process(pid)
-        for child in parent.children(recursive=True):
-            try:
-                print亮红('sending Terminate signal to', child)
-                child.terminate()
-                time.sleep(1)
-                print亮红('sending Kill signal to', child)
-                child.kill()
-            except: pass
-        parent.kill()
+    print('kill all children process')
     clean_child_process(os.getpid())
 
 if __name__ == '__main__':
@@ -78,7 +67,6 @@ if __name__ == '__main__':
     from UTILS.shm_pool import SmartPool
     cfg = prepare_args()
     register(clean_up)  # ...Failsafe, handles mem leak
-
     # Set numpy seed
     numpy.random.seed(cfg.seed)
     numpy.set_printoptions(3, suppress=True)
