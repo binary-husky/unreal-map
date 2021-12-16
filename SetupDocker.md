@@ -11,7 +11,7 @@ Refer to https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/insta
 # Start docker container
 From the host:
 ```bash
-$ docker run -itd   --name  hmp \
+$ docker run -itd   --name  hmp-$USER \
 --net host \
 --gpus all \
 --shm-size=16G \
@@ -29,7 +29,7 @@ Finally check docker status with ```docker ps```, should be seeing a container n
 
 # Get inside HMP container via SSH
 ```
-$ docker exec -it hmp service ssh start
+$ docker exec -it hmp-$USER service ssh start
 ```
 
 Now find a computer to ssh into it: ```ssh hmp@your_host_ip -p 2233```
@@ -44,7 +44,7 @@ Now find a computer to ssh into it: ```ssh hmp@your_host_ip -p 2233```
 
 
 # Connect to HMP container with remote desktop (RDP)
-(choice 1) From the host, use ``` docker exec -it hmp bash ``` command to get inside the HMP container.
+(choice 1) From the host, use ``` docker exec -it hmp-$USER bash ``` command to get inside the HMP container.
 
 (choice 2) Use SSH to get inside the HMP container.
 
@@ -79,6 +79,12 @@ Next, use the remote desktop tool of MS Windows (or anything supporting RDP) to 
 After getting inside the HMP container:
 
 ```
+# if current user is 'root', change to a user with name 'hmp' (password also 'hmp'):
+(hmp-container)$ su hmp
+
+# goto its home directory
+(hmp-container)$ cd
+
 # clone rep from gitee:
 (hmp-container)$ git clone https://gitee.com/hh505030475/hmp-2g.git
 
