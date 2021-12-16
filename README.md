@@ -21,7 +21,10 @@ we also have a github rep which is a mirror of this gitee rep.
 # Quick Start
 
 ## 0. dependency
-We use docker to solve dependency: docker pull fuqingxu/fqxdocker2021:latest1210
+We use docker to solve dependency: 
+[SetupDocker](./SetupDocker.md)
+
+
 ## 1. all default: testing
 ```
 git pull && python main.py -c ZHECKPOINT/50vs50-eval/test.json
