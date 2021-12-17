@@ -12,36 +12,45 @@ log_dir = '%s/'%time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
 run_group = "bench"
 # base_conf = 'train.json'
 
-n_run = 2
+n_run = 4
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "train_origin_T(5itf) rx4",
-                    "train_origin_T(5itf) rx4",
+                    "train_origin_T(5itf) t5",
+                    "train_origin_T(5itf) t6",
+                    "train_origin_T(5itf) t7",
+                    "train_origin_T(5itf) t8",
                 ],
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
                 [
                     0.05,
                     0.05,
-
+                    0.05,
+                    0.05,
                 ],
 
     "config.py->GlobalConfig-->seed":       
                 [
-                    55,
-                    66,
+                    22222221,
+                    22222222,
+                    22222223,
+                    22222224,
                 ],
     "config.py->GlobalConfig-->device":       
                 [
                     "cuda:0",
-                    "cuda:0",
+                    "cuda:1",
+                    "cuda:2",
+                    "cuda:3", 
 
                 ],
     "config.py->GlobalConfig-->gpu_party":       
                 [
-                    "Cuda0-Party0",
-                    "Cuda0-Party0",
+                    "off",
+                    "off",
+                    "off",
+                    "off",
                 ],
 
 }
@@ -49,58 +58,63 @@ conf_override = {
 
 
 base_conf = {
-    # // python main.py -c d12-conc-orig.jsonc
     "config.py->GlobalConfig": {
-        "note": "train_origin_T(80itf)",
-        "env_name":"collective_assult",
-        "env_path":"MISSIONS.collective_assult",
-        "draw_mode": "Img",
-        "num_threads": "64",
-        "report_reward_interval": "64",
-        "test_interval": "2048",
-        # // "use_float64": true,
-        # // "device": "cuda:4",
-        # // "gpu_party": "Cuda4-Party0",
-        "fold": "1",
-        "seed": 9995,
-        "backup_files":[
-            "ALGORITHM/concentration/net.py",
-            "ALGORITHM/concentration/ppo.py",
-            "ALGORITHM/concentration/shell_env.py",
-            "ALGORITHM/concentration/foundation.py",
-            "MISSIONS/collective_assult/envs/collective_assult_env.py",
-            "ALGORITHM/concentration/trajectory.py"
-        ]
+        # please checkout config.py for information
+        "note": "example experiment",                   # in case you forget the purpose of this trainning session, write a note
+        "env_name": "collective_assult",                # which environment, see ./MISSIONS/env_router.py
+        "env_path": "MISSIONS.collective_assult",       # path of environment
+        "draw_mode": "Img",                             # activate data plotting (Tensorboard is not used because I do not like it)
+        "num_threads": "64",                            # run N parallel envs, a 'env' is refered to as a 'thread'
+        "report_reward_interval": "64",                 # reporting interval
+        "test_interval": "2048",                        # test every $test_interval episode
+        "fold": "1",                                    # this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
+        "seed": 22222222,                                   # seed controls pytorch and numpy
+        "backup_files": [                               # backup files, pack them up
+            "example.jsonc",
+            "ALGORITHM/conc",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py"
+        ],
+        "device": "cuda:0",                             # choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU) 
+        # GPU memory is precious! assign multiple training process to a 'party', then they will share GPU memory 
+        "gpu_party": "Cuda0-Party0",                     # default is 'off', 
+        "upload_after_test": True
+    },
+
+    "UTILS.exp_upload.py->DataCentralServer": {
+        "addr": "172.18.112.16", 
+        "usr": "fuqingxu", 
+        "pwd": "clara"
     },
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
+        # please checkout ./MISSIONS/collective_assult/collective_assult_parallel_run.py for information
         "size": "5",
-        "random_jam_prob": 0.80,
-        "introduce_terrain":"True",
-        "terrain_parameters": [0.05, 0.2],
+        "random_jam_prob": 0.05,
+        "introduce_terrain": "True",
+        "terrain_parameters": [
+            0.05,
+            0.2
+        ],
         "num_steps": "180",
-        "render":"False",
-        "render_with_unity":"False",
-        "MCOM_DEBUG":"False",
+        "render": "False",
+        "render_with_unity": "False",
+        "MCOM_DEBUG": "False",
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.conc.foundation->ReinforceAlgorithmFoundation"
         ]
     },
-
-    "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.conc.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
-        "lr": 5e-4,
+        "lr": 0.0005,
         "ppo_epoch": 24,
         "train_traj_needed": "64",
         "load_checkpoint": False
     }
 }
-
-
 
 
 assert '_' not in run_group, ('下划线在matlab中的显示效果不好')

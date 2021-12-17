@@ -108,11 +108,11 @@ def prepare_args(vb=True):
     if load_via_json and (not cfg.recall_previous_session): 
         copyfile(args.cfg, '%s/experiment.json'%cfg.logdir)
         backup_files(cfg.backup_files, cfg.logdir)
-        register_others(cfg.logdir)
+        cfg.machine_info = register_machine_info(cfg.logdir)
     cfg.cfg_ready = True
     return cfg
 
-def register_others(logdir):
+def register_machine_info(logdir):
     import socket, json, subprocess
     from .network import get_host_ip
     info = {
@@ -125,7 +125,7 @@ def register_others(logdir):
     except: pass
     with open('%s/info.json'%logdir, 'w+') as f:
         json.dump(info, f, indent=4)
-
+    return str(info)
 
 def backup_files(files, logdir):
     for file in files:

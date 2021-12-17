@@ -1,4 +1,4 @@
-import paramiko, os
+import paramiko, os, time
 from UTILS.colorful import print亮紫, print亮靛
 class ChainVar(object):
     def __init__(self, chain_func, chained_with):
@@ -54,12 +54,13 @@ def upload_experiment_results_(cfg):
     except:
         print('No experiment data central server is configured, 没有配置中央日志服务器')
         return
-
     remote_path = '/home/%s/CenterHmp/'%usr
     ssh = paramiko.SSHClient() 
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
     ssh.connect(addr, username=usr, password=pwd)
+    put_str = '[%s] [%s] %s'%(cfg.note, time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()), cfg.machine_info.replace('\'',''))
+    ssh.exec_command(command='echo -e "%s" >> %s/active.log'%(put_str, remote_path), timeout=1)
     sftp = MySFTPClient.from_transport(ssh.get_transport())
     print亮紫('uploading results: %s --> %s'%(path, '%s/%s'%(remote_path, name)))
     sftp.mkdir(remote_path, ignore_existing=True)
