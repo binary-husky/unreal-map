@@ -5,7 +5,7 @@ img{
     padding-left: 35%;
 }
 </style>
-# Install nvidia docker runtime (If GPU is needed)
+# Install nvidia docker runtime
 Refer to https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-docker
 
 # Start docker container

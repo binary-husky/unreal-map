@@ -6,7 +6,6 @@ sys.path.append('./MISSIONS/gym_fortattack_ma')
 from .multi_discrete import MultiDiscrete
 from .malib.spaces import Box, MASpace,  MAEnvSpec
 import time, os
-from pygame import mixer
 import pyglet, json
 # from pyglet.gl import *
 from .envs.fortattack_env_v1 import FortAttackEnvV1

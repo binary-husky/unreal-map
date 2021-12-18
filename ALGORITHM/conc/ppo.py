@@ -9,7 +9,7 @@ from UTILS.colorful import *
 from UTILS.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
 from UTILS.tensor_ops import my_view, scatter_with_nan, sample_balance
 from config import GlobalConfig as cfg
-from UTILS.gpu_share import gpu_share_unit
+from UTILS.gpu_share import GpuShareUnit
 
 class TrajPoolSampler():
     def __init__(self, n_div, traj_pool, flag):
@@ -153,24 +153,14 @@ class PPO():
         self.n_div = 1
         # print亮红(self.n_div)
 
-    # def train_on_traj_old(self, traj_pool, task):
-    #     ratio = 1.0
-    #     while True:
-    #         try:
-    #             with gpu_share_unit(cfg.device, gpu_party=cfg.gpu_party):
-    #                 self.train_on_traj_(traj_pool, task, ratio=ratio) 
-    #             break # 运行到这说明显存充足
-    #         except RuntimeError:
-    #             if ratio>=0.6: ratio -= 0.1
-    #             else: assert False, ('显存严重不足！?')
-    #             print亮红('显存不足！ 切换小batch, 当前ratio: %.1f'%ratio)
-    #         torch.cuda.empty_cache()
+        self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
+
 
     def train_on_traj(self, traj_pool, task):
         ratio = 1.0
         while True:
             try:
-                with gpu_share_unit(cfg.device, gpu_party=cfg.gpu_party):
+                with self.gpu_share_unit:
                     self.train_on_traj_(traj_pool, task) 
                 break # 运行到这说明显存充足
             except RuntimeError:

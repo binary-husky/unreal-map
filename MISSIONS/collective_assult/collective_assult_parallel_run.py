@@ -6,10 +6,8 @@ sys.path.append('./MISSIONS/collective_assult')
 from .multi_discrete import MultiDiscrete
 from .malib.spaces import Box, MASpace,  MAEnvSpec
 import time, os
-from pygame import mixer
-import pyglet, json
+import json
 # from pyglet.gl import *
-from .envs.collective_assult_env import collective_assultEnvV1
 # environment for all agents in the multiagent world
 # currently code assumes that no agents will be created/destroyed at runtime!
 from config import ChainVar
@@ -78,6 +76,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     
 def make_collective_assult_env(env_id, rank):
     # scenario = gym.make('collective_assult-v1')
+    from .envs.collective_assult_env import collective_assultEnvV1
     scenario = collective_assultEnvV1( numguards=ScenarioConfig.num_guards, 
                                 numattackers = ScenarioConfig.num_attackers, 
                                 size=ScenarioConfig.size)

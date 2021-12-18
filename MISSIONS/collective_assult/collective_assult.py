@@ -4,7 +4,6 @@ import numpy as np
 from .multi_discrete import MultiDiscrete
 from malib.spaces import Box, MASpace,  MAEnvSpec
 import time, os
-from pygame import mixer  # Load the popular external library
 import pyglet
 from pyglet.gl import *
 from .envs.collective_assult_env import collective_assultEnvV1
