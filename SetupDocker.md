@@ -43,10 +43,10 @@ Now find a computer to ssh into it: ```ssh hmp@your_host_ip -p 2233```
 
 
 
-# Connect to HMP container with remote desktop (RDP)
-(choice 1) From the host, use ``` docker exec -it hmp-$USER bash ``` command to get inside the HMP container.
+# (Optional) Connect to HMP container with remote desktop (RDP)
+(choice 1) Use SSH to get inside the HMP container.
 
-(choice 2) Use SSH to get inside the HMP container.
+(choice 2) From the host, use ``` docker exec -it hmp-$USER bash ``` command to get inside the HMP container.
 
 Then:
 ```
@@ -72,7 +72,7 @@ Next, use the remote desktop tool of MS Windows (or anything supporting RDP) to 
 # UserName: hmp
 # Password: hmp
 
-(It's normal that xrdp is a bit slow, but there is no any better RDP solution for docker container yet, please use SSH when GUI is not needed)
+(It's normal that xrdp is a bit slow, but there is no better RDP solution for docker container yet, please use SSH when GUI is not needed)
 ```
 
 # Run HMP

@@ -14,28 +14,44 @@ class DataCentralServer(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comme
 # great thank to skoll for sharing this at stackoverflow:
 # https://stackoverflow.com/questions/4409502/directory-transfers-with-paramiko
 class MySFTPClient(paramiko.SFTPClient):
-    def put_dir(self, source, target):
+    def put_dir(self, source, target, ignore_list=[]):
         ''' Uploads the contents of the source directory to the target path. The
             target directory needs to exists. All subdirectories in source are 
             created under target.
         '''
         for item in os.listdir(source):
+            if item in ignore_list: continue
             if os.path.isfile(os.path.join(source, item)):
                 # print亮靛('uploading: %s --> %s'%(os.path.join(source, item),'%s/%s' % (target, item)))
                 self.put(os.path.join(source, item), '%s/%s' % (target, item))
             else:
                 self.mkdir('%s/%s' % (target, item), ignore_existing=True)
-                self.put_dir(os.path.join(source, item), '%s/%s' % (target, item))
+                self.put_dir(os.path.join(source, item), '%s/%s' % (target, item), ignore_list)
 
     def mkdir(self, path, mode=511, ignore_existing=False):
         ''' Augments mkdir by adding an option to not fail if the folder exists  '''
         try:
             super(MySFTPClient, self).mkdir(path, mode)
         except IOError as e:
+            if e.__class__ == FileNotFoundError:
+                raise
+
             if ignore_existing:
                 pass
             else:
                 raise
+
+
+def get_ssh_sftp(addr, usr, pwd):
+    ssh = paramiko.SSHClient() 
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
+    port = 22
+    if ':' in addr: addr, port = addr.split(':')
+    ssh.connect(addr, username=usr, password=pwd, port=port)
+    sftp = MySFTPClient.from_transport(ssh.get_transport())
+    return ssh, sftp
+
 
 def upload_experiment_results(cfg): # shell it to catch error
     try: upload_experiment_results_(cfg)

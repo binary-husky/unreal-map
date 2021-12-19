@@ -1,0 +1,1 @@
+byobu new-session -d -s $USER
