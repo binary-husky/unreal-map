@@ -171,19 +171,22 @@ def remote_worker(ith_run):
     byobu_win_name = '%s--run-%d'%(time_mark, ith_run)
     byobu_win_name = byobu_win_name.replace(':','-')
     stdin, stdout, stderr = ssh.exec_command(command='byobu new-session -d -s %s'%byobu_win_name, timeout=1)
-    # cd into it
-    cmd = 'cd  ' + src_path
-    stdin, stdout, stderr = ssh.exec_command(command='byobu send-keys "%s" C-m'%cmd, timeout=1)
+    print('byobu new-session -d -s %s'%byobu_win_name)
+    time.sleep(1)
 
     cmd = 'cd  ' + src_path
     stdin, stdout, stderr = ssh.exec_command(command='byobu send-keys "%s" C-m'%cmd, timeout=1)
+    print('byobu send-keys "%s" C-m'%cmd)
+    time.sleep(1)
 
     cmd = ' '.join(final_arg_list[ith_run])
     stdin, stdout, stderr = ssh.exec_command(command='byobu send-keys "%s" C-m'%cmd, timeout=1)
-    print('远程代码运行成功')
+    print('byobu send-keys "%s" C-m'%cmd)
+    print('远程代码运行成功, byobu attach -t %s'%byobu_win_name)
+    time.sleep(1)
 
     # 杀死
-    stdin, stdout, stderr = ssh.exec_command(command='byobu kill-session -t %s'%byobu_win_name, timeout=1)
+    # stdin, stdout, stderr = ssh.exec_command(command='byobu kill-session -t %s'%byobu_win_name, timeout=1)
     pass
 
 def worker(ith_run):

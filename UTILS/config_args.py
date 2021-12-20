@@ -113,19 +113,21 @@ def prepare_args(vb=True):
     return cfg
 
 def register_machine_info(logdir):
-    import socket, json, subprocess
+    import socket, json, subprocess, uuid
     from .network import get_host_ip
     info = {
         'HostIP': get_host_ip(),
+        'ExpUUID':uuid.uuid1().hex,
         'RunPath': os.getcwd(),
         'StartDateTime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     }
     try:
         info['DockerContainerHash'] = subprocess.getoutput(r'cat /proc/self/cgroup | grep -o -e "docker/.*"| head -n 1 |sed "s/docker\\/\\(.*\\)/\\1/" |cut -c1-12')
-    except: pass
+    except: 
+        info['DockerContainerHash'] = 'None'
     with open('%s/info.json'%logdir, 'w+') as f:
         json.dump(info, f, indent=4)
-    return str(info)
+    return info
 
 def backup_files(files, logdir):
     for file in files:

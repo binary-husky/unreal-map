@@ -75,7 +75,7 @@ def upload_experiment_results_(cfg):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
     ssh.connect(addr, username=usr, password=pwd)
-    put_str = '[%s] [%s] %s'%(cfg.note, time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()), cfg.machine_info.replace('\'',''))
+    put_str = '[%s] [%s] %s'%(cfg.note, time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()), str(cfg.machine_info).replace('\'',''))
     ssh.exec_command(command='echo -e "%s" >> %s/active.log'%(put_str, remote_path), timeout=1)
     sftp = MySFTPClient.from_transport(ssh.get_transport())
     print亮紫('uploading results: %s --> %s'%(path, '%s/%s'%(remote_path, name)))

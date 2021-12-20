@@ -19,18 +19,7 @@ from time import sleep as _sleep
 
 SHARE_BUF_SIZE = 10485760
 
-def clean_child_process(pid):
-    import psutil, time
-    parent = psutil.Process(pid)
-    for child in parent.children(recursive=True):
-        try:
-            print('sending Terminate signal to', child)
-            child.terminate()
-            time.sleep(1)
-            print('sending Kill signal to', child)
-            child.kill()
-        except: pass
-    parent.kill()
+
 
 """
     Part 1: optimized for numpy ndarray
