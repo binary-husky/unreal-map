@@ -35,7 +35,7 @@ def periodic_daemon(cfg):
             periodic_daemon_(cfg)
             print('end periodic_daemon_(cfg)')
             # time.sleep(15*60)
-            time.sleep(10)
+            time.sleep(15*60)
         except AssertionError: 
             hmp_clean_up()
         except BaseException: 

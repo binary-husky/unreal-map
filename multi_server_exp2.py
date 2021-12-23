@@ -3,25 +3,25 @@
 
 n_run = 4
 n_run_mode = [
-    {   # @1
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
+    {
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
     },
-    {   # @2
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
-    },
-    {   # @3
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
-    },
-    {   # @4
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
+    {
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
+    },    
+    {
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
+    },    
+    {
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
     },
 ]
 assert len(n_run_mode)==n_run
@@ -29,10 +29,10 @@ assert len(n_run_mode)==n_run
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "(test remote) train conc t1",
-                    "(test remote) train conc t2",
-                    "(test remote) train conc t3",
-                    "(test remote) train conc t4",
+                    "(test remote) train conc 100vs100 t1",
+                    "(test remote) train conc 100vs100 t2",
+                    "(test remote) train conc 100vs100 t3",
+                    "(test remote) train conc 100vs100 t4",
                 ],
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
@@ -71,7 +71,7 @@ conf_override = {
 
 base_conf = {
     "config.py->GlobalConfig": {
-        # please checkout config.py for information 15.9GB 22.1(11.4+435) 28.7 42GB
+        # please checkout config.py for information  
         "note": "example experiment7",                  # Very Important! in case you forget the purpose of this trainning session, write a note
         "env_name": "collective_assult",                # which environment, see ./MISSIONS/env_router.py
         "env_path": "MISSIONS.collective_assult",       # path of environment
@@ -101,6 +101,8 @@ base_conf = {
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
         # please checkout ./MISSIONS/collective_assult/collective_assult_parallel_run.py for information
         "size": "5",
+        "num_guards":100,
+        "num_attackers":100,
         "random_jam_prob": 0.05,
         "introduce_terrain": "True",
         "terrain_parameters": [
@@ -258,12 +260,12 @@ DELAY = 10
 
 if __name__ == '__main__':
         
-    # input('确认执行？')
-    # input('确认执行！')
+    input('Confirm execution? 确认执行?')
+    input('Confirm execution! 确认执行!')
 
     t = 0
     while (t >= 0):
-        print('运行倒计时：', t)
+        print('Counting down ', t)
         time.sleep(1)
         t -= 1
 
