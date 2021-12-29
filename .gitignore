@@ -27,7 +27,7 @@ bin-release/
 core
 
 __pycache__/
-build/
+./build/
 ALGORITHM/Starcraft/result/
 ALGORITHM/Starcraft/model/
 ZipResults/

@@ -200,6 +200,9 @@ class FortAttackGlobalEnv(gym.Env):
         self.prevShot, self.shot = False, False     # used for rendering
         self._reset_render()
 
+
+
+
     def step(self, action_n):
         # print('first step')
         ## Sequence:
@@ -443,6 +446,56 @@ class FortAttackGlobalEnv(gym.Env):
         # print(res)
 
     def render(self):
+        from UTILS.tensor_ops import dir2rad
+        if not hasattr(self, 'threejs_bridge'):
+            from VISUALIZE.mcom import mcom
+            self.threejs_bridge = mcom(ip='127.0.0.1',
+                                        port=12084,
+                                        path='RECYCLE/v2d_logger/',
+                                        digit=8,
+                                        rapid_flush=False,
+                                        draw_mode='Threejs')
+            self.threejs_bridge.v2d_init()
+            # self.threejs_bridge.set_style('grid')
+            # self.threejs_bridge.set_style('gray')
+            self.threejs_bridge.set_style('star')
+
+        self.attackers = [agent for agent in self.world.agents if (agent.attacker)]
+        self.guards = [agent for agent in self.world.agents if (not agent.attacker)]
+
+        for index, guard in enumerate(self.guards):
+            x = guard.state.p_pos[0]
+            y = guard.state.p_pos[1]
+            dir_ = dir2rad(guard.state.p_vel)
+            a_id = index
+            color = 'blue' if guard.alive else 'yellow'
+            self.threejs_bridge.v2dx(
+                'ball|%d|%s|0.25'%(a_id, color),
+                x,
+                y,
+                0,
+                vel_dir=dir_,
+                label='',
+                label_color='white',
+                attack_range=0)
+
+        for index, attacker in enumerate(self.attackers):
+            x = attacker.state.p_pos[0]
+            y = attacker.state.p_pos[1]
+            dir_ = dir2rad(attacker.state.p_vel)
+            a_id = index+len(self.guards)
+            color = 'red' if attacker.alive else 'yellow'
+            self.threejs_bridge.v2dx(
+                'ball|%d|%s|0.25'%(a_id, color),
+                x,
+                y,
+                0,
+                vel_dir=dir_,
+                label='',
+                label_color='white',
+                attack_range=0)
+
+    def render_(self):
         from config import GlobalConfig as cfg
         from UTILS.tensor_ops import dir2rad
         if not hasattr(cfg, 'fak_logger'):

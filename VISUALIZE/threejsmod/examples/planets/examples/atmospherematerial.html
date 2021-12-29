@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<script src='vendor/three.js/build/three.min.js'></script>
+<script src='../threex.planets.js'></script>
+<script src='../threex.atmospherematerial.js'></script>
+<!-- include for threex.glowdatgui -->
+<script src='vendor/three.js/examples/js/libs/dat.gui.min.js'></script>
+<script src="../threex.atmospheredatgui.js"></script>
+
+<body style='margin: 0px; background-color: #000000; overflow: hidden;'><script>
+	var renderer	= new THREE.WebGLRenderer({
+		antialias	: true
+	});
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	document.body.appendChild( renderer.domElement );
+	renderer.shadowMapEnabled	= true
+	
+	var updateFcts	= [];
+	var scene	= new THREE.Scene();
+	var camera	= new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100 );
+	camera.position.z = 2;
+
+	var light	= new THREE.AmbientLight( 0x888888 )
+	scene.add( light )
+	// var light	= new THREE.DirectionalLight( 'white', 1)
+	// light.position.set(5,5,5)
+	// light.target.position.set( 0, 0, 0 )
+	// scene.add( light )
+
+	var light	= new THREE.DirectionalLight( 0xcccccc, 1 )
+	light.position.set(5,5,5)
+	scene.add( light )
+	light.castShadow	= true
+	light.shadowCameraNear	= 0.01
+	light.shadowCameraFar	= 15
+	light.shadowCameraFov	= 45
+
+	light.shadowCameraLeft	= -1
+	light.shadowCameraRight	=  1
+	light.shadowCameraTop	=  1
+	light.shadowCameraBottom= -1
+	// light.shadowCameraVisible	= true
+
+	light.shadowBias	= 0.001
+	light.shadowDarkness	= 0.2
+
+	light.shadowMapWidth	= 1024
+	light.shadowMapHeight	= 1024
+
+	//////////////////////////////////////////////////////////////////////////////////
+	//		add an object and make it move					//
+	//////////////////////////////////////////////////////////////////////////////////
+
+	var datGUI	= new dat.GUI()
+	var glowColor	= new THREE.Color('cyan')
+	var glowColor	= new THREE.Color('yellow')
+	var mesh	= THREEx.Planets.createEarth()
+	// var mesh	= THREEx.Planets.createMoon()
+	var mesh	= THREEx.Planets.createSun()
+	// mesh.visible	= false
+	scene.add(mesh)
+
+	var geometry	= new THREE.SphereGeometry(0.5, 32, 32)
+	geometry	= mesh.geometry.clone()
+	var material	= THREEx.createAtmosphereMaterial()
+	material.uniforms.glowColor.value	= glowColor
+	var mesh	= new THREE.Mesh(geometry, material );
+	mesh.scale.multiplyScalar(1.01);
+	scene.add( mesh );
+
+	// new THREEx.addAtmosphereMaterial2DatGui(material, datGUI)
+
+	var geometry	= new THREE.SphereGeometry(0.5, 32, 32)
+	geometry	= mesh.geometry.clone()
+	var material	= THREEx.createAtmosphereMaterial()
+	material.side	= THREE.BackSide
+	material.uniforms.coeficient.value	= 0.5
+	material.uniforms.power.value		= 4.0
+	material.uniforms.glowColor.value	= glowColor
+	var mesh	= new THREE.Mesh(geometry, material );
+	mesh.scale.multiplyScalar(1.2);
+	scene.add( mesh );
+
+	new THREEx.addAtmosphereMaterial2DatGui(material, datGUI)
+
+	//////////////////////////////////////////////////////////////////////////////////
+	//		Camera Controls							//
+	//////////////////////////////////////////////////////////////////////////////////
+	var mouse	= {x : 0, y : 0}
+	document.addEventListener('mousemove', function(event){
+		mouse.x	= (event.clientX / window.innerWidth ) - 0.5
+		mouse.y	= (event.clientY / window.innerHeight) - 0.5
+	}, false)
+	updateFcts.push(function(delta, now){
+		camera.position.x += (mouse.x*5 - camera.position.x) * (delta*3)
+		camera.position.y += (mouse.y*5 - camera.position.y) * (delta*3)
+		camera.lookAt( scene.position )
+	})
+
+
+	//////////////////////////////////////////////////////////////////////////////////
+	//		render the scene						//
+	//////////////////////////////////////////////////////////////////////////////////
+	updateFcts.push(function(){
+		renderer.render( scene, camera );		
+	})
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	//		loop runner							//
+	//////////////////////////////////////////////////////////////////////////////////
+	var lastTimeMsec= null
+	requestAnimationFrame(function animate(nowMsec){
+		// keep looping
+		requestAnimationFrame( animate );
+		// measure time
+		lastTimeMsec	= lastTimeMsec || nowMsec-1000/60
+		var deltaMsec	= Math.min(200, nowMsec - lastTimeMsec)
+		lastTimeMsec	= nowMsec
+		// call each update function
+		updateFcts.forEach(function(updateFn){
+			updateFn(deltaMsec/1000, nowMsec/1000)
+		})
+	})
+</script></body>

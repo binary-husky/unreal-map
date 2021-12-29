@@ -603,6 +603,8 @@ class World(object):
         for i,entity in enumerate(self.alive_agents):
             entity.hit = False
             entity.wasHit = False
+            entity.wasHitBy = None
+
         for i,entity in enumerate(self.alive_agents):
             # print(entity.action.shoot)
             if entity.action.shoot and entity.numbullets > 0:
@@ -611,12 +613,12 @@ class World(object):
                 if entity.bullets_is_limited:
                     entity.numbullets -= 1
                 # print()
-                # let's use lasers - instantaneously hit entities within a cone (approximated by triangle)
+                # let's use lasers - instantaneously hit entities within a cone (no approximate)
                 # compute cone
                 A, fire_range_fix = self.get_tri_pts_arr(entity)
 
                 for b,entity_b in enumerate(self.alive_agents):
-                    if entity.attacker == entity_b.attacker:    # lasers don't affect agents of the same team
+                    if entity.attacker == entity_b.attacker:    # the same team
                         continue
 
                     hit__3 = self.laser_hit_improve2(A, entity_b.state.p_pos, fire_range_fix)
@@ -625,6 +627,7 @@ class World(object):
                         entity.hit = True
                         entity.numHit += 1
                         entity_b.wasHit = True
+                        entity_b.wasHitBy = entity
                         entity_b.numWasHit += 1
         
         # update just died state of dead agents
