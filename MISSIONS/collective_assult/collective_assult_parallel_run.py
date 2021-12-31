@@ -441,61 +441,42 @@ class collective_assultGlobalEnv(gym.Env):
             summary_list.append(agent_info)
         res = json.dumps({"AgentList":summary_list})
         self.mcv.send(res)
-        # time.sleep(1)
-        # print(res)
+
+
     def render(self):
         from UTILS.tensor_ops import dir2rad
         if not hasattr(self, 'threejs_bridge'):
             from VISUALIZE.mcom import mcom
-            self.threejs_bridge = mcom(ip='127.0.0.1',
-                                        port=12084,
-                                        path='RECYCLE/v2d_logger/',
-                                        digit=8,
-                                        rapid_flush=False,
-                                        draw_mode='Threejs')
+            self.threejs_bridge = mcom(ip='127.0.0.1', port=12084, path='RECYCLE/v2d_logger/', digit=8, rapid_flush=False, draw_mode='Threejs')
             self.threejs_bridge.v2d_init()
             self.threejs_bridge.set_style('grid')
             self.threejs_bridge.set_style('gray')
-            # self.threejs_bridge.set_style('star')
 
         self.attackers = [agent for agent in self.world.agents if (agent.attacker)]
         self.guards = [agent for agent in self.world.agents if (not agent.attacker)]
 
         for index, guard in enumerate(self.guards):
-            x = guard.state.p_pos[0]
-            y = guard.state.p_pos[1]
+            x = guard.state.p_pos[0]; y = guard.state.p_pos[1]
             dir_ = dir2rad(guard.state.p_vel)
-            a_id = index
             color = 'blue' if guard.alive else 'black'
             self.threejs_bridge.v2dx(
                 'ball|%d|%s|0.05'%(guard.iden, color),
-                x,
-                y,
-                (guard.terrain-1)*4,
+                x, y, (guard.terrain-1)*4,
                 vel_dir=dir_,
-                label='',
-                label_color='white',
-                attack_range=0)
+                label='', label_color='white', attack_range=0)
             if guard.wasHitBy is not None:
                 self.threejs_bridge.flash('beam', src=guard.wasHitBy.iden, dst=guard.iden, dur=0.2, size=0.03)
                 guard.wasHitBy = None
-                print('x')
 
         for index, attacker in enumerate(self.attackers):
-            x = attacker.state.p_pos[0]
-            y = attacker.state.p_pos[1]
+            x = attacker.state.p_pos[0]; y = attacker.state.p_pos[1]
             dir_ = dir2rad(attacker.state.p_vel)
-            a_id = index+len(self.guards)
             color = 'red' if attacker.alive else 'black'
             self.threejs_bridge.v2dx(
                 'ball|%d|%s|0.05'%(attacker.iden, color),
-                x,
-                y,
-                (attacker.terrain-1)*4,
+                x, y, (attacker.terrain-1)*4,
                 vel_dir=dir_,
-                label='',
-                label_color='white',
-                attack_range=0)
+                label='', label_color='white', attack_range=0)
             if attacker.wasHitBy is not None:
                 self.threejs_bridge.flash('beam', src=attacker.wasHitBy.iden, dst=attacker.iden, dur=0.2, size=0.03)
                 attacker.wasHitBy = None
