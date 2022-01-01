@@ -460,12 +460,12 @@ class collective_assultGlobalEnv(gym.Env):
             dir_ = dir2rad(guard.state.p_vel)
             color = 'blue' if guard.alive else 'black'
             self.threejs_bridge.v2dx(
-                'ball|%d|%s|0.05'%(guard.iden, color),
+                'cone|%d|%s|0.05'%(guard.iden, color),
                 x, y, (guard.terrain-1)*4,
-                vel_dir=dir_,
+                ro_x=0, ro_y=-np.pi/2, ro_z=-dir_,  # Euler Angle y-x-z
                 label='', label_color='white', attack_range=0)
             if guard.wasHitBy is not None:
-                self.threejs_bridge.flash('beam', src=guard.wasHitBy.iden, dst=guard.iden, dur=0.2, size=0.03)
+                self.threejs_bridge.flash('lightning', src=guard.wasHitBy.iden, dst=guard.iden, dur=0.2, size=0.03)
                 guard.wasHitBy = None
 
         for index, attacker in enumerate(self.attackers):
@@ -473,9 +473,9 @@ class collective_assultGlobalEnv(gym.Env):
             dir_ = dir2rad(attacker.state.p_vel)
             color = 'red' if attacker.alive else 'black'
             self.threejs_bridge.v2dx(
-                'ball|%d|%s|0.05'%(attacker.iden, color),
+                'cone|%d|%s|0.05'%(attacker.iden, color),
                 x, y, (attacker.terrain-1)*4,
-                vel_dir=dir_,
+                ro_x=0, ro_y=-np.pi/2, ro_z=-dir_, # Euler Angle y-x-z
                 label='', label_color='white', attack_range=0)
             if attacker.wasHitBy is not None:
                 self.threejs_bridge.flash('beam', src=attacker.wasHitBy.iden, dst=attacker.iden, dur=0.2, size=0.03)

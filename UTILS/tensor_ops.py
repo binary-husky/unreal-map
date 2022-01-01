@@ -624,10 +624,19 @@ def dir2rad(delta_pos):
 def reg_deg(deg):
     return (deg + 180) % 360 - 180
 
+# make angles comparable
+def reg_deg_at(rad, ref):
+    return reg_deg(rad-ref) + ref
+
 
 def reg_rad(rad):
     # it's OK to show "RuntimeWarning: invalid value encountered in remainder"
     return (rad + np.pi) % (2 * np.pi) - np.pi
+
+# make angles comparable
+def reg_rad_at(rad, ref):
+    return reg_rad(rad-ref) + ref
+
 
 
 def zeros_like_except_dim(array, except_dim, n):

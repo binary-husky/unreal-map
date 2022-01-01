@@ -210,7 +210,7 @@ setTimeout(coreReadFunc, 100);
 ////////////////////////////////////////////////////////////
 
 
-function addCoreObj(my_id, color_str, geometry, x, y, z, geometry_size, currentSize, label_marking, label_color){
+function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, geometry_size, currentSize, label_marking, label_color){
     const object = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: color_str }));
     object.my_id = my_id;
     object.color_str = color_str;
@@ -219,10 +219,13 @@ function addCoreObj(my_id, color_str, geometry, x, y, z, geometry_size, currentS
     object.position.z = z; 
     object.next_pos = Object.create(object.position);
     object.prev_pos = Object.create(object.position);
-    
-    object.rotation.x = 0;  
-    object.rotation.y = 0;  
-    object.rotation.z = 0;  
+
+    object.rotation.x = ro_x;  
+    object.rotation.y = ro_y;  
+    object.rotation.z = ro_z;  
+    object.next_ro = {x:ro_x, y:ro_y, z:ro_z};
+    object.prev_ro = {x:ro_x, y:ro_y, z:ro_z};
+
     object.initialSize = geometry_size
     object.currentSize = currentSize
     object.generalSize = geometry_size
@@ -323,6 +326,11 @@ function apply_update(object, parsed_obj_info){
     let pos_x = parsed_obj_info['pos_x']
     let pos_y = parsed_obj_info['pos_y']
     let pos_z = parsed_obj_info['pos_z']
+
+    let ro_x = parsed_obj_info['ro_x']
+    let ro_y = parsed_obj_info['ro_y']
+    let ro_z = parsed_obj_info['ro_z']
+
     let type = parsed_obj_info['type']
     let my_id = parsed_obj_info['my_id']
     let color_str = parsed_obj_info['color_str']
@@ -332,10 +340,14 @@ function apply_update(object, parsed_obj_info){
     // 已经创建了对象
     if (object) {
         object.prev_pos = Object.assign({}, object.next_pos);
+        object.prev_ro = Object.assign({}, object.next_ro);
         object.prev_size = object.next_size;
-        object.next_pos.x = pos_x; // -400 ~ 400
-        object.next_pos.y = pos_y; // -400 ~ 400
-        object.next_pos.z = pos_z; // -400 ~ 400
+        object.next_pos.x = pos_x;
+        object.next_pos.y = pos_y;
+        object.next_pos.z = pos_z;
+        object.next_ro.x = ro_x;
+        object.next_ro.y = ro_y;
+        object.next_ro.z = ro_z;
         object.next_size = size; // -400 ~ 400
         if (color_str != object.color_str) {
             changeCoreObjColor(object, color_str)
@@ -357,20 +369,36 @@ function apply_update(object, parsed_obj_info){
         if (size == 0) {geometry_size = 0.1} else {geometry_size = currentSize}
         let geometry = choose_geometry(type, geometry_size);
         //function (my_id, color_str, geometry, x, y, z, size, label_marking){
-        addCoreObj(my_id, color_str, geometry, pos_x, pos_y, pos_z, geometry_size, currentSize, label_marking, label_color)
+        addCoreObj(my_id, color_str, geometry, 
+            pos_x, pos_y, pos_z, 
+            ro_x, ro_y, ro_z, 
+            geometry_size, currentSize, label_marking, label_color)
     }
 }
 
 function parse_core_obj(str, core_Obj, parsed_frame){
     // ">>v2dx(x, y, dir, xxx)"
     // each_line[i].replace('>>v2dx(')
+    // ">>v2dx('ball|8|blue|0.05',1.98948879e+00,-3.15929300e+00,-4.37260984e-01,ro_x=0,ro_y=0,ro_z=2.10134351e+00,label='',label_color='white',attack_range=0)"
     const pattern = />>v2dx\('(.*)',([^,]*),([^,]*),([^,]*),(.*)\)/
     let match_res = str.match(pattern)
     let name = match_res[1]
-    // z --> y, y --- z
+
     let pos_x = parseFloat(match_res[2])
+    // z --> y, y --- z reverse z axis and y axis
     let pos_y = parseFloat(match_res[4])
+    // z --> y, y --- z reverse z axis and y axis
     let pos_z = parseFloat(match_res[3])
+
+    let ro_x_RE = str.match(/ro_x=([^,)]*)/);
+    let ro_x = (!(ro_x_RE === null))?parseFloat(ro_x_RE[1]):0;
+    // z --> y, y --- z reverse z axis and y axis
+    let ro_y_RE = str.match(/ro_y=([^,)]*)/);
+    let ro_z = (!(ro_y_RE === null))?parseFloat(ro_y_RE[1]):0;
+    // z --> y, y --- z reverse z axis and y axis
+    let ro_z_RE = str.match(/ro_z=([^,)]*)/);
+    let ro_y = (!(ro_z_RE === null))?parseFloat(ro_z_RE[1]):0;
+
     // pattern.test(str)
     let name_split = name.split('|')
     let type = name_split[0]
@@ -420,8 +448,13 @@ function parse_core_obj(str, core_Obj, parsed_frame){
     let parsed_obj_info = {} 
     parsed_obj_info['name'] = name  
     parsed_obj_info['pos_x'] = pos_x  
-    parsed_obj_info['pos_y'] = pos_y  
-    parsed_obj_info['pos_z'] = pos_z  
+    parsed_obj_info['pos_y'] = pos_y
+    parsed_obj_info['pos_z'] = pos_z
+
+    parsed_obj_info['ro_x'] = ro_x  
+    parsed_obj_info['ro_y'] = ro_y
+    parsed_obj_info['ro_z'] = ro_z
+
     parsed_obj_info['type'] = type  
     parsed_obj_info['my_id'] = my_id  
     parsed_obj_info['color_str'] = color_str  
@@ -574,6 +607,19 @@ function parse_time_step(play_pointer){
     }
 }
 
+
+// warning: python mod operator is different from js mod operator
+function reg_rad(rad){
+    let a = (rad + Math.PI) 
+    let b = (2 * Math.PI)
+
+    return ((a%b)+b) % b - Math.PI
+}
+
+function reg_rad_at(rad, ref){
+    return reg_rad(rad-ref) + ref
+}
+
 // ConeGeometry 锥体， radius — 圆锥底部的半径，默认值为1。height — 圆锥的高度，默认值为1。，
 // CylinderGeometry 圆柱体 radiusTop — 圆柱的顶部半径，默认值是1。 radiusBottom — 圆柱的底部半径，默认值是1。 height — 圆柱的高度，默认值是1。
 // SphereGeometry 球体 radius — 球体半径，默认为1
@@ -584,9 +630,23 @@ function force_move_all(play_pointer){
         object.prev_pos.x = object.next_pos.x
         object.prev_pos.y = object.next_pos.y
         object.prev_pos.z = object.next_pos.z
+        object.prev_ro.x = object.next_ro.x
+        object.prev_ro.y = object.next_ro.y
+        object.prev_ro.z = object.next_ro.z
         object.position.x = object.prev_pos.x * (1 - percent) + object.next_pos.x * percent
         object.position.y = object.prev_pos.y * (1 - percent) + object.next_pos.y * percent
         object.position.z = object.prev_pos.z * (1 - percent) + object.next_pos.z * percent
+
+        let reg__next_ro_x = reg_rad_at(object.next_ro.x, object.prev_ro.x)
+        let reg__next_ro_y = reg_rad_at(object.next_ro.y, object.prev_ro.y)
+        let reg__next_ro_z = reg_rad_at(object.next_ro.z, object.prev_ro.z)
+        if(Math.abs(reg__next_ro_y-object.prev_ro.y)>Math.PI){
+            console.log('wrong?')
+        }
+        object.rotation.x = object.prev_ro.x * (1 - percent) + reg__next_ro_x * percent
+        object.rotation.y = object.prev_ro.y * (1 - percent) + reg__next_ro_y * percent
+        object.rotation.z = object.prev_ro.z * (1 - percent) + reg__next_ro_z * percent
+        
         let size = object.prev_size * (1 - percent)  + object.next_size * percent
         changeCoreObjSize(object, size)
     }	
@@ -597,6 +657,17 @@ function move_to_future(percent) {
         object.position.x = object.prev_pos.x * (1 - percent) + object.next_pos.x * percent
         object.position.y = object.prev_pos.y * (1 - percent) + object.next_pos.y * percent
         object.position.z = object.prev_pos.z * (1 - percent) + object.next_pos.z * percent
+
+        let reg__next_ro_x = reg_rad_at(object.next_ro.x, object.prev_ro.x)
+        let reg__next_ro_y = reg_rad_at(object.next_ro.y, object.prev_ro.y)
+        let reg__next_ro_z = reg_rad_at(object.next_ro.z, object.prev_ro.z)
+        if(Math.abs(reg__next_ro_y-object.prev_ro.y)>Math.PI){
+            console.log('wrong?')
+        }
+        object.rotation.x = object.prev_ro.x * (1 - percent) + reg__next_ro_x * percent
+        object.rotation.y = object.prev_ro.y * (1 - percent) + reg__next_ro_y * percent
+        object.rotation.z = object.prev_ro.z * (1 - percent) + reg__next_ro_z * percent
+
         let size = object.prev_size * (1 - percent)  + object.next_size * percent
         changeCoreObjSize(object, size)
     }
