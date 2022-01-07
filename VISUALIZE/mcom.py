@@ -442,6 +442,11 @@ class DrawProcessThreejs(Process):
         self.tcp_connection = tcp_server(self.draw_udp_port)
         self.buffer_list = []
         self.backup_file = kargs['backup_file']
+        self.allow_backup = False if self.backup_file is None else True
+        if self.allow_backup:
+            if os.path.exists(self.backup_file):
+                print亮红('[mcom.py]: warning, purge previous 3D visual data!')
+                os.remove(self.backup_file)
 
     def init_threejs(self):
         import threading
@@ -463,6 +468,8 @@ class DrawProcessThreejs(Process):
 
     def run_handler(self, new_buff_list):
         self.buffer_list.extend(new_buff_list)
+        if self.allow_backup:
+            with open(self.backup_file, 'a+') as f: f.writelines(new_buff_list)
         # too many, delete with fifo
         if len(self.buffer_list) > 1e9: # 当存储的指令超过十亿后，开始删除旧的
             del self.buffer_list[:len(new_buff_list)]
@@ -484,8 +491,7 @@ class DrawProcessThreejs(Process):
             else:
                 tosend = self.buffer_list
                 self.buffer_list = []
-            with open(self.backup_file, 'a+') as f:
-                f.writelines(tosend)
+
             # use zlib to compress output command, worked out like magic
             buf = "".join(tosend)
             buf = bytes(buf, encoding='utf8')   
