@@ -281,12 +281,9 @@ function changeCoreObjColor(object, color_str){
 
 function changeCoreObjSize(object, size){
     let ratio_ = (size/object.initialSize)
-    // console.log(size+'---'+object.initialSize+'---'+ratio_)
-    // console.log(object.scale)
     object.scale.x = ratio_
     object.scale.y = ratio_
     object.scale.z = ratio_
-    // console.log(object.scale)
     object.currentSize = size
 }
 var parsed_core_L = []
@@ -341,14 +338,10 @@ function apply_update(object, parsed_obj_info){
     if (object) {
         object.prev_pos = Object.assign({}, object.next_pos);
         object.prev_ro = Object.assign({}, object.next_ro);
+        object.next_pos.x = pos_x; object.next_pos.y = pos_y; object.next_pos.z = pos_z;
+        object.next_ro.x = ro_x; object.next_ro.y = ro_y; object.next_ro.z = ro_z;
         object.prev_size = object.next_size;
-        object.next_pos.x = pos_x;
-        object.next_pos.y = pos_y;
-        object.next_pos.z = pos_z;
-        object.next_ro.x = ro_x;
-        object.next_ro.y = ro_y;
-        object.next_ro.z = ro_z;
-        object.next_size = size; // -400 ~ 400
+        object.next_size = size;
         if (color_str != object.color_str) {
             changeCoreObjColor(object, color_str)
         }
@@ -623,53 +616,35 @@ function reg_rad_at(rad, ref){
 // ConeGeometry 锥体， radius — 圆锥底部的半径，默认值为1。height — 圆锥的高度，默认值为1。，
 // CylinderGeometry 圆柱体 radiusTop — 圆柱的顶部半径，默认值是1。 radiusBottom — 圆柱的底部半径，默认值是1。 height — 圆柱的高度，默认值是1。
 // SphereGeometry 球体 radius — 球体半径，默认为1
+
+function change_position_rotation_size(object, percent){
+    object.position.x = object.prev_pos.x * (1 - percent) + object.next_pos.x * percent
+    object.position.y = object.prev_pos.y * (1 - percent) + object.next_pos.y * percent
+    object.position.z = object.prev_pos.z * (1 - percent) + object.next_pos.z * percent
+
+    let reg__next_ro_x = reg_rad_at(object.next_ro.x, object.prev_ro.x)
+    let reg__next_ro_y = reg_rad_at(object.next_ro.y, object.prev_ro.y)
+    let reg__next_ro_z = reg_rad_at(object.next_ro.z, object.prev_ro.z)
+    object.rotation.x = object.prev_ro.x * (1 - percent) + reg__next_ro_x * percent
+    object.rotation.y = object.prev_ro.y * (1 - percent) + reg__next_ro_y * percent
+    object.rotation.z = object.prev_ro.z * (1 - percent) + reg__next_ro_z * percent
+
+    let size = object.prev_size * (1 - percent)  + object.next_size * percent
+    changeCoreObjSize(object, size)
+}
 function force_move_all(play_pointer){
     parse_time_step(play_pointer)
     for (let i = 0; i < core_Obj.length; i++) {
         let object = core_Obj[i]
-        object.prev_pos.x = object.next_pos.x
-        object.prev_pos.y = object.next_pos.y
-        object.prev_pos.z = object.next_pos.z
-        object.prev_ro.x = object.next_ro.x
-        object.prev_ro.y = object.next_ro.y
-        object.prev_ro.z = object.next_ro.z
-        object.position.x = object.prev_pos.x * (1 - percent) + object.next_pos.x * percent
-        object.position.y = object.prev_pos.y * (1 - percent) + object.next_pos.y * percent
-        object.position.z = object.prev_pos.z * (1 - percent) + object.next_pos.z * percent
-
-        let reg__next_ro_x = reg_rad_at(object.next_ro.x, object.prev_ro.x)
-        let reg__next_ro_y = reg_rad_at(object.next_ro.y, object.prev_ro.y)
-        let reg__next_ro_z = reg_rad_at(object.next_ro.z, object.prev_ro.z)
-        if(Math.abs(reg__next_ro_y-object.prev_ro.y)>Math.PI){
-            console.log('wrong?')
-        }
-        object.rotation.x = object.prev_ro.x * (1 - percent) + reg__next_ro_x * percent
-        object.rotation.y = object.prev_ro.y * (1 - percent) + reg__next_ro_y * percent
-        object.rotation.z = object.prev_ro.z * (1 - percent) + reg__next_ro_z * percent
-        
-        let size = object.prev_size * (1 - percent)  + object.next_size * percent
-        changeCoreObjSize(object, size)
+        object.prev_pos.x = object.next_pos.x; object.prev_pos.y = object.next_pos.y; object.prev_pos.z = object.next_pos.z
+        object.prev_ro.x = object.next_ro.x; object.prev_ro.y = object.next_ro.y; object.prev_ro.z = object.next_ro.z
+        change_position_rotation_size(object, 1)
     }	
 }
 function move_to_future(percent) {
     for (let i = 0; i < core_Obj.length; i++) {
         let object = core_Obj[i]
-        object.position.x = object.prev_pos.x * (1 - percent) + object.next_pos.x * percent
-        object.position.y = object.prev_pos.y * (1 - percent) + object.next_pos.y * percent
-        object.position.z = object.prev_pos.z * (1 - percent) + object.next_pos.z * percent
-
-        let reg__next_ro_x = reg_rad_at(object.next_ro.x, object.prev_ro.x)
-        let reg__next_ro_y = reg_rad_at(object.next_ro.y, object.prev_ro.y)
-        let reg__next_ro_z = reg_rad_at(object.next_ro.z, object.prev_ro.z)
-        if(Math.abs(reg__next_ro_y-object.prev_ro.y)>Math.PI){
-            console.log('wrong?')
-        }
-        object.rotation.x = object.prev_ro.x * (1 - percent) + reg__next_ro_x * percent
-        object.rotation.y = object.prev_ro.y * (1 - percent) + reg__next_ro_y * percent
-        object.rotation.z = object.prev_ro.z * (1 - percent) + reg__next_ro_z * percent
-
-        let size = object.prev_size * (1 - percent)  + object.next_size * percent
-        changeCoreObjSize(object, size)
+        change_position_rotation_size(object, percent)
     }
 }
 
@@ -719,14 +694,7 @@ function init() {
     // camera.up.set(0,0,1);一个 0 - 31 的整数 Layers 对象为 Object3D 分配 1个到 32 个图层。32个图层从 0 到 31 编号标记。
     camera.layers.enable(0); // 启动0图层
     scene = new THREE.Scene();
-    // scene.background = new THREE.Color(0xa0a0a0); //?
-    // ground
-    // const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), 
-    // new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
-    // );
-    // mesh.rotation.x = - Math.PI / 2;
-    // mesh.receiveShadow = true;
-    // scene.add(mesh);
+
     const grid = new THREE.GridHelper( 500, 500, 0xffffff, 0x555555 );
     grid.position.y = 0
     grid.visible = false
@@ -741,13 +709,6 @@ function init() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
-
-    //
-
-
-
-
-
 
 
     stats = new Stats();
@@ -888,15 +849,7 @@ function parse_style(str){
         var mesh	= new THREE.Mesh(geometry, material );
         mesh.scale.multiplyScalar(1.15);
         containerEarth.add( mesh );
-        // new THREEx.addAtmosphereMaterial2DatGui(material, datGUI)
-    
-        // var earthCloud	= THREEx.Planets.createEarthCloud()
-        // earthCloud.receiveShadow	= true
-        // earthCloud.castShadow	= true
-        // containerEarth.add(earthCloud)
-        // onRenderFcts.push(function(delta, now){
-        //     earthCloud.rotation.y += 1/8 * delta;		
-        // })
+
         renderer.shadowMapEnabled	= true
     }
 }

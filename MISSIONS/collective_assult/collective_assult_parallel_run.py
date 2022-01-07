@@ -458,9 +458,9 @@ class collective_assultGlobalEnv(gym.Env):
         for index, guard in enumerate(self.guards):
             x = guard.state.p_pos[0]; y = guard.state.p_pos[1]
             dir_ = dir2rad(guard.state.p_vel)
-            color = 'blue' if guard.alive else 'black'
+            color = 'green' if guard.alive else 'black'
             self.threejs_bridge.v2dx(
-                'cone|%d|%s|0.05'%(guard.iden, color),
+                'cone|%d|%s|0.025'%(guard.iden, color),
                 x, y, (guard.terrain-1)*4,
                 ro_x=0, ro_y=-np.pi/2, ro_z=-dir_,  # Euler Angle y-x-z
                 label='', label_color='white', attack_range=0)
@@ -473,7 +473,7 @@ class collective_assultGlobalEnv(gym.Env):
             dir_ = dir2rad(attacker.state.p_vel)
             color = 'red' if attacker.alive else 'black'
             self.threejs_bridge.v2dx(
-                'cone|%d|%s|0.05'%(attacker.iden, color),
+                'cone|%d|%s|0.025'%(attacker.iden, color),
                 x, y, (attacker.terrain-1)*4,
                 ro_x=0, ro_y=-np.pi/2, ro_z=-dir_, # Euler Angle y-x-z
                 label='', label_color='white', attack_range=0)
