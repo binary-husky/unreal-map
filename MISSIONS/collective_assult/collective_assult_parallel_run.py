@@ -452,16 +452,20 @@ class collective_assultGlobalEnv(gym.Env):
             # self.threejs_bridge.set_style('star')
             self.threejs_bridge.set_style('grid')
             self.threejs_bridge.set_style('gray')
+            self.threejs_bridge.use_geometry('monkey')
+            self.threejs_bridge.geometry_rotate_scale('monkey',0, 0,       np.pi/2, 1, 1, 1)
+            self.threejs_bridge.geometry_rotate_scale('cone',  0, np.pi/2, 0,       1, 1, 1) # x -> y -> z
 
         for index, agent in enumerate(self.world.agents):
             x = agent.state.p_pos[0]; y = agent.state.p_pos[1]
             dir_ = dir2rad(agent.state.p_vel)
-            color = 'pink' if agent.attacker else 'blue'
+            color = 'red' if agent.attacker else 'blue'
             color = color if agent.alive else 'black'
+            shape3d = 'cone' if not agent.attacker else 'monkey'
             self.threejs_bridge.v2dx(
-                'cone|%d|%s|0.025'%(agent.iden, color),
+                '%s|%d|%s|0.05'%(shape3d,agent.iden, color),
                 x, y, (agent.terrain-1)*4,
-                ro_x=0, ro_y=-np.pi/2, ro_z=-dir_,  # Euler Angle y-x-z
+                ro_x=0, ro_y=0, ro_z=dir_,  # Euler Angle y-x-z
                 label='', label_color='white', attack_range=0)
             if agent.wasHitBy is not None:
                 flash_type = 'lightning' if agent.attacker else 'beam'
