@@ -450,11 +450,15 @@ class collective_assultGlobalEnv(gym.Env):
             self.threejs_bridge = mcom(ip='127.0.0.1', port=12084, path='RECYCLE/v2d_logger/', digit=8, rapid_flush=False, draw_mode='Threejs')
             self.threejs_bridge.v2d_init()
             # self.threejs_bridge.set_style('star')
-            self.threejs_bridge.set_style('grid')
+            # self.threejs_bridge.set_style('grid')
             self.threejs_bridge.set_style('gray')
             self.threejs_bridge.use_geometry('monkey')
             self.threejs_bridge.geometry_rotate_scale('monkey',0, 0,       np.pi/2, 1, 1, 1)
             self.threejs_bridge.geometry_rotate_scale('cone',  0, np.pi/2, 0,       1, 1, 1) # x -> y -> z
+            self.threejs_bridge.terrain_theta=0
+        if self.threejs_bridge.terrain_theta != self.world.init_theta:
+            self.threejs_bridge.terrain_theta = self.world.init_theta
+            self.threejs_bridge.set_env('terrain', theta=self.world.init_theta)
 
         for index, agent in enumerate(self.world.agents):
             x = agent.state.p_pos[0]; y = agent.state.p_pos[1]

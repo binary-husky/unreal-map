@@ -439,14 +439,22 @@ function parse_geometry(str){
 
 }
 
+function parse_update_env(buf_str, play_pointer) {
+    let each_line = buf_str.split('\n')
+    for (let i = 0; i < each_line.length; i++) {
+        let str = each_line[i]
+        if(str.search(">>set_env") != -1){
+            parse_env(str)
+        }
+    }
+}
+
 function parse_init(buf_str, play_pointer) {
     let each_line = buf_str.split('\n')
     for (let i = 0; i < each_line.length; i++) {
         let str = each_line[i]
         if(str.search(">>set_style") != -1){
             parse_style(str)
-        }
-        if(str.search(">>use_mesh") != -1){
         }
         if(str.search(">>geometry_rotate_scale") != -1){
             parse_geometry(str)
@@ -457,11 +465,13 @@ function parse_init(buf_str, play_pointer) {
 function parse_time_step(play_pointer){
     if(window.glb.parsed_core_L[play_pointer]) {
         buf_str = window.glb.core_L[play_pointer]
+        parse_update_env(buf_str, play_pointer)
         parse_update_without_re(play_pointer)
         parse_update_flash(buf_str, play_pointer)
     }else{
         buf_str = window.glb.core_L[play_pointer]
         parse_init(buf_str, play_pointer)
+        parse_update_env(buf_str, play_pointer)
         parse_update_core(buf_str, play_pointer)
         parse_update_flash(buf_str, play_pointer)
     }
@@ -616,17 +626,76 @@ function init() {
     });
     window.glb.BarFolder.open();
 
+    
+    
+    // window.glb.terrain_mesh.scale.y = 50.0;
+    // this.mesh.position.x = this.width / 2;
+    // this.mesh.position.z = this.height / 2;
+    
+
+
+
     window.addEventListener('resize', onWindowResize);
 }
 
 
+var init_terrain = false;
 
+function parse_env(str){
+    let re_style = />>set_env\('(.*)'/
+    let re_res = str.match(re_style)
+    let style = re_res[1]
+    if(style=="terrain"){
+        let get_theta = />>set_env\('terrain',theta=([^,)]*)/
+        let get_theta_res = str.match(get_theta)
+        let theta = parseFloat(get_theta_res[1])
+        
+        ////////////////////// add terrain /////////////////////
+        let width = 30; let height = 30;
+        let Segments = 200;
+        if (!init_terrain){
+            init_terrain=true;
+        }else{
+            window.glb.scene.remove(window.glb.terrain_mesh);
+        }
+        let geometry = new THREE.PlaneBufferGeometry(width, height, Segments - 1, Segments - 1); //(width, height,widthSegments,heightSegments)
+        geometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+        window.glb.terrain_mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({}));
+        window.glb.scene.add(window.glb.terrain_mesh);
+        let array = geometry.attributes.position.array;
+        for (let i = 0; i < Segments * Segments; i++) {
+            let x = array[i * 3 + 0];
+            let _x_ = array[i * 3 + 0];
+            let z = array[i * 3 + 2];
+            let _y_ = -array[i * 3 + 2];
+
+            let A=0.05; 
+            let B=0.2;
+            let X_ = _x_*Math.cos(theta) + _y_*Math.sin(theta);
+            let Y_ = -_x_*Math.sin(theta) + _y_*Math.cos(theta);
+            let Z = -1 +B*( (0.1*X_) ** 2 + (0.1*Y_) ** 2 )- A * Math.cos(2 * Math.PI * (0.3*X_))  - A * Math.cos(2 * Math.PI * (0.5*Y_))
+            Z = -Z;
+            Z = (Z-1)*4;
+            Z = Z - 0.02
+            array[i * 3 + 1] = Z
+
+            if (Math.abs(_x_-5)<0.5 && Math.abs(_y_+5)<0.5){
+                array[i * 3 + 1] = 5
+            }
+        }
+        geometry.computeBoundingSphere(); geometry.computeVertexNormals();
+        console.log('update terrain')
+    }
+}
 function parse_style(str){
     //E.g. >>flash('lightning',src=0.00000000e+00,dst=1.00000000e+01,dur=1.00000000e+00)
     let re_style = />>set_style\('(.*)'/
     let re_res = str.match(re_style)
     let style = re_res[1]
-    if (style=="grid"){
+    if(style=="terrain"){
+        console.log('use set_env')
+    }
+    else if (style=="grid"){
         window.glb.scene.children.filter(function (x){return (x.type == 'GridHelper')}).forEach(function(x){
             x.visible = true
         })

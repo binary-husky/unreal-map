@@ -279,8 +279,10 @@ class mcom():
     exec('def v2dx(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
     exec('def flash(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
     exec('def set_style(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
+    exec('def set_env(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
     exec('def use_geometry(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
     exec('def geometry_rotate_scale(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
+    exec('def test_function_terrain(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
 
 def find_free_index(path):
     if not os.path.exists(path): os.makedirs(path)
