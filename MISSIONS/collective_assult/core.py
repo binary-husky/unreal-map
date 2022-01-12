@@ -497,8 +497,8 @@ class World(object):
                         if theta_patrol < 0:
                             theta_patrol += 2 * np.pi
                         # print("attackID:%d, guardID:%d" % (agent.iden,guard_agent.iden))
-
-                agent.state.p_ang = theta_patrol
+                if agent.alive:
+                    agent.state.p_ang = theta_patrol
                 agent.action.shoot = True
                 if self.s_cfg.DISALBE_RED_FUNCTION:
                     agent.action.shoot = False
@@ -666,9 +666,10 @@ class World(object):
                                                                       np.square(entity.state.p_vel[1])) * entity.max_speed
                 ## simple model for rotation
                 # entity.state.p_ang += entity.action.u[2]%(2*np.pi)    ## 导致数值爆炸，这是哪个伞兵写的？脑子被驴踢了
-                entity.state.p_ang += entity.action.u[2]
-                entity.state.p_ang = reg_angle(entity.state.p_ang)
-            
+                if entity.alive:
+                    entity.state.p_ang += entity.action.u[2]
+                    entity.state.p_ang = reg_angle(entity.state.p_ang)
+                
             entity.state.p_pos += entity.state.p_vel * self.dt
 
 

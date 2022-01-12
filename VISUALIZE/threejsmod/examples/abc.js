@@ -268,8 +268,8 @@ function parse_core_obj(str, parsed_frame){
 
 
 function parse_flash(str){
-    //E.g. >>flash('lightning',src=0.00000000e+00,dst=1.00000000e+01,dur=1.00000000e+00)
-    let re_type = />>flash\('(.*)'/
+    //E.g. >>flash('lightning',src=0.00000000e+00,dst=1.00000000e+01,dur=1.00000000e+00,color='red')
+    let re_type = />>flash\('(.*?)'/
     let re_res = str.match(re_type)
     let type = re_res[1]
     // src
@@ -288,7 +288,11 @@ function parse_flash(str){
     let re_size = /size=([^,)]*)/
     re_res = str.match(re_size)
     let size = parseFloat(re_res[1])
-    make_flash(type, src, dst, dur, size)
+    // color
+    let re_color = /color='(.*?)'/
+    re_res = str.match(re_color)
+    let color = re_res[1]
+    make_flash(type, src, dst, dur, size, color)
 }
 
 
@@ -301,7 +305,7 @@ function find_obj_by_id(my_id){
     return null
 }
 
-function make_flash(type, src, dst, dur, size){
+function make_flash(type, src, dst, dur, size, color){
     if (type=='lightning'){
         let rayParams_new = Object.create(rayParams_lightning);
         rayParams_new.sourceOffset =  find_obj_by_id(src).position;
@@ -309,9 +313,9 @@ function make_flash(type, src, dst, dur, size){
         rayParams_new.radius0 = size
         rayParams_new.radius1 = size/4.0
         if (isNaN(find_obj_by_id(src).position.x) || isNaN(find_obj_by_id(src).position.y)){return}
-        let lightningColor = new THREE.Color( 0xFFB0FF );
+        // let lightningColor = new THREE.Color( 0xFFB0FF );
         let lightningStrike = new LightningStrike( rayParams_new );
-        let lightningMaterial = new THREE.MeshBasicMaterial( { color: lightningColor } );
+        let lightningMaterial = new THREE.MeshBasicMaterial( { color: color } );
         let lightningStrikeMesh = new THREE.Mesh( lightningStrike, lightningMaterial );
         window.glb.scene.add( lightningStrikeMesh );
         window.glb.flash_Obj.push({
@@ -328,9 +332,9 @@ function make_flash(type, src, dst, dur, size){
         rayParams_new.radius0 = size
         rayParams_new.radius1 = size/4.0
         if (isNaN(find_obj_by_id(src).position.x) || isNaN(find_obj_by_id(src).position.y)){return}
-        let lightningColor = new THREE.Color( 0xFFB0FF );
+        // let lightningColor = new THREE.Color( 0xFFB0FF );
         let lightningStrike = new LightningStrike( rayParams_new );
-        let lightningMaterial = new THREE.MeshBasicMaterial( { color: lightningColor } );
+        let lightningMaterial = new THREE.MeshBasicMaterial( { color: color } );
         let lightningStrikeMesh = new THREE.Mesh( lightningStrike, lightningMaterial );
         window.glb.scene.add( lightningStrikeMesh );
         window.glb.flash_Obj.push({
@@ -385,15 +389,16 @@ function parse_update_flash(buf_str, play_pointer) {
 }
 
 
-function geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z){
+function geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z){
     geometry.rotateX(ro_x);
     geometry.rotateY(ro_y);
     geometry.rotateZ(ro_z);
     geometry.scale(scale_x,scale_y,scale_z)
+    geometry.translate(trans_x, trans_y, trans_z)
     return geometry
 }
 function parse_geometry(str){
-    const pattern = />>geometry_rotate_scale\('(.*)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
+    const pattern = />>geometry_rotate_scale_translate\('(.*)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
     let match_res = str.match(pattern)
     let name = match_res[1]
     let ro_x = parseFloat(match_res[2])
@@ -407,6 +412,14 @@ function parse_geometry(str){
     let scale_y = parseFloat(match_res[7])
     // z --> y, y --- z reverse z axis and y axis
     let scale_z = parseFloat(match_res[6])
+
+    let trans_x = parseFloat(match_res[8])
+    // z --> y, y --- z reverse z axis and y axis
+    let trans_y = parseFloat(match_res[10])
+    // z --> y, y --- z reverse z axis and y axis
+    let trans_z = -parseFloat(match_res[9])
+
+
     let lib = {
         'monkey':'examples/models/json/suzanne_buffergeometry.json'
     }
@@ -418,23 +431,23 @@ function parse_geometry(str){
         // very basic shapes
         if (name=='box'){
             window.glb.base_geometry[name] = new THREE.BoxGeometry(1, 1, 1);
-            window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z);
+            window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
         }else if(name=='sphe' || name=='ball'){
             window.glb.base_geometry[name] = new THREE.SphereGeometry(1);
-            window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z);
+            window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
         }else if(name=='cone'){
             window.glb.base_geometry[name] = new THREE.ConeGeometry(1, 2*1);
-            window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z);
+            window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
         }else{
         // other shapes in lib
             const loader = new THREE.BufferGeometryLoader();
             loader.load(path, function (geometry) {
                 geometry.computeVertexNormals();
-                window.glb.base_geometry[name] = geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z);
+                window.glb.base_geometry[name] = geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
             });
         }
     }else{
-        window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z);
+        window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
     }
 
 }
@@ -456,7 +469,7 @@ function parse_init(buf_str, play_pointer) {
         if(str.search(">>set_style") != -1){
             parse_style(str)
         }
-        if(str.search(">>geometry_rotate_scale") != -1){
+        if(str.search(">>geometry_rotate_scale_translate") != -1){
             parse_geometry(str)
         }
     }
@@ -676,11 +689,11 @@ function parse_env(str){
             let Z = -1 +B*( (0.1*X_) ** 2 + (0.1*Y_) ** 2 )- A * Math.cos(2 * Math.PI * (0.3*X_))  - A * Math.cos(2 * Math.PI * (0.5*Y_))
             Z = -Z;
             Z = (Z-1)*4;
-            Z = Z - 0.02
+            Z = Z - 0.1
             array[i * 3 + 1] = Z
 
-            if (Math.abs(_x_-5)<0.5 && Math.abs(_y_+5)<0.5){
-                array[i * 3 + 1] = 5
+            if (Math.abs(_x_-5)<0.25 && Math.abs(_y_-5)<0.25){
+                array[i * 3 + 1] = 4
             }
         }
         geometry.computeBoundingSphere(); geometry.computeVertexNormals();

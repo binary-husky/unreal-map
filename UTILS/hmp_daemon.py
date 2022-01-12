@@ -34,12 +34,12 @@ def periodic_daemon(cfg):
             print('start periodic_daemon_(cfg)')
             periodic_daemon_(cfg)
             print('end periodic_daemon_(cfg)')
-            # time.sleep(15*60)
-            time.sleep(15*60)
         except AssertionError: 
             hmp_clean_up()
         except BaseException: 
-            pass
+            print('hmp server failed')
+            break
+        time.sleep(15*60)
 
 def periodic_daemon_(cfg):
     report = {

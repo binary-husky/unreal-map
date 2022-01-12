@@ -5,7 +5,7 @@ import time
 import json
 from UTILS.colorful import *
 # test sync to github
-# ubuntu command to kill process: kill -9 $(ps -ef | grep xrdp | grep -v grep | awk '{print $ 2}')
+# ubuntu command to kill process: kill -9 $(ps -ef | grep fuqingxu |grep python | grep -v grep | awk '{print $ 2}')
 
 arg_base = ['python', 'main.py']
 log_dir = '%s/'%time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
