@@ -1,0 +1,48 @@
+{
+    "config.py->GlobalConfig": {
+        // checkout config.py for information
+        "note": "test-100+100",                           // in case you forget the purpose of this trainning session, write a note
+        "test_only": "True",                            // only test, no trainning! Both /"True"/ or /true/ works
+        "env_name": "collective_assult",                // which environment, see ./MISSIONS/env_router.py
+        "env_path": "MISSIONS.collective_assult",       // path of environment
+        "draw_mode": "Img",                             // activate data plotting (Tensorboard is not used because I do not like it)
+        "num_threads": "1",                             // run N parallel envs, a 'env' is refered to as a 'thread'
+        "report_reward_interval": "64",                 // reporting interval
+        "test_interval": "2048",                        // test every $test_interval episode
+        "fold": "1",                                    // this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
+        "backup_files": [                               // backup files, pack them up
+            "example.jsonc",
+            "ALGORITHM/conc",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py"
+        ],
+        "device": "cpu",                             // choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU) 
+        // GPU memory is precious! assign multiple training process to a 'party', then they will share GPU memory 
+        "gpu_party": "off",                     // default is 'off', 
+        "upload_after_test": "True"
+    },
+
+    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
+        // please checkout ./MISSIONS/collective_assult/collective_assult_parallel_run.py for information
+        "size": "5",
+        "num_guards": 100,
+        "num_attackers": 100,
+        "random_jam_prob": 0.05,
+        "introduce_terrain": "True",
+        "terrain_parameters": [0.05,0.2],
+        "num_steps": "180",
+        "render": "True",
+        "half_death_reward": "True",
+        "TEAM_NAMES": [ //select team algorithm
+            "ALGORITHM.conc.foundation->ReinforceAlgorithmFoundation"
+        ]
+    },
+    "ALGORITHM.conc.foundation.py->AlgorithmConfig": {
+        // please checkout ./ALGORITHM/conc/foundation.py for information
+        "n_focus_on": 2,                    // d_k
+        "actor_attn_mod": "False",          // add self-attention to actor network
+        "lr": 0.0005,                       // invalid in testing mod
+        "ppo_epoch": 24,                    // invalid in testing mod
+        "train_traj_needed": "64",          // invalid in testing mod
+        "load_checkpoint": "True"           // since we are testing, load pre-trained checkpoint
+    }
+}
