@@ -25,7 +25,7 @@ We use docker to solve dependency:
 [SetupDocker](./SetupDocker.md)
 
 
-## 1. all default: testing (outdated, will soon update)
+## 1. all default: testing
 ```
 git pull && python main.py -c ZHECKPOINT/50vs50-eval/test.json
 git pull && python main.py -c ZHECKPOINT/100vs100-eval/test.json  # old alg version
