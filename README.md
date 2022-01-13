@@ -37,7 +37,7 @@ JS visualizer online: http://172.18.116.150:????
 JS visualizer online (localhost): http://localhost:????
 --------------------------------
 ```
-## 2. all default: training (outdated, will soon update)
+## 2. all default: training
 
 ```
 git pull && python main.py -c example.jsonc
@@ -50,9 +50,6 @@ launch with:
 ```
 python main.py --cfg xx.json
 ```
-
-python main.py -c ZHECKPOINT/50vs50-eval/test.json
-git pull && python main.py -c ZHECKPOINT/10
 
 # Project Roadmap
 If you are interested in something, you may continue to read:
