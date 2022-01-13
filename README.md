@@ -27,13 +27,20 @@ We use docker to solve dependency:
 
 ## 1. all default: testing
 ```
-git pull && python main.py -c ZHECKPOINT/50vs50-eval/test.json
-git pull && python main.py -c ZHECKPOINT/100vs100-eval/test.json  # old alg version
+git pull && python main.py -c ZHECKPOINT/test-50+50/test-50+50.jsonc --skip
+git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
+```
+When the testing starts, open revealed url for monitoring. The front end is done by JavaScript and ThreeJS.
+```
+--------------------------------
+JS visualizer online: http://172.18.116.150:????
+JS visualizer online (localhost): http://localhost:????
+--------------------------------
 ```
 ## 2. all default: training (outdated, will soon update)
 
 ```
-git pull && python main.py -c train.json
+git pull && python main.py -c example.jsonc
 ```
 
 
