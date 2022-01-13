@@ -1,7 +1,7 @@
 {
     "config.py->GlobalConfig": {
-        // please checkout config.py for information 15.9GB 22.1(11.4+435) 28.7 42GB
-        "note": "train_origin_T(5itf) t8",
+        // checkout config.py for information
+        "note": "test-50+50",
         "env_name": "collective_assult",                // which environment, see ./MISSIONS/env_router.py
         "env_path": "MISSIONS.collective_assult",       // path of environment
         "draw_mode": "Img",                             // activate data plotting (Tensorboard is not used because I do not like it)
