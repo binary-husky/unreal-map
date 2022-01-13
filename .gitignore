@@ -42,6 +42,7 @@ full-cargo/
 T*/
 checkpoint/
 ZHECKPOINT/
+!ZHECKPOINT/test-50+50
 PROFILE/
 RECYCLE/
 test_only_*.py
