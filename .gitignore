@@ -62,7 +62,14 @@ my_*.jsonc
 my_*.py
 
 ZHECKPOINT/*
+
 !ZHECKPOINT/test-50+50
 ZHECKPOINT/test-50+50/*
 !ZHECKPOINT/test-50+50/model.pt
 !ZHECKPOINT/test-50+50/experiment.json
+!ZHECKPOINT/test-50+50/test-50+50.jsonc
+
+!ZHECKPOINT/test-100+100
+ZHECKPOINT/test-100+100/*
+!ZHECKPOINT/test-100+100/model.pt
+!ZHECKPOINT/test-100+100/experiment.json
