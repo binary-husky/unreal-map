@@ -1,26 +1,26 @@
 Author: Fu Qingxu, CASIA
 # Introduction
-Hybrid Multi-agent Playground (HMP) is a experimental framework designed for RL researchers.
-Unlike any other framework, 
-HMP completely isolate algorithm from the framework.
+Hybrid Multi-agent Playground (HMP) is an experimental framework designed for RL researchers.
+Unlike any other framework which only isolates the TASKs from the framework, 
+HMP also separates the ALGORITHMs from the framework to achieve excellent compatibility.
 
-Any algorithm, from the simplist script AI to sophisticated RL learner,
+Any algorithm, from the most straightforward script AI to sophisticated RL learner,
 is abstracted into a module inside ./ALGORITHM/*.
 
-We also put effect to interface all kinds of multi-agent environmnets,
+We also put effect to interface all kinds of multi-agent environments,
 including gym, SMAC, air combat, et.al.
 
-Other framework such as pymarl2 can interface with HMP as well.
-We make it happen by building a special ALGORITHM module that 
-run pymarl2 in a subprocess, and pretends itself to be a RL environment.
-This work is on going and has not finished yet.
+Other frameworks such as pymarl2 can interface with HMP as well.
+The entire HMP can disguise as an RL environment in pymarl2.
+We make it happen by building a particular ALGORITHM module, which
+runs pymarl2 in a subprocess. This work is ongoing and has not been finished yet.
 
 The root rep url is ```https://gitee.com/hh505030475/hmp-2g.git```,
 we also have a github rep which is a mirror of this gitee rep. 
 # Demo
 ```
-http://home.fuqingxu.top:11601/     (ipv6 only, can't afford an ipv4 address, 没钱买稳定的ipv4地址)
-http://linux.ipv4.fuqingxu.top:11601/     (ipv4，临时)
+http://home.fuqingxu.top:11601/     (ipv6 only, can't afford a stable ipv4 address, 没钱买稳定的ipv4地址)
+http://linux.ipv4.fuqingxu.top:11601/     (temporary ipv4)
 ```
 
 # Quick Start
