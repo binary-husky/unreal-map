@@ -6,7 +6,10 @@ img{
 }
 </style>
 # Install nvidia docker runtime
-Refer to https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-docker
+Cuda is needed inside our docker container, which need toolkits from Nvidia for GPU support.
+Please install nvidia docker runtime on the host ubuntu system.
+
+For details, refer to https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#installing-on-ubuntu-and-debian
 
 # Start docker container
 From the host:
@@ -44,7 +47,7 @@ Now find a computer to ssh into it: ```ssh hmp@your_host_ip -p 2233```
 
 
 # (Optional) Connect to HMP container with remote desktop (RDP)
-(choice 1) Use SSH to get inside the HMP container.
+(choice 1) Use SSH to get ```inside``` the HMP container.
 
 (choice 2) From the host, use ``` docker exec -it hmp-$USER bash ``` command to get inside the HMP container.
 
@@ -65,7 +68,6 @@ Now, you should see xrdp-sesman running via:
 ```
 
 Next, use the remote desktop tool of MS Windows (or anything supporting RDP) to get inside the HMP container.
-<!-- ![](2021-12-16-12-07-50.png) -->
 ```
 # IP Addr: share with the host
 # RDP Port: 3389.
@@ -76,7 +78,7 @@ Next, use the remote desktop tool of MS Windows (or anything supporting RDP) to 
 ```
 
 # Run HMP
-After getting inside the HMP container:
+After getting ```inside``` the HMP container:
 
 ```
 # if current user is 'root', change to a user with name 'hmp' (password also 'hmp'):
