@@ -17,6 +17,11 @@ This work is on going and has not finished yet.
 
 The root rep url is ```https://gitee.com/hh505030475/hmp-2g.git```,
 we also have a github rep which is a mirror of this gitee rep. 
+# Demo
+```
+http://home.fuqingxu.top:11601/     (ipv6 only, can't afford an ipv4 address, 没钱买稳定的ipv4地址)
+http://linux.ipv4.fuqingxu.top:11601/     (ipv4，临时)
+```
 
 # Quick Start
 
@@ -79,3 +84,8 @@ If you are interested in something, you may continue to read:
     experiment batch executor                 -->   mprofile.py
 ```
 
+# Papers Supported by HMP
+
+```
+<1> Qingxu, F.; Tenghai, Q.; Jianqiang, Y.; Zhiqiang, Q.; and Shiguang, W. 2022. Concentration Network for Reinforcement Learning of Large-Scale Multi-Agent Systems. In Proceedings of the AAAI Conference on Artificial Intelligence
+```
