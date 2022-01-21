@@ -1,31 +1,20 @@
-import os, copy, atexit, time, traceback
+import os, copy, atexit, time
 import numpy as np
 from colorama import init; init()
-
-from multiprocessing import Process, Pipe
+from multiprocessing import Process
 from UTILS.colorful import *
+from UTILS.network import get_host_ip, find_free_port
 
-def find_free_port():
-    import socket
-    from contextlib import closing
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(('', 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.getsockname()[1]
+mcom_fn_list_define = [
+    "v2dx", "flash", "plot", "figure", "hold", "box", "pause", "clf", "xlim", "ylim", "xlabel", 
+    "ylabel", "drawnow", "v2d", "v2d_init", "v3d_init", "v2L", "title", "plot3", "grid", "v3dx", "v2d_show", 
+    "v2d_pop", "v2d_line_object", "v2d_clear", "v2d_add_terrain", "set_style", "set_env", "use_geometry", 
+    "geometry_rotate_scale_translate", "test_function_terrain",
+]
 
-def get_host_ip(): 
-    import socket
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-    finally:
-        s.close()
-    return ip
+
+# The Design Principle: Under No Circumstance should this program Interrupt the main program!
 class mcom():
-    # as a recording programme, the design principle is:
-    # Under No Circumstance should this program Interrupt the main program!
-
     def __init__(self, ip=None, port=None, path=None, digit=8, rapid_flush=True, draw_mode=False, tag='default'):
         # digit 默认8，可选4,16，越小程序负担越轻 (all is float, set valid digit number)
         # rapid_flush 当数据流不大时，及时倾倒文件缓存内容 (set 'False' if you'd like your SSD to survive longer)
@@ -58,7 +47,6 @@ class mcom():
         self.rapid_flush = rapid_flush
         self.flow_cnt = 0
         print蓝('[mcom.py]: log file at:' + self.starting_file)
-
 
         if not self.draw_mode=='Threejs':
             self.current_file_handle = open(self.starting_file, 'wb+')
@@ -99,7 +87,6 @@ class mcom():
         if r is not None:
             self.draw_tcp_client.send_bytes(r)
         return None
-
 
     '''
         mcom core function: send out/write raw bytes
@@ -190,8 +177,8 @@ class mcom():
         cmd = ''.join(str_list)
         self.send(bytes(cmd, encoding='utf8'))
 
-    def other_cmd(self, *args, **kargs):
-        func_name = traceback.extract_stack()[-2][2]
+    def other_cmd(self, func_name, *args, **kargs):
+        # func_name = traceback.extract_stack()[-2][2]
         strlist = ['>>', func_name, '(']
 
         for _i_ in range(len(args)):
@@ -238,7 +225,6 @@ class mcom():
             print('输入的参数类型不能处理',arg.__class__)
         return strlist
 
-
     def _process_ndarray(self, args, strlist, key=None):
         if args[0].ndim == 1:
             if key is not None: strlist += '%s='%key
@@ -251,38 +237,9 @@ class mcom():
             print红('mcom：输入数组的维度大于2维，目前处理不了。')
         return strlist
 
-    exec('def plot(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def figure(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def hold(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def box(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def pause(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def clf(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def xlim(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def ylim(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def xlabel(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def ylabel(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def drawnow(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v2d(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v2d_init(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v3d_init(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v2L(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def title(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def plot3(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def grid(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v3dx(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v2d_show(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v2d_pop(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v2d_line_object(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v2d_clear(self,*args):\n  self.other_cmd(*args)\n')
-    exec('def v2d_add_terrain(self,*args):\n  self.other_cmd(*args)\n')
-
-    exec('def v2dx(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
-    exec('def flash(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
-    exec('def set_style(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
-    exec('def set_env(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
-    exec('def use_geometry(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
-    exec('def geometry_rotate_scale_translate(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
-    exec('def test_function_terrain(self,*args,**kargs):\n  self.other_cmd(*args,**kargs)\n')
+    for fn_name in mcom_fn_list_define:
+        build_exec_cmd = 'def %s(self,*args,**kargs):\n self.other_cmd("%s", *args,**kargs)\n'%(fn_name, fn_name)
+        exec(build_exec_cmd)
 
 def find_free_index(path):
     if not os.path.exists(path): os.makedirs(path)
@@ -300,8 +257,6 @@ def find_free_index(path):
 
     prev_start, prev_end, new = find_previous_start_end()
     return prev_start, prev_end, new
-
-
 
 class tcp_client():
     def __init__(self, ip):
@@ -384,7 +339,6 @@ class tcp_server():
                 self.handler(buff_list)
             if self.queue is not None: 
                 self.queue.put(buff_list)
-
         return
 
     def set_handler(self, handler):
@@ -465,7 +419,7 @@ class DrawProcessThreejs(Process):
             queue = self.tcp_connection.get_queue()
             self.tcp_connection.wait_connection() # after this, the queue begin to work
             while True:
-                self.run_handler(queue.get(timeout=60))
+                self.run_handler(queue.get(timeout=600))
         except KeyboardInterrupt:
             self.__del__()
         self.__del__()

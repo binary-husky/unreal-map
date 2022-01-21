@@ -1,4 +1,12 @@
 // import * as THREE from '/build/three.module.js';
+// add new property 'opacity'
+// (1) parse (@parse_core_obj)
+// (2) apply_update.新增对象 (@apply_update, abc_obs.js)
+// (3) addCoreObj (@addCoreObj, abc_obs.js) create next
+// (4) apply_update.已经创建了对象 (@apply_update, abc_obs.js)
+// (5) force_move_all. (@apply_update, abc.js)
+// (6) change_position_rotation_size. (abc.js)
+
 import Stats from '/examples/jsm/libs/stats.module.js';
 import { GUI } from '/examples/jsm/libs/dat.gui.module.js';
 import { LightningStrike } from '/examples/jsm/geometries/LightningStrike.js';
@@ -32,12 +40,14 @@ var transfer_ongoing = false;
 // GUI
 var request=null;
 var req_interval=2.0;
-
 let panelSettings = {
         'play fps':play_fps,
         'play pointer':0,
         'data req interval': req_interval,
-        'reset to read new': null
+        'reset to read new': null,
+        'pause': null,
+        'next frame': null,
+        'previous frame': null,
 };
 // color dictionary 
 var color_dic = {
@@ -154,6 +164,33 @@ panelSettings['reset to read new'] = function (){
     coreReadFunc(false)
 }
 setTimeout(coreReadFunc, 100);
+
+panelSettings['pause'] = function (){
+    if (panelSettings['play fps']>0){
+        window.glb.prev_fps = panelSettings['play fps']
+        panelSettings['play fps'] = 0
+        play_fps = panelSettings['play fps'];
+        dt_since = 0; dt_threshold = 1 / play_fps;
+    }else{
+        panelSettings['play fps'] = window.glb.prev_fps
+        play_fps = panelSettings['play fps'];
+        dt_since = 0; dt_threshold = 1 / play_fps;
+    }
+}
+panelSettings['next frame'] = function (){
+    if (play_pointer >= window.glb.core_L.length) {play_pointer = 0;}
+    else{play_pointer = play_pointer + 1;}
+    
+    panelSettings['play pointer'] = play_pointer;
+    if(play_fps==0){force_move_all(play_pointer)}
+}
+panelSettings['previous frame'] = function (){
+    if(play_pointer>0) {
+        play_pointer = play_pointer - 1;
+        panelSettings['play pointer'] = play_pointer;
+        if(play_fps==0){force_move_all(play_pointer)}
+    }
+}
 ////////////////////////////////////////////////////////////
 
 
@@ -170,7 +207,6 @@ function parse_update_without_re(play_pointer){
         let parsed_obj_info = parsed_frame[i]
         let my_id = parsed_obj_info['my_id']
         // find core obj by my_id
-        
         let object = find_obj_by_id(my_id)
 
         apply_update(object, parsed_obj_info)
@@ -243,6 +279,9 @@ function parse_core_obj(str, parsed_frame){
         label_color = 'black'
     }
 
+    let opacity_RE = str.match(/opacity=([^,)]*)/);
+    let opacity = (!(opacity_RE === null))?parseFloat(opacity_RE[1]):1;
+
     // find core obj by my_id
     let object = find_obj_by_id(my_id)
     let parsed_obj_info = {} 
@@ -261,6 +300,7 @@ function parse_core_obj(str, parsed_frame){
     parsed_obj_info['size'] = size  
     parsed_obj_info['label_marking'] = label_marking
     parsed_obj_info['label_color'] = label_color
+    parsed_obj_info['opacity'] = opacity
 
     apply_update(object, parsed_obj_info)
     parsed_frame.push(parsed_obj_info)
@@ -520,14 +560,17 @@ function change_position_rotation_size(object, percent){
     object.rotation.z = object.prev_ro.z * (1 - percent) + reg__next_ro_z * percent
 
     let size = object.prev_size * (1 - percent)  + object.next_size * percent
+    let opacity = object.prev_opacity * (1 - percent)  + object.next_opacity * percent
+    if (object.material.opacity!=opacity){ object.material.opacity=opacity }
     changeCoreObjSize(object, size)
 }
-function force_move_all(play_pointer){
+function force_move_all(play_pointer){ // 手动调整进度条时触发
     parse_time_step(play_pointer)
     for (let i = 0; i < window.glb.core_Obj.length; i++) {
         let object = window.glb.core_Obj[i]
         object.prev_pos.x = object.next_pos.x; object.prev_pos.y = object.next_pos.y; object.prev_pos.z = object.next_pos.z
         object.prev_ro.x = object.next_ro.x; object.prev_ro.y = object.next_ro.y; object.prev_ro.z = object.next_ro.z
+        object.prev_opacity = object.next_opacity
         change_position_rotation_size(object, 1)
     }	
 }
@@ -615,7 +658,7 @@ function init() {
     const panel = new GUI( { width: 310 } );
     const Folder1 = panel.addFolder( 'General' );
     // FPS adjust
-    Folder1.add(panelSettings, 'play fps', 0, 144, 1).onChange(
+    Folder1.add(panelSettings, 'play fps', 0, 144, 1).listen().onChange(
         function change_fps(fps) {
             play_fps = fps;
             dt_since = 0;
@@ -635,11 +678,13 @@ function init() {
             if(play_fps==0){
                 force_move_all(play_pointer)
             }
-            console.log('p changed')
     });
+    window.glb.BarFolder.add( panelSettings, 'pause'          );
+    window.glb.BarFolder.add( panelSettings, 'next frame'     );
+    window.glb.BarFolder.add( panelSettings, 'previous frame' );
     window.glb.BarFolder.open();
 
-    
+
     
     // window.glb.terrain_mesh.scale.y = 50.0;
     // this.mesh.position.x = this.width / 2;
@@ -692,9 +737,6 @@ function parse_env(str){
             Z = Z - 0.1
             array[i * 3 + 1] = Z
 
-            if (Math.abs(_x_-5)<0.25 && Math.abs(_y_-5)<0.25){
-                array[i * 3 + 1] = 4
-            }
         }
         geometry.computeBoundingSphere(); geometry.computeVertexNormals();
         console.log('update terrain')
@@ -707,6 +749,19 @@ function parse_style(str){
     let style = re_res[1]
     if(style=="terrain"){
         console.log('use set_env')
+    }
+    else if (style=="grid3d"){
+        let gridXZ = new THREE.GridHelper(1000, 10, 0xEED5B7, 0xEED5B7);
+        gridXZ.position.set(500,0,500);
+        window.glb.scene.add(gridXZ);
+        let gridXY = new THREE.GridHelper(1000, 10, 0xEED5B7, 0xEED5B7);
+        gridXY.position.set(500,500,0);
+        gridXY.rotation.x = Math.PI/2;
+        window.glb.scene.add(gridXY);
+        let gridYZ = new THREE.GridHelper(1000, 10, 0xEED5B7, 0xEED5B7);
+        gridYZ.position.set(0,500,500);
+        gridYZ.rotation.z = Math.PI/2;
+        window.glb.scene.add(gridYZ);
     }
     else if (style=="grid"){
         window.glb.scene.children.filter(function (x){return (x.type == 'GridHelper')}).forEach(function(x){
@@ -798,7 +853,6 @@ function parse_style(str){
         var mesh	= new THREE.Mesh(geometry, material );
         mesh.scale.multiplyScalar(1.15);
         containerEarth.add( mesh );
-
         renderer.shadowMapEnabled	= true
     }
 }

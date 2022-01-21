@@ -1,5 +1,6 @@
 
-var init_cam = false;
+var init_cam_f1 = false;
+var init_cam_f2 = false;
 // 设置标签
 function makeClearText(object, text, textcolor, HWRatio=10){
     let textTextureHeight = 512
@@ -32,7 +33,7 @@ function changeCoreObjSize(object, size){
     object.currentSize = size
 }
 //添加形状句柄
-function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, currentSize, label_marking, label_color){
+function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, currentSize, label_marking, label_color, opacity){
     const object = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: color_str }));
     object.my_id = my_id;
     object.color_str = color_str;
@@ -60,9 +61,12 @@ function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, curre
     object.label_marking = label_marking
     object.label_color = label_color
 
-    if (!init_cam){
-        console.log('first')
-        init_cam=true;
+    object.next_opacity = opacity
+    object.prev_opacity = opacity
+    object.material.transparent = true
+    object.material.opacity = opacity
+    if (!init_cam_f1){
+        init_cam_f1=true;
         let h = (currentSize==0)?0.1:currentSize
         window.glb.controls.target.set(object.position.x, -h, object.position.z); // 旋转的焦点在哪0,0,0即原点
         window.glb.camera.position.set(object.position.x, h*100, object.position.z)
@@ -96,6 +100,24 @@ function choose_geometry(type){
     }
 
 }
+
+function init_cam(){
+    console.log('secondary init_cam')
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    let size = 0;
+    for (let i = 0; i < window.glb.core_Obj.length; i++) {
+        x = x+window.glb.core_Obj[i].position.x/window.glb.core_Obj.length
+        y = y+window.glb.core_Obj[i].position.y/window.glb.core_Obj.length
+        z = z+window.glb.core_Obj[i].position.z/window.glb.core_Obj.length
+        size = size + window.glb.core_Obj[i].currentSize/window.glb.core_Obj.length
+    }
+    let h = (size==0)?0.1:size
+    window.glb.controls.target.set(x, -h,    z); // 旋转的焦点在哪0,0,0即原点
+    window.glb.camera.position.set(x, h*100, z)
+}
+
 //将parsed_obj_info中的位置、旋转、大小、文本、颜色等等变化应用
 function apply_update(object, parsed_obj_info){
     let name = parsed_obj_info['name']
@@ -113,14 +135,22 @@ function apply_update(object, parsed_obj_info){
     let size = parsed_obj_info['size']
     let label_marking = parsed_obj_info['label_marking']
     let label_color = parsed_obj_info['label_color']
+    let opacity = parsed_obj_info['opacity']
+
     // 已经创建了对象
     if (object) {
+        if (!init_cam_f2){
+            init_cam_f2 = true;
+            init_cam()
+        }
         object.prev_pos = Object.assign({}, object.next_pos);
         object.prev_ro = Object.assign({}, object.next_ro);
         object.next_pos.x = pos_x; object.next_pos.y = pos_y; object.next_pos.z = pos_z;
         object.next_ro.x = ro_x; object.next_ro.y = ro_y; object.next_ro.z = ro_z;
         object.prev_size = object.next_size;
         object.next_size = size;
+        object.next_opacity = opacity;
+        // 即刻应用color和text
         if (color_str != object.color_str) {
             changeCoreObjColor(object, color_str)
         }
@@ -145,6 +175,6 @@ function apply_update(object, parsed_obj_info){
         addCoreObj(my_id, color_str, geometry, 
             pos_x, pos_y, pos_z, 
             ro_x, ro_y, ro_z, 
-            currentSize, label_marking, label_color)
+            currentSize, label_marking, label_color, opacity)
     }
 }
