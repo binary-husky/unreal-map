@@ -11,10 +11,14 @@ class BaseScenario(object):
 
 def sr_tasks_env(env_id, rank):
     import multiagent.scenarios as scenarios
-    from multiagent.environment import MultiAgentEnv
+
     Scenario = getattr(importlib.import_module('MISSIONS.sr_tasks.multiagent.scenarios.'+env_id), 'Scenario')
     scenario = Scenario(process_id=rank)
     world = scenario.make_world()
+    if env_id == 'hunter_invader':
+        from multiagent.environment_hi import MultiAgentEnv
+    else:
+        from multiagent.environment import MultiAgentEnv
     env = MultiAgentEnv(world=world,
                         reset_callback=scenario.reset_world,
                         reward_callback=scenario.reward,

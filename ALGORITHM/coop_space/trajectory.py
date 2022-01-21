@@ -1,8 +1,7 @@
 # cython: language_level=3
 import numpy as np
-from z_config import GlobalConfig
 import copy
-from colorful import *
+from UTILS.colorful import *
 def _flatten_helper(T, N, _tensor):
     return _tensor.view(T * N, *_tensor.size()[2:])
 
@@ -12,6 +11,11 @@ def _flatten_helper(T, N, _tensor):
 class trajectory():
 
     def __init__(self, traj_limit, env_id):
+        from .reinforce_foundation import CoopAlgConfig
+        self.h_reward_on_R = CoopAlgConfig.h_reward_on_R
+        self.gamma = CoopAlgConfig.gamma
+        self.tau = CoopAlgConfig.tau
+        
         self.readonly_lock = False
         self.traj_limit = traj_limit
         self.time_pointer = 0
@@ -40,81 +44,38 @@ class trajectory():
         assert self.time_pointer < self.traj_limit
         self.time_pointer += 1
         
-
-    def get_most_freq_pattern(self): # get_hyper_reward(self):
-        self.readonly_lock = True
-        n_frame = self.time_pointer
-        if not self.done_cut_tail:
-            self.done_cut_tail = True
-            # clip tail
-            for key in self.key_dict:
-                set_item = getattr(self, key)[:n_frame]
-                setattr(self, key, set_item)
-            # 根据这个轨迹上的NaN，删除所有无效时间点
-            # before clip NaN, push reward forward
-            reference_track = getattr(self, 'value_R')  
-            reward = getattr(self, 'reward')
-            p_invalid = np.isnan(reference_track).squeeze()
-            p_valid = ~p_invalid
-            assert ~p_invalid[0]
-            for i in reversed(range(n_frame)):
-                if p_invalid[i] and i != 0 : # invalid, push reward forward
-                    reward[i-1] += reward[i]
-                    reward[i] = np.nan
-            # clip NaN
-            for key in self.key_dict:  
-                set_item = getattr(self, key)
-                setattr(self, key, set_item[p_valid])
-
-        reward_key = 'reward'
-        reward = getattr(self, reward_key)
-        assert not np.isnan(reward).any()
-
-        # # 对组合模式进行计数
-        # num_each_cluster_R = getattr(self, 'num_each_cluster_R')
-        # pattern_str_original_list = []
-        # pattern_str_list = []
-        # pattern_cnt_list = []
-        # for nec in num_each_cluster_R:
-        #     oo = nec.copy()
-        #     nec.sort()
-        #     key = str(nec)
-        #     if key in pattern_str_list:
-        #         index_ = pattern_str_list.index(key)
-        #         pattern_cnt_list[index_] += 1
-        #     else:
-        #         pattern_str_list.append(key)
-        #         pattern_str_original_list.append(oo)
-        #         pattern_cnt_list.append(1)
-        #
-        # # 选出最大的2项组合模式
-        # sorted_index = sorted(range(len(pattern_cnt_list)), key=lambda k: pattern_cnt_list[k], reverse = True)
-        # most_freq_pattern = [pattern_str_list[sorted_index[0]]]    # ,pattern_str_list[sorted_index[2]]]
-        # if self.env_id == 0: print亮红('!!! env0 freq pattern', pattern_str_original_list[sorted_index[0]])
-        # return most_freq_pattern # sum of reward! not average!!
-
     # new finalize
-    def finalize(self, hyper_reward=None):
-        if hyper_reward is not None: 
-            assert self.finalize
-        self.readonly_lock = True
+    def finalize(self):
+        self.finalized = True
         n_frame = self.time_pointer
 
-        assert self.done_cut_tail
-        assert hyper_reward is not None
+        for key in self.key_dict:  # clip to save space
+            set_item = getattr(self, key)[:n_frame]
+            setattr(self, key, set_item)
 
-        self.copy_track(origin_key='reward', new_key='h_reward')
-        h_rewards = getattr(self, 'h_reward')
-        if self.env_id == 0: print(getattr(self, 'h_reward'), getattr(self, 'g_actions'))
-        assert not np.isnan(h_rewards[-1])
-        h_rewards[-1] += hyper_reward # reward fusion
+        # self.reward_track(reward_key='reward')
+        reference_track = getattr(self, 'value_R')
+        reward = getattr(self, 'reward')
+        p_invalid = np.isnan(reference_track).squeeze()
+        p_valid = ~p_invalid
 
-        if GlobalConfig.h_reward_on_R:
-            self.gae_finalize_return(reward_key='h_reward', value_key='value_R', new_return_name='return_R')
-            self.gae_finalize_return(reward_key='reward', value_key='value_L', new_return_name='return_L')
-        else:
-            self.gae_finalize_return(reward_key='h_reward', value_key='value_L', new_return_name='return_L')
-            self.gae_finalize_return(reward_key='reward', value_key='value_R', new_return_name='return_R')
+        assert ~p_invalid[0]
+        for i in reversed(range(n_frame)):
+            if p_invalid[i] and i != 0 : # invalid, push reward forward
+                reward[i-1] += reward[i]
+                reward[i] = np.nan
+
+        for key in self.key_dict:  # clip to save space
+            set_item = getattr(self, key)
+            setattr(self, key, set_item[p_valid])
+
+        # self.finalize_return_with_gae(reward_key='reward', value_key='state_value', new_return_name='return') # 新写的gae
+
+        # a special processing to merge value_R and value_L
+        set_item = getattr(self, 'value_R') + getattr(self, 'value_L')
+        setattr(self, 'state_value', set_item)
+
+        self.gae_finalize_return(reward_key='reward', value_key='state_value', new_return_name='return')
         pass
 
 
@@ -143,8 +104,8 @@ class trajectory():
 
     def gae_finalize_return(self, reward_key, value_key, new_return_name):
 
-        gamma = GlobalConfig.gamma # ------- gae parameters -------
-        tau = GlobalConfig.tau
+        gamma = self.gamma # ------- gae parameters -------
+        tau = self.tau
         # ------- -------------- -------
         rewards = getattr(self, reward_key)
         value = getattr(self, value_key)
@@ -187,6 +148,7 @@ def calculate_sample_entropy(samples):
 
 class TrajPoolManager(object):
     def __init__(self, n_pool):
+        from .reinforce_foundation import CoopAlgConfig
         self.n_pool =  n_pool
         # self.traj_pool_history = []
         self.hyper_reward = []
@@ -195,6 +157,7 @@ class TrajPoolManager(object):
 
         self.clip_entropy_max = 4
         self.entropy_coef = 0
+        self.h_reward_on_R = CoopAlgConfig.h_reward_on_R
 
     def absorb_finalize_pool(self, pool):
         # self.traj_pool_history.append(pool)   # OOM
@@ -213,7 +176,7 @@ class TrajPoolManager(object):
         
         self.cnt += 1
 
-        if GlobalConfig.h_reward_on_R:
+        if self.h_reward_on_R:
             task = ['train_L']
             return task
         else:
@@ -227,17 +190,16 @@ class TrajPoolManager(object):
 class BatchTrajManager():
 
     def __init__(self, n_env, traj_limit, trainer_hook):
+        from .reinforce_foundation import CoopAlgConfig
         self.trainer_hook = trainer_hook
         self.n_env = n_env
         self.traj_limit = traj_limit
-        self.train_traj_needed = GlobalConfig.train_traj_needed
-        self.upper_training_epoch = GlobalConfig.upper_training_epoch
+        self.train_traj_needed = CoopAlgConfig.train_traj_needed
         self.live_trajs = [trajectory(self.traj_limit, env_id=i) for i in range(n_env)]
         self.live_traj_frame = [0 for _ in range(self.n_env)]
         self.traj_pool = []
         self.registered_keys = []
         self._traj_lock_buf = None
-        self.pool_manager = TrajPoolManager(n_pool=self.upper_training_epoch)
         self.patience = 1e3
         self.update_cnt = 0
 
@@ -282,6 +244,9 @@ class BatchTrajManager():
         self._traj_lock_buf = None
         assert 'done' in traj_frag
         assert 'skip' in traj_frag
+        traj_frag.pop('info')
+        traj_frag.pop('Latest-Obs')
+        traj_frag.pop('Terminal-Obs-Echo')
         self.__batch_update(traj_frag=traj_frag)
 
     def ___check_integraty(self, traj_frag):
@@ -337,15 +302,10 @@ class BatchTrajManager():
         return self.live_traj_frame
 
     def train_and_clear_traj_pool(self):
-        print('do update %d'%self.update_cnt)
-        current_task_l = self.pool_manager.absorb_finalize_pool(pool=self.traj_pool)
-        for current_task in current_task_l:
-            ppo_update_cnt = self.trainer_hook(self.traj_pool, current_task)
-            
+        for traj_handle in self.traj_pool: traj_handle.finalize()
+        trainer_out = self.trainer_hook(self.traj_pool)
         self.traj_pool = []
-        self.update_cnt += 1
-        # assert ppo_update_cnt == self.update_cnt
-        return self.update_cnt
+        return trainer_out
 
     def can_exec_training(self):
         if len(self.traj_pool) >= self.train_traj_needed:

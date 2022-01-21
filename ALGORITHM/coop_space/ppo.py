@@ -4,96 +4,86 @@ import torch.nn.functional as F
 import torch.optim as optim
 import math
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
-from colorful import *
-from z_config import GlobalConfig
+from UTILS.colorful import *
 import numpy as np
-from my_utils import _2tensor
+from UTILS.tensor_ops import _2tensor
 
 
 class PPO():
     def __init__(self, policy_and_critic, mcv=None):
+        from .reinforce_foundation import CoopAlgConfig
         self.policy_and_critic = policy_and_critic
-        self.clip_param = GlobalConfig.clip_param
-        self.ppo_epoch = GlobalConfig.ppo_epoch
-        self.n_pieces_batch_division = GlobalConfig.n_pieces_batch_division
-        self.value_loss_coef = GlobalConfig.value_loss_coef
-        self.entropy_coef = GlobalConfig.entropy_coef
-        self.max_grad_norm = GlobalConfig.max_grad_norm
-        self.lr = GlobalConfig.lr
+        self.clip_param = CoopAlgConfig.clip_param
+        self.ppo_epoch = CoopAlgConfig.ppo_epoch
+        self.n_pieces_batch_division = CoopAlgConfig.n_pieces_batch_division
+        self.value_loss_coef = CoopAlgConfig.value_loss_coef
+        self.entropy_coef = CoopAlgConfig.entropy_coef
+        self.max_grad_norm = CoopAlgConfig.max_grad_norm
+        self.lr = CoopAlgConfig.lr
         self.g_optimizer = optim.Adam(policy_and_critic.parameters(), lr=self.lr)
         self.g_update_delayer = 0
         self.g_initial_value_loss = 0
+        self.invalid_penalty = CoopAlgConfig.invalid_penalty
         # 轮流训练式
         self.train_switch = True
         self.mcv = mcv
         self.ppo_update_cnt = 0
-        self.loss_bias =  GlobalConfig.balance
+        self.loss_bias =  CoopAlgConfig.balance
         self.batch_size_reminder = True
 
-    def train_on_traj(self, traj_pool, task):
+    def train_on_traj(self, traj_pool):
 
         # print(traj_pool) 从轨迹中采样
         g_value_loss_epoch = 0
         g_action_loss_epoch = 0
         g_dist_entropy_epoch = 0
-        error_loss_epoch = 0
-        probs_loss_epoch = 0
+        error_act_loss_epoch = 0
         self.train_switch = not self.train_switch
         num_updates = self.ppo_epoch * self.n_pieces_batch_division
 
-        if task == 'train_R':
-            flag='train_R'
-            print('train_R')
-        elif task == 'train_L':
-            flag='train_L'
-            print('train_L')
-        ppo_valid_percent_list = []
         for e in range(self.ppo_epoch):
-            data_generator = self.轨迹采样(traj_pool, flag=flag)
-            n_batch = next(data_generator)
-            for small_batch in range(n_batch):
-                sample = next(data_generator)
+            data_generator1 = self.轨迹采样(traj_pool, flag='train_R')
+            data_generator2 = self.轨迹采样(traj_pool, flag='train_L')
+            n_batch1 = next(data_generator1)
+            n_batch2 = next(data_generator2)
+            assert n_batch1 == n_batch2
+
+            for small_batch in range(n_batch1):
+                sample1 = next(data_generator1)
+                sample2 = next(data_generator2)
+
                 self.g_optimizer.zero_grad()
                 loss_final = 0
-                policy_loss, entropy_loss, gx_value_loss, loss_final_t, percent, newPi_actionLogProb, ppo_valid_percent, probs_loss = self.get_loss(flag, sample)
-                ppo_valid_percent_list.append(ppo_valid_percent)
-                g_value_loss_epoch += gx_value_loss.item() / num_updates
-                g_action_loss_epoch += policy_loss.item() / num_updates
-                g_dist_entropy_epoch += entropy_loss.item() / num_updates
-                error_loss_epoch += percent / num_updates
-                probs_loss_epoch += probs_loss.item() / num_updates
-                if flag == 'train_R':
-                    loss_final += loss_final_t * self.loss_bias
-                if flag == 'train_L':
-                    loss_final += loss_final_t * (1 - self.loss_bias)
+                for flag, sample in zip(['train_R','train_L'], [sample1,sample2]):
+                    policy_loss, entropy_loss, gx_value_loss, error_act_loss, loss_final_t = self.get_loss(flag, sample)
+                    g_value_loss_epoch += gx_value_loss.item() / num_updates
+                    g_action_loss_epoch += policy_loss.item() / num_updates
+                    g_dist_entropy_epoch += entropy_loss.item() / num_updates
+                    error_act_loss_epoch += error_act_loss.item() / num_updates
+                    if flag == 'train_R':
+                        loss_final += loss_final_t * self.loss_bias
+                    if flag == 'train_L':
+                        loss_final += loss_final_t * (1 - self.loss_bias)
+
                 loss_final.backward()
                 nn.utils.clip_grad_norm_(self.policy_and_critic.parameters(), self.max_grad_norm)
-                # grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach()) for p in self.policy_and_critic.parameters() if p.grad is not None]))
-                # print('grad_norm', grad_norm)
                 self.g_optimizer.step()
-
             pass # finish small batch update
         pass # finish all epoch update
-        print亮黄(ppo_valid_percent_list)
-        self.mcv.rec(g_value_loss_epoch, 'value loss')
-        self.mcv.rec(g_action_loss_epoch, 'policy loss')
-        self.mcv.rec(g_dist_entropy_epoch, 'entropy loss')
-        self.mcv.rec_show()
         self.ppo_update_cnt += 1
-        print亮靛('value loss', g_value_loss_epoch, 'policy loss',g_action_loss_epoch, 'entropy loss',g_dist_entropy_epoch, 'error percent', error_loss_epoch,'probs loss',probs_loss_epoch)
+        print亮靛('value loss', g_value_loss_epoch, 'policy loss',g_action_loss_epoch, 'entropy loss',g_dist_entropy_epoch)
         return self.ppo_update_cnt
 
-# np.concatenate([getattr(traj, 'return_L') for traj in traj_pool], axis=0)
-# np.concatenate([getattr(traj, 'value_L') for traj in traj_pool], axis=0)
+
     def 轨迹采样(self, traj_pool, flag):
         container = {}
 
         if flag=='train_R':
-            req_dict =        ['g_obs', 'g_actions', 'g_actionLogProbs_R', 'return_R', 'value_R',   ]
-            req_dict_rename = ['g_obs', 'g_actions', 'g_actionLogProbs'  , 'return'  , 'state_value', ]
+            req_dict =        ['g_obs', 'g_actions', 'g_actionLogProbs_R', 'return', 'state_value',  'ctr_mask_R' ]
+            req_dict_rename = ['g_obs', 'g_actions', 'g_actionLogProbs'  , 'return', 'state_value',  'ctr_mask']
         elif flag=='train_L':
-            req_dict =        ['g_obs', 'g_actions', 'g_actionLogProbs_L', 'return_L', 'value_L',    ]
-            req_dict_rename = ['g_obs', 'g_actions', 'g_actionLogProbs'  , 'return'  , 'state_value',]
+            req_dict =     [   'g_obs', 'g_actions', 'g_actionLogProbs_L', 'return', 'state_value', 'ctr_mask_L']
+            req_dict_rename = ['g_obs', 'g_actions', 'g_actionLogProbs'  , 'return', 'state_value', 'ctr_mask']
 
         return_rename = "return"
         value_rename =  "state_value"
@@ -149,50 +139,31 @@ class PPO():
         # advantage A(s_t):    $batch.$1.(advantage)                       used in [policy reinforce],
         action =    _2tensor(sample['g_actions'])
         # action:      $batch.$2.(two actions)                     not used yet
-        oldPi_actionLogProb = _2tensor(sample['g_actionLogProbs'])
-        # oldPi_actionLogProb:  $batch.$1.(the output from act)        used in [clipped version of value loss],
+        log_p_action = _2tensor(sample['g_actionLogProbs'])
+        # log_p_action:  $batch.$1.(the output from act)             used in [clipped version of value loss],
         real_value =   _2tensor(sample['return'])
         # real_value:       $batch.$1.(r_t0+r_t1+r_t2+...)
+        # g_value_preds_batch = _2tensor(sample['state_value'])
+        # g_value_preds_batch:  $batch.$1.(V(s_t) from act)
+        # mirror raw_obs, state, mask, action
+        ctr_mask = _2tensor(sample['ctr_mask'])
 
 
         if flag == 'train_R':
-            newPi_value, newPi_actionLogProb, entropy_loss, probs, _,_,_,_, others = self.policy_and_critic.evaluate_actions(obs, action)
+            newPi_value, gx_actionLogProbs, entropy_loss, probs_, _,_,_,_ = self.policy_and_critic.evaluate_actions(obs, action)
         elif flag == 'train_L':
-            _,_,_,_, newPi_value, newPi_actionLogProb, entropy_loss, probs, others = self.policy_and_critic.evaluate_actions(obs, action)
+            _,_,_,_, newPi_value, gx_actionLogProbs, entropy_loss, probs_ = self.policy_and_critic.evaluate_actions(obs, action)
         else:
             assert False
 
-        batchsize = newPi_actionLogProb.shape[0]
-        if self.batch_size_reminder:
-            print亮红('the batch size in each ppo update is %d'%batchsize); self.batch_size_reminder = False
-            
-        n_actions = probs.shape[-1]
-        assert n_actions <= 15  # 
-        penalty_prob_line = 0.02
-        if GlobalConfig.add_prob_loss:
-            probs_loss = (penalty_prob_line - torch.clamp(probs, min=0, max=penalty_prob_line)).mean()
-        else:
-            probs_loss = 0
-        # ratio = torch.exp(newPi_actionLogProb - oldPi_actionLogProb)
-        # surr1 = ratio * advantage
-        # surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * advantage
-        # policy_loss = -torch.min(surr1, surr2).mean()
 
-        E = newPi_actionLogProb - oldPi_actionLogProb
-        E_clip = torch.zeros_like(E)
-        E_clip = torch.where(advantage > 0, torch.clamp(E, max=np.log(1.0+self.clip_param)), E_clip) #  ratio_final = torch.where(advantage > 0, torch.clamp(ratio, min=0, max=(1.0+self.clip_param)), ratio_final) 
-        E_clip = torch.where(advantage < 0, torch.clamp(E, min=np.log(1.0-self.clip_param), max=np.log(5) ), E_clip)  # ratio_final = torch.where(advantage < 0, torch.clamp(ratio, min=(1.0-self.clip_param),  max=3), ratio_final)
-        ratio = torch.exp(E_clip)
-        # # print('unclipped ratio: %.2f%%'%(((E_clip == (newPi_actionLogProb - oldPi_actionLogProb)).int().sum()/batchsize).item()*100) )
-        policy_loss = -(ratio*advantage).mean()
+        error_act_loss = (ctr_mask*probs_).mean()
 
-        value_loss = 0.5 * F.mse_loss(real_value, newPi_value)
-
-        loss_final =  policy_loss   +value_loss*self.value_loss_coef   -entropy_loss*self.entropy_coef + probs_loss*20
-
-        percent = 0
-        ppo_valid_percent = ((E_clip == E).int().sum()/batchsize).item()
-        return policy_loss, entropy_loss, value_loss, loss_final, percent, newPi_actionLogProb, ppo_valid_percent, probs_loss
-
-
+        ratio = torch.exp(gx_actionLogProbs - log_p_action)
+        surr1 = ratio * advantage
+        surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * advantage
+        policy_loss = -torch.min(surr1, surr2).mean()
+        gx_value_loss = 0.5 * F.mse_loss(real_value, newPi_value)
+        loss_final = (gx_value_loss * self.value_loss_coef + policy_loss - entropy_loss * self.entropy_coef + error_act_loss * self.invalid_penalty)
+        return policy_loss, entropy_loss, gx_value_loss, error_act_loss, loss_final
 

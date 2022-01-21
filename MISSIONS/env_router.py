@@ -7,6 +7,7 @@ import_path_ref = {
     "sc2": ("MISSIONS.starcraft.sc2_env_wrapper",                                               'ScenarioConfig'),
     "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'ScenarioConfig'),
     "sr_tasks->cargo": ("MISSIONS.sr_tasks.multiagent.scenarios.cargo",                         'ScenarioConfig'),
+    "sr_tasks->hunter_invader": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader",       'ScenarioConfig'),
 }
 
 env_init_function_ref = {

@@ -1,51 +1,99 @@
 import os, torch
 import numpy as np
 from numba import njit, jit
-from colorful import *
-from gcortex import GNet
-from rlcore.algo.ppo import PPO
-from z_config import GlobalConfig
-from trajectory import BatchTrajManager
-from my_utils import copy_clone, my_view, add_onehot_id_at_last_dim, add_obs_container_subject
+from UTILS.colorful import *
+from .gcortex import GNet
+from .ppo import PPO
+from .trajectory import BatchTrajManager
+from .my_utils import copy_clone, my_view, add_onehot_id_at_last_dim, add_obs_container_subject
 import pickle
 DEBUG = True
+
+class CoopAlgConfig(object):
+    g_num = 5
+    max_internal_step = 10
+    decision_interval = 200
+    head_start_cnt = 5 # first 3 step have 
+    head_start_hold_n = 5 # how many to control at first few step
+
+    eval_mode = False
+
+
+    checkpoint_reload_cuda = False
+    load_checkpoint = False
+    load_specific_checkpoint = ''
+    one_more_container = False
+    reverse_container = False
+    use_fixed_random_start = True
+    use_zero_start = False 
+    use_empty_container = False
+    use_complete_random = False
+
+    # PPO part
+    clip_param = 0.2
+    ppo_epoch = 16
+    n_pieces_batch_division = 1    # 8: the batch size in each ppo update is 23280; x/8 *1.5 = x/y, y=8/1.5
+    value_loss_coef = 0.1
+    entropy_coef = 0.05
+    max_grad_norm = 0.5
+    clip_param = 0.2
+    lr = 1e-4
+    balance = 0.5
+    
+    gamma = 0.99
+    tau = 0.95
+    # ?
+    train_traj_needed = 128
+    upper_training_epoch = 5
+    h_reward_on_R = True
+    continues_type_ceil = True
+    invalid_penalty = 0.1
+
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
+        from config import GlobalConfig
         self.n_thread = n_thread
         self.n_agent = n_agent
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
-        self.n_cluster = GlobalConfig.g_num
-        self.n_basic_dim = GlobalConfig.basic_vec_len
-        self.n_entity = GlobalConfig.scenario_config.num_entity
-        self.agent_uid = GlobalConfig.scenario_config.uid_dictionary['agent_uid']
-        self.entity_uid = GlobalConfig.scenario_config.uid_dictionary['entity_uid']
-        self.n_object = GlobalConfig.scenario_config.num_object
-        self.max_internal_step = GlobalConfig.max_internal_step
-        self.head_start_cnt = GlobalConfig.head_start_cnt
-        self.decision_interval = GlobalConfig.decision_interval
-        self.head_start_hold_n = GlobalConfig.head_start_hold_n
-        # self.test_env = GlobalConfig.test_env
+        self.n_cluster = CoopAlgConfig.g_num
+        scenario_config = GlobalConfig.scenario_config
+        self.note = GlobalConfig.note
+
+        self.n_basic_dim = scenario_config.obs_vec_length
+        self.n_entity = scenario_config.num_entity
+        self.agent_uid = scenario_config.uid_dictionary['agent_uid']
+        self.entity_uid = scenario_config.uid_dictionary['entity_uid']
+        self.n_object = scenario_config.num_object
+
+        self.max_internal_step = CoopAlgConfig.max_internal_step
+        self.head_start_cnt = CoopAlgConfig.head_start_cnt
+        self.decision_interval = CoopAlgConfig.decision_interval
+        self.head_start_hold_n = CoopAlgConfig.head_start_hold_n
+
         self.device = GlobalConfig.device
-        self.policy = GNet(num_agents=self.n_agent, num_entities=self.n_entity).to(self.device)
-        # self.policy = torch.nn.DataParallel(self.policy).module
-        # print(self.policy)
+        cuda_n = 'cpu' if 'cpu' in self.device else GlobalConfig.device
+
+        self.policy = GNet(num_agents=self.n_agent, num_entities=self.n_entity, basic_vec_len=self.n_basic_dim).to(self.device)
         self.trainer = PPO(self.policy, mcv=mcv)
 
-        self.batch_traj_manager = BatchTrajManager(n_env=n_thread, traj_limit=GlobalConfig.traj_limit, trainer_hook=self.trainer.train_on_traj)
-        self.cold_start = True
+        self.batch_traj_manager = BatchTrajManager(n_env=n_thread, traj_limit=scenario_config.traj_limit, trainer_hook=self.trainer.train_on_traj)
 
         self._division_obsR_init = None
         self._division_obsL_init = None
-        self.load_checkpoint = GlobalConfig.load_checkpoint
+        self.load_checkpoint = CoopAlgConfig.load_checkpoint
 
 
-        note = GlobalConfig.note
-        if not os.path.exists('./checkpoint/%s/'%note): 
-            os.makedirs('./checkpoint/%s/'%note)
+        self.logdir = GlobalConfig.logdir
+        if not os.path.exists('%s/history_cpt/'%self.logdir): os.makedirs('%s/history_cpt/'%self.logdir)
         if self.load_checkpoint:
-            print黄('加载检查点')
-            self.policy.load_state_dict(torch.load('./checkpoint/%s/model.pt'%note))
+            manual_dir = CoopAlgConfig.load_specific_checkpoint
+            ckpt_dir = '%s/model.pt'%self.logdir if manual_dir=='' else '%s/%s'%(self.logdir, manual_dir)
+            print黄('加载检查点:', ckpt_dir)
+            if not CoopAlgConfig.checkpoint_reload_cuda:
+                self.policy.load_state_dict(torch.load(ckpt_dir))
+            else:
+                self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n))
         
         
         t = [np.ceil(self.max_internal_step) if x<self.head_start_cnt  else 1.0 if x%self.decision_interval==0 else 0.0  
@@ -64,29 +112,38 @@ class ReinforceAlgorithmFoundation(object):
             update_cnt = self.batch_traj_manager.train_and_clear_traj_pool()
             self.save_model(update_cnt)
 
+    # def get_internal_step(self, n_step):
+    #     #n_internal_step = [np.ceil(self.max_internal_step  / 4**x ) if x<10 else 1.0 for x in n_step]
+
+    #     n_internal_step = [np.ceil(self.max_internal_step) if x<self.head_start_cnt 
+    #                             else 1.0 if x%self.decision_interval==0 else 0.0  for x in n_step]  # [5, 2, 1, 1, 1, 1, 1
+    #     n_internal_step = np.array(n_internal_step, dtype=np.int)
+
+    #     hold_n = [np.ceil(self.head_start_hold_n / 4**x ) if x<self.head_start_cnt  else 1.0  for x in n_step]        # [5, 2, 1, 0, 0, 0,
+    #     hold_n = np.array(hold_n, dtype=np.int)
+
+    #     return n_internal_step, hold_n
+
     def get_internal_step(self, n_step):
-        #n_internal_step = [np.ceil(self.max_internal_step  / 4**x ) if x<10 else 1.0 for x in n_step]
-
-        n_internal_step = [np.ceil(self.max_internal_step) if x<self.head_start_cnt 
-                                else 1.0 if x%self.decision_interval==0 else 0.0  for x in n_step]  # [5, 2, 1, 1, 1, 1, 1
+        if CoopAlgConfig.continues_type_ceil:
+            n_internal_step =  [np.ceil(self.max_internal_step  / 4**x ) if x<3 else 1.0 if x%20==0 else 0.0  for x in n_step]
+        else:   
+            n_internal_step = [np.floor(self.max_internal_step / 4**x )
+                            if x<10 else 0.0 for x in n_step]
         n_internal_step = np.array(n_internal_step, dtype=np.int)
-
-        hold_n = [np.ceil(self.head_start_hold_n / 4**x ) if x<self.head_start_cnt  else 1.0  for x in n_step]        # [5, 2, 1, 0, 0, 0,
-        hold_n = np.array(hold_n, dtype=np.int)
-
-        return n_internal_step, hold_n
+        # print黄(n_internal_step)
+        return n_internal_step
 
     def action_making(self, State_Recall):
         # 使用上一次的traj_frag和刚获取的奖励值，向轨迹中加入新的样本点
         raw_obs, co_step, cter_fifoR, subj_div_R, cter_fifoL, subj_div_L = self.read_loopback(State_Recall)
-        just_got_reset = copy_clone(State_Recall['Env-Suffered-Reset'])
-        all_emb, act_dec = self.regroup_obs(raw_obs, div_R=subj_div_R, div_L=subj_div_L, g=True)
+        all_emb, act_dec = self.regroup_obs(raw_obs, div_R=subj_div_R, div_L=subj_div_L)
 
         # ________RL_Policy_Core_______
-        thread_internal_step_o,  hold_n_o = self.get_internal_step(State_Recall['Current-Obs-Step'])
+        thread_internal_step_o = self.get_internal_step(State_Recall['Current-Obs-Step'])
         thread_internal_step = thread_internal_step_o
         iter_n = np.max(thread_internal_step)
-        # print紫(thread_internal_step_o[0], hold_n[0], State_Recall['Current-Obs-Step'][0])
+        # print紫(threads_active_flag)
 
         for _ in range(iter_n):
             threads_active_flag = thread_internal_step > 0
@@ -98,86 +155,69 @@ class ReinforceAlgorithmFoundation(object):
             Active_div_L = subj_div_L[threads_active_flag]
             Active_cter_fifoR = cter_fifoR[threads_active_flag]
             Active_cter_fifoL = cter_fifoL[threads_active_flag]
-            hold_n = hold_n_o[threads_active_flag]
-            reset = just_got_reset[threads_active_flag]
+            
             Active_emb, Active_act_dec = self.regroup_obs(Active_raw_obs, div_R=Active_div_R, div_L=Active_div_L)
             with torch.no_grad():
                 Active_action, Active_value_top, Active_value_bottom, Active_action_log_prob_R, Active_action_log_prob_L = self.policy.act(Active_emb)
-            self.batch_traj_manager.feed_traj(
-                {   'skip':                 ~threads_active_flag,           'done':                 False,
-                    'value_R':              Active_value_top,               'value_L':              Active_value_bottom,
-                    'g_actionLogProbs_R':   Active_action_log_prob_R,       'g_actionLogProbs_L':   Active_action_log_prob_L,
-                    'g_obs':                Active_emb,                     'g_actions':            Active_action,
-                    'ctr_mask_R':           (Active_cter_fifoR < 0).all(2).astype(np.long),  'num_each_cluster_R': (Active_cter_fifoR > 0).sum(2), 
-                    'ctr_mask_L':           (Active_cter_fifoL < 0).all(2).astype(np.long), 
-                    'reward':               np.zeros_like(Active_value_top)
-                }, require_hook=False)
-
+            traj_frag = {   'skip':                 ~threads_active_flag,           'done':                 False,
+                            'value_R':              Active_value_top,               'value_L':              Active_value_bottom,
+                            'g_actionLogProbs_R':   Active_action_log_prob_R,       'g_actionLogProbs_L':   Active_action_log_prob_L,
+                            'g_obs':                Active_emb,                     'g_actions':            Active_action,
+                            'ctr_mask_R':           (Active_cter_fifoR < 0).all(2).astype(np.long),
+                            'ctr_mask_L':           (Active_cter_fifoL < 0).all(2).astype(np.long),
+                            'reward':               np.zeros_like(Active_value_top)}
             # _______Internal_Environment_Step________
             container_actR = copy_clone(Active_action[:,(0,1)])
-            cluster_entity = Active_action[:,2:]
-            # cluster_entity[:, 0] = 0
-            # cluster_entity[:, 1] = 1
-            # cluster_entity[:, 2] = 2
-            # cluster_entity[:, 3] = 3 # --> 8
-            # cluster_entity[:, 4] = 4 # --> 9
-            # for x, r in enumerate(reset):
-            #     if not r:
-            #         cluster_entity[x, 3] =  8
-            #         cluster_entity[x, 4] =  9
-
-            assert cluster_entity.shape[1] == self.n_cluster
-
-            Active_div_L = cluster_entity
-            # container_actL = copy_clone(Active_action[:,(2,3)])
-            Active_div_R, Active_cter_fifoR = self.根据动作交换组成员(container_actR, div=Active_div_R, fifo=Active_cter_fifoR, hold_n=hold_n)
-            # Active_div_L, Active_cter_fifoL = self.根据动作交换组成员(container_actL, div=Active_div_L, fifo=Active_cter_fifoL)
-            # if threads_active_flag[0]: print绿(Active_div_R[0], Active_div_L[0], Active_action[0])
+            container_actL = copy_clone(Active_action[:,(2,3)])
+            Active_div_R, Active_cter_fifoR = self.根据动作交换组成员(container_actR, div=Active_div_R, fifo=Active_cter_fifoR)
+            Active_div_L, Active_cter_fifoL = self.根据动作交换组成员(container_actL, div=Active_div_L, fifo=Active_cter_fifoL)
+            # if threads_active_flag[0]: print红(Active_div_R[0], Active_div_L[0], Active_action[0])
             subj_div_R[threads_active_flag] = Active_div_R
             cter_fifoR[threads_active_flag] = Active_cter_fifoR
             subj_div_L[threads_active_flag] = Active_div_L
             cter_fifoL[threads_active_flag] = Active_cter_fifoL
+            self.batch_traj_manager.feed_traj(traj_frag, require_hook=False)
             thread_internal_step = thread_internal_step - 1
 
         traj_frag = {
-            'skip': False, 'g_obs': None, 'value_R': None,'value_L': None, 'g_actions': None, 
-            'g_actionLogProbs_R': None, 'g_actionLogProbs_L': None, 'ctr_mask_R': None, 'ctr_mask_L': None, 'num_each_cluster_R':None
+            'skip': False, 'g_obs': None, 'value_R': None,'value_L': None, 'g_actions': None,
+            'g_actionLogProbs_R': None, 'g_actionLogProbs_L': None, 'ctr_mask_R': None, 'ctr_mask_L': None,
         }
 
-        delta_pos, agent_entity_div = self.组成员目标分配(subj_div_R, subj_div_L, act_dec)
-        # if thread_internal_step_o[0] > 0: print绿(agent_entity_div[0])
+        delta_pos, agent_entity_div = self.组成员目标分配(subj_div_R, subj_div_L, cter_fifoR, cter_fifoL, act_dec)
+        # if thread_internal_step_o[0] > 0: print红(agent_entity_div[0])
         all_action = self.dir_to_action(vec=delta_pos, vel=act_dec['agent_vel']) # 矢量指向selected entity
         actions_list = []
         for i in range(self.n_agent): actions_list.append(all_action[:,i,:])
-
+        actions_list = np.array(actions_list)
 
         # return necessary handles to main platform
         traj_hook = self.batch_traj_manager.feed_traj(traj_frag, require_hook=True)
         State_Recall['_hook_'] = traj_hook  # leave a hook to grab the reward signal just a moment later
         State_Recall = self.loopback_state(State_Recall, cter_fifoR, subj_div_R, cter_fifoL, subj_div_L)
-        if self.cold_start: self.cold_start = False
         return actions_list, State_Recall # state_recall dictionary will preserve states for next action making
 
 
 
 
     def read_loopback(self, State_Recall):
-        _n_cluster = self.n_cluster if not GlobalConfig.one_more_container else self.n_cluster+1
+        _n_cluster = self.n_cluster if not CoopAlgConfig.one_more_container else self.n_cluster+1
         n_container_R = _n_cluster
         n_subject_R = self.n_agent
-        n_container_L = self.n_entity if not GlobalConfig.reverse_container else _n_cluster
-        n_subject_L = _n_cluster if not GlobalConfig.reverse_container else self.n_entity
-
-        if self.cold_start:
-            assert not '_division_obsR_' in State_Recall  # 第一次运行
-            State_Recall['_division_obsR_'] = np.zeros(shape=(self.n_thread, n_subject_R), dtype=np.long)
-            State_Recall['_division_obsL_'] = np.zeros(shape=(self.n_thread, n_subject_L), dtype=np.long)
-            State_Recall['_division_fifoR_'] = np.ones(shape=(self.n_thread, n_container_R, n_subject_R), dtype=np.long) * -1
-            State_Recall['_division_fifoL_'] = np.ones(shape=(self.n_thread, n_container_L, n_subject_L), dtype=np.long) * -1
+        n_container_L = self.n_entity if not CoopAlgConfig.reverse_container else _n_cluster
+        n_subject_L = _n_cluster if not CoopAlgConfig.reverse_container else self.n_entity
 
         raw_obs = copy_clone(State_Recall['Latest-Obs'])
         just_got_reset = copy_clone(State_Recall['Env-Suffered-Reset'])
         co_step = copy_clone(State_Recall['Current-Obs-Step'])
+
+        if '_division_obsR_' not in State_Recall:
+            State_Recall['_division_obsR_'] = np.zeros(shape=(self.n_thread, n_subject_R), dtype=np.long)
+            State_Recall['_division_obsL_'] = np.zeros(shape=(self.n_thread, n_subject_L), dtype=np.long)
+            State_Recall['_division_fifoR_'] = np.ones(shape=(self.n_thread, n_container_R, n_subject_R), dtype=np.long) * -1
+            State_Recall['_division_fifoL_'] = np.ones(shape=(self.n_thread, n_container_L, n_subject_L), dtype=np.long) * -1
+            self.处理组成员初始化(just_got_reset, State_Recall, init=True)
+
         self.处理组成员初始化(just_got_reset, State_Recall)
         # if a var named with with _x_ format, it will loop back at next iteration
         subj_div_R = copy_clone(State_Recall['_division_obsR_'])  
@@ -206,20 +246,20 @@ class ReinforceAlgorithmFoundation(object):
         return t_final[np.argmax(entropy)]
 
 
-    def 处理组成员初始化(self, just_got_reset, State_Recall):
+    def 处理组成员初始化(self, just_got_reset, State_Recall, init=False):
 
-        _n_cluster = self.n_cluster if not GlobalConfig.one_more_container else self.n_cluster+1
+        _n_cluster = self.n_cluster if not CoopAlgConfig.one_more_container else self.n_cluster+1
         n_container_R = _n_cluster
         n_subject_R = self.n_agent
-        n_container_L = self.n_entity if not GlobalConfig.reverse_container else _n_cluster
-        n_subject_L = _n_cluster if not GlobalConfig.reverse_container else self.n_entity
+        n_container_L = self.n_entity if not CoopAlgConfig.reverse_container else _n_cluster
+        n_subject_L = _n_cluster if not CoopAlgConfig.reverse_container else self.n_entity
  
         # fixed random init
-        if self.cold_start and GlobalConfig.use_fixed_random_start:
+        if init and CoopAlgConfig.use_fixed_random_start:
             assert self._division_obsR_init is None
-            note = GlobalConfig.note
             if self.load_checkpoint:
-                pkl_file = open('./checkpoint/%s/init.pkl'%note, 'rb')
+                
+                pkl_file = open('%s/history_cpt/init.pkl'%self.logdir, 'rb')
                 dict_data = pickle.load(pkl_file)
                 self._division_obsR_init = dict_data["_division_obsR_init"]
                 self._division_obsL_init = dict_data["_division_obsL_init"]
@@ -227,22 +267,22 @@ class ReinforceAlgorithmFoundation(object):
                 self._division_obsR_init = self.__random_select_init_value_(n_container_R, n_subject_R)
                 self._division_obsL_init = self.__random_select_init_value_(n_container_L, n_subject_L)
                 pickle.dump({"_division_obsR_init":self._division_obsR_init,\
-                             "_division_obsL_init":self._division_obsL_init}, open('./checkpoint/%s/init.pkl'%note,'wb+'))
+                             "_division_obsL_init":self._division_obsL_init}, open('%s/history_cpt/init.pkl'%self.logdir,'wb+'))
 
         for procindex in range(self.n_thread):
             if not just_got_reset[procindex]: continue # otherwise reset
-            if GlobalConfig.use_zero_start:
+            if CoopAlgConfig.use_zero_start:
                 _division_obsR_= np.zeros(shape=(n_subject_R, ), dtype=np.long)
                 _division_obsL_= np.zeros(shape=(n_subject_L, ), dtype=np.long)
-            elif GlobalConfig.use_fixed_random_start:
+            elif CoopAlgConfig.use_fixed_random_start:
                 assert self._division_obsR_init is not None
                 _division_obsR_ = self._division_obsR_init
                 _division_obsL_ = self._division_obsL_init
-            elif GlobalConfig.use_empty_container:
+            elif CoopAlgConfig.use_empty_container:
                 # 最后一个容器是全体，其他的全空
                 _division_obsR_= np.ones(shape=(n_subject_R, ), dtype=np.long) * (n_container_R - 1)
                 _division_obsL_= np.ones(shape=(n_subject_L, ), dtype=np.long) * (n_container_L - 1)
-            elif GlobalConfig.use_complete_random:
+            elif CoopAlgConfig.use_complete_random:
                 _division_obsR_ = self.__random_select_init_value_(n_container_R, n_subject_R)
                 _division_obsL_ = self.__random_select_init_value_(n_container_L, n_subject_L)
                 if procindex == 0: print绿(_division_obsR_)
@@ -266,56 +306,28 @@ class ReinforceAlgorithmFoundation(object):
         pass
 
     def save_model(self, update_cnt):
-        note = GlobalConfig.note
-        if os.path.exists('./checkpoint/%s/save_now.txt'%note) or update_cnt%100==99:
+        if update_cnt%100==99:
             print绿('保存模型中')
-            torch.save(self.policy.state_dict(), './checkpoint/%s/model.pt'%note)
+            torch.save(self.policy.state_dict(), '%s/history_cpt/init.pkl'%self.logdir)
             print绿('保存模型完成')
-            try:
-                os.remove('./checkpoint/%s/save_now.txt'%note)
-            except:
-                print('清除保存标志:异常')
-        # if update_cnt%200==199:
-        #     if self.decision_interval > 20: 
-        #         self.decision_interval -= 10
-        #     if self.decision_interval< 10:
-        #         self.decision_interval = 10
 
-    def 组成员目标分配(self, agent_cluster_div, cluster_entity_div, act_dec):
-        agent_cluster_div_ = agent_cluster_div.copy()
-        cluster_entity_div = cluster_entity_div.copy()   # 每个cluster在哪个entity容器中
-        n_thread = agent_cluster_div.shape[0]
+    def 组成员目标分配(self, agent_cluster_div, div2, cter_fifoR, cter_fifoL, act_dec):
         entity_pos, agent_pos = (act_dec['entity_pos'], act_dec['agent_pos'])
+        n_thread = agent_cluster_div.shape[0]
+        _n_cluster = self.n_cluster if not CoopAlgConfig.one_more_container else self.n_cluster+1
 
-        if DEBUG:
+        if not CoopAlgConfig.reverse_container:
+            cluster_entity_div = div2   # 每个cluster在哪个entity容器中
+        else:   # figure out cluster_entity_div with fifo # 每个cluster指向那个entity
+            cluster_entity_div = np.ones(shape=(n_thread, _n_cluster), dtype=np.long) * self.n_entity #point to n_entity+1
+            for thread, jth_cluster, pos in  np.argwhere(cter_fifoL >= 0):
+                cluster_entity_div[thread, jth_cluster] = cter_fifoL[thread, jth_cluster, pos]    # 指向队列中的最后一个目标
+            if CoopAlgConfig.one_more_container: 
+                cluster_entity_div[:,self.n_cluster] = self.n_entity
 
-            # part 1
-            # worker_target_sel = np.zeros(shape=(n_thread,self.n_agent, 1))
-            # for t in range(n_thread):
-            #     p = 0
-            #     for c in range(self.n_cargo):
-            #         if self.cargo_lifted[t,c]:
-            #             cluster_entity_div[t,c] = c+self.n_cargo
-            #         else:
-            #             cluster_entity_div[t,c] = c
-            #     cluster_entity_div[t,self.n_cargo] = 1+self.n_cargo
-            # part 2
-
-
-            worker_target_sel = np.zeros(shape=(n_thread,self.n_agent, 1))
-            for t in range(n_thread):
-                p = 0
-                for c, cw in enumerate(self.cargo_weight[t]):
-                    if cw > self.n_agent: continue
-                    for j in range(int(p), int(p+cw)):
-                        agent_cluster_div_[t,j] = c
-                    p = p+cw
-
-
-
-        agent_entity_div = np.take_along_axis(cluster_entity_div, axis=1, indices=agent_cluster_div_)
+        agent_entity_div = np.take_along_axis(cluster_entity_div, axis=1, indices=agent_cluster_div)
         final_indices = np.expand_dims(agent_entity_div, axis=-1).repeat(2, axis=-1)
-        if not GlobalConfig.reverse_container:
+        if not CoopAlgConfig.reverse_container:
             final_sel_pos = entity_pos
         else:   # 为没有装入任何entity的container解析一个nan动作
             final_sel_pos = np.concatenate( (entity_pos,  np.zeros(shape=(n_thread, 1, 2))+np.nan ) , axis=1)
@@ -358,12 +370,12 @@ class ReinforceAlgorithmFoundation(object):
 
 
     def regroup_obs(self,  main_obs, div_R, div_L, g=False):
-        _n_cluster = self.n_cluster if not GlobalConfig.one_more_container else self.n_cluster+1
+        _n_cluster = self.n_cluster if not CoopAlgConfig.one_more_container else self.n_cluster+1
 
         n_thread = main_obs.shape[0]
         about_all_objects = main_obs[:,0,:self.n_object*self.n_basic_dim]
-        objects_emb  = my_view(x=about_all_objects, shape=[0,-1,self.n_basic_dim])
-        agent_pure_emb = objects_emb[:,self.agent_uid,:]
+        agent_pure_emb    = main_obs[:, :, :self.n_object*self.n_basic_dim:-1]
+        objects_emb  = my_view(x=about_all_objects, shape=[0,-1,self.n_basic_dim]) # select one agent
         entity_pure_emb = objects_emb[:,self.entity_uid,:]
         cluster_pure_emb = np.zeros(shape=(n_thread, _n_cluster, 0)) # empty
 
@@ -372,7 +384,7 @@ class ReinforceAlgorithmFoundation(object):
         cluster_hot_emb = add_onehot_id_at_last_dim(cluster_pure_emb)
 
         cluster_hot_emb, agent_hot_emb  = add_obs_container_subject(container_emb=cluster_hot_emb, subject_emb=agent_hot_emb, div=div_R)
-        if not GlobalConfig.reverse_container:
+        if not CoopAlgConfig.reverse_container:
             entity_hot_emb, cluster_hot_emb = add_obs_container_subject(container_emb=entity_hot_emb, subject_emb=cluster_hot_emb, div=div_L)
         else:
             cluster_hot_emb, entity_hot_emb = add_obs_container_subject(container_emb=cluster_hot_emb, subject_emb=entity_hot_emb, div=div_L)
@@ -399,44 +411,6 @@ class ReinforceAlgorithmFoundation(object):
             'entity_pos': entity_pos,  # for decoding action
             'entity_vel': entity_vel  # for decoding action
         }
-
-
-
-        if DEBUG and g:
-            objects_emb  = my_view(x=about_all_objects, shape=[0,-1,self.n_basic_dim])
-
-            self.cargo_uid = GlobalConfig.scenario_config.uid_dictionary['entity_uid']
-            self.worker_uid = GlobalConfig.scenario_config.uid_dictionary['agent_uid']
-            self.dec_pos = GlobalConfig.scenario_config.obs_vec_dictionary['pos']
-            self.dec_mass = GlobalConfig.scenario_config.obs_vec_dictionary['mass']
-            self.dec_other = GlobalConfig.scenario_config.obs_vec_dictionary['other']
-            self.n_cargo = GlobalConfig.scenario_config.n_cargo
-
-
-            cargo_emb = objects_emb[:, self.cargo_uid]
-            worker_emb = objects_emb[:, self.worker_uid]
-
-
-            cargo_dropoff_pos = cargo_emb[:,:,self.dec_pos]
-            cargo_dropoff_weight = cargo_emb[:,:,self.dec_mass]
-
-            self.cargo_lifted = (cargo_emb[:,:,self.dec_other][:,:self.n_cargo] == 0)
-
-            self.worker_drag = worker_emb[:,:,self.dec_mass]
-            self.cargo_weight = (cargo_dropoff_weight[:, :self.n_cargo]+1)*(self.n_agent/self.n_cargo)
-
-
-
-
-
-
-
-
-
-
-
-
-
         return all_emb, act_dec
 
 

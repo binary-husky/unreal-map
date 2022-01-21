@@ -79,8 +79,7 @@ class ReinforceAlgorithmFoundation(object):
                                                    trainer_hook=self.trainer.train_on_traj)
         self.load_checkpoint = AlgorithmConfig.load_checkpoint
         logdir = GlobalConfig.logdir
-        if not os.path.exists('%s/history_cpt/'%logdir):
-            os.makedirs('%s/history_cpt/'%logdir)
+        if not os.path.exists('%s/history_cpt/'%logdir): os.makedirs('%s/history_cpt/'%logdir)
         if self.load_checkpoint:
             manual_dir = AlgorithmConfig.load_specific_checkpoint
             ckpt_dir = '%s/model.pt'%logdir if manual_dir=='' else '%s/%s'%(logdir, manual_dir)

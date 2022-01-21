@@ -71,6 +71,8 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     discrete_action = True
     max_steps_episode = 200
     arena_size = Unit(m=140)  #
+
+    traj_limit = 600
     
     hunter_num = 15
     invader_num = 5
@@ -125,6 +127,9 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     Invader_Spawn_Times = invader_num*2-invader_num
     invader_spawn_cd = 20
 
+    RewardAsUnity = True
+
+    render = False
 
 
 class Scenario(BaseScenario):
@@ -151,36 +156,72 @@ class Scenario(BaseScenario):
         self.rew_other = 0
         self.manual_render = None
         self.show_off = False if process_id != 0 else True
-        if self.show_off:
-            self.render_init()
-
-    def render_init(self):
-        from VISUALIZE.mcom import mcom
-        from z_config import GlobalConfig
-        note = GlobalConfig.note
-        self.mcv = mcom( offline=(not GlobalConfig.show_game), ip='127.0.0.1', 
-                           port=12084, path='./checkpoint/gamelogger/%s/'%note , digit=4, rapid_flush=True)
-        self.mcv.v2d_init()
+        if not ScenarioConfig.render: self.show_off = False
 
 
     def render(self):
+        if not hasattr(self, 'threejs_bridge'):
+            from VISUALIZE.mcom import mcom
+            self.threejs_bridge = mcom(ip='127.0.0.1', port=12084, path='RECYCLE/v2d_logger/', digit=8, rapid_flush=False, draw_mode='Threejs')
+            self.threejs_bridge.v2d_init()
+            # self.threejs_bridge.set_style('star')
+            self.threejs_bridge.set_style('grid')
+            self.threejs_bridge.set_style('gray')
+            self.threejs_bridge.use_geometry('monkey')
+            # self.threejs_bridge.geometry_rotate_scale_translate('monkey',0, 0,       np.pi/2, 1, 1, 1,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,       3, 2, 1,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,       3, 2, 1,         0,0,0)
+            # self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
+
         uid = 0
-        for index, invader in enumerate(self.invaders):
-            self.mcv.v2dx('cir|%d|r|2' % uid, invader.state.p_pos[0] * 20, invader.state.p_pos[1] * 20)
-            uid+=1
-            # if not invader.live:
-            #     self.mcv.v2dx('cir|%d|b|2' % index, invader.state.p_pos[0] * 20, invader.state.p_pos[1] * 20)
+        for index, agent in enumerate(self.invaders):
+            self.threejs_bridge.v2dx(
+                '%s|%d|%s|0.05'%('ball', uid, 'red'),
+                agent.state.p_pos[0],   # x coordinate
+                agent.state.p_pos[1],   # y coordinate
+                1,
+                ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
+                label='', label_color='white', attack_range=0)
+            uid += 1
 
-        for index, hunter in enumerate(self.hunters):
-            self.mcv.v2dx('rec|%d|b|2' % uid, hunter.state.p_pos[0] * 20, hunter.state.p_pos[1] * 20)
-            uid+=1
+        for index, agent in enumerate(self.hunters):
+            self.threejs_bridge.v2dx(
+                '%s|%d|%s|0.02'%('ball', uid, 'blue'),
+                agent.state.p_pos[0], 
+                agent.state.p_pos[1], 
+                1,
+                ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
+                label='', label_color='white', attack_range=0)
+            uid += 1
 
-        for index, landmark in enumerate(self.landmarks):
-            self.mcv.v2dx('cir|%d|g|4' % uid, landmark.state.p_pos[0] * 20, landmark.state.p_pos[1] * 20)
-            uid+=1
+        for index, agent in enumerate(self.landmarks):
+            self.threejs_bridge.v2dx(
+                '%s|%d|%s|0.1'%('box', uid, 'green'),
+                agent.state.p_pos[0], agent.state.p_pos[1], 0,
+                ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
+                label='', label_color='white', attack_range=0)
+            uid += 1      
+        self.threejs_bridge.v2d_show()
 
-        self.mcv.xlabel('step: %d,reward: %.2f'%(self.step, self.reward_sample))
-        self.mcv.drawnow()
+    def render_old(self):
+        assert  False
+        # uid = 0
+        # for index, invader in enumerate(self.invaders):
+        #     self.mcv.v2dx('cir|%d|r|2' % uid, invader.state.p_pos[0] * 20, invader.state.p_pos[1] * 20)
+        #     uid+=1
+        #     # if not invader.live:
+        #     #     self.mcv.v2dx('cir|%d|b|2' % index, invader.state.p_pos[0] * 20, invader.state.p_pos[1] * 20)
+
+        # for index, hunter in enumerate(self.hunters):
+        #     self.mcv.v2dx('rec|%d|b|2' % uid, hunter.state.p_pos[0] * 20, hunter.state.p_pos[1] * 20)
+        #     uid+=1
+
+        # for index, landmark in enumerate(self.landmarks):
+        #     self.mcv.v2dx('cir|%d|g|4' % uid, landmark.state.p_pos[0] * 20, landmark.state.p_pos[1] * 20)
+        #     uid+=1
+
+        # self.mcv.xlabel('step: %d,reward: %.2f'%(self.step, self.reward_sample))
+        # self.mcv.drawnow()
         return
 
     def scenario_step(self, agent, world):
@@ -278,8 +319,8 @@ class Scenario(BaseScenario):
         invaders = self.invaders
         landmars = self.landmarks
         # 初始化奖励列表
-        hunter_reward = np.array([0.] * self.num_hunters)
-        invader_reward = np.array([0.] * self.num_invaders)
+        hunter_reward = 0.0
+        invader_reward = 0.0
         # 计算距离矩阵（agent2agent）
 
 
@@ -303,8 +344,8 @@ class Scenario(BaseScenario):
             hunter_reward = hunter_reward - LANDMARK_DESTORYED_REV_REWARD
             invader_reward = invader_reward + LANDMARK_DESTORYED_REV_REWARD
 
-        self.reward_sample += hunter_reward[0]
-        return invader_reward.tolist() + hunter_reward.tolist()
+        self.reward_sample += hunter_reward
+        return [invader_reward, hunter_reward]
 
     def check_invader_tracking_and_slow_down(self, hunters, invaders):
         # detect speed down and hunt result 二重循环，对出现在周围的invader造成减速
@@ -403,12 +444,12 @@ class Scenario(BaseScenario):
     def invaders(self, world):
         return [agent for agent in world.agents if agent.IsInvader]
 
-    def reward(self, agent, world):
+    def reward(self, world):
         assert self.joint_rewards is not None
-        reward = self.joint_rewards[agent.iden]
-        if agent.iden == self.num_agents:
-            self.joint_rewards = None
-        return reward
+        # reward = self.joint_rewards[agent.iden]
+        # if agent.iden == self.num_agents:
+        #     self.joint_rewards = None
+        return self.joint_rewards
 
     def get_distance_landmark(self):
         hunters = self.hunters
