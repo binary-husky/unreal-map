@@ -17,6 +17,8 @@ def sr_tasks_env(env_id, rank):
     world = scenario.make_world()
     if env_id == 'hunter_invader':
         from multiagent.environment_hi import MultiAgentEnv
+    elif env_id == 'hunter_invader3d':
+        from multiagent.environment_hi3d import MultiAgentEnv
     else:
         from multiagent.environment import MultiAgentEnv
     env = MultiAgentEnv(world=world,

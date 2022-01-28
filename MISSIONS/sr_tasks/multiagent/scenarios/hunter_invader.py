@@ -169,37 +169,44 @@ class Scenario(BaseScenario):
             self.threejs_bridge.set_style('gray')
             self.threejs_bridge.use_geometry('monkey')
             # self.threejs_bridge.geometry_rotate_scale_translate('monkey',0, 0,       np.pi/2, 1, 1, 1,         0,0,0)
-            self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,       3, 2, 1,         0,0,0)
-            self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,       3, 2, 1,         0,0,0)
-            # self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
+            self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,       1, 1, 3,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,       1, 1, 1,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
 
         uid = 0
-        for index, agent in enumerate(self.invaders):
+        for agent in self.invaders:
             self.threejs_bridge.v2dx(
-                '%s|%d|%s|0.05'%('ball', uid, 'red'),
+                'cone|%d|red|0.05'%uid,
                 agent.state.p_pos[0],   # x coordinate
                 agent.state.p_pos[1],   # y coordinate
-                1,
-                ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
-                label='', label_color='white', attack_range=0)
+                1,                      # z coordinate
+                ro_x=0, ro_y=0, ro_z=0, # rotation
+                label='', 
+                label_color='white', 
+                opacity=1 if agent.live else 0
+            )
             uid += 1
-
-        for index, agent in enumerate(self.hunters):
+        for agent in self.hunters:
             self.threejs_bridge.v2dx(
-                '%s|%d|%s|0.02'%('ball', uid, 'blue'),
+                'ball|%d|blue|0.02'%uid,
                 agent.state.p_pos[0], 
                 agent.state.p_pos[1], 
                 1,
                 ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
-                label='', label_color='white', attack_range=0)
+                label='', label_color='white',
+                opacity=1 if agent.live else 0
+            )
             uid += 1
-
-        for index, agent in enumerate(self.landmarks):
+        for agent in self.landmarks:
             self.threejs_bridge.v2dx(
-                '%s|%d|%s|0.1'%('box', uid, 'green'),
-                agent.state.p_pos[0], agent.state.p_pos[1], 0,
+                'box|%d|green|0.1'%uid,
+                agent.state.p_pos[0], 
+                agent.state.p_pos[1], 
+                0.9,
                 ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
-                label='', label_color='white', attack_range=0)
+                label='', label_color='white', 
+                opacity=1
+            )
             uid += 1      
         self.threejs_bridge.v2d_show()
 
@@ -415,8 +422,7 @@ class Scenario(BaseScenario):
         self.reward_sample = 0
         self.invader_spawn_time_left = self.Invader_Spawn_Times
         self.indader_left_to_hunt = self.Invader_To_Intercept
-        if self.show_off:
-            print('reset world')
+  
 
     def spawn_vip_landmark(self, world):
         theta = np.random.rand() * 2 * np.pi - np.pi

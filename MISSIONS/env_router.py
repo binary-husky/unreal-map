@@ -8,6 +8,7 @@ import_path_ref = {
     "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'ScenarioConfig'),
     "sr_tasks->cargo": ("MISSIONS.sr_tasks.multiagent.scenarios.cargo",                         'ScenarioConfig'),
     "sr_tasks->hunter_invader": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader",       'ScenarioConfig'),
+    "sr_tasks->hunter_invader3d": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d",   'ScenarioConfig'),
 }
 
 env_init_function_ref = {

@@ -29,9 +29,8 @@ class PPO():
         self.mcv = mcv
         self.ppo_update_cnt = 0
         self.loss_bias =  CoopAlgConfig.balance
-        self.batch_size_reminder = True
 
-    def train_on_traj(self, traj_pool):
+    def train_on_traj(self, traj_pool, task):
 
         # print(traj_pool) 从轨迹中采样
         g_value_loss_epoch = 0
@@ -41,29 +40,29 @@ class PPO():
         self.train_switch = not self.train_switch
         num_updates = self.ppo_epoch * self.n_pieces_batch_division
 
+        if task == 'train_R':
+            flag='train_R'
+            print('train_R')
+        elif task == 'train_L':
+            flag='train_L'
+            print('train_L')
+
         for e in range(self.ppo_epoch):
-            data_generator1 = self.轨迹采样(traj_pool, flag='train_R')
-            data_generator2 = self.轨迹采样(traj_pool, flag='train_L')
-            n_batch1 = next(data_generator1)
-            n_batch2 = next(data_generator2)
-            assert n_batch1 == n_batch2
-
-            for small_batch in range(n_batch1):
-                sample1 = next(data_generator1)
-                sample2 = next(data_generator2)
-
+            data_generator = self.轨迹采样(traj_pool, flag=flag)
+            n_batch = next(data_generator)
+            for small_batch in range(n_batch):
+                sample = next(data_generator)
                 self.g_optimizer.zero_grad()
                 loss_final = 0
-                for flag, sample in zip(['train_R','train_L'], [sample1,sample2]):
-                    policy_loss, entropy_loss, gx_value_loss, error_act_loss, loss_final_t = self.get_loss(flag, sample)
-                    g_value_loss_epoch += gx_value_loss.item() / num_updates
-                    g_action_loss_epoch += policy_loss.item() / num_updates
-                    g_dist_entropy_epoch += entropy_loss.item() / num_updates
-                    error_act_loss_epoch += error_act_loss.item() / num_updates
-                    if flag == 'train_R':
-                        loss_final += loss_final_t * self.loss_bias
-                    if flag == 'train_L':
-                        loss_final += loss_final_t * (1 - self.loss_bias)
+                policy_loss, entropy_loss, gx_value_loss, error_act_loss, loss_final_t = self.get_loss(flag, sample)
+                g_value_loss_epoch += gx_value_loss.item() / num_updates
+                g_action_loss_epoch += policy_loss.item() / num_updates
+                g_dist_entropy_epoch += entropy_loss.item() / num_updates
+                error_act_loss_epoch += error_act_loss.item() / num_updates
+                if flag == 'train_R':
+                    loss_final += loss_final_t * self.loss_bias
+                if flag == 'train_L':
+                    loss_final += loss_final_t * (1 - self.loss_bias)
 
                 loss_final.backward()
                 nn.utils.clip_grad_norm_(self.policy_and_critic.parameters(), self.max_grad_norm)
@@ -71,7 +70,7 @@ class PPO():
             pass # finish small batch update
         pass # finish all epoch update
         self.ppo_update_cnt += 1
-        print亮靛('value loss', g_value_loss_epoch, 'policy loss',g_action_loss_epoch, 'entropy loss',g_dist_entropy_epoch)
+        print亮靛('value loss', g_value_loss_epoch, 'policy loss',g_action_loss_epoch, 'entropy loss',g_dist_entropy_epoch,'invalid-action loss', error_act_loss_epoch)
         return self.ppo_update_cnt
 
 
@@ -79,11 +78,11 @@ class PPO():
         container = {}
 
         if flag=='train_R':
-            req_dict =        ['g_obs', 'g_actions', 'g_actionLogProbs_R', 'return', 'state_value',  'ctr_mask_R' ]
-            req_dict_rename = ['g_obs', 'g_actions', 'g_actionLogProbs'  , 'return', 'state_value',  'ctr_mask']
+            req_dict =        ['g_obs', 'g_actions', 'g_actionLogProbs_R', 'return_R', 'value_R',     'ctr_mask_R' ]
+            req_dict_rename = ['g_obs', 'g_actions', 'g_actionLogProbs'  , 'return',   'state_value', 'ctr_mask']
         elif flag=='train_L':
-            req_dict =     [   'g_obs', 'g_actions', 'g_actionLogProbs_L', 'return', 'state_value', 'ctr_mask_L']
-            req_dict_rename = ['g_obs', 'g_actions', 'g_actionLogProbs'  , 'return', 'state_value', 'ctr_mask']
+            req_dict =        ['g_obs', 'g_actions', 'g_actionLogProbs_L', 'return_L', 'value_L',     'ctr_mask_L']
+            req_dict_rename = ['g_obs', 'g_actions', 'g_actionLogProbs'  , 'return',   'state_value', 'ctr_mask']
 
         return_rename = "return"
         value_rename =  "state_value"
@@ -139,31 +138,29 @@ class PPO():
         # advantage A(s_t):    $batch.$1.(advantage)                       used in [policy reinforce],
         action =    _2tensor(sample['g_actions'])
         # action:      $batch.$2.(two actions)                     not used yet
-        log_p_action = _2tensor(sample['g_actionLogProbs'])
-        # log_p_action:  $batch.$1.(the output from act)             used in [clipped version of value loss],
+        oldPi_actionLogProb = _2tensor(sample['g_actionLogProbs'])
+        # oldPi_actionLogProb:  $batch.$1.(the output from act)        used in [clipped version of value loss],
         real_value =   _2tensor(sample['return'])
         # real_value:       $batch.$1.(r_t0+r_t1+r_t2+...)
-        # g_value_preds_batch = _2tensor(sample['state_value'])
-        # g_value_preds_batch:  $batch.$1.(V(s_t) from act)
-        # mirror raw_obs, state, mask, action
         ctr_mask = _2tensor(sample['ctr_mask'])
 
 
         if flag == 'train_R':
-            newPi_value, gx_actionLogProbs, entropy_loss, probs_, _,_,_,_ = self.policy_and_critic.evaluate_actions(obs, action)
+            newPi_value, newPi_actionLogProb, entropy_loss, probs_, _,_,_,_ = self.policy_and_critic.evaluate_actions(obs, action)
         elif flag == 'train_L':
-            _,_,_,_, newPi_value, gx_actionLogProbs, entropy_loss, probs_ = self.policy_and_critic.evaluate_actions(obs, action)
+            _,_,_,_, newPi_value, newPi_actionLogProb, entropy_loss, probs_ = self.policy_and_critic.evaluate_actions(obs, action)
         else:
             assert False
 
 
         error_act_loss = (ctr_mask*probs_).mean()
 
-        ratio = torch.exp(gx_actionLogProbs - log_p_action)
+        ratio = torch.exp(newPi_actionLogProb - oldPi_actionLogProb)
         surr1 = ratio * advantage
         surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * advantage
         policy_loss = -torch.min(surr1, surr2).mean()
-        gx_value_loss = 0.5 * F.mse_loss(real_value, newPi_value)
-        loss_final = (gx_value_loss * self.value_loss_coef + policy_loss - entropy_loss * self.entropy_coef + error_act_loss * self.invalid_penalty)
-        return policy_loss, entropy_loss, gx_value_loss, error_act_loss, loss_final
+        value_loss = 0.5 * F.mse_loss(real_value, newPi_value)
+        loss_final = policy_loss   +value_loss*self.value_loss_coef   -entropy_loss*self.entropy_coef   +error_act_loss * self.invalid_penalty
+        return policy_loss, entropy_loss, value_loss, error_act_loss, loss_final
+
 

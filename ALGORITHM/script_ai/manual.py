@@ -8,6 +8,152 @@ def to_cpu_numpy(x):
 class CoopAlgConfig():
     reserve = None
     
+
+class DummyAlgorithmFoundationHI3D():
+    def __init__(self, n_agent, n_thread, space, mcv):
+        from config import GlobalConfig
+        super().__init__()
+        self.n_agent = n_agent
+        scenario_config = GlobalConfig.scenario_config
+        self.num_entity = scenario_config.num_entity
+        self.landmark_uid = scenario_config.uid_dictionary['landmark_uid']
+        self.agent_uid = scenario_config.uid_dictionary['agent_uid']
+        self.entity_uid = scenario_config.uid_dictionary['entity_uid']
+        self.pos_decs = scenario_config.obs_vec_dictionary['pos']
+        self.vel_decs = scenario_config.obs_vec_dictionary['vel']
+        self.num_landmarks = len(self.landmark_uid)
+
+        self.invader_uid = scenario_config.uid_dictionary['invader_uid']
+
+        self.n_entity = scenario_config.num_entity
+        self.n_basic_dim = scenario_config.obs_vec_length
+        self.n_thread = n_thread
+        self.attack_target = [None] * self.n_thread
+
+    def forward(self, inp, state, mask=None):
+        raise NotImplementedError
+
+    def to(self, device):
+        return self
+    
+    def get_previous(self, team_intel):
+        info = copy_clone(team_intel['Latest-Obs'])
+        Env_Suffered_Reset = copy_clone(team_intel['Env-Suffered-Reset'])
+        return info, Env_Suffered_Reset
+
+    def interact_with_env(self, State_Recall):
+        main_obs, Env_Suffered_Reset = self.get_previous(State_Recall)
+        action = np.ones(shape=(main_obs.shape[0], main_obs.shape[1], 1)) * -1
+
+        n_thread = main_obs.shape[0]
+        about_all_objects = main_obs[:,0,:]
+        objects_emb  = my_view(x=about_all_objects, shape=[0,-1,self.n_basic_dim]) # select one agent
+        
+        invader_emb     = objects_emb[:, self.invader_uid, :]
+        landmark_emb    = objects_emb[:, self.landmark_uid,:]
+
+        invader_pos = invader_emb[:, :, self.pos_decs]
+        invader_vel = invader_emb[:, :, self.vel_decs]
+
+        landmark_pos = landmark_emb[:, :, self.pos_decs]
+
+        # 为每一个invader设置一个随机目标，当且仅当step == 0 时（episode刚刚开始）
+        self.set_random_target(Env_Suffered_Reset)
+
+        n_thread = self.n_thread
+        n_agent = self.n_agent
+        attack_target =  np.array(self.attack_target)
+        action = self.get_action(action, attack_target, invader_pos, invader_vel, landmark_pos, n_agent, n_thread)
+
+        assert not (action == -1).any()
+        actions_list = []
+        for i in range(self.n_agent):
+            actions_list.append(action[:, i])
+        return np.array(actions_list), None
+
+
+        
+    # @jit(nopython=True)
+    # @staticmethod
+    @jit(forceobj=True)
+    def get_action(self, action, attack_target, invader_pos, invader_vel, landmark_pos, n_agent, n_thread):
+        posit_vec = np.zeros_like(invader_vel)
+        for thread in range(n_thread):
+            for agent in range(n_agent):
+                posit_vec[thread,agent] = landmark_pos[thread, attack_target[thread][agent]] - invader_pos[thread, agent]
+
+
+        return self.dir_to_action3d(vec=posit_vec,vel=invader_vel)
+
+
+    @staticmethod
+    @jit(forceobj=True)
+    def dir_to_action3d(vec, vel):
+        def np_mat3d_normalize_each_line(mat):
+            return mat / np.expand_dims(np.linalg.norm(mat, axis=2) + 1e-16, axis=-1)
+        vec = np_mat3d_normalize_each_line(vec)
+
+        e_u = np.array([0  ,1  , 0 ])
+        e_d = np.array([0  ,-1 , 0 ])
+        e_r = np.array([1  ,0  , 0 ])
+        e_l = np.array([-1 ,0  , 0 ])
+        e_a = np.array([0  ,0  , 1 ])
+        e_b = np.array([0  ,0  ,-1 ])
+
+        vel_u = np_mat3d_normalize_each_line(vel + e_u * 0.1)
+        vel_d = np_mat3d_normalize_each_line(vel + e_d * 0.1)
+        vel_r = np_mat3d_normalize_each_line(vel + e_r * 0.1)
+        vel_l = np_mat3d_normalize_each_line(vel + e_l * 0.1)
+        vel_a = np_mat3d_normalize_each_line(vel + e_a * 0.1)
+        vel_b = np_mat3d_normalize_each_line(vel + e_b * 0.1)
+
+        proj_u = (vel_u * vec).sum(-1)
+        proj_d = (vel_d * vec).sum(-1)
+        proj_r = (vel_r * vec).sum(-1)
+        proj_l = (vel_l * vec).sum(-1)
+        proj_a = (vel_a * vec).sum(-1)
+        proj_b = (vel_b * vec).sum(-1)
+
+        _u = ((vec * e_u).sum(-1)>0).astype(np.int)
+        _d = ((vec * e_d).sum(-1)>0).astype(np.int)
+        _r = ((vec * e_r).sum(-1)>0).astype(np.int)
+        _l = ((vec * e_l).sum(-1)>0).astype(np.int)
+        _a = ((vec * e_a).sum(-1)>0).astype(np.int)
+        _b = ((vec * e_b).sum(-1)>0).astype(np.int)
+
+        proj_u = proj_u + _u*2
+        proj_d = proj_d + _d*2
+        proj_r = proj_r + _r*2
+        proj_l = proj_l + _l*2
+        proj_a = proj_a + _a*2
+        proj_b = proj_b + _b*2
+
+        dot_stack = np.stack([proj_u, proj_d, proj_r, proj_l, proj_a, proj_b])
+        direct = np.argmax(dot_stack, 0)
+
+        action = np.where(direct == 0, 2, 0)
+        action += np.where(direct == 1, 4, 0)
+        action += np.where(direct == 2, 1, 0)
+        action += np.where(direct == 3, 3, 0)
+
+        action += np.where(direct == 4, 5, 0)
+        action += np.where(direct == 5, 6, 0)
+
+        return np.expand_dims(action, axis=-1)
+
+
+
+
+    def set_random_target(self, Env_Suffered_Reset):
+        for thread, env_suffered_reset_ in enumerate(Env_Suffered_Reset):
+            if env_suffered_reset_:
+                invader_attack_target = [None] * self.n_agent
+                for i in range(self.n_agent):
+                    assigned_target = np.random.randint(low=0, high=self.num_landmarks)
+                    invader_attack_target[i] = assigned_target
+                self.attack_target[thread] = np.array(invader_attack_target)
+
+
 class IHDummyAlgorithmFoundation():
     def __init__(self, n_agent, n_thread, space, mcv):
         from config import GlobalConfig
