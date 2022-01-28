@@ -621,6 +621,15 @@ def dir2rad(delta_pos):
     return rad_angle
 
 
+def dir3d_rad(delta_pos):
+    assert delta_pos.shape[-1]==3
+    xy = delta_pos[..., :2]
+    r1 = dir2rad(xy)
+    xy_norm = np.linalg.norm(xy, axis=-1)
+    r2 = dir2rad(np.stack((xy_norm, delta_pos[..., 2]),-1))
+    return np.stack((r1,r2), axis=-1)
+    
+
 def reg_deg(deg):
     return (deg + 180) % 360 - 180
 

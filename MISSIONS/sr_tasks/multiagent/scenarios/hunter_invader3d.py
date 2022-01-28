@@ -2,7 +2,7 @@ import numpy as np
 from multiagent.core import World, Agent, Landmark
 from multiagent.scenario import BaseScenario
 import cmath, math, os, time
-
+from UTILS.tensor_ops import dir2rad, dir3d_rad
 
 def Norm(x):  # 求长度
     return np.linalg.norm(x)
@@ -70,14 +70,14 @@ class ScenarioConfig(object):
 
     Invader_Size     = Unit(m=2)
     Invader_Accel    = Unit(m=400)
-    Invader_MaxSpeed = Unit(m=12)
+    Invader_MaxSpeed = Unit(m=12)   #  12 * 0.05=0.6
 
     Hunter_Size      = Unit(m=1.5)
     Hunter_Accel     = Unit(m=400)
     Hunter_MaxSpeed  = Unit(m=12)
 
     Landmark_Size = Unit(m=6)
-    Invader_Kill_Range = Landmark_Size
+    Invader_Kill_Range = Unit(m=2) #
 
     Invader_Spawn_Times = invader_num*2-invader_num
     invader_spawn_cd = 20
@@ -114,93 +114,68 @@ class Scenario(BaseScenario):
         self.manual_render = None
         self.eval_mode = False
         self.show_off = False if process_id != 0 else ScenarioConfig.render
-        if self.show_off:
-            self.render_init()
-
-    def render_init(self):
-        from mCOMv5 import mCOMv5
-        print('子进程读取命令行参数')
-        from z_config import GlobalConfig
-        from arguments import get_args
-        get_args()
-        print('子进程读取命令行参数完成')
-        note = GlobalConfig.note
-        self.ue_engine_connection = GlobalConfig.use_ue4
-        self.eval_mode = GlobalConfig.eval_mode
-        if self.ue_engine_connection:
-            from mCOMv3_for_ue4 import uc
-            self.mcv = uc
-        else:
-            self.mcv = mCOMv5( offline=(not GlobalConfig.show_game), ip='127.0.0.1', 
-                            port=12084, path='./checkpoint/gamelogger/%s/'%note , digit=4, rapid_flush=True)
-            self.mcv.v3d_init()
 
 
     def render(self):
+        if not hasattr(self, 'threejs_bridge'):
+            from VISUALIZE.mcom import mcom
+            self.threejs_bridge = mcom(ip='127.0.0.1', port=12084, path='RECYCLE/v2d_logger/', digit=8, rapid_flush=False, draw_mode='Threejs')
+            self.threejs_bridge.v2d_init()
+            # self.threejs_bridge.set_style('star')
+            self.threejs_bridge.set_style('grid')
+            self.threejs_bridge.set_style('gray')
+            self.threejs_bridge.use_geometry('monkey')
+            # self.threejs_bridge.geometry_rotate_scale_translate('monkey',0, 0,       np.pi/2, 1, 1, 1,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,       0.5, 0.5, 3,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,       1, 1, 1,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
         uid = 0
-        ratio = 1000
-        if self.ue_engine_connection:
-            东 =    []
-            北 =    []
-            天 =    []
-            俯仰 =  []
-            偏航 =  []
-            滚转 =  []
+        for agent in self.invaders:
+            dir_1, dir_2 = dir3d_rad(agent.state.p_vel)   # # Euler Angle y-x-z
 
-            for index, invader in enumerate(self.invaders):
-                if invader.live:
-                    东.append(invader.state.p_pos[0] * ratio)
-                    北.append(invader.state.p_pos[1] * ratio)
-                    天.append(invader.state.p_pos[2] * ratio)
-                    俯仰.append(0)
-                    偏航.append(0)
-                    滚转.append(0)
-                else:
-                    东.append(10000)
-                    北.append(10000+10000*index)
-                    天.append(10000+10000*index)
-                    俯仰.append(0)
-                    偏航.append(0)
-                    滚转.append(0)
+            self.threejs_bridge.v2dx(
+                'cone|%d|red|0.05'%uid,
+                agent.state.p_pos[0],   # x coordinate
+                agent.state.p_pos[1],   # y coordinate
+                agent.state.p_pos[2],   # z coordinate
+                ro_x=0, ro_y=-dir_2, ro_z=dir_1, # rotation
+                label='', 
+                label_color='white', 
+                opacity=0.99 if agent.live else 0
+            )
 
-            for index, hunter in enumerate(self.hunters):
-                东.append(hunter.state.p_pos[0] * ratio)
-                北.append(hunter.state.p_pos[1] * ratio)
-                天.append(hunter.state.p_pos[2] * ratio)
-                俯仰.append(0)
-                偏航.append(0)
-                滚转.append(0)
+            uid += 1
+        for index, agent in enumerate(self.hunters):
+            dir_1, dir_2 = dir3d_rad(agent.state.p_vel)   # # Euler Angle y-x-z
+            self.threejs_bridge.v2dx(
+                'cone|%d|blue|0.02'%uid,
+                agent.state.p_pos[0], 
+                agent.state.p_pos[1], 
+                agent.state.p_pos[2],
+                ro_x=0, ro_y=-dir_2, ro_z=dir_1, # rotation
+                label='', label_color='white',
+                opacity=1 if agent.live else 0
+            )
+            dis2invader = self.distance[index, :]
+            mindis2invader_id = np.argmin(dis2invader)
+            if dis2invader[mindis2invader_id]<self.hunter_affect_range:
+                self.threejs_bridge.flash('beam', src=uid, dst=mindis2invader_id, dur=0.5, size=0.03, color='DeepSkyBlue')
 
-
-            for index, landmark in enumerate(self.landmarks):
-                东.append(landmark.state.p_pos[0] * ratio)
-                北.append(landmark.state.p_pos[1] * ratio)
-                天.append(landmark.state.p_pos[2] * ratio)
-                俯仰.append(0)
-                偏航.append(0)
-                滚转.append(0)
-
-            self.mcv.发送虚幻4数据流_多智能体(  东,北,天,俯仰,偏航,滚转  )
-            time.sleep(0.01)
-        else:
-            for index, invader in enumerate(self.invaders):
-                if invader.live:
-                    self.mcv.v3dx('ball|%d|r|3' % uid, invader.state.p_pos[0] * 20, invader.state.p_pos[1] * 20, invader.state.p_pos[2] * 20)
-                else:
-                    self.mcv.v3dx('ball|%d|m|0' % uid, invader.state.p_pos[0] * 20, invader.state.p_pos[1] * 20, invader.state.p_pos[2] * 20)
-                uid+=1
-    
-            for index, hunter in enumerate(self.hunters):
-                self.mcv.v3dx('sqre|%d|b|1' % uid, hunter.state.p_pos[0] * 20, hunter.state.p_pos[1] * 20, hunter.state.p_pos[2] * 20)
-                uid+=1
-
-            for index, landmark in enumerate(self.landmarks):
-                self.mcv.v3dx('ball|%d|g|4' % uid, landmark.state.p_pos[0] * 20, landmark.state.p_pos[1] * 20, landmark.state.p_pos[2] * 20)
-                uid+=1
-
-            self.mcv.xlabel('step: %d,reward: %.2f'%(self.step, self.reward_sample))
-            self.mcv.drawnow()
-        return
+            uid += 1
+        for index, agent in enumerate(self.landmarks):
+            nearest_invader_dis = min(self.distance_landmark[:, index])
+            self.threejs_bridge.v2dx(
+                'box|%d|green|0.1'%uid,
+                agent.state.p_pos[0],
+                agent.state.p_pos[1],
+                agent.state.p_pos[2],
+                ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
+                label='TH-DIS:%.2f'%nearest_invader_dis, 
+                label_color='white' if nearest_invader_dis>1 else 'red', 
+                opacity=1
+            )
+            uid += 1      
+        self.threejs_bridge.v2d_show()
 
     def scenario_step(self, agent, world):
         invaders = self.invaders

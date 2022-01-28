@@ -61,3 +61,16 @@ function core_update(buf) {
     window.glb.BarFolder.__controllers[0].max(window.glb.core_L.length);
     return tmp.length;
 }
+///////////////////////////////// tools  //////////////////////////
+
+// warning: python mod operator is different from js mod operator
+function reg_rad(rad){
+    let a = (rad + Math.PI) 
+    let b = (2 * Math.PI)
+
+    return ((a%b)+b) % b - Math.PI
+}
+
+function reg_rad_at(rad, ref){
+    return reg_rad(rad-ref) + ref
+}

@@ -326,9 +326,10 @@ class ReinforceAlgorithmFoundation(object):
         pass
 
     def save_model(self, update_cnt):
-        if update_cnt%100==99:
+        if update_cnt%10==9:
             print绿('保存模型中')
-            torch.save(self.policy.state_dict(), '%s/history_cpt/init.pkl'%self.logdir)
+            torch.save(self.policy.state_dict(), '%s/history_cpt/model%d.pt'%(self.logdir, update_cnt))
+            torch.save(self.policy.state_dict(), '%s/model.pt'%(self.logdir))
             print绿('保存模型完成')
 
     def 组成员目标分配(self, agent_cluster_div, div2, cter_fifoR, cter_fifoL, act_dec):
@@ -493,55 +494,61 @@ class ReinforceAlgorithmFoundation(object):
     def dir_to_action3d(vec, vel):
         def np_mat3d_normalize_each_line(mat):
             return mat / np.expand_dims(np.linalg.norm(mat, axis=2) + 1e-16, axis=-1)
-        vec = np_mat3d_normalize_each_line(vec)
+        desired_speed = 0.8
+        vec = np_mat3d_normalize_each_line(vec)*desired_speed
+        return vec
 
-        e_u = np.array([0  ,1  , 0 ])
-        e_d = np.array([0  ,-1 , 0 ])
-        e_r = np.array([1  ,0  , 0 ])
-        e_l = np.array([-1 ,0  , 0 ])
-        e_a = np.array([0  ,0  , 1 ])
-        e_b = np.array([0  ,0  ,-1 ])
+        # def np_mat3d_normalize_each_line(mat):
+        #     return mat / np.expand_dims(np.linalg.norm(mat, axis=2) + 1e-16, axis=-1)
+        # vec = np_mat3d_normalize_each_line(vec)
 
-        vel_u = np_mat3d_normalize_each_line(vel + e_u * 0.1)
-        vel_d = np_mat3d_normalize_each_line(vel + e_d * 0.1)
-        vel_r = np_mat3d_normalize_each_line(vel + e_r * 0.1)
-        vel_l = np_mat3d_normalize_each_line(vel + e_l * 0.1)
-        vel_a = np_mat3d_normalize_each_line(vel + e_a * 0.1)
-        vel_b = np_mat3d_normalize_each_line(vel + e_b * 0.1)
+        # e_u = np.array([0  ,1  , 0 ])
+        # e_d = np.array([0  ,-1 , 0 ])
+        # e_r = np.array([1  ,0  , 0 ])
+        # e_l = np.array([-1 ,0  , 0 ])
+        # e_a = np.array([0  ,0  , 1 ])
+        # e_b = np.array([0  ,0  ,-1 ])
 
-        proj_u = (vel_u * vec).sum(-1)
-        proj_d = (vel_d * vec).sum(-1)
-        proj_r = (vel_r * vec).sum(-1)
-        proj_l = (vel_l * vec).sum(-1)
-        proj_a = (vel_a * vec).sum(-1)
-        proj_b = (vel_b * vec).sum(-1)
+        # vel_u = np_mat3d_normalize_each_line(vel + e_u * 0.1)
+        # vel_d = np_mat3d_normalize_each_line(vel + e_d * 0.1)
+        # vel_r = np_mat3d_normalize_each_line(vel + e_r * 0.1)
+        # vel_l = np_mat3d_normalize_each_line(vel + e_l * 0.1)
+        # vel_a = np_mat3d_normalize_each_line(vel + e_a * 0.1)
+        # vel_b = np_mat3d_normalize_each_line(vel + e_b * 0.1)
 
-        _u = ((vec * e_u).sum(-1)>0).astype(np.int)
-        _d = ((vec * e_d).sum(-1)>0).astype(np.int)
-        _r = ((vec * e_r).sum(-1)>0).astype(np.int)
-        _l = ((vec * e_l).sum(-1)>0).astype(np.int)
-        _a = ((vec * e_a).sum(-1)>0).astype(np.int)
-        _b = ((vec * e_b).sum(-1)>0).astype(np.int)
+        # proj_u = (vel_u * vec).sum(-1)
+        # proj_d = (vel_d * vec).sum(-1)
+        # proj_r = (vel_r * vec).sum(-1)
+        # proj_l = (vel_l * vec).sum(-1)
+        # proj_a = (vel_a * vec).sum(-1)
+        # proj_b = (vel_b * vec).sum(-1)
 
-        proj_u = proj_u + _u*2
-        proj_d = proj_d + _d*2
-        proj_r = proj_r + _r*2
-        proj_l = proj_l + _l*2
-        proj_a = proj_a + _a*2
-        proj_b = proj_b + _b*2
+        # _u = ((vec * e_u).sum(-1)>0).astype(np.int)
+        # _d = ((vec * e_d).sum(-1)>0).astype(np.int)
+        # _r = ((vec * e_r).sum(-1)>0).astype(np.int)
+        # _l = ((vec * e_l).sum(-1)>0).astype(np.int)
+        # _a = ((vec * e_a).sum(-1)>0).astype(np.int)
+        # _b = ((vec * e_b).sum(-1)>0).astype(np.int)
 
-        dot_stack = np.stack([proj_u, proj_d, proj_r, proj_l, proj_a, proj_b])
-        direct = np.argmax(dot_stack, 0)
+        # proj_u = proj_u + _u*2
+        # proj_d = proj_d + _d*2
+        # proj_r = proj_r + _r*2
+        # proj_l = proj_l + _l*2
+        # proj_a = proj_a + _a*2
+        # proj_b = proj_b + _b*2
 
-        action = np.where(direct == 0, 2, 0)
-        action += np.where(direct == 1, 4, 0)
-        action += np.where(direct == 2, 1, 0)
-        action += np.where(direct == 3, 3, 0)
+        # dot_stack = np.stack([proj_u, proj_d, proj_r, proj_l, proj_a, proj_b])
+        # direct = np.argmax(dot_stack, 0)
 
-        action += np.where(direct == 4, 5, 0)
-        action += np.where(direct == 5, 6, 0)
+        # action = np.where(direct == 0, 2, 0)
+        # action += np.where(direct == 1, 4, 0)
+        # action += np.where(direct == 2, 1, 0)
+        # action += np.where(direct == 3, 3, 0)
 
-        return np.expand_dims(action, axis=-1)
+        # action += np.where(direct == 4, 5, 0)
+        # action += np.where(direct == 5, 6, 0)
+
+        # return np.expand_dims(action, axis=-1)
 
     # debugging functions
     def __check_data_hash(self):

@@ -69,8 +69,8 @@ class MultiAgentEnv(gym.Env):
             else:
                 self.action_space.append(total_action_space[0])
             # observation space
-            obs_dim = len(observation_callback(agent, self.world))
-            self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(obs_dim,), dtype=np.float32))
+            # obs_dim = len(observation_callback(agent, self.world))
+            # self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(obs_dim,), dtype=np.float32))
             agent.action.c = np.zeros(self.world.dim_c)
 
         # rendering self.agents[0].state.p_pos
@@ -167,27 +167,30 @@ class MultiAgentEnv(gym.Env):
             # physical action
             if self.discrete_action_input:
                 agent.action.u = np.zeros(self.world.dim_p)
+                agent.action.u[0] = action[0][0]
+                agent.action.u[1] = action[0][1]
+                agent.action.u[2] = action[0][2]
                 # process discrete action
                 # 0,  1,2,  3,4,  5,6
-                assert action[0] <= 2*self.world.dim_p
-                assert action[0] >=0
+                # assert action[0] <= 2*self.world.dim_p
+                # assert action[0] >=0
 
-                if action[0] == 0:
-                    pass
-                elif action[0] == 1:    # 101
-                    agent.action.u[0] = 1
-                elif action[0] == 2:    # 211
-                    agent.action.u[1] = 1
-                elif action[0] == 3:    # 30 -1
-                    agent.action.u[0] = -1
-                elif action[0] == 4:    # 41 -1
-                    agent.action.u[1] = -1
-                elif action[0] == 5:    # 521
-                    agent.action.u[2] = 1
-                elif action[0] == 6:    # 62-1
-                    agent.action.u[2] = -1
-                else:
-                    assert False
+                # if action[0] == 0:
+                #     pass
+                # elif action[0] == 1:    # 101
+                #     agent.action.u[0] = 1
+                # elif action[0] == 2:    # 211
+                #     agent.action.u[1] = 1
+                # elif action[0] == 3:    # 30 -1
+                #     agent.action.u[0] = -1
+                # elif action[0] == 4:    # 41 -1
+                #     agent.action.u[1] = -1
+                # elif action[0] == 5:    # 521
+                #     agent.action.u[2] = 1
+                # elif action[0] == 6:    # 62-1
+                #     agent.action.u[2] = -1
+                # else:
+                #     assert False
 
             else:
                 if self.force_discrete_action:

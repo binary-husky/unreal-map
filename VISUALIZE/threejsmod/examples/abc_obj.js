@@ -63,7 +63,7 @@ function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, curre
 
     object.next_opacity = opacity
     object.prev_opacity = opacity
-    object.material.transparent = true
+    object.material.transparent = (opacity==1)?false:true
     object.material.opacity = opacity
     if (!init_cam_f1){
         init_cam_f1=true;
@@ -95,7 +95,7 @@ function choose_geometry(type){
         }
     }
     else{
-        console.log('using geo:'+type)
+        // console.log('using geo:'+type)
         return window.glb.base_geometry[type]
     }
 
@@ -137,19 +137,34 @@ function apply_update(object, parsed_obj_info){
     let label_color = parsed_obj_info['label_color']
     let opacity = parsed_obj_info['opacity']
 
-    // 已经创建了对象
+    // 已经创建了对象,setfuture
     if (object) {
         if (!init_cam_f2){
             init_cam_f2 = true;
             init_cam()
         }
-        object.prev_pos = Object.assign({}, object.next_pos);
-        object.prev_ro = Object.assign({}, object.next_ro);
+        
+        // roll previous
+        object.prev_pos = Object.assign({}, object.next_pos); 
+        // load next
         object.next_pos.x = pos_x; object.next_pos.y = pos_y; object.next_pos.z = pos_z;
+
+        // roll previous
+        object.prev_ro = Object.assign({}, object.next_ro); // roll next
+        // load next
         object.next_ro.x = ro_x; object.next_ro.y = ro_y; object.next_ro.z = ro_z;
+
+        // roll previous
         object.prev_size = object.next_size;
+        // load next
         object.next_size = size;
+
+        // roll previous
+        object.prev_opacity = object.next_opacity;
+        // load next
         object.next_opacity = opacity;
+
+
         // 即刻应用color和text
         if (color_str != object.color_str) {
             changeCoreObjColor(object, color_str)
