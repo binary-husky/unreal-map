@@ -11,26 +11,34 @@ import Stats from '/examples/jsm/libs/stats.module.js';
 import { GUI } from '/examples/jsm/libs/dat.gui.module.js';
 import { LightningStrike } from '/examples/jsm/geometries/LightningStrike.js';
 import { OrbitControls } from '/examples/jsm/controls/OrbitControls.js';
-
+import { LineMaterial } from './jsm/lines/LineMaterial.js';
+import { LineGeometry } from './jsm/lines/LineGeometry.js';
+import { Line2 } from './jsm/lines/Line2.js';
 window.glb = Object()
 window.glb.clock = new THREE.Clock();
 window.glb.scene = null;
 window.glb.buf_storage = ''
 window.glb.BarFolder = null;
 window.glb.camera = null;
+window.glb.camera2 = null;
 window.glb.stats = null;
 
 window.glb.import_Stats = Stats;
 window.glb.import_GUI = GUI;
 window.glb.import_OrbitControls = OrbitControls;
 window.glb.import_LightningStrike = LightningStrike;
+window.glb.import_LineMaterial = LineMaterial;
+window.glb.import_LineGeometry = LineGeometry;
+window.glb.import_Line2 = Line2;
 window.glb.renderer = null;
 window.glb.controls=null;
+window.glb.controls2=null;
 // var window.glb.scene;
 // 历史轨迹
 window.glb.core_L = [];
 window.glb.parsed_core_L = []
 window.glb.core_Obj = [];
+window.glb.line_Obj = [];
 window.glb.flash_Obj = [];
 window.glb.base_geometry = {};
 // global vars
@@ -57,7 +65,8 @@ window.glb.panelSettings = {
         'next frame': null,
         'previous frame': null,
         'ppt step': null,
-        'loop to start': false
+        'loop to start': false,
+        'use orthcam': false
 };
 
 
@@ -195,6 +204,7 @@ window.glb.panelSettings['ppt step'] = function (){
     // wait parse t+1: t --> t+1
 }
 
+
 ////////////////////////////////////////////////////////////
 
 
@@ -253,7 +263,7 @@ function check_flash_life_cyc(delta_time){
 
 
 
-function change_position_rotation_size(object, percent, override){
+function change_position_rotation_size(object, percent, override, reset_track=false){
     object.position.x = object.prev_pos.x * (1 - percent) + object.next_pos.x * percent
     object.position.y = object.prev_pos.y * (1 - percent) + object.next_pos.y * percent
     object.position.z = object.prev_pos.z * (1 - percent) + object.next_pos.z * percent
@@ -274,7 +284,74 @@ function change_position_rotation_size(object, percent, override){
         object.prev_pos.x = object.next_pos.x; object.prev_pos.y = object.next_pos.y; object.prev_pos.z = object.next_pos.z
         object.prev_ro.x = object.next_ro.x; object.prev_ro.y = object.next_ro.y; object.prev_ro.z = object.next_ro.z
         object.prev_opacity = object.next_opacity; object.prev_size = object.next_size;
+
     }
+    if(reset_track){
+        // 初始化历史轨迹
+        object.his_positions = [];
+        for ( let i = 0; i < MAX_HIS_LEN; i ++ ) {
+            object.his_positions.push( new THREE.Vector3(object.prev_pos.x, object.prev_pos.y, object.prev_pos.z) );
+        }
+    }
+    plot_obj_track(object)
+}
+
+// plot_obj_track
+function plot_obj_track(object){
+    if (object.track_n_frame == 0) {return;}
+    if (object.track_init){
+        // 更新轨迹
+        let curve = object.track_his
+        const positions = [];
+        for ( let i = (object.his_positions.length - object.track_n_frame); i < object.his_positions.length; i++) {
+            positions.push(object.his_positions[i]);
+        }
+        positions.push(object.position)
+        curve.points = positions
+        curve.tension = object.track_tension;
+        const position = curve.mesh.geometry.attributes.position;
+        const point = new THREE.Vector3();
+        for ( let i = 0; i < ARC_SEGMENTS; i ++ ) {
+            const t = i / ( ARC_SEGMENTS - 1 );
+            curve.getPoint( t, point );
+            position.setXYZ( i, point.x, point.y, point.z );
+        }
+        if(curve.current_color!=object.track_color){
+            curve.current_color=object.track_color
+            changeCoreObjColor(curve.mesh, object.track_color)
+        }
+        curve.mesh.geometry.computeBoundingSphere();
+        position.needsUpdate = true;
+    }else{
+        // 初始化轨迹
+        object.track_init = true;
+        const positions = [];
+        for ( let i = (object.his_positions.length - object.track_n_frame); i < object.his_positions.length; i++) {
+            positions.push(object.his_positions[i]);
+        }
+        positions.push(object.position)
+        object.track_his = new THREE.CatmullRomCurve3( positions );
+        object.track_his.curveType = 'catmullrom';
+        // load positions_catmull
+        let curve = object.track_his
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( ARC_SEGMENTS * 3 ), 3 ) );
+        curve.mesh = new THREE.Line( geometry.clone(), new THREE.LineBasicMaterial( {
+            color: object.track_color,
+        } ) );
+        curve.current_color = object.track_color
+        curve.tension = object.track_tension;
+        const position = curve.mesh.geometry.attributes.position;
+        const point = new THREE.Vector3();
+        for ( let i = 0; i < ARC_SEGMENTS; i ++ ) {
+            const t = i / ( ARC_SEGMENTS - 1 );
+            curve.getPoint( t, point );
+            position.setXYZ( i, point.x, point.y, point.z );
+        }
+        curve.mesh.geometry.computeBoundingSphere();
+        window.glb.scene.add(curve.mesh);
+    }
+
 }
 
 // called according to fps
@@ -301,7 +378,7 @@ function force_move_all(pp){ // 手动调整进度条时触发
         object.prev_pos.x = object.next_pos.x; object.prev_pos.y = object.next_pos.y; object.prev_pos.z = object.next_pos.z
         object.prev_ro.x = object.next_ro.x; object.prev_ro.y = object.next_ro.y; object.prev_ro.z = object.next_ro.z
         object.prev_opacity = object.next_opacity; object.prev_size = object.next_size;
-        change_position_rotation_size(object, 1, true)
+        change_position_rotation_size(object, 1, true, true)
     }	
 }
 window.glb.force_move_all = force_move_all
@@ -309,7 +386,7 @@ window.glb.force_move_all = force_move_all
 function move_to_future(percent, override=false) {
     for (let i = 0; i < window.glb.core_Obj.length; i++) {
         let object = window.glb.core_Obj[i]
-        change_position_rotation_size(object, percent, override)
+        change_position_rotation_size(object, percent, override, false)
     }
 }
 
@@ -352,7 +429,9 @@ function render() {
         move_to_future(percent);
     }
     check_flash_life_cyc(delta)
-    window.glb.renderer.render(window.glb.scene, window.glb.camera);
+
+    if(window.glb.panelSettings['use orthcam']) {window.glb.renderer.render(window.glb.scene, window.glb.camera2);}
+    else{window.glb.renderer.render(window.glb.scene, window.glb.camera);}
 }
 
 

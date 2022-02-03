@@ -9,9 +9,17 @@ mcom_fn_list_define = [
     "v2dx", "flash", "plot", "figure", "hold", "box", "pause", "clf", "xlim", "ylim", "xlabel", 
     "ylabel", "drawnow", "v2d", "v2d_init", "v3d_init", "v2L", "title", "plot3", "grid", "v3dx", "v2d_show", 
     "v2d_pop", "v2d_line_object", "v2d_clear", "v2d_add_terrain", "set_style", "set_env", "use_geometry", 
-    "geometry_rotate_scale_translate", "test_function_terrain",
+    "geometry_rotate_scale_translate", "test_function_terrain", 'line3d', 'advanced_geometry_rotate_scale_translate'
 ]
-
+别名对齐 = [
+    ('初始化3D', 'v2d_init'),
+    ('设置样式', 'set_style'),
+    ('形状之旋转缩放和平移','geometry_rotate_scale_translate'),
+    ('其他几何体之旋转缩放和平移','advanced_geometry_rotate_scale_translate'),
+    ('发送几何体','v2dx'),
+    ('结束关键帧','v2d_show'),
+    ('发送线条','line3d'),
+]
 
 # The Design Principle: Under No Circumstance should this program Interrupt the main program!
 class mcom():
@@ -46,6 +54,7 @@ class mcom():
         self.digit = digit
         self.rapid_flush = rapid_flush
         self.flow_cnt = 0
+        self.tag = tag
         print蓝('[mcom.py]: log file at:' + self.starting_file)
 
         if not self.draw_mode=='Threejs':
@@ -226,12 +235,13 @@ class mcom():
         return strlist
 
     def _process_ndarray(self, args, strlist, key=None):
-        if args[0].ndim == 1:
+        if args.ndim == 1:
             if key is not None: strlist += '%s='%key
-            sub_list = ["["] + ["%.3e " % t for t in args[0]] + ["]"]
+            d = len(args)
+            sub_list = ["["] + ["%.3e,"%t if (i+1)!=d else "%.3e"%t for i, t in enumerate(args)] + ["]"]
             strlist += sub_list
             strlist.append(",")
-        elif args[0].ndim == 2:
+        elif args.ndim == 2:
             print红('mcom：输入数组的维度大于1维，目前处理不了。')
         else:
             print红('mcom：输入数组的维度大于2维，目前处理不了。')
@@ -239,6 +249,10 @@ class mcom():
 
     for fn_name in mcom_fn_list_define:
         build_exec_cmd = 'def %s(self,*args,**kargs):\n self.other_cmd("%s", *args,**kargs)\n'%(fn_name, fn_name)
+        exec(build_exec_cmd)
+
+    for 别名, fn_name in 别名对齐:
+        build_exec_cmd = '%s = %s\n'%(别名, fn_name)
         exec(build_exec_cmd)
 
 def find_free_index(path):
@@ -460,7 +474,7 @@ class DrawProcessThreejs(Process):
         @app.route("/<path:path>")
         def static_dirx(path):
             if path=='favicon.ico': 
-                return app.send_static_file('%s/files/favicon.ico'%dirname)
+                return send_from_directory("%s/"%dirname, 'files/HMP.ico')
             return send_from_directory("%s/"%dirname, path)
 
         @app.route("/")

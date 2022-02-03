@@ -77,8 +77,8 @@ class RecallProcessThreejs(Process):
         print('JS visualizer online: http://%s:%d'%(get_host_ip(), port))
         print('JS visualizer online (localhost): http://localhost:%d'%(port))
         print('--------------------------------')
-        app.run(host='0.0.0.0', port=port)
-        # serve(app, threads=8, ipv4=True, ipv6=True, listen='*:%d'%port)
+        # app.run(host='0.0.0.0', port=port)
+        serve(app, threads=8, ipv4=True, ipv6=True, listen='*:%d'%port)
 
 
 

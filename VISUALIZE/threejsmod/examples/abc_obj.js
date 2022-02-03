@@ -33,15 +33,16 @@ function changeCoreObjSize(object, size){
     object.currentSize = size
 }
 //添加形状句柄
-function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, currentSize, label_marking, label_color, opacity){
+MAX_HIS_LEN = 300
+function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, currentSize, label_marking, label_color, opacity, track_n_frame, parsed_obj_info=null){
     const object = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: color_str }));
     object.my_id = my_id;
     object.color_str = color_str;
     object.position.x = x; 
     object.position.y = y; 
     object.position.z = z; 
-    object.next_pos = Object.create(object.position);
-    object.prev_pos = Object.create(object.position);
+    object.next_pos = new THREE.Vector3(0.0,0.0,0.0); object.next_pos.copy(object.position);
+    object.prev_pos = new THREE.Vector3(0.0,0.0,0.0); object.prev_pos.copy(object.position);
 
     object.rotation.x = ro_x;  
     object.rotation.y = ro_y;  
@@ -65,14 +66,26 @@ function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, curre
     object.prev_opacity = opacity
     object.material.transparent = (opacity==1)?false:true
     object.material.opacity = opacity
+    object.track_n_frame = track_n_frame
+    object.track_init = false
+    object.track_tension = parsed_obj_info['track_tension']
+    object.track_color = parsed_obj_info['track_color']
+
     if (!init_cam_f1){
         init_cam_f1=true;
         let h = (currentSize==0)?0.1:currentSize
         window.glb.controls.target.set(object.position.x, -h, object.position.z); // 旋转的焦点在哪0,0,0即原点
+        window.glb.controls2.target.set(object.position.x, -h, object.position.z); // 旋转的焦点在哪0,0,0即原点
         window.glb.camera.position.set(object.position.x, h*100, object.position.z)
+        window.glb.camera2.position.set(object.position.x, h*100, object.position.z)
     }
     if (label_marking){
         makeClearText(object, object.label_marking, object.label_color)
+    }
+    // 初始化历史轨迹
+    object.his_positions = [];
+    for ( let i = 0; i < MAX_HIS_LEN; i ++ ) {
+        object.his_positions.push( new THREE.Vector3(x, y, z) );
     }
     window.glb.scene.add(object);
     window.glb.core_Obj.push(object)
@@ -115,7 +128,9 @@ function init_cam(){
     }
     let h = (size==0)?0.1:size
     window.glb.controls.target.set(x, -h,    z); // 旋转的焦点在哪0,0,0即原点
+    window.glb.controls2.target.set(x, -h,    z); // 旋转的焦点在哪0,0,0即原点
     window.glb.camera.position.set(x, h*100, z)
+    window.glb.camera2.position.set(x, h*100, z)
 }
 
 //将parsed_obj_info中的位置、旋转、大小、文本、颜色等等变化应用
@@ -136,6 +151,9 @@ function apply_update(object, parsed_obj_info){
     let label_marking = parsed_obj_info['label_marking']
     let label_color = parsed_obj_info['label_color']
     let opacity = parsed_obj_info['opacity']
+    let track_n_frame = parsed_obj_info['track_n_frame']
+    let track_tension = parsed_obj_info['track_tension']
+    let track_color = parsed_obj_info['track_color']
 
     // 已经创建了对象,setfuture
     if (object) {
@@ -145,7 +163,7 @@ function apply_update(object, parsed_obj_info){
         }
         
         // roll previous
-        object.prev_pos = Object.assign({}, object.next_pos); 
+        object.prev_pos.copy(object.next_pos); //  Object.assign({}, object.next_pos); 
         // load next
         object.next_pos.x = pos_x; object.next_pos.y = pos_y; object.next_pos.z = pos_z;
 
@@ -177,6 +195,14 @@ function apply_update(object, parsed_obj_info){
             }
             object.dynamicTexture.clear().drawText(label_marking, 0, +80, object.label_color)
         }
+        // 即刻应用
+        object.track_n_frame = track_n_frame
+        object.track_color = track_color
+        // 即可更新历史轨迹
+        object.his_positions.push( new THREE.Vector3(object.prev_pos.x, object.prev_pos.y, object.prev_pos.z) );
+        object.his_positions.shift()
+        // console.log(new THREE.Vector3(object.prev_pos.x, object.prev_pos.y, object.prev_pos.z) )
+
     }
     else {
         // create obj
@@ -190,6 +216,6 @@ function apply_update(object, parsed_obj_info){
         addCoreObj(my_id, color_str, geometry, 
             pos_x, pos_y, pos_z, 
             ro_x, ro_y, ro_z, 
-            currentSize, label_marking, label_color, opacity)
+            currentSize, label_marking, label_color, opacity, track_n_frame, parsed_obj_info)
     }
 }

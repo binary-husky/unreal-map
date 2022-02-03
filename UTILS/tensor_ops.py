@@ -1,7 +1,13 @@
 import copy, json
 import numpy as np
-import torch
-import torch.nn.functional as F
+try:
+    import torch
+    import torch.nn.functional as F
+except:
+    print('warning! pytorch not installed')
+    print('警告! 没有安装pytorch，所有pytorch相关函数不可用!')
+    class torch():
+        Tensor = Exception
 from functools import wraps
 
 
@@ -205,13 +211,38 @@ def Args2tensor(f):
     return decorated
 
 
+
+
+def Return2numpy(f):
+
+    def _2cpu2numpy(x):
+        return (
+            None
+            if x is None
+            else x
+            if not isinstance(x, torch.Tensor)
+            else x.detach().cpu().numpy()
+            if x.requires_grad
+            else x.cpu().numpy()
+        )
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        ret_tuple = f(*args, **kwargs)
+        if isinstance(ret_tuple, tuple):
+            return (_2cpu2numpy(ret) for ret in ret_tuple)
+        else:
+            return _2cpu2numpy(ret_tuple)
+
+    return decorated
+
+
 """
     Function decorate, 
     Turning numpy array to torch.Tensor, then put it on the right GPU / CPU,
     When returning, convert all torch.Tensor to numpy array
 """
 def Args2tensor_Return2numpy(f):
-    # if not cfg.init: cfg.read_cfg()
     def _2tensor(x):
         if isinstance(x, torch.Tensor):
             return x.to(cfg.device)
@@ -612,6 +643,15 @@ def distance_matrix(A):
     dis = np.linalg.norm(dis, axis=-1)
     return dis
 
+def delta_matrix(A):
+    n_subject = A.shape[-2]  # is 2
+    A = np.repeat(np.expand_dims(A, -2), n_subject, axis=-2)  # =>(64, 100, 100, 2)
+    At = np.swapaxes(A, -2, -3)  # =>(64, 100, 100, 2)
+    delta = At - A  # =>(64, 100, 100, 2)
+    return delta
+
+def np_normalize_last_dim(mat):
+    return mat / np.expand_dims(np.linalg.norm(mat, axis=2) + 1e-16, axis=-1)
 
 def dir2rad(delta_pos):
     result = np.empty(delta_pos.shape[:-1], dtype=complex)
