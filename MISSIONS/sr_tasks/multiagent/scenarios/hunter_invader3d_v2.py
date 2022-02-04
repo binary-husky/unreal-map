@@ -128,6 +128,8 @@ class Scenario(BaseScenario):
             self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,       0.5, 0.5, 1.5,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,        1, 1, 1,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
+            self.threejs_bridge.其他几何体之旋转缩放和平移('oct', 'OctahedronGeometry(1,0)', 0,0,0,  1,1,1, 0,0,0)   # 八面体
+
             self.threejs_bridge.agent_alive_pos = {}
             self.threejs_bridge.agent_alive_time = {}
 
@@ -169,12 +171,12 @@ class Scenario(BaseScenario):
         for index, agent in enumerate(self.landmarks):
             nearest_invader_dis = min(self.distance_landmark[:, index])
             self.threejs_bridge.v2dx(
-                'box|%d|green|0.1'%(index+999),
+                '其他几何体之旋转缩放和平移|%d|green|0.1'%(index+999),
                 agent.state.p_pos[0],
                 agent.state.p_pos[1],
                 agent.state.p_pos[2],
                 ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
-                label='TH-DIS:%.2f'%nearest_invader_dis, 
+                label='threat@ %.2f'%nearest_invader_dis, 
                 label_color='white' if nearest_invader_dis>1 else 'red', 
                 opacity=1
             )
@@ -188,25 +190,48 @@ class Scenario(BaseScenario):
         hunters = self.hunters
         # 计算距离矩阵（invader2landmark）
         self.distance, self.distance_landmark = self.get_distance_landmark()
-        self.check_invader_tracking_and_slow_down(hunters, invaders)
-        # 拦截成功判定
+
+        # 二重循环，对出现在周围的invader造成减速
+        for invader in invaders:
+            invader.tracked_by = []
+            invader.max_speed = self.Invader_MaxSpeed
+            
+        for i, hunter in enumerate(hunters):
+            hunter_index = i
+            assert hunter.live
+            for j, invader in enumerate(invaders):
+                distance_i_j = self.distance[i, j]
+                if distance_i_j > self.hunter_affect_range:  continue
+                invader.max_speed = max(invader.max_speed - self.hunter_speed_pressure, 0)
+                invader.tracked_by.append(hunter_index)
+
+        # push invaders to opposite direction
         for invader_index, invader in enumerate(invaders):
             if len(invader.tracked_by) >= self.intercept_hunter_needed:
-                invader.live = False
-                invader.movable = False
-                invader.spawn_cd = self.invader_spawn_cd
-                invader.state.p_pos *= 0
-                invader.state.p_vel *= 0
-                self.indader_left_to_hunt -= 1
-                if self.indader_left_to_hunt == 0:
-                    self.threat_clear = True
-        # 再生
-        for invader in invaders:
-            if not invader.live:
-                if invader.spawn_cd <= 0 and self.invader_spawn_time_left > 0:
-                    self.invader_spawn_time_left -= 1
-                    self.invader_revise(invader, world)
-                else: invader.spawn_cd -= 1
+                # override invader movement
+                invader
+                # invader.live = False
+                # invader.movable = False
+                # invader.spawn_cd = self.invader_spawn_cd
+                # invader.state.p_pos *= 0
+                # invader.state.p_vel *= 0
+
+
+        # # 拦截成功判定
+        # for invader_index, invader in enumerate(invaders):
+        #     if len(invader.tracked_by) >= self.intercept_hunter_needed:
+        #         invader.live = False
+        #         invader.movable = False
+        #         invader.spawn_cd = self.invader_spawn_cd
+        #         invader.state.p_pos *= 0
+        #         invader.state.p_vel *= 0
+        # # 再生
+        # for invader in invaders:
+        #     if not invader.live:
+        #         if invader.spawn_cd <= 0 and self.invader_spawn_time_left > 0:
+        #             self.invader_spawn_time_left -= 1
+        #             self.invader_revise(invader, world)
+        #         else: invader.spawn_cd -= 1
 
         # 检查landmark是否被摧毁
         if np.min(self.distance_landmark) <= self.Invader_Kill_Range:
@@ -257,8 +282,6 @@ class Scenario(BaseScenario):
 
         return self.obs.copy()
 
-
-
     def reward_forall(self, world):
         # hunter 的奖励有如下几条
         # <3> +10    HUNT_INVDR_SUCCESSFUL_REWARD   拦截成功奖励
@@ -306,20 +329,6 @@ class Scenario(BaseScenario):
         self.reward_sample += hunter_reward[0]
         return invader_reward.tolist() + hunter_reward.tolist()
 
-    def check_invader_tracking_and_slow_down(self, hunters, invaders):
-        # detect speed down and hunt result 二重循环，对出现在周围的invader造成减速
-        for invader in invaders:
-            invader.tracked_by = []
-            invader.max_speed = self.Invader_MaxSpeed
-        for i, hunter in enumerate(hunters):
-            hunter_index = i
-            assert hunter.live
-            for j, invader in enumerate(invaders):
-                distance_i_j = self.distance[i, j]
-                # filter far away ones
-                if distance_i_j > self.hunter_affect_range:  continue
-                invader.max_speed = max(invader.max_speed - self.hunter_speed_pressure, 0)
-                invader.tracked_by.append(hunter_index)
 
 
 
@@ -386,18 +395,6 @@ class Scenario(BaseScenario):
         phi_dis = np.pi * 2 / self.num_landmarks
         for i, landmark in enumerate(world.landmarks):
             self.landmark_spawn_position(landmark, world, theta, phi + phi_dis * i)
-
-    def is_collision(self, agent1, agent2):  # 检测是否碰到了一起
-        delta_pos = agent1.state.p_pos - agent2.state.p_pos
-        dist = np.sqrt(np.sum(np.square(delta_pos)))
-        dist_min = agent1.size + agent2.size
-        return True if dist < dist_min else False
-
-    def is_dectective(self, agent1, agent2):  # A 和 B 之间的距离是否能相互可见
-        delta_pos = agent1.state.p_pos - agent2.state.p_pos
-        dist = np.sqrt(np.sum(np.square(delta_pos)))
-        # dist_min = agent1.size + agent2.size
-        return True if dist < self.distance_dectection else False
 
     # 按顺序 return all agents that are not invaders
     def hunters(self, world):

@@ -379,7 +379,7 @@ function force_move_all(pp){ // 手动调整进度条时触发
         object.prev_ro.x = object.next_ro.x; object.prev_ro.y = object.next_ro.y; object.prev_ro.z = object.next_ro.z
         object.prev_opacity = object.next_opacity; object.prev_size = object.next_size;
         change_position_rotation_size(object, 1, true, true)
-    }	
+    }
 }
 window.glb.force_move_all = force_move_all
 

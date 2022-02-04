@@ -9,6 +9,7 @@ import_path_ref = {
     "sr_tasks->cargo": ("MISSIONS.sr_tasks.multiagent.scenarios.cargo",                         'ScenarioConfig'),
     "sr_tasks->hunter_invader": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader",       'ScenarioConfig'),
     "sr_tasks->hunter_invader3d": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d",   'ScenarioConfig'),
+    "sr_tasks->hunter_invader3d_v2": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d_v2",'ScenarioConfig'),
 }
 
 env_init_function_ref = {

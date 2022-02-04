@@ -145,6 +145,22 @@ function parse_env(str){
             window.glb.core_Obj.pop();
         }
     }
+    if(style=="clear_track"){
+        for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
+            let object = window.glb.core_Obj[i]
+            // 初始化历史轨迹
+            object.his_positions = [];
+            for ( let i = 0; i < MAX_HIS_LEN; i ++ ) {
+                object.his_positions.push( new THREE.Vector3(object.next_pos.x, object.next_pos.y, object.next_pos.z) );
+            }
+        }
+    }
+    if(style=="clear_flash"){
+        for (let i = window.glb.flash_Obj.length-1; i>=0; i--) {
+            window.glb.flash_Obj[i]['valid'] = false;
+            window.glb.scene.remove(window.glb.flash_Obj[i]['mesh']);
+        }
+    }
 }
 
 
