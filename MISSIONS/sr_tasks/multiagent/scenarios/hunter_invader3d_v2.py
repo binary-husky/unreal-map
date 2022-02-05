@@ -284,6 +284,7 @@ class Scenario(BaseScenario):
         win_cond2 = self.threat_clear
         win_cond = win_cond1 or win_cond2
         loss_cond = self.hunter_failed
+        if loss_cond: win_cond = False  # lose condition has higher priority
 
         if ScenarioConfig.extreme_sparse:
             # 极度稀疏奖励
@@ -427,9 +428,11 @@ class Scenario(BaseScenario):
         self.is_success = win_cond
 
         loss_cond = self.hunter_failed
+        if loss_cond: win_cond = False  # lose condition has higher priority
+
+
         done = win_cond or loss_cond
-        if done: 
-            assert loss_cond != win_cond
+        if done:  assert loss_cond != win_cond
 
         if agent.iden==0 and self.show_off and win_cond:
             print('hunt success')
