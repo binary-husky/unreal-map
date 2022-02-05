@@ -7,7 +7,10 @@ class EntityState(object):
         self.p_pos = None
         # physical velocity
         self.p_vel = None
-
+        # physical position
+        self.previous_pos = None
+        # physical velocity
+        self.previous_vel = None
 # state of agents (including communication and internal/mental state)
 class AgentState(EntityState):
     def __init__(self):
@@ -166,14 +169,16 @@ class World(object):
     def integrate_state(self, p_force):
         for i,entity in enumerate(self.entities):
             if not entity.movable: continue
+            entity.state.previous_vel = entity.state.p_vel.copy()
             entity.state.p_vel = entity.state.p_vel * (1 - self.damping)
             if (p_force[i] is not None):
+                entity.force = p_force[i]
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
             if entity.max_speed is not None:
                 speed = np.sqrt(np.square(entity.state.p_vel[0]) + np.square(entity.state.p_vel[1]))
                 if speed > entity.max_speed:
-                    entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
-                                                                  np.square(entity.state.p_vel[1])) * entity.max_speed
+                    entity.state.p_vel = entity.state.p_vel / speed * entity.max_speed
+            entity.state.previous_pos = entity.state.p_pos.copy()
             entity.state.p_pos += entity.state.p_vel * self.dt
 
     def update_agent_state(self, agent):

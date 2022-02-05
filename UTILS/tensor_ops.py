@@ -651,7 +651,7 @@ def delta_matrix(A):
     return delta
 
 def np_normalize_last_dim(mat):
-    return mat / np.expand_dims(np.linalg.norm(mat, axis=2) + 1e-16, axis=-1)
+    return mat / np.expand_dims(np.linalg.norm(mat, axis=-1) + 1e-16, axis=-1)
 
 def dir2rad(delta_pos):
     result = np.empty(delta_pos.shape[:-1], dtype=complex)

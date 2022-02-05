@@ -57,9 +57,11 @@ xx_profile_n_agents3.py
 xx_profile_n_agents4.py
 UTILS/keys.py
 private*.jsonc
+private*.py
 fqx*.jsonc
 my_*.jsonc
 my_*.py
+result.prof
 
 ZHECKPOINT/*
 

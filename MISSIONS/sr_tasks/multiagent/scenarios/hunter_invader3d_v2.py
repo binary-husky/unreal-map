@@ -2,7 +2,7 @@ import numpy as np
 from multiagent.core import World, Agent, Landmark
 from multiagent.scenario import BaseScenario
 import cmath, math, os, time
-from UTILS.tensor_ops import dir2rad, dir3d_rad
+from UTILS.tensor_ops import np_normalize_last_dim, dir3d_rad
 
 def Norm(x):  # 求长度
     return np.linalg.norm(x)
@@ -53,7 +53,7 @@ class ScenarioConfig(object):
     }
 
     discrete_action = True
-    max_steps_episode = 200
+    max_steps_episode = 140
     arena_size = Unit(m=140)
     num_MPE_agent = hunter_num + invader_num
     nest_center_pos = np.array([Unit(m=0), Unit(m=0), Unit(m=0)])
@@ -74,7 +74,7 @@ class ScenarioConfig(object):
 
     Hunter_Size      = Unit(m=1.5)
     Hunter_Accel     = Unit(m=400)
-    Hunter_MaxSpeed  = Unit(m=12)
+    Hunter_MaxSpeed  = Unit(m=12) # 12
 
     Landmark_Size = Unit(m=6)
     Invader_Kill_Range = Unit(m=2) #
@@ -84,7 +84,8 @@ class ScenarioConfig(object):
 
     RewardAsUnity = True
     render = False
-
+    
+    extreme_sparse = True
 
 
 class Scenario(BaseScenario):
@@ -171,7 +172,7 @@ class Scenario(BaseScenario):
         for index, agent in enumerate(self.landmarks):
             nearest_invader_dis = min(self.distance_landmark[:, index])
             self.threejs_bridge.v2dx(
-                '其他几何体之旋转缩放和平移|%d|green|0.1'%(index+999),
+                'oct|%d|green|0.1'%(index+999),
                 agent.state.p_pos[0],
                 agent.state.p_pos[1],
                 agent.state.p_pos[2],
@@ -192,9 +193,11 @@ class Scenario(BaseScenario):
         self.distance, self.distance_landmark = self.get_distance_landmark()
 
         # 二重循环，对出现在周围的invader造成减速
+        self.threat_clear = True     # 检查invader是否被驱除出
         for invader in invaders:
             invader.tracked_by = []
-            invader.max_speed = self.Invader_MaxSpeed
+            if np.linalg.norm(invader.state.p_pos) < ScenarioConfig.invader_spawn_limit*1.11:
+                self.threat_clear = False
             
         for i, hunter in enumerate(hunters):
             hunter_index = i
@@ -202,38 +205,29 @@ class Scenario(BaseScenario):
             for j, invader in enumerate(invaders):
                 distance_i_j = self.distance[i, j]
                 if distance_i_j > self.hunter_affect_range:  continue
-                invader.max_speed = max(invader.max_speed - self.hunter_speed_pressure, 0)
                 invader.tracked_by.append(hunter_index)
 
         # push invaders to opposite direction
         for invader_index, invader in enumerate(invaders):
-            if len(invader.tracked_by) >= self.intercept_hunter_needed:
-                # override invader movement
-                invader
-                # invader.live = False
-                # invader.movable = False
-                # invader.spawn_cd = self.invader_spawn_cd
-                # invader.state.p_pos *= 0
-                # invader.state.p_vel *= 0
+            if invader.state.previous_pos is None: continue # special situations
+            if not hasattr(invader, 'force'): continue # special situations
+
+            invader.state.p_vel = invader.state.previous_vel * (1 - world.damping)  # read vel
+            if (invader.force is not None): # use force to update vel
+                invader.force_real = invader.force +  (-invader.force) * len(invader.tracked_by) * 0.55
+                invader.state.p_vel += (invader.force_real / invader.mass) * world.dt
+
+            # limit max speed
+            if (invader.max_speed is not None):
+                speed = np.linalg.norm(invader.state.p_vel)
+                if speed > invader.max_speed:
+                    invader.state.p_vel = invader.state.p_vel / speed * invader.max_speed
+
+            # update position
+            invader.state.p_pos = invader.state.previous_pos + invader.state.p_vel * world.dt
 
 
-        # # 拦截成功判定
-        # for invader_index, invader in enumerate(invaders):
-        #     if len(invader.tracked_by) >= self.intercept_hunter_needed:
-        #         invader.live = False
-        #         invader.movable = False
-        #         invader.spawn_cd = self.invader_spawn_cd
-        #         invader.state.p_pos *= 0
-        #         invader.state.p_vel *= 0
-        # # 再生
-        # for invader in invaders:
-        #     if not invader.live:
-        #         if invader.spawn_cd <= 0 and self.invader_spawn_time_left > 0:
-        #             self.invader_spawn_time_left -= 1
-        #             self.invader_revise(invader, world)
-        #         else: invader.spawn_cd -= 1
-
-        # 检查landmark是否被摧毁
+        # 检查landmark是否被摧毁 self.distance_landmark [self.num_invaders, self.num_landmarks]
         if np.min(self.distance_landmark) <= self.Invader_Kill_Range:
             self.hunter_failed = True
 
@@ -283,49 +277,42 @@ class Scenario(BaseScenario):
         return self.obs.copy()
 
     def reward_forall(self, world):
-        # hunter 的奖励有如下几条
-        # <3> +10    HUNT_INVDR_SUCCESSFUL_REWARD   拦截成功奖励
-        # <4> 20    LANDMARK_DESTORYED_REV_REWARD   invader接触landmark，直接失败
-
-        HUNT_INVDR_SUCCESSFUL_REWARD = 0.1
-        HUNT_ALL_INVDR_SUCCESSFUL_REWARD = 1
-        LANDMARK_DESTORYED_REV_REWARD = 3
-
-        # MIN_MIN_DIS_REV_REWARD_MAXDIS = Unit(25)
-        # MIN_MIN_DIS_REV_REWARD_MINDIS = Unit(5)
-        # MIN_MIN_DIS_REV_REWARD_MAXPEL = 0
-
-        # 获取智能体列表30
-        agents = world.agents
-        hunters = self.hunters
-        invaders = self.invaders
-        landmars = self.landmarks
         # 初始化奖励列表
         hunter_reward = np.array([0.] * self.num_hunters)
         invader_reward = np.array([0.] * self.num_invaders)
-        # 计算距离矩阵（agent2agent）
+        win_cond1 = world.steps >= world.max_steps_episode
+        win_cond2 = self.threat_clear
+        win_cond = win_cond1 or win_cond2
+        loss_cond = self.hunter_failed
 
+        if ScenarioConfig.extreme_sparse:
+            # 极度稀疏奖励
+            if win_cond:
+                hunter_reward += 1
+                invader_reward -= 1
 
-        min_min_distance = np.min(self.distance_landmark)
+            if loss_cond:
+                hunter_reward -= 1
+                invader_reward += 1
+        else:
+            # 一般型稀疏奖励
+            HUNT_INVDR_SUCCESSFUL_REWARD = 0.05
+            REWARD_WHEN_TRACKED_BY_N = 3
+            WIN_REWARD = 1
 
+            for invader_index, invader in enumerate(self.invaders):
+                if len(invader.tracked_by) >= REWARD_WHEN_TRACKED_BY_N and (not invader.intercepted):
+                    invader.intercepted = True
+                    hunter_reward += HUNT_INVDR_SUCCESSFUL_REWARD
+                    invader_reward -= HUNT_INVDR_SUCCESSFUL_REWARD
 
-        # 看看哪些invader被足够多的hunter围攻，判定拦截成功
-        for invader_index, invader in enumerate(invaders):
-            #  消灭奖励
-            if len(invader.tracked_by) >= self.intercept_hunter_needed:
-            #     for hunter_index in invader.tracked_by:
-                hunter_reward += HUNT_INVDR_SUCCESSFUL_REWARD
-
-        if self.threat_clear: # 当所有invader都被消灭的时刻获取奖励
-            hunter_reward += HUNT_ALL_INVDR_SUCCESSFUL_REWARD
-            invader_reward -= HUNT_ALL_INVDR_SUCCESSFUL_REWARD
-
-        # 检查landmark是否被摧毁
-        min_distance = np.min(self.distance_landmark)
-        if min_distance <= self.Invader_Kill_Range:
-            hunter_reward = hunter_reward - LANDMARK_DESTORYED_REV_REWARD
-            invader_reward = invader_reward + LANDMARK_DESTORYED_REV_REWARD
-
+            if win_cond:
+                hunter_reward += WIN_REWARD
+                invader_reward -= WIN_REWARD
+            if loss_cond:
+                hunter_reward -= WIN_REWARD
+                invader_reward += WIN_REWARD
+            
         self.reward_sample += hunter_reward[0]
         return invader_reward.tolist() + hunter_reward.tolist()
 
@@ -338,27 +325,34 @@ class Scenario(BaseScenario):
             # 初始化，随机地分布在一个正方形内
             agent.state.p_pos = np.random.uniform(-self.hunter_spawn_pos_lim, self.hunter_spawn_pos_lim,
                                                   world.dim_p) + self.nest_center_pos
+            agent.state.previous_pos = agent.state.p_pos.copy()
             # 速度，初始化为0
             agent.state.p_vel = np.zeros(world.dim_p)
+            agent.state.previous_vel = agent.state.p_vel.copy()
             agent.state.c = np.zeros(world.dim_c)
             agent.live = True
             agent.movable = True
+            agent.intercepted = False
+
         else:
             # 处理invader
             # spawn direction relative to nest
             self.process_invader_pos(agent)
             # 速度，初始化为0
             agent.state.p_vel = np.zeros(world.dim_p)
+            agent.state.previous_vel = agent.state.p_vel.copy()
             agent.state.c = np.zeros(world.dim_c)
             agent.live = True
             agent.movable = True
+            agent.intercepted = False
 
     def process_invader_pos(self, agent):
         while True:
-            theta = np.random.rand() * 2 * np.pi - np.pi
-            phi = np.random.rand() * 2 * np.pi - np.pi
+            theta = (np.random.rand() * 2 * np.pi - np.pi)*0.35
+            phi = (np.random.rand() * 2 * np.pi - np.pi)
             d = self.rand(low=1.0 * self.invader_spawn_limit, high=1.1 * self.invader_spawn_limit)
-            agent.state.p_pos = d * np.array([ np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta) ]) + self.nest_center_pos
+            agent.state.p_pos = d * np.array([ np.cos(theta)*np.cos(phi), np.cos(theta)*np.sin(phi), np.sin(theta) ]) + self.nest_center_pos
+            agent.state.previous_pos = agent.state.p_pos.copy()
             x = agent.state.p_pos[0]
             y = agent.state.p_pos[1]
             z = agent.state.p_pos[2]
@@ -366,6 +360,8 @@ class Scenario(BaseScenario):
                 and y < self.arena_size and y > -self.arena_size \
                 and z < self.arena_size and z > -self.arena_size:
                 break
+            else:
+                assert False
 
     def invader_revise(self, agent, world):
         self.spawn_position(agent, world)
@@ -384,8 +380,8 @@ class Scenario(BaseScenario):
         self.hunter_failed = False
         self.threat_clear = False
         self.reward_sample = 0
-        self.invader_spawn_time_left = self.Invader_Spawn_Times
-        self.indader_left_to_hunt = self.Invader_To_Intercept
+        # self.invader_spawn_time_left = self.Invader_Spawn_Times
+        # self.indader_left_to_hunt = self.Invader_To_Intercept
         if self.show_off:
             print('reset world')
 
@@ -425,18 +421,20 @@ class Scenario(BaseScenario):
         return distance, distance_landmark
 
     def done(self, agent, world):
-        condition1 = world.steps >= world.max_steps_episode
-        # if self.show_off and condition1:
-        #     print('time up reset')
-        self.is_success = False if self.hunter_failed else True
-        # if self.show_off and self.hunter_failed:
-        #     print('landmark destoryed')
-        condition2 = self.threat_clear
-        if agent.iden==0 and self.show_off and self.threat_clear:
-            if self.eval_mode:
-                time.sleep(3)
+        win_cond1 = world.steps >= world.max_steps_episode
+        win_cond2 = self.threat_clear
+        win_cond = win_cond1 or win_cond2
+        self.is_success = win_cond
+
+        loss_cond = self.hunter_failed
+        done = win_cond or loss_cond
+        if done: 
+            assert loss_cond != win_cond
+
+        if agent.iden==0 and self.show_off and win_cond:
             print('hunt success')
-        return condition1 or condition2 or self.hunter_failed
+
+        return done
 
     def load_obs(self, fragment):
         L = len(fragment) if isinstance(fragment, np.ndarray) else 1
@@ -497,7 +495,7 @@ class Scenario(BaseScenario):
             landmark.size = ScenarioConfig.Landmark_Size
             landmark.boundary = False
         # make initial conditions
-        self.reset_world(world)
+        # self.reset_world(world)
         world.max_steps_episode = ScenarioConfig.max_steps_episode
         self.hunters = [agent for agent in world.agents if not agent.IsInvader]
         self.invaders = [agent for agent in world.agents if agent.IsInvader]

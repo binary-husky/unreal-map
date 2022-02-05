@@ -438,6 +438,9 @@ class DrawProcessThreejs(Process):
             self.__del__()
         self.__del__()
 
+    def __del__(self):
+        return
+        
     def run_handler(self, new_buff_list):
         self.buffer_list.extend(new_buff_list)
         if self.allow_backup:
