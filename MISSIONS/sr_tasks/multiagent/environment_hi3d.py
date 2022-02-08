@@ -5,7 +5,7 @@ import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
 from .scenarios.hunter_invader3d import ScenarioConfig 
 def normalize(mat):
-    return mat / np.linalg.norm(mat, axis=-1)
+    return mat / (np.linalg.norm(mat, axis=-1)+1e-10)
 
 
 # environment for all agents in the multiagent world

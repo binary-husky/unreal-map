@@ -4,7 +4,7 @@ from gym.envs.registration import EnvSpec
 import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
 def normalize(mat):
-    return mat / np.linalg.norm(mat, axis=-1)
+    return mat / (np.linalg.norm(mat, axis=-1)+1e-10)
 
 
 # environment for all agents in the multiagent world
@@ -165,10 +165,12 @@ class MultiAgentEnv(gym.Env):
         if agent.movable:
             # physical action
             if self.discrete_action_input:
+                if np.isnan(action).any():
+                    print('error')
                 agent.action.u = np.zeros(self.world.dim_p)
                 agent.action.u[0] = action[0][0]
                 agent.action.u[1] = action[0][1]
-                agent.action.u[2] = action[0][2]
+                if len(agent.action.u)>=3: agent.action.u[2] = action[0][2]
                 agent.action.u = normalize(agent.action.u)
                 # process discrete action
             else:
