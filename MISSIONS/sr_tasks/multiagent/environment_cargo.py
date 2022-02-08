@@ -3,6 +3,8 @@ from gym import spaces
 from gym.envs.registration import EnvSpec
 import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
+def normalize(mat):
+    return mat / np.linalg.norm(mat, axis=-1)
 
 
 # environment for all agents in the multiagent world
@@ -104,9 +106,8 @@ class MultiAgentEnv(gym.Env):
 
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
-        if self.shared_reward:
-            reward_n = [reward] * self.n
-        return np.array(obs_n), np.array(reward_n), done_n, info_n
+
+        return np.array(obs_n), reward, done_n, info_n
 
     def reset(self):
         # reset world
@@ -165,16 +166,11 @@ class MultiAgentEnv(gym.Env):
             # physical action
             if self.discrete_action_input:
                 agent.action.u = np.zeros(self.world.dim_p)
+                agent.action.u[0] = action[0][0]
+                agent.action.u[1] = action[0][1]
+                agent.action.u[2] = action[0][2]
+                agent.action.u = normalize(agent.action.u)
                 # process discrete action
-                n_dir = 4
-                dir_div = np.pi*2/n_dir
-                if action[0] == 0:
-                    pass
-                else:
-                    i = action[0] - 1
-                    agent.action.u[0] = np.cos( i*dir_div)
-                    agent.action.u[1] = np.sin( i*dir_div)
-
             else:
                 if self.force_discrete_action:
                     d = np.argmax(action[0])

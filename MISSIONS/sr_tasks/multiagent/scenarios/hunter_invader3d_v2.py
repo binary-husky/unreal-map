@@ -77,7 +77,7 @@ class ScenarioConfig(object):
     Hunter_MaxSpeed  = Unit(m=12) # 12
 
     Landmark_Size = Unit(m=6)
-    Invader_Kill_Range = Unit(m=2) #
+    Invader_Kill_Range = Unit(m=5.999) #
 
     Invader_Spawn_Times = invader_num*2-invader_num
     invader_spawn_cd = 20
@@ -140,8 +140,12 @@ class Scenario(BaseScenario):
             x = agent.state.p_pos[0]; y=agent.state.p_pos[1]; z=agent.state.p_pos[2]
             if agent.live:
                 self.threejs_bridge.agent_alive_pos[index] = (x,y,z)
-                if agent.IsInvader: color = 'Red'
-                if not agent.IsInvader: color = 'Blue'
+                if agent.IsInvader: 
+                    color = 'Red'
+                    size = 0.04
+                if not agent.IsInvader: 
+                    color = 'Blue'
+                    size = 0.01
                 opacity = 0.99
                 if index not in self.threejs_bridge.agent_alive_time: self.threejs_bridge.agent_alive_time[index] = 0
                 self.threejs_bridge.agent_alive_time[index] += 1
@@ -149,9 +153,9 @@ class Scenario(BaseScenario):
                 color = 'black'
                 opacity = 0
                 self.threejs_bridge.agent_alive_time[index] = 0
-
+        
             self.threejs_bridge.v2dx(
-                'cone|%d|%s|0.02'%(index, color),
+                'cone|%d|%s|%.2f'%(index, color, size),
                 self.threejs_bridge.agent_alive_pos[index][0], 
                 self.threejs_bridge.agent_alive_pos[index][1], 
                 self.threejs_bridge.agent_alive_pos[index][2], 
@@ -172,15 +176,26 @@ class Scenario(BaseScenario):
         for index, agent in enumerate(self.landmarks):
             nearest_invader_dis = min(self.distance_landmark[:, index])
             self.threejs_bridge.v2dx(
-                'oct|%d|green|0.1'%(index+999),
+                'oct|%d|green|0.2'%(index+999),
                 agent.state.p_pos[0],
                 agent.state.p_pos[1],
                 agent.state.p_pos[2],
                 ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
-                label='threat@ %.2f'%nearest_invader_dis, 
-                label_color='white' if nearest_invader_dis>1 else 'red', 
-                opacity=1
+                label='invader@ %.2f'%nearest_invader_dis, 
+                label_color='Black' if nearest_invader_dis>1 else 'red', 
+                opacity=0.5
             )
+
+        self.threejs_bridge.v2dx(
+            'oct|%d|green|0.45'%(1999),
+            0,
+            0,
+            1.6,
+            ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
+            label='Time %d/%d'%(self.step, ScenarioConfig.max_steps_episode), 
+            label_color='white', 
+            opacity=0
+        )
         self.threejs_bridge.v2d_show()
         if (self.step)==0: 
             self.threejs_bridge.set_env('clear_track')

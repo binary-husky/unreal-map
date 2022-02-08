@@ -1,9 +1,8 @@
 import numpy as np
 from multiagent.core import World, Agent
 from multiagent.scenario import BaseScenario
-import cmath, math, os
+import cmath, math
 from numba import jit, njit
-import importlib
 
 def Norm(x):  # 求长度
     return np.linalg.norm(x)
@@ -24,17 +23,15 @@ def convert_to_pole2D(vec):
     return Range, angle
 
 
-
-
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
     discrete_action = True
-    max_steps_episode = 200
+    max_steps_episode = 150
 
     reach_distance = 0.07
 
-    n_worker = 200
+    n_worker = 50
     weight_percent = 0.85 # 50个单位的智能体运送 50*80%=40单位的货物
-    n_cargo = 5
+    n_cargo = 4
     # n_destination = 2
     acc = 20
 
@@ -43,29 +40,29 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     N_AGENT_EACH_TEAM = [n_worker, ]
     AGENT_ID_EACH_TEAM = [range(0, n_worker), ]
     TEAM_NAMES = ['ALGORITHM.hmp_native.foundation->ReinforceAlgorithmFoundation', ]
-    # TEAM_NAMES = ['ALGORITHM.hmp2.foundation->ReinforceAlgorithmFoundation', ]
 
-    num_agent = n_worker    # <Chain-Parameter>
-    num_entity = n_cargo * 2    # <Chain-Parameter>
+    num_agent = n_worker
+    num_entity = n_cargo * 2
 
-    num_object = n_worker + n_cargo + n_cargo   # <Chain-Parameter>
+    num_object = n_worker + n_cargo + n_cargo
     show_game = False
 
     uid_dictionary = {
-        'agent_uid': range(0, n_worker),
-        'entity_uid': range(n_worker, n_worker + n_cargo * 2)
+        'agent_uid': range(0, n_worker),        # (self.n_worker + 2 * self.n_cargo)
+        'entity_uid': range(n_worker, n_worker + n_cargo * 2)   # (self.n_worker + 2 * self.n_cargo)
     }
     assert len(uid_dictionary['entity_uid']) == num_entity
     assert len(uid_dictionary['agent_uid']) == num_agent
-    obs_vec_length = 6
+    obs_vec_length = 12
     obs_vec_dictionary = {
-        'pos': (0, 1),
-        'vel': (2, 3),
-        'mass': (4),
-        'other': (5),
+        'pos': (0, 1, 2),
+        'vel': (3, 4, 5),
+        'mass': (6),
+        'other': (7,8,9,10,11),  # self-weight, // dragging-who, dispose-for-who, target-weight, weight-rem, env_step
     }
     ObsAsUnity = True
-    show_game = False
+    RewardAsUnity = True
+    render = False
     
 class Scenario(BaseScenario):
     def __init__(self, process_id=-1):
@@ -76,65 +73,46 @@ class Scenario(BaseScenario):
         self.obs_vec_length = ScenarioConfig.obs_vec_length
         self.reach_distance = ScenarioConfig.reach_distance
         self.weight_percent = ScenarioConfig.weight_percent
-        self.show_game = ScenarioConfig.show_game
-        self.visual_worker_size = 0.03
         self.process_id = process_id
-        self.show_off = False if process_id != 0 else True
-        self.show_game = ScenarioConfig.show_game
+        self.show_off = False 
+        if ScenarioConfig.render and process_id != 0:
+            self.show_off = True
         self.cargo_previous = None
-        if self.show_off: self.render_init()
-
-
-    def render_init(self):
-        from VISUALIZE.mcom import mcom
-        print('子进程读取命令行参数')
-        from config import GlobalConfig
-        print('子进程读取命令行参数完成')
-        self.logdir = GlobalConfig.logdir
-        self.mcv = None
-        if self.show_game:
-            self.mcv = mcom(offline=(not self.show_game),
-                            ip='127.0.0.1',
-                            port=12084,
-                            path='%s/gamelogger'%self.logdir,
-                            digit=4,
-                            rapid_flush=True)
-            self.mcv.v2d_init()
 
     def render(self):
-        if self.mcv is None: return
-        if not os.path.exists('.%s/live_game'%self.logdir): return
-        uid = 0
-        for index, worker in enumerate(self.workers):
-            if worker.dragging < 0:
-                self.mcv.v2dx('cir|%d|r|%.3f' % (uid, self.visual_worker_size/2), worker.state.p_pos[0], worker.state.p_pos[1])
-            else:
-                # m/n
-                c = worker.dragging
-                n = len(self.cargo_dragged_by[c])
-                m = self.cargo_dragged_by[c].index(index)
-                self.mcv.v2dx('rec|%d|r|%.3f' % (uid, self.visual_worker_size),
-                              worker.state.p_pos[0] + np.cos(m / n * 2 * np.pi) * 0.1,
-                              worker.state.p_pos[1] + np.sin(m / n * 2 * np.pi) * 0.1)
-            uid += 1
+        # if self.mcv is None: return
+        # if not os.path.exists('.%s/live_game'%self.logdir): return
+        # uid = 0
+        # for index, worker in enumerate(self.workers):
+        #     if worker.dragging < 0:
+        #         self.mcv.v2dx('cir|%d|r|%.3f' % (uid, self.visual_worker_size/2), worker.state.p_pos[0], worker.state.p_pos[1])
+        #     else:
+        #         # m/n
+        #         c = worker.dragging
+        #         n = len(self.cargo_dragged_by[c])
+        #         m = self.cargo_dragged_by[c].index(index)
+        #         self.mcv.v2dx('rec|%d|r|%.3f' % (uid, self.visual_worker_size),
+        #                       worker.state.p_pos[0] + np.cos(m / n * 2 * np.pi) * 0.1,
+        #                       worker.state.p_pos[1] + np.sin(m / n * 2 * np.pi) * 0.1)
+        #     uid += 1
 
-        for index, cargo_pos in enumerate(self.cargo):
-            if self.cargo_hot[index]:
-                self.mcv.v2dx('rec|%d|b|%.3f' % (uid, self.cargo_weight[index] / 300), cargo_pos[0], cargo_pos[1])
-            else:
-                self.mcv.v2dx('rec|%d|k|%.3f' % (uid, self.cargo_weight[index] / 300), cargo_pos[0], cargo_pos[1])
+        # for index, cargo_pos in enumerate(self.cargo):
+        #     if self.cargo_hot[index]:
+        #         self.mcv.v2dx('rec|%d|b|%.3f' % (uid, self.cargo_weight[index] / 300), cargo_pos[0], cargo_pos[1])
+        #     else:
+        #         self.mcv.v2dx('rec|%d|k|%.3f' % (uid, self.cargo_weight[index] / 300), cargo_pos[0], cargo_pos[1])
                 
-            uid += 1
+        #     uid += 1
 
-        for index, drop_off_pos in enumerate(self.cargo_drop_off):
-            self.mcv.v2dx('cir|%d|g|%.3f' % (uid, self.cargo_weight[index] / 300), drop_off_pos[0], drop_off_pos[1])
-            uid += 1
+        # for index, drop_off_pos in enumerate(self.cargo_drop_off):
+        #     self.mcv.v2dx('cir|%d|g|%.3f' % (uid, self.cargo_weight[index] / 300), drop_off_pos[0], drop_off_pos[1])
+        #     uid += 1
 
-        remain_weight = [0,0,0,0,0]
-        for cargo_pos, weight, index, dragged_by_L in zip(self.cargo, self.cargo_weight, range(self.n_cargo), self.cargo_dragged_by):
-            remain_weight[index] = weight - len(dragged_by_L)
-        self.mcv.xlabel(('step: %d,reward: %.2f,' % (self.step, self.reward_sample))+str(remain_weight))
-        self.mcv.drawnow()
+        # remain_weight = [0,0,0,0,0]
+        # for cargo_pos, weight, index, dragged_by_L in zip(self.cargo, self.cargo_weight, range(self.n_cargo), self.cargo_dragged_by):
+        #     remain_weight[index] = weight - len(dragged_by_L)
+        # self.mcv.xlabel(('step: %d,reward: %.2f,' % (self.step, self.reward_sample))+str(remain_weight))
+        # self.mcv.drawnow()
         return
 
     def observation(self, world):
@@ -143,46 +121,50 @@ class Scenario(BaseScenario):
         self.joint_rewards = self.reward_forall(world)  # 第二步更新奖励
         if self.show_off: self.render()  # 第三步更新UI
 
-        self.obs_dimension = self.obs_vec_length * (self.n_worker + 2 * self.n_cargo) + 1
+        self.obs_dimension = self.obs_vec_length * (self.n_worker + 2 * self.n_cargo)
         self.obs_pointer = 0  # this is important for function load_obs
         self.obs = np.zeros(shape=(self.obs_dimension,))
-
+        # self.obs_vec_length * (self.n_worker)
         self.load_obs(
             np.concatenate(
                 [
                     np.concatenate(
-                        (entity.state.p_pos,
-                         entity.state.p_vel,
-                         [entity.dragging,0])
+                        (entity.state.p_pos,[0], # pos3d
+                         entity.state.p_vel,[0], # vel3d
+                         [1, entity.dragging, -1, -1, -1, world.steps/ScenarioConfig.max_steps_episode])      
+                         # self-weight, // dragging-who, dispose-for-who, target-weight, weight-rem, env_step
                     )
                     for entity in world.agents]
             )
         )
+        # self.obs_vec_length * (self.n_cargo)
         self.load_obs(
             np.concatenate(
                 [
                     np.concatenate(
-                        (cargo_pos,
-                         [self.step, self.step/100],    # 空着也是空着，加点其他的信息
-                         [weight / (self.n_worker/self.n_cargo) - 1, weight-len(dragged_by_L)]    # [weight]
+                        (cargo_pos,[0],
+                         [0, 0, 0],    # 空着也是空着，加点其他的信息
+                         [weight, -1, -1, -1, weight-len(dragged_by_L), world.steps/ScenarioConfig.max_steps_episode]
+                         # self-weight, // dragging-who, dispose-for-who, target-weight, weight-rem, env_step
                         )
                     )
                     for cargo_pos, weight, index, dragged_by_L in zip(self.cargo, self.cargo_weight, range(self.n_cargo), self.cargo_dragged_by)]
             )
         )
+        # self.obs_vec_length * (self.n_cargo)
         self.load_obs(
             np.concatenate(
                 [
                     np.concatenate(
                         (drop_off_pos,
-                         [0, 0],
-                         [corrisponding_cargo/self.n_cargo - 0.5, 0])
+                         [0, 0, 0],
+                         [-1, -1, corrisponding_cargo, -1, -1, world.steps/ScenarioConfig.max_steps_episode])
+                         # self-weight, // dragging-who, dispose-for-who, target-weight, weight-rem, env_step
                     )
                     for corrisponding_cargo, drop_off_pos in enumerate(self.cargo_drop_off)]
             )
         )
 
-        self.load_obs(world.steps)  # do not change, the invader script AI will read
         return self.obs.copy()
 
     def load_obs(self, fragment):
@@ -245,7 +227,6 @@ class Scenario(BaseScenario):
                 shift_ = shift_ / (Norm(shift_) + 1e-6) * 0.5 / 10
                 if self.cargo_moving[c]:
                     self.cargo[c] += shift_
-
                 if not self.cargo_moving[c]:  # this is the moment that cargo start moving
                     self.cargo_moving[c] = True
                     if self.cargo_hot[c]: 
@@ -257,8 +238,6 @@ class Scenario(BaseScenario):
             # hold old dragging workers at the cargo position
             for w in self.cargo_dragged_by[c]:
                 self.worker_pos_arr[w] = self.cargo[c].copy()   # set pos
-
-
 
         # if any cargo reach its destination
         cargo_distance = np.linalg.norm((cargo - cargo_dst), axis=-1)
@@ -276,8 +255,7 @@ class Scenario(BaseScenario):
                 else:
                     pass
 
-                # self.cargo[c, :] = self.cargo_init_pos[c, :]
-                # self.cargo_moving[c] = False
+
                 for w in self.cargo_dragged_by[c]:
                     self.workers[w].state.p_vel = np.array([0, 0])
                     self.workers[w].movable = False
@@ -339,7 +317,7 @@ class Scenario(BaseScenario):
 
         n_objects = self.n_cargo * 2 + 1
         angle_div = 2 * np.pi / n_objects
-        arm = 1.7
+        arm = 1.3
 
         init_pos_sel = np.zeros(shape=(n_objects, 2))
         for i in range(n_objects):

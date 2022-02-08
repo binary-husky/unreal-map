@@ -4,6 +4,8 @@ from gym.envs.registration import EnvSpec
 import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
 from .scenarios.hunter_invader3d import ScenarioConfig 
+def normalize(mat):
+    return mat / np.linalg.norm(mat, axis=-1)
 
 
 # environment for all agents in the multiagent world
@@ -68,8 +70,6 @@ class MultiAgentEnv(gym.Env):
                 self.action_space.append(act_space)
             else:
                 self.action_space.append(total_action_space[0])
-            # observation space
-            # obs_dim = len(observation_callback(agent, self.world))
             # self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(obs_dim,), dtype=np.float32))
             agent.action.c = np.zeros(self.world.dim_c)
 
@@ -108,7 +108,8 @@ class MultiAgentEnv(gym.Env):
 
         reward_n = np.array(reward_n)
         reward_t = np.array([reward_n[self.invader_uid].mean(), reward_n[self.agent_uid].mean()])
-        return np.array(obs_n), reward_t, done_n, info_n
+        info = {'win':info_n['n'][0]['is_success']}
+        return np.array(obs_n), reward_t, done_n, info
 
     def reset(self):
         # reset world
@@ -170,28 +171,8 @@ class MultiAgentEnv(gym.Env):
                 agent.action.u[0] = action[0][0]
                 agent.action.u[1] = action[0][1]
                 agent.action.u[2] = action[0][2]
+                agent.action.u = normalize(agent.action.u)
                 # process discrete action
-                # 0,  1,2,  3,4,  5,6
-                # assert action[0] <= 2*self.world.dim_p
-                # assert action[0] >=0
-
-                # if action[0] == 0:
-                #     pass
-                # elif action[0] == 1:    # 101
-                #     agent.action.u[0] = 1
-                # elif action[0] == 2:    # 211
-                #     agent.action.u[1] = 1
-                # elif action[0] == 3:    # 30 -1
-                #     agent.action.u[0] = -1
-                # elif action[0] == 4:    # 41 -1
-                #     agent.action.u[1] = -1
-                # elif action[0] == 5:    # 521
-                #     agent.action.u[2] = 1
-                # elif action[0] == 6:    # 62-1
-                #     agent.action.u[2] = -1
-                # else:
-                #     assert False
-
             else:
                 if self.force_discrete_action:
                     d = np.argmax(action[0])
@@ -357,6 +338,7 @@ class MultiAgentEnv(gym.Env):
         return env_info
 
     def get_state(self):
+        assert False
         return np.concatenate([self._get_obs(agent) for agent in self.agents])
         # entity_pos = [entity.state.p_pos for entity in self.world.landmarks]
         # agent_pos = [other.state.p_pos for other in self.world.agents]
@@ -364,6 +346,7 @@ class MultiAgentEnv(gym.Env):
         # return np.concatenate(agent_pos+agent_vel+entity_pos)
 
     def get_avail_actions(self):
+        assert False
         return np.ones((self.n,5))
 
     def get_obs(self):

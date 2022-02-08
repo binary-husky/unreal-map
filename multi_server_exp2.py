@@ -141,7 +141,7 @@ import copy, os
 import time
 import json
 from UTILS.colorful import *
-arg_base = ['python', '-X', 'faulthandler', 'main.py']
+arg_base = ['python', 'main.py']
 time_mark = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
 log_dir = '%s/'%time_mark
 exp_log_dir = log_dir+'exp_log'

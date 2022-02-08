@@ -23,9 +23,9 @@ def convert_to_pole2D(vec):
     return Range, angle
 
 
-class ScenarioConfig(object):
+class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
     discrete_action = True
-    max_steps_episode = 230
+    max_steps_episode = 150
 
     reach_distance = 0.07
 
@@ -57,7 +57,8 @@ class ScenarioConfig(object):
         'vel': (2, 3),
         'mass': (4),
     }
-
+    ObsAsUnity = True
+    render = False
 
 class Scenario(BaseScenario):
     def __init__(self, process_id=-1):
@@ -69,58 +70,43 @@ class Scenario(BaseScenario):
         self.reach_distance = ScenarioConfig.reach_distance
         self.work_size = 0.03
         self.process_id = process_id
-        self.show_off = False if process_id != 0 else True
-        if self.show_off:
-            self.render_init()
-
+        self.show_off = False 
+        if ScenarioConfig.render and process_id != 0:
+            self.show_off = True
         self.cargo_previous = None
 
-    def render_init(self):
-        from VISUALIZE.mcom import mcom
-        from z_config import GlobalConfig
-        note = GlobalConfig.note
-        self.mcv = None
-        if GlobalConfig.show_game:
-            self.mcv = mcom(offline=(not GlobalConfig.show_game),
-                            ip='127.0.0.1',
-                            port=12084,
-                            path='./checkpoint/gamelogger/%s/'%note,
-                            digit=4,
-                            rapid_flush=False)
-            self.mcv.v2d_init()
-
     def render(self):
-        if self.mcv is None: return
-        uid = 0
-        for index, worker in enumerate(self.workers):
-            if worker.dragging < 0:
-                self.mcv.v2dx('cir|%d|r|%.3f' % (uid, self.work_size), worker.state.p_pos[0], worker.state.p_pos[1])
-            else:
-                # m/n
-                c = worker.dragging
-                n = len(self.cargo_dragged_by[c])
-                m = self.cargo_dragged_by[c].index(index)
-                self.mcv.v2dx('rec|%d|r|%.3f' % (uid, self.work_size),
-                              worker.state.p_pos[0] + np.cos(m / n * 2 * np.pi) * 0.1,
-                              worker.state.p_pos[1] + np.sin(m / n * 2 * np.pi) * 0.1)
-            uid += 1
+        # if self.mcv is None: return
+        # uid = 0
+        # for index, worker in enumerate(self.workers):
+        #     if worker.dragging < 0:
+        #         self.mcv.v2dx('cir|%d|r|%.3f' % (uid, self.work_size), worker.state.p_pos[0], worker.state.p_pos[1])
+        #     else:
+        #         # m/n
+        #         c = worker.dragging
+        #         n = len(self.cargo_dragged_by[c])
+        #         m = self.cargo_dragged_by[c].index(index)
+        #         self.mcv.v2dx('rec|%d|r|%.3f' % (uid, self.work_size),
+        #                       worker.state.p_pos[0] + np.cos(m / n * 2 * np.pi) * 0.1,
+        #                       worker.state.p_pos[1] + np.sin(m / n * 2 * np.pi) * 0.1)
+        #     uid += 1
 
-        for index, cargo_pos in enumerate(self.cargo):
-            self.mcv.v2dx('rec|%d|b|%.3f' % (uid, self.cargo_weight[index] / 100), cargo_pos[0], cargo_pos[1])
-            uid += 1
+        # for index, cargo_pos in enumerate(self.cargo):
+        #     self.mcv.v2dx('rec|%d|b|%.3f' % (uid, self.cargo_weight[index] / 100), cargo_pos[0], cargo_pos[1])
+        #     uid += 1
 
-        for index, drop_off_pos in enumerate(self.cargo_drop_off):
-            self.mcv.v2dx('cir|%d|g|%.3f' % (uid, self.cargo_weight[index] / 100), drop_off_pos[0], drop_off_pos[1])
-            uid += 1
+        # for index, drop_off_pos in enumerate(self.cargo_drop_off):
+        #     self.mcv.v2dx('cir|%d|g|%.3f' % (uid, self.cargo_weight[index] / 100), drop_off_pos[0], drop_off_pos[1])
+        #     uid += 1
 
-        self.mcv.xlabel('step: %d,reward: %.2f' % (self.step, self.reward_sample))
-        self.mcv.drawnow()
+        # self.mcv.xlabel('step: %d,reward: %.2f' % (self.step, self.reward_sample))
+        # self.mcv.drawnow()
         return
 
     def observation(self, agent, world):
         if agent.iden == 0:
             # by now the agents has already moved according to action
-            self.scenario_step(agent, world)  # 第一步更新距离矩阵，更新智能体live的状态
+            # self.scenario_step(agent, world)  # 第一步更新距离矩阵，更新智能体live的状态
             self.joint_rewards = self.reward_forall(world)  # 第二步更新奖励
             if self.show_off: self.render()  # 第三步更新UI
 
@@ -179,8 +165,8 @@ class Scenario(BaseScenario):
         self.obs_pointer = self.obs_pointer + L
 
 
-    def scenario_step(self, agent, world):
-        pass
+    # def scenario_step(self, agent, world):
+    #     pass
 
 
     def update_matrix(self):

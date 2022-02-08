@@ -63,6 +63,9 @@ class ReinforceAlgorithmFoundation(object):
 
         self.n_basic_dim = scenario_config.obs_vec_length
         self.n_entity = scenario_config.num_entity
+        self.ObsAsUnity = False
+        if hasattr(scenario_config, 'ObsAsUnity'):
+            self.ObsAsUnity = scenario_config.ObsAsUnity
         self.agent_uid = scenario_config.uid_dictionary['agent_uid']
         self.entity_uid = scenario_config.uid_dictionary['entity_uid']
 
@@ -153,7 +156,7 @@ class ReinforceAlgorithmFoundation(object):
             
             Active_emb, Active_act_dec = self.regroup_obs(Active_raw_obs, div_R=Active_div_R, div_L=Active_div_L)
             with torch.no_grad():
-                Active_action, Active_value_top, Active_value_bottom, Active_action_log_prob_R, Active_action_log_prob_L = self.policy.act(Active_emb)
+                Active_action, Active_value_top, Active_value_bottom, Active_action_log_prob_R, Active_action_log_prob_L = self.policy.act(Active_emb, test_mode=test_mode)
             traj_frag = {   'skip':                 ~threads_active_flag,           'done':                 False,
                             'value_R':              Active_value_top,               'value_L':              Active_value_bottom,
                             'g_actionLogProbs_R':   Active_action_log_prob_R,       'g_actionLogProbs_L':   Active_action_log_prob_L,
@@ -179,9 +182,9 @@ class ReinforceAlgorithmFoundation(object):
             'g_actionLogProbs_R': None, 'g_actionLogProbs_L': None, 'ctr_mask_R': None, 'ctr_mask_L': None,
         }
 
-        delta_pos, agent_entity_div = self.组成员目标分配(subj_div_R, subj_div_L, cter_fifoR, cter_fifoL, act_dec)
+        delta_pos, target_vel, agent_entity_div = self.组成员目标分配(subj_div_R, subj_div_L, cter_fifoR, cter_fifoL, act_dec)
         # if thread_internal_step_o[0] > 0: print红(agent_entity_div[0])
-        all_action = self.dir_to_action3d(vec=delta_pos, vel=act_dec['agent_vel']) # 矢量指向selected entity
+        all_action = self.dir_to_action3d(vec=delta_pos, vel=target_vel) # 矢量指向selected entity
         actions_list = []
         for i in range(self.n_agent): actions_list.append(all_action[:,i,:])
         actions_list = np.array(actions_list)
@@ -326,14 +329,14 @@ class ReinforceAlgorithmFoundation(object):
         pass
 
     def save_model(self, update_cnt):
-        if update_cnt%10==9:
+        if update_cnt!=0 and update_cnt%200==0:
             print绿('保存模型中')
             torch.save(self.policy.state_dict(), '%s/history_cpt/model%d.pt'%(self.logdir, update_cnt))
             torch.save(self.policy.state_dict(), '%s/model.pt'%(self.logdir))
             print绿('保存模型完成')
 
     def 组成员目标分配(self, agent_cluster_div, div2, cter_fifoR, cter_fifoL, act_dec):
-        entity_pos, agent_pos = (act_dec['entity_pos'], act_dec['agent_pos'])
+        entity_pos, agent_pos, target_vel = (act_dec['entity_pos'], act_dec['agent_pos'], act_dec['entity_vel'])
         n_thread = agent_cluster_div.shape[0]
         _n_cluster = self.n_cluster if not CoopAlgConfig.one_more_container else self.n_cluster+1
 
@@ -354,8 +357,9 @@ class ReinforceAlgorithmFoundation(object):
             final_sel_pos = np.concatenate( (entity_pos,  np.zeros(shape=(n_thread, 1, 3))+np.nan ) , axis=1)
             
         sel_entity_pos  = np.take_along_axis(final_sel_pos, axis=1, indices=final_indices)  # 6 in final_indices /cluster_entity_div
+        sel_target_vel  = np.take_along_axis(target_vel, axis=1, indices=final_indices)  # 6 in final_indices /cluster_entity_div
         delta_pos = sel_entity_pos - agent_pos
-        return delta_pos, agent_entity_div
+        return delta_pos, sel_target_vel, agent_entity_div
 
     @staticmethod
     @njit
@@ -392,8 +396,10 @@ class ReinforceAlgorithmFoundation(object):
 
     def regroup_obs(self,  main_obs, div_R, div_L, g=False):
         _n_cluster = self.n_cluster if not CoopAlgConfig.one_more_container else self.n_cluster+1
-
-        about_all_objects = main_obs[:,0,:]
+        if self.ObsAsUnity:
+            about_all_objects = main_obs
+        else:
+            about_all_objects = main_obs[:,0,:]
         objects_emb  = my_view(x=about_all_objects, shape=[0,-1,self.n_basic_dim]) # select one agent
 
         agent_pure_emb = objects_emb[:,self.agent_uid,:]
@@ -490,12 +496,14 @@ class ReinforceAlgorithmFoundation(object):
 
 
     @staticmethod
-    @jit(forceobj=True)
+    # @jit(forceobj=True)
     def dir_to_action3d(vec, vel):
         def np_mat3d_normalize_each_line(mat):
             return mat / np.expand_dims(np.linalg.norm(mat, axis=2) + 1e-16, axis=-1)
-        desired_speed = 0.8
-        vec = np_mat3d_normalize_each_line(vec)*desired_speed
+        # desired_speed = 0.8
+        vec_dx = np_mat3d_normalize_each_line(vec)
+        vec_dv = np_mat3d_normalize_each_line(vel)*0.8
+        vec = np_mat3d_normalize_each_line(vec_dx+vec_dv)
         return vec
 
         # def np_mat3d_normalize_each_line(mat):

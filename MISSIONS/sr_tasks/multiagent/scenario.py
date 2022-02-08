@@ -21,6 +21,8 @@ def sr_tasks_env(env_id, rank):
         from multiagent.environment_hi3d import MultiAgentEnv
     elif env_id == 'hunter_invader3d_v2':
         from multiagent.environment_hi3d import MultiAgentEnv
+    elif env_id == 'cargo':
+        from multiagent.environment_cargo import MultiAgentEnv
     else:
         from multiagent.environment import MultiAgentEnv
     env = MultiAgentEnv(world=world,

@@ -205,24 +205,24 @@ class GNet(nn.Module):
         return
 
     @Args2tensor_Return2numpy
-    def act(self, all_emb):
-        return self._act(all_emb)
+    def act(self, all_emb, test_mode=False):
+        return self._act(all_emb, test_mode=test_mode)
 
     @Args2tensor
     def evaluate_actions(self, embedding, action):
-        return self._act(embedding, True, eval_actions=action)
+        return self._act(embedding, eval_mode=True, eval_actions=action)
 
-    def _act(self, all_emb, eval_mode=False, eval_actions=None):
+    def _act(self, all_emb, eval_mode=False, eval_actions=None, test_mode=False):
         eval_top_act, eval_bottom_act = (eval_actions[:, (0, 1)], eval_actions[:,(2,3)]) if eval_mode \
                                    else (None,                    None                 )
 
         top_feature, bottom_feature, value_top, value_bottom = self.get_feature(all_emb)
 
         act_top, actLogProbs_top, distEntropy_top, probs_top = self.get_fifo_act(net=self.fifo_net_top, feature=top_feature,
-                                                                                eval_mode=eval_mode, eval_actions=eval_top_act)
+                                                                                eval_mode=eval_mode, eval_actions=eval_top_act, test_mode=test_mode)
 
         act_bottom, actLogProbs_bottom, distEntropy_bottom, probs_bottom = self.get_fifo_act(net=self.fifo_net_bottom, feature=bottom_feature,
-                                                                                eval_mode=eval_mode, eval_actions=eval_bottom_act)
+                                                                                eval_mode=eval_mode, eval_actions=eval_bottom_act, test_mode=test_mode)
 
         act = torch.cat(tensors=[act_top, act_bottom], dim=1)
 
@@ -235,14 +235,20 @@ class GNet(nn.Module):
     def chain_acts(self):
         return
 
-    def get_fifo_act(self, net, feature, eval_mode, eval_actions=None):
+    def get_fifo_act(self, net, feature, eval_mode, eval_actions=None, test_mode=False):
         i_act_logits = net['INet'](feature)
         i_act_dist = Categorical(logits=i_act_logits)
-        i_act = i_act_dist.sample() if not eval_mode else eval_actions[:, 0]
+        if not test_mode:  
+            i_act = i_act_dist.sample() if not eval_mode else eval_actions[:, 0]
+        else: 
+            i_act = torch.argmax(i_act_dist.probs, axis=-1)
         i_act_oh = torch.nn.functional.one_hot(i_act, i_act_logits.shape[-1])
         o_act_logits = net['ONet'](torch.cat([feature, i_act_oh], dim=-1))
         o_act_dist = Categorical(logits=o_act_logits)
-        o_act = o_act_dist.sample() if not eval_mode else eval_actions[:, 1]
+        if not test_mode:  
+            o_act = o_act_dist.sample() if not eval_mode else eval_actions[:, 1]
+        else: 
+            o_act = torch.argmax(o_act_dist.probs, axis=-1)
         act = torch.cat(tensors=[i_act.unsqueeze(-1), o_act.unsqueeze(-1)], dim=1)
         actLogProbs = self._get_act_log_probs(i_act_dist, i_act) + self._get_act_log_probs(o_act_dist, o_act)
         distEntropy = i_act_dist.entropy().mean() + o_act_dist.entropy().mean() if eval_mode else None
