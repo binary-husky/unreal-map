@@ -93,7 +93,7 @@ class Runner(object):
         if self.info_runner['Latest-Team-Info'] is None: self.info_runner['Latest-Team-Info'] = info
         self.info_runner['Latest-Obs'][R] = obs[R]
         self.info_runner['Latest-Team-Info'][R] = info[R]
-        self.info_runner['Latest-Reward'][R] = reward[R]
+        self.info_runner['Latest-Reward'][R] = reward[R]    # note, reward shape: (thread, n-team\n-agent)
         self.info_runner['Latest-Reward-Sum'][R] += reward[R]
         self.info_runner['Current-Obs-Step'][R] += 1
         for i in range(self.n_thread):

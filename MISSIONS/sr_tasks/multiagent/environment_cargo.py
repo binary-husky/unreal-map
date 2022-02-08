@@ -105,7 +105,7 @@ class MultiAgentEnv(gym.Env):
 
 
         # all agents get total reward in cooperative case
-        reward = np.sum(reward_n)
+        reward = np.mean(reward_n, keepdims=True)
 
         return np.array(obs_n), reward, done_n, info_n
 
@@ -165,8 +165,7 @@ class MultiAgentEnv(gym.Env):
         if agent.movable:
             # physical action
             if self.discrete_action_input:
-                if np.isnan(action).any():
-                    print('error')
+
                 agent.action.u = np.zeros(self.world.dim_p)
                 agent.action.u[0] = action[0][0]
                 agent.action.u[1] = action[0][1]

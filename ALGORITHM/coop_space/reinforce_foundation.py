@@ -101,10 +101,10 @@ class ReinforceAlgorithmFoundation(object):
                 self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n))
         
         
-        t = [np.ceil(self.max_internal_step) if x<self.head_start_cnt  else 1.0 if x%self.decision_interval==0 else 0.0  
+        t = [int(np.ceil(self.max_internal_step)) if x<self.head_start_cnt  else 1 if x%self.decision_interval==0 else 0
                 for x in range(50)]
         print('control_squence:', t)
-        print('hold_squence:', [np.ceil(self.head_start_hold_n / 4**x ) if x<self.head_start_cnt  else 1.0  for x in range(50)])
+        print('hold_squence:', [int(np.ceil(self.head_start_hold_n / 4**x )) if x<self.head_start_cnt  else 1  for x in range(50)])
         self.patience = 500 # skip currupt data detection after patience exhausted
 
 
