@@ -155,6 +155,8 @@ function apply_update(object, parsed_obj_info){
     let track_tension = parsed_obj_info['track_tension']
     let track_color = parsed_obj_info['track_color']
 
+    label_marking = label_marking.replace("|", "\n")
+
     // 已经创建了对象,setfuture
     if (object) {
         if (!init_cam_f2){

@@ -87,7 +87,7 @@ function parse_update_without_re(pp){
 var init_terrain = false;
 
 function parse_env(str){
-    let re_style = />>set_env\('(.*)'/
+    let re_style = />>set_env\('(.*?)'/
     let re_res = str.match(re_style)
     let style = re_res[1]
     if(style=="terrain"){
@@ -166,7 +166,7 @@ function parse_env(str){
 
 function parse_style(str){
     //E.g. >>flash('lightning',src=0.00000000e+00,dst=1.00000000e+01,dur=1.00000000e+00)
-    let re_style = />>set_style\('(.*)'/
+    let re_style = />>set_style\('(.*?)'/
     let re_res = str.match(re_style)
     let style = re_res[1]
     if(style=="terrain"){
@@ -196,6 +196,9 @@ function parse_style(str){
         })
     }else if(style=="gray"){
         window.glb.scene.background = new THREE.Color(0xa0a0a0);
+    }else if(style=="background"){
+        let bgcolor = match_karg(str, 'color', 'str', null)
+        if (bgcolor){window.glb.scene.background = new THREE.Color(bgcolor);}
     }else if(style=='star'){
         const geometry = new THREE.BufferGeometry();
         const vertices = [];
@@ -289,7 +292,7 @@ function geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, tr
     return geometry
 }
 function parse_advanced_geometry(str){
-    const pattern = />>advanced_geometry_rotate_scale_translate\('(.*)','(.*)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
+    const pattern = />>advanced_geometry_rotate_scale_translate\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
     let match_res = str.match(pattern)
     let name = match_res[1]
     let build_cmd = match_res[2]
@@ -320,7 +323,7 @@ function parse_advanced_geometry(str){
 
 
 function parse_geometry(str){
-    const pattern = />>geometry_rotate_scale_translate\('(.*)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
+    const pattern = />>geometry_rotate_scale_translate\('(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
     let match_res = str.match(pattern)
     let name = match_res[1]
     let ro_x = parseFloat(match_res[2])
@@ -399,6 +402,24 @@ function parse_update_flash(buf_str) {
     }
 }
 
+function match_karg(str, key, type, defaultValue){
+    let res = null;
+    if (type=='float'){
+        
+        let _RE = str.match(new RegExp(key + "=([^,)]*)"));
+        res = (!(_RE === null))?parseFloat(_RE[1]):defaultValue;
+    }
+    if (type=='int'){
+        let _RE = str.match(new RegExp(key + "=([^,)]*)"));
+        res = (!(_RE === null))?parseInt(_RE[1]):defaultValue;
+    }
+    if (type=='str'){
+        let _RE = str.match(new RegExp(key + "='(.*?)'"));
+        res = (!(_RE === null))?_RE[1]:defaultValue;
+    }
+    return res
+}
+
 function parse_line(str){
     const pattern = />>line3d\('(.*?)',(.*)\)/
     let match_res = str.match(pattern)
@@ -431,30 +452,6 @@ function parse_line(str){
         z_arr[i] = -parseFloat(z_arr[i])
     }
 
-    let res;
-    let label_marking = `id ${my_id}`
-    let label_color = 'black'
-    // use label
-    res = str.match(/label='(.*?)'/)
-    // console.log(res)
-    if (!(res === null)){
-        label_marking = res[1]
-    }
-
-    res = str.match(/label_color='(.*?)'/)
-    if (!(res === null)){
-        label_color = res[1]
-    }else{
-        label_color = 'black'
-    }
-
-    let opacity_RE = str.match(/opacity=([^,)]*)/);
-    let opacity = (!(opacity_RE === null))?parseFloat(opacity_RE[1]):1;
-
-    let tension_RE = str.match(/tension=([^,)]*)/);
-    let tension = (!(tension_RE === null))?parseFloat(tension_RE[1]):0;
-
-
     // find core obj by my_id
     let object = find_lineobj_by_id(my_id)
     let parsed_obj_info = {} 
@@ -464,13 +461,19 @@ function parse_line(str){
     parsed_obj_info['z_arr'] = z_arr
 
     parsed_obj_info['type'] = type  
-    parsed_obj_info['tension'] = tension
+    parsed_obj_info['tension'] = match_karg(str, 'tension', 'float', 1)
     parsed_obj_info['my_id'] = my_id  
     parsed_obj_info['color_str'] = color_str  
     parsed_obj_info['size'] = size
-    parsed_obj_info['label_marking'] = label_marking
-    parsed_obj_info['label_color'] = label_color
-    parsed_obj_info['opacity'] = opacity
+    parsed_obj_info['label_marking'] = match_karg(str, 'label', 'str', `id ${my_id}`)
+    parsed_obj_info['label_color'] = match_karg(str, 'label_color', 'str', 'black')
+    parsed_obj_info['opacity'] = match_karg(str, 'opacity', 'float', 1)
+
+
+    parsed_obj_info['dashScale'] = match_karg(str, 'dashScale', 'float', null)
+    parsed_obj_info['dashSize'] = match_karg(str, 'dashSize', 'float', null)
+    parsed_obj_info['gapSize'] = match_karg(str, 'gapSize', 'float', null)
+
     if(type=='simple'){
         apply_simple_line_update(object, parsed_obj_info)
     }
@@ -514,24 +517,14 @@ function apply_line_update(object, parsed_obj_info){
         }
         curve.tension = parsed_obj_info['tension'];
         // calculate positions_catmull
-        for ( let i = 0; i < ARC_SEGMENTS; i ++ ) {
-            const t = i / ( ARC_SEGMENTS - 1 );
+        const divisions = Math.round( 12 * positions.length );
+        for ( let i = 0; i < divisions; i ++ ) {
+            const t = i / ( divisions - 1 );
             curve.getPoint( t, point_tmp ); 
             positions_catmull.push( point_tmp.x, point_tmp.y, point_tmp.z)
         }
         //apply calculated positions_catmull
         curve.mesh_line.geometry.setPositions( positions_catmull );
-        curve.mesh_line.computeLineDistances();
-        //     positions.push( new THREE.Vector3(x_arr[i], y_arr[i], z_arr[i]) );
-        // }
-        // curve.points = positions
-        // const position = curve.mesh.geometry.attributes.position;
-        // const point = new THREE.Vector3();
-        // for ( let i = 0; i < ARC_SEGMENTS; i ++ ) {
-        //     const t = i / ( ARC_SEGMENTS - 1 );
-        //     curve.getPoint( t, point );
-        //     position.setXYZ( i, point.x, point.y, point.z );
-        // }
         curve.mesh_line.computeLineDistances();
         curve.mesh_line.geometry.computeBoundingSphere();
         curve.mesh_line.geometry.attributes.position.needsUpdate=true
@@ -553,8 +546,9 @@ function apply_line_update(object, parsed_obj_info){
         curve.current_color = parsed_obj_info['color_str']
         curve.tension = parsed_obj_info['tension'];
         // load positions_catmull
-        for ( let i = 0; i < ARC_SEGMENTS; i ++ ) {
-            const t = i / ( ARC_SEGMENTS - 1 );
+        const divisions = Math.round( 12 * positions.length );
+        for ( let i = 0; i < divisions; i ++ ) {
+            const t = i / ( divisions - 1 );
             curve.getPoint( t, point_tmp ); 
             positions_catmull.push( point_tmp.x, point_tmp.y, point_tmp.z)
         }
@@ -562,18 +556,25 @@ function apply_line_update(object, parsed_obj_info){
         const geometry = new window.glb.import_LineGeometry();
         geometry.setPositions( positions_catmull );
         // material
+        let dashed_ = false
+        if (parsed_obj_info['dashScale']){
+            dashed_ = true
+        }
         matLine = new window.glb.import_LineMaterial( {
             color: parsed_obj_info['color_str'],
             linewidth: parsed_obj_info['size'], // in world units with size attenuation, pixels otherwise
-            // vertexColors: true,
-            // alphaToCoverage: true,
-            dashed: false,
             worldUnits: true,
             opacity: parsed_obj_info['opacity'],
+            dashed: dashed_,
+            dashScale: parsed_obj_info['dashScale'],
+            dashSize: parsed_obj_info['dashSize'],
+            gapSize: parsed_obj_info['gapSize'],
             transparent: (parsed_obj_info['opacity']!=1)
         } );
-
-
+        // matLine.dashed = val;
+        // matLine.dashScale = val;
+        // matLine.dashSize = 2;
+        // matLine.gapSize = 1;
         curve.mesh_line = new window.glb.import_Line2( geometry, matLine );
         curve.mesh_line.geometry.computeBoundingSphere();
         curve.mesh_line.computeLineDistances();
@@ -607,7 +608,6 @@ function apply_simple_line_update(object, parsed_obj_info){
             changeCoreObjColor(curve.mesh, parsed_obj_info['color_str'])
         }
         curve.mesh.geometry.computeBoundingSphere();
-
         position.needsUpdate = true;
     }
     else {
@@ -760,35 +760,8 @@ function parse_core_obj(str, parsed_frame){
         }
         label_marking = `HP ${hp}`
     }
-    // e.g. >>v2dx('tank|12|b|0.1',-8.09016994e+00,5.87785252e+00,0,vel_dir=0,health=0,label='12',attack_range=0)
-    let res;
-    // use label
-    res = str.match(/label='(.*?)'/)
-    // console.log(res)
-    if (!(res === null)){
-        label_marking = res[1]
-    }
 
-    res = str.match(/label_color='(.*?)'/)
-    if (!(res === null)){
-        label_color = res[1]
-    }else{
-        label_color = 'black'
-    }
 
-    let opacity_RE = str.match(/opacity=([^,)]*)/);
-    let opacity = (!(opacity_RE === null))?parseFloat(opacity_RE[1]):1;
-
-    let track_n_frame_RE = str.match(/track_n_frame=([^,)]*)/);
-    let track_n_frame = (!(track_n_frame_RE === null))?parseInt(track_n_frame_RE[1]):0;
-
-    let track_tension_RE = str.match(/track_tension=([^,)]*)/);
-    let track_tension = (!(track_tension_RE === null))?parseFloat(track_tension_RE[1]):0;
-
-    let track_color_RE = str.match(/track_color='(.*?)'/)
-    let track_color = (!(track_color_RE === null))?track_color_RE[1]:color_str
-
-    // find core obj by my_id
     let object = find_obj_by_id(my_id)
     let parsed_obj_info = {} 
     parsed_obj_info['name'] = name  
@@ -804,12 +777,12 @@ function parse_core_obj(str, parsed_frame){
     parsed_obj_info['my_id'] = my_id  
     parsed_obj_info['color_str'] = color_str  
     parsed_obj_info['size'] = size  
-    parsed_obj_info['label_marking'] = label_marking
-    parsed_obj_info['label_color'] = label_color
-    parsed_obj_info['opacity'] = opacity
-    parsed_obj_info['track_n_frame'] = track_n_frame
-    parsed_obj_info['track_tension'] = track_tension
-    parsed_obj_info['track_color'] = track_color
+    parsed_obj_info['label_marking'] = match_karg(str, 'label', 'str', `id ${my_id}`)
+    parsed_obj_info['label_color'] = match_karg(str, 'label_color', 'str', 'black')
+    parsed_obj_info['opacity'] = match_karg(str, 'opacity', 'float', 1)
+    parsed_obj_info['track_n_frame'] = match_karg(str, 'track_n_frame', 'int', 0)
+    parsed_obj_info['track_tension'] = match_karg(str, 'track_tension', 'float', 0)
+    parsed_obj_info['track_color'] = match_karg(str, 'track_color', 'str', color_str)
     
     apply_update(object, parsed_obj_info)
     parsed_frame.push(parsed_obj_info)

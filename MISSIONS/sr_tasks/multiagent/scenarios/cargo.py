@@ -75,38 +75,106 @@ class Scenario(BaseScenario):
         self.weight_percent = ScenarioConfig.weight_percent
         self.process_id = process_id
         self.show_off = False 
-        if ScenarioConfig.render and process_id != 0:
+        if ScenarioConfig.render and process_id == 0:
             self.show_off = True
         self.cargo_previous = None
 
-    def render(self):
-        # if self.mcv is None: return
-        # if not os.path.exists('.%s/live_game'%self.logdir): return
-        # uid = 0
-        # for index, worker in enumerate(self.workers):
-        #     if worker.dragging < 0:
-        #         self.mcv.v2dx('cir|%d|r|%.3f' % (uid, self.visual_worker_size/2), worker.state.p_pos[0], worker.state.p_pos[1])
-        #     else:
-        #         # m/n
-        #         c = worker.dragging
-        #         n = len(self.cargo_dragged_by[c])
-        #         m = self.cargo_dragged_by[c].index(index)
-        #         self.mcv.v2dx('rec|%d|r|%.3f' % (uid, self.visual_worker_size),
-        #                       worker.state.p_pos[0] + np.cos(m / n * 2 * np.pi) * 0.1,
-        #                       worker.state.p_pos[1] + np.sin(m / n * 2 * np.pi) * 0.1)
-        #     uid += 1
+    def render(self, world):
+        if not hasattr(self, 'threejs_bridge'):
+            from VISUALIZE.mcom import mcom
+            self.threejs_bridge = mcom(ip='127.0.0.1', port=12084, path='RECYCLE/v2d_logger/', digit=8, rapid_flush=False, draw_mode='Threejs')
+            self.threejs_bridge.v2d_init()
+            # self.threejs_bridge.set_style('star')
+            # self.threejs_bridge.set_style('grid')
+            # self.threejs_bridge.set_style('gray')
+            self.threejs_bridge.set_style('background', color='SkyBlue')
+            # self.threejs_bridge.geometry_rotate_scale_translate('monkey',0, 0,       np.pi/2, 1, 1, 1,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,      1, 1, 1,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,        1, 1, 1,         0,0,0)
+            self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
+            self.threejs_bridge.其他几何体之旋转缩放和平移('oct', 'OctahedronGeometry(1,0)', 0,0,0,  1,1,1, 0,0,0)   # 八面体
 
-        # for index, cargo_pos in enumerate(self.cargo):
-        #     if self.cargo_hot[index]:
-        #         self.mcv.v2dx('rec|%d|b|%.3f' % (uid, self.cargo_weight[index] / 300), cargo_pos[0], cargo_pos[1])
-        #     else:
-        #         self.mcv.v2dx('rec|%d|k|%.3f' % (uid, self.cargo_weight[index] / 300), cargo_pos[0], cargo_pos[1])
-                
-        #     uid += 1
+            self.threejs_bridge.agent_alive_pos = {}
+            self.threejs_bridge.agent_alive_time = {}
 
-        # for index, drop_off_pos in enumerate(self.cargo_drop_off):
-        #     self.mcv.v2dx('cir|%d|g|%.3f' % (uid, self.cargo_weight[index] / 300), drop_off_pos[0], drop_off_pos[1])
-        #     uid += 1
+
+        for index, worker in enumerate(self.workers):
+            if worker.dragging < 0:
+                self.threejs_bridge.v2dx(
+                    'oct|%d|%s|%.2f'%(index, 'Green', 0.01),
+                    worker.state.p_pos[0], worker.state.p_pos[1], 
+                    0,  ro_x=0, ro_y=-0, ro_z=0,
+                    label='', label_color='white',
+                    opacity=1,
+                )
+            else:
+                # m/n
+                c = worker.dragging
+                n = len(self.cargo_dragged_by[c])
+                m = self.cargo_dragged_by[c].index(index)
+                self.threejs_bridge.v2dx(
+                    'oct|%d|%s|%.2f'%(index, 'Green', 0.01),
+                    worker.state.p_pos[0] + np.cos(m / n * 2 * np.pi) * 0.1, 
+                    worker.state.p_pos[1] + np.sin(m / n * 2 * np.pi) * 0.1, 
+                    0,  ro_x=0, ro_y=-0, ro_z=0,
+                    label='', label_color='white',
+                    opacity=1,
+                )
+
+        for index, cargo_pos in enumerate(self.cargo):
+            if self.cargo_hot[index]:
+                color = 'Yellow'
+            else:
+                color = 'Black'
+
+            self.threejs_bridge.v2dx(
+                'box|%d|%s|%.2f'%(index+1000, color, 0.1*self.cargo_weight[index]/10),
+                cargo_pos[0], cargo_pos[1], 
+                0,  ro_x=0, ro_y=-0, ro_z=0,
+                label='biohazard #%d'%index, label_color='white',
+                opacity=0.5,
+            )
+            self.threejs_bridge.v2dx(
+                'box|%d|%s|%.2f'%(index+5000, color, 0.05),
+                cargo_pos[0], cargo_pos[1]-0.2, 
+                0.2,  ro_x=0, ro_y=-0, ro_z=0,
+                label='drag %d:weight %d|T2L2'%(len(self.cargo_dragged_by[index]), self.cargo_weight[index]), 
+                label_color='Magenta' if (len(self.cargo_dragged_by[index]) != self.cargo_weight[index]) else 'Green',
+                opacity=0,
+            )
+
+        for index, drop_off_pos in enumerate(self.cargo_drop_off):
+            if self.cargo_hot[index]:
+                color = 'LimeGreen'
+            else:
+                color = 'Black'
+            self.threejs_bridge.v2dx(
+                'ball|%d|%s|%.2f'%(index+1500, color, 0.05),
+                drop_off_pos[0], drop_off_pos[1], 
+                0,  ro_x=0, ro_y=-0, ro_z=0,
+                label='dst #%d'%index, label_color='Chocolate',
+                opacity=1,
+            )
+            self.threejs_bridge.line3d(
+                'fat|%d|%s|%.3f'%(index+2000, 'Black', 0.005),
+                x_arr=np.array([drop_off_pos[0], self.cargo[index][0]]),
+                y_arr=np.array([drop_off_pos[1], self.cargo[index][1]]),
+                z_arr=np.array([0, 0]),
+                dashScale=20,   # to make dash denser, Increase this instead of decrease !!
+                dashSize=1,
+                gapSize=1,
+                tension=0,
+                opacity=1,
+            )
+        self.threejs_bridge.v2dx(
+            'ball|%d|%s|%.2f'%(2000, color, 0.2),
+            0, 2, 
+            1,  ro_x=0, ro_y=-0, ro_z=0,
+            label='Exposure ETA %d'%(ScenarioConfig.max_steps_episode-world.steps), 
+            label_color='Blue' if (ScenarioConfig.max_steps_episode-world.steps)>25 else 'Red',
+            opacity=0,
+        )
+        self.threejs_bridge.v2d_show()
 
         # remain_weight = [0,0,0,0,0]
         # for cargo_pos, weight, index, dragged_by_L in zip(self.cargo, self.cargo_weight, range(self.n_cargo), self.cargo_dragged_by):
@@ -119,7 +187,7 @@ class Scenario(BaseScenario):
         # by now the agents has already moved according to action
         # self.scenario_step(agent, world)  # 第一步更新距离矩阵，更新智能体live的状态
         self.joint_rewards = self.reward_forall(world)  # 第二步更新奖励
-        if self.show_off: self.render()  # 第三步更新UI
+        if self.show_off: self.render(world)  # 第三步更新UI
 
         self.obs_dimension = self.obs_vec_length * (self.n_worker + 2 * self.n_cargo)
         self.obs_pointer = 0  # this is important for function load_obs
@@ -156,7 +224,7 @@ class Scenario(BaseScenario):
             np.concatenate(
                 [
                     np.concatenate(
-                        (drop_off_pos,
+                        (drop_off_pos,[0],
                          [0, 0, 0],
                          [-1, -1, corrisponding_cargo, -1, -1, world.steps/ScenarioConfig.max_steps_episode])
                          # self-weight, // dragging-who, dispose-for-who, target-weight, weight-rem, env_step
@@ -164,7 +232,7 @@ class Scenario(BaseScenario):
                     for corrisponding_cargo, drop_off_pos in enumerate(self.cargo_drop_off)]
             )
         )
-
+        assert self.obs_pointer == self.obs_dimension
         return self.obs.copy()
 
     def load_obs(self, fragment):
@@ -200,10 +268,10 @@ class Scenario(BaseScenario):
         # <2> CARGO_REACH_DST_REWARD = 1
         worker_reward = np.zeros(self.n_worker)
 
-        CARGO_START_MOVING_REWARD = 0.5
-        CARGO_REACH_DST_REWARD = 0.5
-        CARGO_ALL_DONE = 3
-
+        CARGO_START_MOVING_REWARD = 0.1
+        CARGO_REACH_DST_REWARD = 0.1
+        CARGO_ALL_DONE = 1
+        assert CARGO_ALL_DONE > ScenarioConfig.n_cargo * (CARGO_START_MOVING_REWARD+CARGO_REACH_DST_REWARD)
         # 获取智能体列表30
         cargo = self.cargo
         cargo_dst = self.cargo_drop_off
@@ -431,7 +499,7 @@ class Scenario(BaseScenario):
         self.cargo = None
         self.cargo_drop_off = None
         self.reset_world(world)
-        world.max_steps_episode = ScenarioConfig.max_steps_episode + np.random.randint(20)
+        world.max_steps_episode = ScenarioConfig.max_steps_episode
         return world
 
     @staticmethod

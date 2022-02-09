@@ -79,7 +79,6 @@ class MultiAgentEnv(gym.Env):
             self.viewers = [None]
         else:
             self.viewers = [None] * self.n
-        self._reset_render()
 
     @property
     def episode_limit(self):
@@ -112,8 +111,6 @@ class MultiAgentEnv(gym.Env):
     def reset(self):
         # reset world
         self.reset_callback(self.world)
-        # reset renderer
-        self._reset_render()
         # record observations for each agent
         obs_n = []
         self.agents = self.world.policy_agents
@@ -201,97 +198,6 @@ class MultiAgentEnv(gym.Env):
         # make sure we used all elements of action
         assert len(action) == 0
 
-    # reset rendering assets
-    def _reset_render(self):
-        self.render_geoms = None
-        self.render_geoms_xform = None
-
-    # render environment
-    def render(self, mode='human', attn=None):
-        # attn: matrix of size (num_agents, num_agents) 
-
-        # if mode == 'human':
-        #     alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        #     message = ''
-        #     for agent in self.world.agents:
-        #         for other in self.world.agents:
-        #             if other is agent:
-        #                 continue
-        #             if np.all(other.state.c == 0):
-        #                 word = '_'
-        #             else:
-        #                 word = alphabet[np.argmax(other.state.c)]
-        #             message += (other.name + ' to ' + agent.name + ': ' + word + '   ')
-        #     print(message)
-
-        for i in range(len(self.viewers)):
-            # create viewers (if necessary)
-            if self.viewers[i] is None:
-                # import rendering only if we need it (and don't import for headless machines)
-                # from gym.envs.classic_control import rendering
-                from multiagent import rendering
-                self.viewers[i] = rendering.Viewer(700,700)
-
-        # create rendering geometry
-        if self.render_geoms is None:
-            # import rendering only if we need it (and don't import for headless machines)
-            # from gym.envs.classic_control import rendering
-            from multiagent import rendering
-            self.render_geoms = []
-            self.render_geoms_xform = []
-            for entity in self.world.entities:
-                geom = rendering.make_circle(entity.size)
-                xform = rendering.Transform()
-                if 'agent' in entity.name:
-                    geom.set_color(*entity.color, alpha=0.5)
-                else:
-                    geom.set_color(*entity.color)
-                geom.add_attr(xform)
-                self.render_geoms.append(geom)
-                self.render_geoms_xform.append(xform)
-
-            self.render_count = len(self.render_geoms)                
-            # render attn graph
-            if attn is not None:
-                # initialize render geoms for line
-                for i in range(self.n):
-                    for j in range(i+1, self.n):
-                        geom = rendering.Line(start=self.world.agents[i].state.p_pos,
-                                              end=self.world.agents[j].state.p_pos,
-                                              linewidth=2)
-                        color = (1.0, 0.0, 0.0)
-                        alpha = 0
-                        geom.set_color(*color, alpha)
-                        xform = rendering.Transform()
-                        self.render_geoms.append(geom)
-                        self.render_geoms_xform.append(xform)
-
-            # add geoms to viewer
-            for viewer in self.viewers:
-                viewer.geoms = []
-                for geom in self.render_geoms:
-                    viewer.add_geom(geom)
-        
-        if attn is not None:
-            self._add_lines(attn)
-
-        results = []
-        for i in range(len(self.viewers)):
-            from multiagent import rendering
-            # update bounds to center around agent
-            cam_range = self.cam_range
-            if self.shared_viewer:
-                pos = np.zeros(self.world.dim_p)
-            else:
-                pos = self.agents[i].state.p_pos
-            self.viewers[i].set_bounds(pos[0]-cam_range,pos[0]+cam_range,pos[1]-cam_range,pos[1]+cam_range)
-            # update geometry positions
-            for e, entity in enumerate(self.world.entities):
-                self.render_geoms_xform[e].set_translation(*entity.state.p_pos)
-            # render to display or array
-            results.append(self.viewers[i].render(return_rgb_array = mode=='rgb_array'))
-
-        return results
 
     def _add_lines(self, attn):
         k = self.render_count

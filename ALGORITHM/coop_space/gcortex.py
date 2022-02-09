@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
 from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor
+from ..commom.norm import DynamicNorm
 
 
 
@@ -13,6 +14,8 @@ def weights_init(m):
     if classname ==  'Conv':
         assert False
     elif classname == 'GNet':
+        return
+    elif classname == 'DynamicNorm':
         return
     elif classname == 'Sequential':
         return
@@ -200,6 +203,10 @@ class GNet(nn.Module):
             )
         })
 
+        # if self.use_normalization:
+        self._batch_norm_agent  = DynamicNorm(agent_emb_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
+        self._batch_norm_entity = DynamicNorm(entity_emb_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
+
         self.is_recurrent = False
         self.apply(weights_init)
         return
@@ -257,8 +264,10 @@ class GNet(nn.Module):
 
 
     def get_feature(self, all_emb):
-        agent_final_emb = all_emb['agent_final_emb']
-        entity_final_emb = all_emb['entity_final_emb']
+          
+
+        agent_final_emb = self._batch_norm_agent(all_emb['agent_final_emb'])
+        entity_final_emb = self._batch_norm_entity(all_emb['entity_final_emb'])
         cluster_final_emb = all_emb['cluster_final_emb']
         agent_enc   = self.agent_enter_encoder(agent_final_emb)
         entity_enc  = self.entity_enter_encoder(entity_final_emb)
