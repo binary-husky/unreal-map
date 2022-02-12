@@ -105,8 +105,9 @@ class MultiAgentEnv(gym.Env):
 
         # all agents get total reward in cooperative case
         reward = np.mean(reward_n, keepdims=True)
+        info = {'win':info_n['n'][0]['is_success']}
 
-        return np.array(obs_n), reward, done_n, info_n
+        return np.array(obs_n), reward, done_n, info
 
     def reset(self):
         # reset world

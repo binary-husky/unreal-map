@@ -477,7 +477,7 @@ class Scenario(BaseScenario):
         assert self.obs_pointer == self.obs_dimension
 
     def info(self, agent, world):
-        return {'world_steps': world.steps}
+        return {'world_steps': world.steps, 'is_success':self.cargo_all_delivered}
 
     def make_world(self):
         world = World()  # set any world properties first
