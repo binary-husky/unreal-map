@@ -203,9 +203,10 @@ class GNet(nn.Module):
             )
         })
 
-        # if self.use_normalization:
-        self._batch_norm_agent  = DynamicNorm(agent_emb_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
-        self._batch_norm_entity = DynamicNorm(entity_emb_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
+        self.use_normalization = CoopAlgConfig.use_normalization
+        if self.use_normalization:
+            self._batch_norm_agent  = DynamicNorm(agent_emb_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
+            self._batch_norm_entity = DynamicNorm(entity_emb_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
 
         self.is_recurrent = False
         self.apply(weights_init)
@@ -261,13 +262,10 @@ class GNet(nn.Module):
         distEntropy = i_act_dist.entropy().mean() + o_act_dist.entropy().mean() if eval_mode else None
         return act, actLogProbs, distEntropy, o_act_dist.probs
 
-
-
     def get_feature(self, all_emb):
-          
 
-        agent_final_emb = self._batch_norm_agent(all_emb['agent_final_emb'])
-        entity_final_emb = self._batch_norm_entity(all_emb['entity_final_emb'])
+        agent_final_emb = self._batch_norm_agent(all_emb['agent_final_emb']) if self.use_normalization else all_emb['agent_final_emb']
+        entity_final_emb = self._batch_norm_entity(all_emb['entity_final_emb']) if self.use_normalization else all_emb['entity_final_emb']
         cluster_final_emb = all_emb['cluster_final_emb']
         agent_enc   = self.agent_enter_encoder(agent_final_emb)
         entity_enc  = self.entity_enter_encoder(entity_final_emb)

@@ -93,6 +93,7 @@ class Scenario(BaseScenario):
             self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,        1, 1, 1,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
             self.threejs_bridge.其他几何体之旋转缩放和平移('oct', 'OctahedronGeometry(1,0)', 0,0,0,  1,1,1, 0,0,0)   # 八面体
+            self.threejs_bridge.其他几何体之旋转缩放和平移('circle', 'TorusGeometry( 1, 0.3, 16, 100 )', np.pi/2,0,0,  1,1,1, 0,0,0)   # 甜甜圈
 
             self.threejs_bridge.agent_alive_pos = {}
             self.threejs_bridge.agent_alive_time = {}
@@ -101,11 +102,12 @@ class Scenario(BaseScenario):
         for index, worker in enumerate(self.workers):
             if worker.dragging < 0:
                 self.threejs_bridge.v2dx(
-                    'oct|%d|%s|%.2f'%(index, 'Green', 0.01),
+                    'oct|%d|%s|%.2f'%(index, 'Red', 0.01),
                     worker.state.p_pos[0], worker.state.p_pos[1], 
                     0,  ro_x=0, ro_y=-0, ro_z=0,
                     label='', label_color='white',
                     opacity=1,
+                    track_n_frame=5,
                 )
             else:
                 # m/n
@@ -113,12 +115,13 @@ class Scenario(BaseScenario):
                 n = len(self.cargo_dragged_by[c])
                 m = self.cargo_dragged_by[c].index(index)
                 self.threejs_bridge.v2dx(
-                    'oct|%d|%s|%.2f'%(index, 'Green', 0.01),
+                    'oct|%d|%s|%.2f'%(index, 'Red', 0.01),
                     worker.state.p_pos[0] + np.cos(m / n * 2 * np.pi) * 0.1, 
                     worker.state.p_pos[1] + np.sin(m / n * 2 * np.pi) * 0.1, 
                     0,  ro_x=0, ro_y=-0, ro_z=0,
                     label='', label_color='white',
                     opacity=1,
+                    track_n_frame=5,
                 )
 
         for index, cargo_pos in enumerate(self.cargo):
@@ -131,14 +134,15 @@ class Scenario(BaseScenario):
                 'box|%d|%s|%.2f'%(index+1000, color, 0.1*self.cargo_weight[index]/10),
                 cargo_pos[0], cargo_pos[1], 
                 0,  ro_x=0, ro_y=-0, ro_z=0,
-                label='biohazard #%d'%index, label_color='white',
+                label='BioHazard #%d'%index, label_color='Crimson',
                 opacity=0.5,
             )
+
             self.threejs_bridge.v2dx(
                 'box|%d|%s|%.2f'%(index+5000, color, 0.05),
                 cargo_pos[0], cargo_pos[1]-0.2, 
                 0.2,  ro_x=0, ro_y=-0, ro_z=0,
-                label='drag %d:weight %d|T2L2'%(len(self.cargo_dragged_by[index]), self.cargo_weight[index]), 
+                label='drag %d:weight %d'%(len(self.cargo_dragged_by[index]), self.cargo_weight[index]), 
                 label_color='Magenta' if (len(self.cargo_dragged_by[index]) != self.cargo_weight[index]) else 'Green',
                 opacity=0,
             )
@@ -149,22 +153,33 @@ class Scenario(BaseScenario):
             else:
                 color = 'Black'
             self.threejs_bridge.v2dx(
-                'ball|%d|%s|%.2f'%(index+1500, color, 0.05),
+                'circle|%d|%s|%.2f'%(index+1500, color, 0.05),
                 drop_off_pos[0], drop_off_pos[1], 
                 0,  ro_x=0, ro_y=-0, ro_z=0,
                 label='dst #%d'%index, label_color='Chocolate',
                 opacity=1,
             )
+
+            if self.cargo_hot[index]:
+                x1=drop_off_pos[0]
+                y1=drop_off_pos[1]
+                x2=self.cargo[index][0]
+                y2=self.cargo[index][1]
+            else:
+                x1=0
+                y1=0
+                x2=0
+                y2=0
             self.threejs_bridge.line3d(
                 'fat|%d|%s|%.3f'%(index+2000, 'Black', 0.005),
-                x_arr=np.array([drop_off_pos[0], self.cargo[index][0]]),
-                y_arr=np.array([drop_off_pos[1], self.cargo[index][1]]),
+                x_arr=np.array([x1, x2]),
+                y_arr=np.array([y1, y2]),
                 z_arr=np.array([0, 0]),
                 dashScale=20,   # to make dash denser, Increase this instead of decrease !!
                 dashSize=1,
-                gapSize=1,
+                gapSize=5,
                 tension=0,
-                opacity=1,
+                opacity=0.5,
             )
         self.threejs_bridge.v2dx(
             'ball|%d|%s|%.2f'%(2000, color, 0.2),

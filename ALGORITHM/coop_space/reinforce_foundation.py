@@ -49,7 +49,8 @@ class CoopAlgConfig(object):
     continues_type_ceil = True
     invalid_penalty = 0.1
     upper_training_epoch = 5
-
+    use_normalization = True
+    
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
         from config import GlobalConfig

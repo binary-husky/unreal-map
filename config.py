@@ -49,6 +49,7 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
 
     use_float64 = False                                 # force float64 when converting numpy->tensor
 
+    interested_team = 0                                 # the interested agents, used in reward recording
     interested_agent_num = 50                           # the interested agents, used in reward recording
     interested_agent_uid = range(0,50)                  # the indices of interested agents, used in reward recording
     interested_agent_uid_cv = ChainVar(lambda interested_agent_num:range(0,interested_agent_num), chained_with=['interested_agent_num']) 

@@ -124,7 +124,7 @@ class Scenario(BaseScenario):
             self.threejs_bridge.v2d_init()
             # self.threejs_bridge.set_style('star')
             # self.threejs_bridge.set_style('grid')
-            self.threejs_bridge.set_style('gray')
+            self.threejs_bridge.set_style('background', color='Lavender')
             # self.threejs_bridge.geometry_rotate_scale_translate('monkey',0, 0,       np.pi/2, 1, 1, 1,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,       0.5, 0.5, 1.5,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,        1, 1, 1,         0,0,0)
@@ -164,7 +164,31 @@ class Scenario(BaseScenario):
                 opacity=opacity if agent.live else 0,
                 track_n_frame = max(min(self.threejs_bridge.agent_alive_time[index]-1, 10),0)
             )
-
+            x_ = self.threejs_bridge.agent_alive_pos[index][0]
+            y_ = self.threejs_bridge.agent_alive_pos[index][1]
+            z_ = self.threejs_bridge.agent_alive_pos[index][2]
+            self.threejs_bridge.line3d(
+                'fat|%d|%s|%.3f'%(index+3999, color, 0.004),
+                x_arr=np.array([x_, x_]), 
+                y_arr=np.array([y_, y_]),
+                z_arr=np.array([z_, 0]),
+                dashScale=20,   # to make dash denser, Increase this instead of decrease !!
+                dashSize=1,
+                gapSize=1,
+                tension=0,
+                opacity=1,
+            )
+            # self.threejs_bridge.line3d(
+            #     'fat|%d|%s|%.3f'%(index+2000, 'Black', 0.005),
+            #     x_arr=np.array([drop_off_pos[0], self.cargo[index][0]]),
+            #     y_arr=np.array([drop_off_pos[1], self.cargo[index][1]]),
+            #     z_arr=np.array([0, 0]),
+            #     dashScale=20,   # to make dash denser, Increase this instead of decrease !!
+            #     dashSize=1,
+            #     gapSize=1,
+            #     tension=0,
+            #     opacity=1,
+            # )
         for index, agent in enumerate(self.hunters):
             dir_1, dir_2 = dir3d_rad(agent.state.p_vel)   # Euler Angle y-x-z
             dis2invader = self.distance[index, :]
@@ -176,24 +200,33 @@ class Scenario(BaseScenario):
         for index, agent in enumerate(self.landmarks):
             nearest_invader_dis = min(self.distance_landmark[:, index])
             self.threejs_bridge.v2dx(
-                'oct|%d|green|0.2'%(index+999),
+                'oct|%d|LawnGreen|0.2'%(index+999),
                 agent.state.p_pos[0],
                 agent.state.p_pos[1],
                 agent.state.p_pos[2],
                 ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
-                label='invader@ %.2f'%nearest_invader_dis, 
+                label='', 
                 label_color='Black' if nearest_invader_dis>1 else 'red', 
-                opacity=0.5
+                opacity=1
             )
-
+            self.threejs_bridge.v2dx(
+                'oct|%d|green|0.1'%(index+2999),
+                agent.state.p_pos[0],
+                agent.state.p_pos[1]+0.4,
+                agent.state.p_pos[2]+0.1,
+                ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
+                label='Danger@ %.1f'%nearest_invader_dis, 
+                label_color='Black' if nearest_invader_dis>1 else 'red', 
+                opacity=0
+            )
         self.threejs_bridge.v2dx(
-            'oct|%d|green|0.45'%(1999),
+            'oct|%d|green|0.3'%(1999),
             0,
-            0,
-            1.6,
+            2.5,
+            -1.6,
             ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
             label='Time %d/%d'%(self.step, ScenarioConfig.max_steps_episode), 
-            label_color='white', 
+            label_color='BlueViolet', 
             opacity=0
         )
         self.threejs_bridge.v2d_show()
