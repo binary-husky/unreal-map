@@ -171,7 +171,7 @@ class Scenario(BaseScenario):
                 'fat|%d|%s|%.3f'%(index+3999, color, 0.004),
                 x_arr=np.array([x_, x_]), 
                 y_arr=np.array([y_, y_]),
-                z_arr=np.array([z_, 0]),
+                z_arr=np.array([0, z_]),
                 dashScale=20,   # to make dash denser, Increase this instead of decrease !!
                 dashSize=1,
                 gapSize=1,
