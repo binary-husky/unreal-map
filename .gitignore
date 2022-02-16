@@ -76,3 +76,15 @@ ZHECKPOINT/test-100+100/*
 !ZHECKPOINT/test-100+100/model.pt
 !ZHECKPOINT/test-100+100/experiment.json
 !ZHECKPOINT/test-100+100/test-100+100.jsonc
+
+
+
+!ZHECKPOINT/test-cargo50
+ZHECKPOINT/test-cargo50/*
+!ZHECKPOINT/test-cargo50/model.pt
+!ZHECKPOINT/test-cargo50/experiment.json
+!ZHECKPOINT/test-cargo50/test-cargo50.jsonc
+
+!ZHECKPOINT/test-cargo50/history_cpt
+ZHECKPOINT/test-cargo50/history_cpt/*
+!ZHECKPOINT/test-cargo50/history_cpt/init.pkl
