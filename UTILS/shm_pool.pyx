@@ -16,7 +16,7 @@ from ctypes import c_char, c_uint16, c_bool, c_uint32, c_byte
 import numpy as np
 import datetime
 from time import sleep as _sleep
-
+from .hmp_daemon import kill_process_and_its_children
 SHARE_BUF_SIZE = 10485760
 
 
@@ -343,12 +343,11 @@ class SmartPool(object):
 
     def __del__(self):
         print('[shm_pool]: executing superpool del')
-        try:
+        
+        if hasattr(self, 'terminated'): 
             print('[shm_pool]: already terminated, skipping ~~')
-            if hasattr(self, 'terminated'): return
-        except: 
-            print('[shm_pool]: ???')
             return
+
         try:
             for i in range(self.proc_num): self._send_squence(send_obj=-1, target_proc=i)
             self.notify_all_children()
@@ -356,14 +355,9 @@ class SmartPool(object):
             time.sleep(1)
         except: pass
 
-        print('[shm_pool]: proc.terminate()')
+        print('[shm_pool]: kill_process_and_its_children(proc)')
         for proc in self.proc_pool: 
-            try: proc.terminate()
-            except: pass
-
-        print('[shm_pool]: proc.kill()')
-        for proc in self.proc_pool: 
-            try: proc.kill()
+            try: kill_process_and_its_children(proc)
             except: pass
             
         print('[shm_pool]: shm.close(); shm.unlink()')
@@ -374,5 +368,3 @@ class SmartPool(object):
         print('[shm_pool]: __del__ finish')
         time.sleep(1)
         self.terminated = True
-
-

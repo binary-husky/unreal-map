@@ -1,18 +1,35 @@
 import time, requests, threading, os, atexit
 from UTILS.colorful import *
 
+
+def kill_process(p):
+    try:
+        print('正在发送terminate命令到进程:', p.pid)
+        p.terminate()
+        print('正在发送kill命令到进程:', p.pid)
+        time.sleep(3)
+        p.kill()
+    except: pass
+
+def kill_process_and_its_children(p):
+    print('开始杀死以下进程及其子进程:',p.pid)
+    for child in p.children():
+        print('->', child.pid)
+
+    for child in p.children():
+        if hasattr(child,'children') and len(child.children())>0:
+            kill_process_and_its_children(child)
+        else:
+            kill_process(child)
+    kill_process(p)
+
+
+
 def clean_child_process(pid):
     import psutil, time
     parent = psutil.Process(pid)
-    for child in parent.children(recursive=True):
-        try:
-            print('sending Terminate signal to', child)
-            child.terminate()
-            time.sleep(1)
-            print('sending Kill signal to', child)
-            child.kill()
-        except: pass
-    parent.kill()
+    kill_process_and_its_children(parent)
+
 
 def hmp_clean_up():
     from UTILS.exp_upload import upload_experiment_results
