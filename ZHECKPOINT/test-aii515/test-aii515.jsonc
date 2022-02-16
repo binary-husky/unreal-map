@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "hi3dv2_1batch_run_4",
+        "note": "test-aii515",
         "env_name": "sr_tasks->hunter_invader3d_v2",
         "env_path": "MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d_v2",
         "draw_mode": "Img",
