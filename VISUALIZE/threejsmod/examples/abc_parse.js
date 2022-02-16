@@ -498,7 +498,7 @@ function changeCoreObjColor(object, color_str){
     object.color_str = color_str;
 }
 
-const ARC_SEGMENTS = 150;
+const ARC_SEGMENTS = 5120;
 function apply_line_update(object, parsed_obj_info){
     if (object) {
         // update pos
@@ -608,6 +608,7 @@ function apply_simple_line_update(object, parsed_obj_info){
             changeCoreObjColor(curve.mesh, parsed_obj_info['color_str'])
         }
         curve.mesh.geometry.computeBoundingSphere();
+        
         position.needsUpdate = true;
     }
     else {

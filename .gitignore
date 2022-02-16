@@ -61,6 +61,7 @@ private*.py
 fqx*.jsonc
 my_*.jsonc
 result.prof
+ignore
 
 ZHECKPOINT/*
 
