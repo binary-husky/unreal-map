@@ -23,10 +23,14 @@ we also have a github rep which is a mirror of this gitee rep.
 http://home.fuqingxu.top:11601/     (ipv6 network only, can't afford a stable ipv4 address)
 http://linux.ipv4.fuqingxu.top:11601/     (temporary ipv4)
 ```
+## Anti-Invasion Interception
+```
+git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip
+```
+
 ## Hazardous Cargo Transport
 ```
-git pull && python main.py -c ZHECKPOINT/test-50+50/test-50+50.jsonc --skip
-git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
+git pull && python main.py -c ZHECKPOINT/test-cargo50/test-cargo50.jsonc --skip
 ```
 
 ## Decentralized Collective Assult
