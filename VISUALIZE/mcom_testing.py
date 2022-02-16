@@ -416,6 +416,9 @@ class DrawProcessThreejs(Process):
         self.buffer_list = []
         self.backup_file = kargs['backup_file']
         self.allow_backup = False if self.backup_file is None else True
+        self.flask_thread = None
+        self.waitress_server = None
+
         if self.allow_backup:
             if os.path.exists(self.backup_file):
                 print亮红('[mcom.py]: warning, purge previous 3D visual data!')
@@ -423,9 +426,9 @@ class DrawProcessThreejs(Process):
 
     def init_threejs(self):
         import threading
-        t = threading.Thread(target=self.run_flask, args=(find_free_port(),))
-        t.daemon = True
-        t.start()
+        self.flask_thread = threading.Thread(target=self.run_flask, args=(find_free_port(),))
+        self.flask_thread.daemon = True
+        self.flask_thread.start()
 
     def run(self):
         self.init_threejs()
@@ -440,6 +443,9 @@ class DrawProcessThreejs(Process):
         self.__del__()
 
     def __del__(self):
+        if self.waitress_server is not None:
+            self.waitress_server.close()
+            print('self.waitress_server.close()')
         return
         
     def run_handler(self, new_buff_list):
@@ -491,6 +497,24 @@ class DrawProcessThreejs(Process):
         print('JS visualizer online: http://%s:%d'%(get_host_ip(), port))
         print('JS visualizer online (localhost): http://localhost:%d'%(port))
         print('--------------------------------')
+
+        def serve(app, **kw):
+            import logging
+            from waitress.server import create_server
+            _server = kw.pop("_server", create_server)  # test shim
+            _quiet = kw.pop("_quiet", False)  # test shim
+            _profile = kw.pop("_profile", False)  # test shim
+            if not _quiet:  # pragma: no cover
+                # idempotent if logging has already been set up
+                logging.basicConfig()
+            self.waitress_server = _server(app, **kw)
+            if not _quiet:  # pragma: no cover
+                self.waitress_server.print_listen("Serving on http://{}:{}")
+            # if _profile:  # pragma: no cover
+            #     profile("server.run()", globals(), locals(), (), False)
+            else:
+                self.waitress_server.run()
+
         serve(app, threads=8, ipv4=True, ipv6=True, listen='*:%d'%port)
 
 
