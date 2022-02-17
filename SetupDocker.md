@@ -65,7 +65,14 @@ Now, you should see xrdp-sesman running via:
 # Successful if you see >>
 #   * xrdp-sesman is running
 #   * xrdp is running
+
+# note: if multiple instances of hmp-docker is running,
+# you should modify following settings to avoid port collision into some value that is not default:
+#  /etc/xrdp/sesman.ini: The 'X11DisplayOffset' and 'ListenPort' option
+#  /etc/xrdp/xrdp.ini: The 'port' option
 ```
+
+
 
 Next, use the remote desktop tool of MS Windows (or anything supporting RDP) to get inside the HMP container.
 ```
