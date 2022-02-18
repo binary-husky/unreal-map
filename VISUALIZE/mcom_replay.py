@@ -7,14 +7,15 @@ from VISUALIZE.mcom import *
 
 
 class RecallProcessThreejs(Process):
-    def __init__(self, file_path):
+    def __init__(self, file_path, port):
         super(RecallProcessThreejs, self).__init__()
         self.buffer_list = []
         self.file_path = file_path
+        self.port = port
 
     def init_threejs(self):
         import threading
-        t = threading.Thread(target=self.run_flask, args=(5051,))
+        t = threading.Thread(target=self.run_flask, args=(self.port,))
         t.daemon = True
         t.start()
 

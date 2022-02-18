@@ -89,8 +89,18 @@ python -m VISUALIZE.examples.nb_3body_specials
 <img src="md_imgs/动画13.gif"  width="300" >
 <img src="md_imgs/动画12-1.gif"  width="700" >
 </div>
+感谢 Xiaoming LI and Shijun LIAO, Shanghai Jiaotong University, China 的三体初始值：
+https://numericaltank.sjtu.edu.cn/three-body/three-body-movies.htm
 
-<!-- ![](md_imgs/动画11.gif)![](md_imgs/动画12-1.gif) -->
+## 如何回放
+VHMAP在接收到数据后，会自动地在 RECYCLE/v2d_logger/ 路径下生成backup.dp数据文件，该文件可以用于回放。
+
+警告：数据文件会在下一次运行时被新的日志文件覆盖，必要时请手动备份！
+```
+python -m VISUALIZE.threejs_replay -f RECYCLE/v2d_logger/backup.dp -p 8085
+```
+其中-f后面的是回放文件的路径，-p接端口号例如8085，之后打开 http://localhost:8085 即可。
+
 
 ## API-中文
 
@@ -99,13 +109,13 @@ python -m VISUALIZE.examples.nb_3body_specials
 from VISUALIZE.mcom import mcom
 ```
 
-初始化
+### 初始化
 ```python
 可视化桥 = mcom(path='RECYCLE/v2d_logger/', draw_mode='Threejs')
 可视化桥.初始化3D()
 ```
 
-设置样式
+### 设置样式
 ```python
 可视化桥.设置样式('star')       # 布置星空
 可视化桥.设置样式('grid')       # 布置2维网格
@@ -114,7 +124,7 @@ from VISUALIZE.mcom import mcom
 可视化桥.设置样式('background', color='White') # 注意不可以省略参数键值'color=' ！！！
 ```
 
-声明几何体
+### 声明几何体
 ```python
 # declare geo 'oct1', init with OctahedronGeometry, then (1)rotate & (2)scale & (3)translate
 可视化桥.其他几何体之旋转缩放和平移('oct1', 'OctahedronGeometry(1,0)', 0,0,0,  1,1,1, 0,0,0)   # 八面体
@@ -127,7 +137,7 @@ from VISUALIZE.mcom import mcom
 
 ```
 
-发送几何体，可用颜色（JS颜色，支持Hex颜色）参考 https://www.w3schools.com/colors/colors_names.asp
+### 发送几何体，可用颜色（JS颜色，支持Hex颜色）参考 https://www.w3schools.com/colors/colors_names.asp
 ```python
 # 注意不可以省略参数键值
 x=1; y=2; z=3
@@ -144,7 +154,7 @@ x=1; y=2; z=3
     )
 ```
 
-发送曲线
+### 发送曲线
 ```python
 # 画一条(0,0,0) -> (1,1,0) -> (2,2,0) -> (3,3,0) 的线
 # 注意不可以省略参数键值!!
@@ -172,7 +182,7 @@ x=1; y=2; z=3
 )
 ```
 
-发射光束（从几何体src到几何体dst）
+### 发射光束（从几何体src到几何体dst）
 ```python
 # 注意不可以省略参数键值!!
 可视化桥.发射光束(
@@ -192,3 +202,22 @@ x=1; y=2; z=3
 self.可视化桥.结束关键帧()
 ```
 
+
+
+## API-Eng
+
+In fact, this project is developed in Eng API,
+but I do not have time to write document.
+The api alignment can be found in mcom.py:
+```
+别名对齐 = [
+    ('初始化3D', 'v2d_init'),
+    ('设置样式', 'set_style'),
+    ('形状之旋转缩放和平移','geometry_rotate_scale_translate'),
+    ('其他几何体之旋转缩放和平移','advanced_geometry_rotate_scale_translate'),
+    ('发送几何体','v2dx'),
+    ('结束关键帧','v2d_show'),
+    ('发送线条','line3d'),
+    ('发射光束','flash'),
+]
+```
