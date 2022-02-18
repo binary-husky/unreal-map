@@ -15,7 +15,7 @@ class RecallProcessThreejs(Process):
     def init_threejs(self):
         import threading
         t = threading.Thread(target=self.run_flask, args=(5051,))
-        # t = threading.Thread(target=self.run_flask, args=(51241,))
+        t.daemon = True
         t.start()
 
     def run(self):
@@ -94,5 +94,6 @@ if __name__ == '__main__':
     load_via_json = (hasattr(args, 'cfg') and args.cfg is not None)
     
     rp = RecallProcessThreejs(path)
+    rp.daemon = True
     rp.start()
     rp.join()
