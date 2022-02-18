@@ -635,7 +635,7 @@ def np_gather_righthand(src, index, check=True):
 
 
 def distance_matrix(A):
-    assert A.shape[-1] == 2  # assert 2D situation
+    # assert A.shape[-1] == 3  # assert 2D situation
     n_subject = A.shape[-2]  # is 2
     A = np.repeat(np.expand_dims(A, -2), n_subject, axis=-2)  # =>(64, 100, 100, 2)
     At = np.swapaxes(A, -2, -3)  # =>(64, 100, 100, 2)
