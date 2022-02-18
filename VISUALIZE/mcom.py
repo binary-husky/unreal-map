@@ -19,6 +19,7 @@ mcom_fn_list_define = [
     ('发送几何体','v2dx'),
     ('结束关键帧','v2d_show'),
     ('发送线条','line3d'),
+    ('发射光束','flash'),
 ]
 
 # The Design Principle: Under No Circumstance should this program Interrupt the main program!
@@ -495,7 +496,7 @@ class DrawProcessThreejs(Process):
         print('JS visualizer online (localhost): http://localhost:%d'%(port))
         print('--------------------------------')
         # app.run(host='0.0.0.0', port=port)
-        serve(app, threads=4, ipv4=True, ipv6=True, listen='*:%d'%port)
+        serve(app, threads=8, ipv4=True, ipv6=True, listen='*:%d'%port)
 
 
 class DrawProcess(Process):
