@@ -39,6 +39,9 @@ class RecallProcessThreejs(Process):
     def run_flask(self, port):
         from flask import Flask, url_for, jsonify, request, send_from_directory, redirect
         from waitress import serve
+        from mimetypes import add_type
+        add_type('application/javascript', '.js')
+        add_type('text/css', '.css')
 
         app = Flask(__name__)
         dirname = os.path.dirname(__file__) + '/threejsmod'
