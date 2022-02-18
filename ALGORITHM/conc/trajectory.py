@@ -81,28 +81,9 @@ class trajectory(TRAJ_BASE):
             elif i+1 == self.time_pointer:
                 threat[:] += (~dead_mask[i]).astype(np.int)
         
-        '''
-        filter = None
-        s_time = threat[0] + 1
-        if np.percentile(s_time, 50) < 100:
-            # 即训练初期，大部分智能体不能活到100步
-            new_reward = TJ('reward')
-            filter = s_time > (np.mean(s_time) + np.std(s_time)*1)
-            exception = (s_time < self.traj_limit) & (new_reward[threat==0] >=0)
-            filter = filter & (~exception) 
-            # 苟活时间大于整体存活时间 + sigma的个体加以惩罚
-            penelty = -(filter).astype(np.float)*1.0
-            # print(new_reward[threat==0])
-            new_reward[threat==0] = new_reward[threat==0] + penelty
-            # print(new_reward[threat==0])
-            setattr(self, 'reward', new_reward)
-            
-        '''
-            
         SAFE_LIMIT = 11
         threat = np.clip(threat, -1, SAFE_LIMIT)
         setattr(self, 'threat', np.expand_dims(threat, -1))
-
 
         # ! Use GAE to calculate return
         self.gae_finalize_return(reward_key='reward', value_key='value', new_return_name='return')

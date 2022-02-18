@@ -72,9 +72,9 @@ class trajectory(TRAJ_BASE):
         # deadmask
         tmp = np.isnan(my_view(self.obs, [0,0,-1]))
         dead_mask = tmp.all(-1)
-        if (True): # check if the mask is correct
-            dead_mask_self = np.isnan(my_view(self.obs, [0,0,-1])[:,:,0])
-            assert (dead_mask==dead_mask_self).all()
+        # if (True): # check if the mask is correct
+        #     dead_mask_self = np.isnan(my_view(self.obs, [0,0,-1])[:,:,0])
+        #     assert (dead_mask==dead_mask_self).all()
         # dead_mask2 = tmp.any(-1)
         # assert (dead_mask==dead_mask2).all()
         self.reward_push_forward(dead_mask) # push terminal reward forward 38 42 54

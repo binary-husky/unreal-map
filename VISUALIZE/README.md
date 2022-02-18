@@ -70,7 +70,7 @@ self.可视化桥.其他几何体之旋转缩放和平移('oct1', 'OctahedronGeo
 # 需要换成其他几何体，请把'OctahedronGeometry(1,0)'替换，参考网址 https://threejs.org/docs/index.html?q=Geometry
 self.可视化桥.其他几何体之旋转缩放和平移('any_name_you_want', 'TorusGeometry(10,3,16,100)',   0,0,0,  1,1,1, 0,0,0) # 甜甜圈
 # declare geo 'ball'
-self.可视化桥.其他几何体之旋转缩放和平移('ball', 'SphereGeometry(1,1,1)',   0,0,0,  1,1,1, 0,0,0) # 球体
+self.可视化桥.其他几何体之旋转缩放和平移('ball', 'SphereGeometry(1)',   0,0,0,  1,1,1, 0,0,0) # 球体
 # declare geo 'box'
 self.可视化桥.其他几何体之旋转缩放和平移('box', 'BoxGeometry(1,1,1)',   0,0,0,  1,1,1, 0,0,0) # 长方体
 
@@ -80,15 +80,15 @@ self.可视化桥.其他几何体之旋转缩放和平移('box', 'BoxGeometry(1,
 ```python
 x=1; y=2; z=3
 self.可视化桥.发送几何体(
-    'ball|8848|MidnightBlue|0.5'%(0, color, size),  # 填入核心参量： “已声明的形状|几何体之ID标识|颜色|整体大小”
+    'ball|8848|MidnightBlue|0.5',  # 填入核心参量： “已声明的形状|几何体之ID标识|颜色|整体大小”
     x, y, z,                # 三维位置，3/6dof
     ro_x=0, ro_y=0, ro_z=0, # 欧拉旋转变换，3/6dof
     opacity=1,              # 透明度，1为不透明
     label='',               # 显示标签，空白不显示
-    label_color='white',    # 标签颜色
+    label_color='White',    # 标签颜色
     track_n_frame=3,        # 是否显示轨迹（0代表否），轨迹由最新的track_n_frame次位置连接而成
     track_tension=0.1,      # 轨迹曲线的平滑度，0为不平滑，推荐不平滑
-    track_color='green',    # 轨迹的颜色显示，输入js颜色名或者hex值均可
+    track_color='Green',    # 轨迹的颜色显示，输入js颜色名或者hex值均可
     )
 ```
 

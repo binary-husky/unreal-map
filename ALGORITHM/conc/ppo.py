@@ -117,6 +117,7 @@ class PPO():
         self.lr = ppo_config.lr
         self.extral_train_loop = ppo_config.extral_train_loop
         self.turn_off_threat_est = ppo_config.turn_off_threat_est
+        self.experimental_rmDeadSample = ppo_config.experimental_rmDeadSample
         self.all_parameter = list(policy_and_critic.named_parameters())
         self.at_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'AT_' in p_name]
         self.ct_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'CT_' in p_name]
@@ -155,21 +156,24 @@ class PPO():
 
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
-
     def train_on_traj(self, traj_pool, task):
-        ratio = 1.0
-        while True:
-            try:
-                with self.gpu_share_unit:
-                    self.train_on_traj_(traj_pool, task) 
-                break # 运行到这说明显存充足
-            except RuntimeError:
-                self.n_div += 1
-                print亮红('显存不足！ 切分样本, 当前n_div: %d'%self.n_div)
-            torch.cuda.empty_cache()
+
+        with self.gpu_share_unit:
+            self.train_on_traj_(traj_pool, task) 
+
+
+    # def train_on_traj(self, traj_pool, task):
+    #     while True: # 这里train_on_traj_只需要运行一次, while语法是为了处理显存溢出的情况
+    #         try:
+    #             with self.gpu_share_unit:
+    #                 self.train_on_traj_(traj_pool, task) 
+    #             break # 运行到这说明一切正常, 立刻脱离while
+    #         except RuntimeError as e:
+    #             self.n_div += 1
+    #             print亮红('No More GPU Memory! 切分样本, 当前n_div: %d'%self.n_div)
+    #         torch.cuda.empty_cache()
 
     def train_on_traj_(self, traj_pool, task):
-
         ppo_valid_percent_list = []
         sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task)
         assert self.n_div == len(sampler)
@@ -185,7 +189,7 @@ class PPO():
                 loss_final, others = self.establish_pytorch_graph(task, sample, e)
                 loss_final = loss_final*0.5 /self.n_div
                 if (e+i)==0:
-                    print亮红('Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
+                    print亮红('[PPO.py] Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
                 loss_final.backward()
                 # log
                 ppo_valid_percent_list.append(others.pop('PPO valid percent').item())
@@ -198,7 +202,7 @@ class PPO():
 
         print亮黄(np.array(ppo_valid_percent_list))
         self.log_trivial_finalize()
-        print亮红('Leaky Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
+        # print亮红('Leaky Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
 
         self.ppo_update_cnt += 1
         return self.ppo_update_cnt
@@ -223,6 +227,14 @@ class PPO():
             self.mcv.rec_show()
         self.trivial_dict = {}
 
+    def rmDeadSample(self, obs, *args):
+        # assert first dim as Time dim
+        # assert second dim as agent dim
+        fter = my_view(obs, [0,0,-1])
+        fter = torch.isnan(fter).any(-1)
+        to_ret = obs[fter].unsqueeze(axis=1), *(a[fter].unsqueeze(axis=1) if a is not None else None for a in args)
+        return to_ret
+
 
     def establish_pytorch_graph(self, flag, sample, n):
         obs = _2tensor(sample['obs'])
@@ -233,8 +245,12 @@ class PPO():
         real_threat = _2tensor(sample['threat'])
         avail_act = _2tensor(sample['avail_act']) if 'avail_act' in sample else None
 
-        batchsize = advantage.shape[0]#; print亮紫(batchsize)
         batch_agent_size = advantage.shape[0]*advantage.shape[1]
+        if self.experimental_rmDeadSample:  # Warning! This operation will merge Time and Agent dim!
+            obs, advantage, action, oldPi_actionLogProb, real_value, real_threat, avail_act = \
+                self.rmDeadSample(obs, advantage, action, oldPi_actionLogProb, real_value, real_threat, avail_act)
+            batch_agent_size = advantage.shape[0]
+
 
         assert flag == 'train'
         newPi_value, newPi_actionLogProb, entropy, probs, others = self.policy_and_critic.evaluate_actions(obs, eval_actions=action, test_mode=False, avail_act=avail_act)
@@ -245,19 +261,8 @@ class PPO():
         SAFE_LIMIT = 11
         filter = (real_threat<SAFE_LIMIT) & (real_threat>=0)
         threat_loss = F.mse_loss(others['threat'][filter], real_threat[filter])
-        if self.turn_off_threat_est: 
-            # print('清空threat_loss')
-            threat_loss = 0
-        # if n==14: est_check(x=others['threat'][filter], y=real_threat[filter])
+        if self.turn_off_threat_est:  threat_loss = 0
         
-        # probs_loss (should be turn off now)
-        n_actions = probs.shape[-1]
-        if self.add_prob_loss: assert n_actions <= 15  # 
-        penalty_prob_line = (1/n_actions)*0.12
-        probs_loss = (penalty_prob_line - torch.clamp(probs, min=0, max=penalty_prob_line)).mean()
-        if not self.add_prob_loss:
-            probs_loss = torch.zeros_like(probs_loss)
-
         # dual clip ppo core
         E = newPi_actionLogProb - oldPi_actionLogProb
         E_clip = torch.zeros_like(E)
@@ -271,7 +276,7 @@ class PPO():
         if 'motivation value' in others:
             value_loss += 0.5 * F.mse_loss(real_value, others['motivation value'])
 
-        AT_net_loss = policy_loss -entropy_loss*self.entropy_coef # + probs_loss*20
+        AT_net_loss = policy_loss -entropy_loss*self.entropy_coef  
         CT_net_loss = value_loss * 1.0 + threat_loss * 0.1 # + friend_threat_loss*0.01
         # AE_new_loss = ae_loss * 1.0
 
@@ -293,64 +298,7 @@ class PPO():
             'AT_net_loss':              AT_net_loss,
             # 'AE_new_loss':              AE_new_loss,
         }
-        # print('ae_loss',ae_loss)
 
 
         return loss_final, others
-
-
-
-    def debug_pytorch_graph(self, flag, sample, n):
-
-
-        def mybuild_loss(flag, sample, n):
-            obs = _2tensor(sample['obs'])
-            advantage = _2tensor(sample['advantage'])
-            action = _2tensor(sample['action'])
-            oldPi_actionLogProb = _2tensor(sample['actionLogProb'])
-            real_value = _2tensor(sample['return'])
-            real_threat = _2tensor(sample['threat'])
-            batchsize = advantage.shape[0]
-            batch_agent_size = advantage.shape[0]*advantage.shape[1]
-            assert flag == 'train'
-            newPi_value, newPi_actionLogProb, entropy, probs, others = self.policy_and_critic.evaluate_actions(obs, action=action, test_mode=False)
-            entropy_loss = entropy.mean()
-            # threat approximation
-            SAFE_LIMIT = 11
-            filter = (real_threat<SAFE_LIMIT) & (real_threat>=0)
-            threat_loss = F.mse_loss(others['threat'][filter], real_threat[filter])
-            if n%20 == 0: est_check(x=others['threat'][filter], y=real_threat[filter])
-            value_loss = 0.5 * F.mse_loss(real_value, newPi_value)
-            nz_mask = real_value!=0
-            value_loss_abs = (real_value[nz_mask] - newPi_value[nz_mask]).abs().mean()
-
-            CT_net_loss = threat_loss * 0.1 + value_loss * 1.0
-            loss_final = CT_net_loss # + AT_net_loss + AE_new_loss # + 
-            others = {
-                'Value loss Abs':           value_loss_abs,
-                'threat loss':              threat_loss,
-                'CT_net_loss':              CT_net_loss,
-            }
-            return loss_final, others
-
-        def step(loss_final, step):
-            self.at_optimizer.zero_grad()
-            self.ct_optimizer.zero_grad()
-            # self.ae_optimizer.zero_grad()
-            loss_final.backward()
-            self.at_optimizer.step()
-            self.ct_optimizer.step()
-            # self.ae_optimizer.step()
-
-        for t in range(16):
-            self.trivial_dict = {}
-            loss_final, others = mybuild_loss(flag, sample, t)
-            self.log_trivial(dictionary=others)
-            others = None
-            
-            step(loss_final, t)
-            self.log_trivial_finalize(print=False)
-
-
-
 
