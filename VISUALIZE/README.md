@@ -22,7 +22,10 @@ pip install vhmap
 
 ## 20行代码-展示VHMAP的简单、丝滑
 实现下图，仅需要20行python代码(含初始化)
-![](md_imgs/动画x7.gif)
+<div align="center">
+<img src="md_imgs/动画x7.gif" width="700" >
+</div>
+
 界面功能、操作介绍：
 - 鼠标右键平移，左键旋转，滚轮缩放
 - 支持触屏，如果你笔记本或手机有触控屏幕
@@ -69,7 +72,9 @@ pip install vhmap
 
 python -m VISUALIZE.examples.nb
 ```
-![](md_imgs/动画9.gif)
+<div align="center">
+<img src="md_imgs/动画9.gif" width="700" >
+</div>
 
 ## 90行代码-使用dop853求解常微分方程演示三体、N体运动
 - 代码2详情请见：VISUALIZE/examples/nb_3body_specials.py
@@ -79,9 +84,13 @@ pip install vhmap
 
 python -m VISUALIZE.examples.nb_3body_specials
 ```
-![](md_imgs/动画11.gif)
+<div align="center">
+<img src="md_imgs/动画11.gif" width="300", height="275"  >
+<img src="md_imgs/动画13.gif"  width="300" >
+<img src="md_imgs/动画12-1.gif"  width="700" >
+</div>
 
-![](md_imgs/动画12-1.gif)
+<!-- ![](md_imgs/动画11.gif)![](md_imgs/动画12-1.gif) -->
 
 ## API-中文
 
