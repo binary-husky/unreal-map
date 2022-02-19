@@ -7,7 +7,7 @@ from config import GlobalConfig
 from UTILS.tensor_ops import __hash__, pad_vec_array, copy_clone, my_view
 DEBUG = True
 
-class AlgorithmConfig:
+class AlgorithmConfig:  # configuration, open to jsonc modification
     gamma = 0.99
     tau = 0.95
     train_traj_needed = 512
@@ -40,6 +40,8 @@ class AlgorithmConfig:
     dual_conc = True
     use_my_attn = True
     alternative_critic = False
+
+
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
         self.n_thread = n_thread
@@ -124,7 +126,8 @@ class ReinforceAlgorithmFoundation(object):
             'action':        action,
         }
         if avail_act: traj_frag.update({'avail_act':  avail_act})
-        wait_reward_hook = self.commit_frag_hook(traj_frag, require_hook = True) if not test_mode else self.__dummy_hook
+        wait_reward_hook = self.commit_frag_hook(traj_frag, require_hook = True) \
+            if not test_mode else self.__dummy_hook
 
         
         '''   <1>  we will deal with rollout later after the reward is ready, 
@@ -133,6 +136,12 @@ class ReinforceAlgorithmFoundation(object):
         return action.copy(), State_Recall
 
 
+
+
+
+
+
+    # function to be called when reward is received. 获取奖励后的回调函数
     def commit_frag_hook(self, f1, require_hook = True):
         assert self.__incomplete_frag__ is None
         self.__incomplete_frag__ = f1
@@ -141,7 +150,8 @@ class ReinforceAlgorithmFoundation(object):
         return
 
 
-    # ________Rollout Processor_______
+    # Rollout Processor 准备提交Rollout，以下划线开头和结尾的键值需要对齐(self.n_thread, ...)
+    # note that keys starting with _ must have shape (self.n_thread, ...), details see fn:mask_paused_env()
     def rollout_frag_hook(self, f2):
         '''   <2>  hook is called, reward and next moment observation is ready,
                         now feed them into trajectory manager    '''
@@ -165,7 +175,6 @@ class ReinforceAlgorithmFoundation(object):
         # put the fragment into memory
         self.batch_traj_manager.feed_traj(self.__completed_frag)
         self.__incomplete_frag__ = None
-
 
     def mask_paused_env(self, fragment):
         running = ~fragment['_SKIP_']

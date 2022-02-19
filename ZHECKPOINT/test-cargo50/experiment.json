@@ -1,0 +1,45 @@
+{
+    "config.py->GlobalConfig": {
+        "note": "test-cargo50",           
+        "env_name": "sr_tasks->cargo",   
+        "env_path": "MISSIONS.sr_tasks.multiagent.scenarios.cargo",         
+        "draw_mode": "Img",                            
+        "num_threads": "1",                          
+        "report_reward_interval": "1",
+        "test_interval": "5120",
+        "fold": "1",
+        "seed": 888,
+        "n_parallel_frame": 5e7,
+        "max_n_episode": 2e6,
+        "backup_files": [
+            "ALGORITHM/conc",
+            "MISSIONS/sr_tasks/multiagent"
+        ],
+        "device": "cuda:3",
+        "gpu_party": "off"
+    },
+
+
+    "MISSIONS.sr_tasks.multiagent.scenarios.cargo.py->ScenarioConfig": {
+        "max_steps_episode": 150,
+        "n_worker": 50,
+        "weight_percent": 0.8,
+        "n_cargo": 4,
+        "render": "True",
+        "TEAM_NAMES": [
+            "ALGORITHM.coop_space.reinforce_foundation->ReinforceAlgorithmFoundation"
+        ]
+    },
+    "ALGORITHM.coop_space.reinforce_foundation.py->CoopAlgConfig": {
+        "load_checkpoint": true,
+        "n_pieces_batch_division": 1,
+        "lr": 0.0001,
+        "g_num": 6,               
+        "train_traj_needed": 512,
+        "max_internal_step": 3,   
+        "decision_interval": 25,  
+        "head_start_cnt": 4,      
+        "head_start_hold_n": 1,   
+        "ppo_epoch": 16
+    },
+}

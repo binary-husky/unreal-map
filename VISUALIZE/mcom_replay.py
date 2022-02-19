@@ -7,15 +7,16 @@ from VISUALIZE.mcom import *
 
 
 class RecallProcessThreejs(Process):
-    def __init__(self, file_path):
+    def __init__(self, file_path, port):
         super(RecallProcessThreejs, self).__init__()
         self.buffer_list = []
         self.file_path = file_path
+        self.port = port
 
     def init_threejs(self):
         import threading
-        t = threading.Thread(target=self.run_flask, args=(5051,))
-        # t = threading.Thread(target=self.run_flask, args=(51241,))
+        t = threading.Thread(target=self.run_flask, args=(self.port,))
+        t.daemon = True
         t.start()
 
     def run(self):
@@ -39,6 +40,9 @@ class RecallProcessThreejs(Process):
     def run_flask(self, port):
         from flask import Flask, url_for, jsonify, request, send_from_directory, redirect
         from waitress import serve
+        from mimetypes import add_type
+        add_type('application/javascript', '.js')
+        add_type('text/css', '.css')
 
         app = Flask(__name__)
         dirname = os.path.dirname(__file__) + '/threejsmod'
@@ -94,5 +98,6 @@ if __name__ == '__main__':
     load_via_json = (hasattr(args, 'cfg') and args.cfg is not None)
     
     rp = RecallProcessThreejs(path)
+    rp.daemon = True
     rp.start()
     rp.join()

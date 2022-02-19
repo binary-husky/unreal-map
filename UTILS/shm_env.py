@@ -37,7 +37,7 @@ class EnvWithRay(object):
         # ! step here
         ob, reward, done, info = self.env.step(act)
         if isinstance(ob, list): 
-            print('warning ob is list, which is low-efficient')
+            print('warning, ob is list, which is low-efficient')
             ob = np.array(ob, dtype=object)
         
         if np.any(done):

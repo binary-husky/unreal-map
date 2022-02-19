@@ -238,14 +238,13 @@ class Net(nn.Module):
         act = self._act if self.dual_conc else self._act_singlec
         return act(*args, **kargs, eval_mode=True)
 
+    # div entity for DualConc models, distincting friend or hostile (present or history)
     def div_entity(self, mat, type=[(0,), # self
                                     (1, 2, 3, 4, 5, 6,  7, 8, 9, 10,11),     # current
                                     (12,13,14,15,16,17, 18,19,20,21,22,23),  # history
                                     ],   
                                     n=24
                                     ):
-        # def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=24):
-        # def div_entity(self, mat, type=[(0,), (1, 2, 3, 4, 5), (6, 7, 8, 9, 10, 11)], n=12):
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
         elif mat.shape[-1]==n:
@@ -257,15 +256,13 @@ class Net(nn.Module):
         others = {}
         if self.use_normalization:
             obs = self._batch_norm(obs)
-        # obs = obs[:,:,:12]
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
         v = self.AT_obs_encoder(obs)
 
-
-        zs, ze_f, ze_h          = self.div_entity(obs)        
-        vs, ve_f, ve_h          = self.div_entity(v)          
-        _, ve_f_dead, ve_h_dead = self.div_entity(mask_dead)  
+        zs, ze_f, ze_h          = self.div_entity(obs)
+        vs, ve_f, ve_h          = self.div_entity(v)
+        _, ve_f_dead, ve_h_dead = self.div_entity(mask_dead)
 
         # concentration module
         vh_C, vh_M = self.MIX_conc_core_h(vs=vs, ve=ve_h, ve_dead=ve_h_dead, skip_connect_ze=ze_h, skip_connect_zs=zs)

@@ -33,7 +33,7 @@ function changeCoreObjSize(object, size){
     object.currentSize = size
 }
 //添加形状句柄
-MAX_HIS_LEN = 300
+MAX_HIS_LEN = 5120
 function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, currentSize, label_marking, label_color, opacity, track_n_frame, parsed_obj_info=null){
     const object = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: color_str }));
     object.my_id = my_id;
@@ -154,8 +154,6 @@ function apply_update(object, parsed_obj_info){
     let track_n_frame = parsed_obj_info['track_n_frame']
     let track_tension = parsed_obj_info['track_tension']
     let track_color = parsed_obj_info['track_color']
-
-    label_marking = label_marking.replace("|", "\n")
 
     // 已经创建了对象,setfuture
     if (object) {

@@ -60,8 +60,8 @@ private*.jsonc
 private*.py
 fqx*.jsonc
 my_*.jsonc
-my_*.py
 result.prof
+ignore
 
 ZHECKPOINT/*
 
@@ -76,3 +76,27 @@ ZHECKPOINT/test-100+100/*
 !ZHECKPOINT/test-100+100/model.pt
 !ZHECKPOINT/test-100+100/experiment.json
 !ZHECKPOINT/test-100+100/test-100+100.jsonc
+
+
+
+!ZHECKPOINT/test-cargo50
+ZHECKPOINT/test-cargo50/*
+!ZHECKPOINT/test-cargo50/model.pt
+!ZHECKPOINT/test-cargo50/experiment.json
+!ZHECKPOINT/test-cargo50/test-cargo50.jsonc
+
+!ZHECKPOINT/test-cargo50/history_cpt
+ZHECKPOINT/test-cargo50/history_cpt/*
+!ZHECKPOINT/test-cargo50/history_cpt/init.pkl
+
+
+
+!ZHECKPOINT/test-aii515
+ZHECKPOINT/test-aii515/*
+!ZHECKPOINT/test-aii515/model.pt
+!ZHECKPOINT/test-aii515/experiment.json
+!ZHECKPOINT/test-aii515/test-aii515.jsonc
+
+!ZHECKPOINT/test-aii515/history_cpt
+ZHECKPOINT/test-aii515/history_cpt/*
+!ZHECKPOINT/test-aii515/history_cpt/init.pkl

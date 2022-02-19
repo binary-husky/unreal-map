@@ -111,14 +111,7 @@ class ShellEnvWrapper(object):
 
         # turning all zero padding to NaN, used for normalization
         obs_feed[(obs_feed==0).all(-1)] = np.nan
-        # import copy
-        # obs_feed_tmp = copy.deepcopy(obs_feed)
-        # obs_feed_tmp[(obs_feed==0).all(-1)] = np.nan
-        # mask_and_id = self.get_mask_id(obs_feed)
-        # obs_feed[np.isnan(mask_and_id)] = np.nan
-        # assert __hash__(obs_feed_tmp) == __hash__(obs_feed)
-        # seed 9996  'c06b4f0b8ec658e475adc0e2bf1a56b9'
-        # 第二次 '0766b324646aee137fffc8de912db980'
+
         return obs_feed
 
 
@@ -133,52 +126,3 @@ class ShellEnvWrapper(object):
         return mask_and_id
 
 
-
-
-    @staticmethod
-    @jit(forceobj=True)
-    def dir_to_action(vec, vel):
-        def np_mat3d_normalize_each_line(mat):
-            return mat / np.expand_dims(np.linalg.norm(mat, axis=2) + 1e-16, axis=-1)
-        dis2target = np.linalg.norm(vec, axis=2)
-        vec = np_mat3d_normalize_each_line(vec) #self.step
-
-        e_u = np.array([0,1])
-        e_d = np.array([0,-1])
-        e_r = np.array([1,0])
-        e_l = np.array([-1,0])
-
-        vel_u = np_mat3d_normalize_each_line(vel + e_u * 0.1)
-        vel_d = np_mat3d_normalize_each_line(vel + e_d * 0.1)
-        vel_r = np_mat3d_normalize_each_line(vel + e_r * 0.1)
-        vel_l = np_mat3d_normalize_each_line(vel + e_l * 0.1)
-
-        proj_u = (vel_u * vec).sum(-1)
-        proj_d = (vel_d * vec).sum(-1)
-        proj_r = (vel_r * vec).sum(-1)
-        proj_l = (vel_l * vec).sum(-1)
-
-        _u = ((vec * e_u).sum(-1)>0).astype(np.int)
-        _d = ((vec * e_d).sum(-1)>0).astype(np.int)
-        _r = ((vec * e_r).sum(-1)>0).astype(np.int)
-        _l = ((vec * e_l).sum(-1)>0).astype(np.int)
-
-        proj_u = proj_u + _u*2
-        proj_d = proj_d + _d*2
-        proj_r = proj_r + _r*2
-        proj_l = proj_l + _l*2
-
-        dot_stack = np.stack([proj_u, proj_d, proj_r, proj_l])
-        direct = np.argmax(dot_stack, 0)
-
-        action = np.where(direct == 0, 3, 0)    # 3 up
-        action += np.where(direct == 1, 4, 0)   # 4 down
-        action += np.where(direct == 2, 1, 0)   # 1 right
-        action += np.where(direct == 3, 2, 0)   # 2 left
-
-        action = (dis2target>0.05).astype(np.int)*action
-        # make sure that all nan vec become invalid act 0, 
-        # be careful when a different numpy version is used
-        assert (action[np.isnan(np.sum(dot_stack,0))] == 0).all()
-        # action *= 0
-        return np.expand_dims(action, axis=-1)

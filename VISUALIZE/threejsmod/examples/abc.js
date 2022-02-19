@@ -311,8 +311,9 @@ function plot_obj_track(object){
         curve.tension = object.track_tension;
         const position = curve.mesh.geometry.attributes.position;
         const point = new THREE.Vector3();
-        for ( let i = 0; i < ARC_SEGMENTS; i ++ ) {
-            const t = i / ( ARC_SEGMENTS - 1 );
+        if(object.track_n_frame>2560){alert("track_n_frame is too large, must < 2560")}
+        for ( let i = 0; i < curve.arc_seg; i ++ ) {
+            const t = i / ( curve.arc_seg - 1 );
             curve.getPoint( t, point );
             position.setXYZ( i, point.x, point.y, point.z );
         }
@@ -334,8 +335,9 @@ function plot_obj_track(object){
         object.track_his.curveType = 'catmullrom';
         // load positions_catmull
         let curve = object.track_his
+        curve.arc_seg = (object.track_n_frame > 250)? 5120:512
         const geometry = new THREE.BufferGeometry();
-        geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( ARC_SEGMENTS * 3 ), 3 ) );
+        geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( curve.arc_seg * 3 ), 3 ) );
         curve.mesh = new THREE.Line( geometry.clone(), new THREE.LineBasicMaterial( {
             color: object.track_color,
         } ) );
@@ -343,8 +345,8 @@ function plot_obj_track(object){
         curve.tension = object.track_tension;
         const position = curve.mesh.geometry.attributes.position;
         const point = new THREE.Vector3();
-        for ( let i = 0; i < ARC_SEGMENTS; i ++ ) {
-            const t = i / ( ARC_SEGMENTS - 1 );
+        for ( let i = 0; i < curve.arc_seg; i ++ ) {
+            const t = i / ( curve.arc_seg - 1 );
             curve.getPoint( t, point );
             position.setXYZ( i, point.x, point.y, point.z );
         }
@@ -379,7 +381,7 @@ function force_move_all(pp){ // 手动调整进度条时触发
         object.prev_ro.x = object.next_ro.x; object.prev_ro.y = object.next_ro.y; object.prev_ro.z = object.next_ro.z
         object.prev_opacity = object.next_opacity; object.prev_size = object.next_size;
         change_position_rotation_size(object, 1, true, true)
-    }
+    }	
 }
 window.glb.force_move_all = force_move_all
 

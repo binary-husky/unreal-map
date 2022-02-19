@@ -1,68 +1,55 @@
 
-# ubuntu command to kill process: kill -9 $(ps -ef | grep fuqingxu|grep python | grep -v grep | awk '{print $ 2}')
+# ubuntu command to kill process: kill -9 $(ps -ef | grep python | grep fuqingxu | grep -v grep | awk '{print $ 2}')
 
-n_run = 4
+n_run = 6
 n_run_mode = [
-    {   # @1
+    {
         "addr": "172.18.116.149:2233",
         "usr": "hmp",
         "pwd": "hmp"
     },
-    {   # @2
+    {
+        "addr": "172.18.116.149:2233",
+        "usr": "hmp",
+        "pwd": "hmp"
+    },    
+    {
+        "addr": "172.18.116.149:2233",
+        "usr": "hmp",
+        "pwd": "hmp"
+    },    
+    {
         "addr": "172.18.116.149:2233",
         "usr": "hmp",
         "pwd": "hmp"
     },
-    {   # @3
+    {
         "addr": "172.18.116.149:2233",
         "usr": "hmp",
         "pwd": "hmp"
     },
-    {   # @4
+    {
         "addr": "172.18.116.149:2233",
         "usr": "hmp",
         "pwd": "hmp"
-    },
+    },    
+
 ]
 assert len(n_run_mode)==n_run
 
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "(test remote) train conc t1",
-                    "(test remote) train conc t2",
-                    "(test remote) train conc t3",
-                    "(test remote) train conc t4",
-                ],
-
-    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig-->random_jam_prob":       
-                [
-                    0.10,
-                    0.10,
-                    0.10,
-                    0.10,
+                    "A14_AII_D5_nk=3_run1",  "A14_AII_D5_nk=3_run2",
+                    "A14_AII_D5_nk=4_run1",  "A14_AII_D5_nk=4_run2",
+                    "A14_AII_D5_nk=5_run1",  "A14_AII_D5_nk=5_run2",
                 ],
 
     "config.py->GlobalConfig-->seed":       
                 [
-                    101111,
-                    110111,
-                    111011,
-                    111101,
-                ],
-    "config.py->GlobalConfig-->device":       
-                [
-                    "cuda:4",
-                    "cuda:5",
-                    "cuda:6",
-                    "cuda:0",
-                ],
-    "config.py->GlobalConfig-->gpu_party":       
-                [
-                    "off",
-                    "off",
-                    "off",
-                    "off",
+                    145252651, 143235675,
+                    145252652, 143235676,
+                    145252653, 143235677,
                 ],
 
 }
@@ -70,65 +57,56 @@ conf_override = {
 
 
 base_conf = {
+    # // python main.py -c d12-conc-orig.jsonc
     "config.py->GlobalConfig": {
-        # please checkout config.py for information 15.9GB 22.1(11.4+435) 28.7 42GB
-        "note": "example experiment7",                  # Very Important! in case you forget the purpose of this trainning session, write a note
-        "env_name": "collective_assult",                # which environment, see ./MISSIONS/env_router.py
-        "env_path": "MISSIONS.collective_assult",       # path of environment
-        "draw_mode": "Img",                             # activate data plotting (Tensorboard is not used because I do not like it)
-        "num_threads": "64",                            # run N parallel envs, a 'env' is refered to as a 'thread'
-        "report_reward_interval": "64",                 # reporting interval
-        "test_interval": "2048",                        # test every $test_interval episode
-        "fold": "1",                                    # this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
-        "seed": 2222,                                   # seed controls pytorch and numpy
-        "backup_files": [                               # backup files, pack them up
-            "example.jsonc",
-            "ALGORITHM/conc",
-            "MISSIONS/collective_assult/envs/collective_assult_env.py"
-        ],
-        "device": "cuda:4",                             # choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU) 
-        # GPU memory is precious! assign multiple training process to a 'party', then they will share GPU memory 
-        "gpu_party": "off",                     # default is 'off', 
-        "upload_after_test": "True"
-    },
-
-    "UTILS.exp_upload.py->DataCentralServer": {
-        "addr": "172.18.112.16", 
-        "usr": "fuqingxu", 
-        "pwd": "clara"
+        "note": "train_origin_T(80itf)",
+        "env_name":"collective_assult",
+        "env_path":"MISSIONS.collective_assult",
+        "draw_mode": "Img",
+        "num_threads": "64",
+        "report_reward_interval": "64",
+        "test_interval": "2048",
+        # // "use_float64": true,
+        # // "device": "cuda:4",
+        # // "gpu_party": "Cuda4-Party0",
+        "fold": "1",
+        "seed": 9995,
+        "backup_files":[
+            "ALGORITHM/concentration/net.py",
+            "ALGORITHM/concentration/ppo.py",
+            "ALGORITHM/concentration/shell_env.py",
+            "ALGORITHM/concentration/foundation.py",
+            "MISSIONS/collective_assult/envs/collective_assult_env.py",
+            "ALGORITHM/concentration/trajectory.py"
+        ]
     },
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
-        # please checkout ./MISSIONS/collective_assult/collective_assult_parallel_run.py for information
         "size": "5",
-        "random_jam_prob": 0.05,
-        "introduce_terrain": "True",
-        "terrain_parameters": [
-            0.05,
-            0.2
-        ],
+        "random_jam_prob": 0.80,
+        "introduce_terrain":"True",
+        "terrain_parameters": [0.05, 0.2],
         "num_steps": "180",
-        "render": "False",
-        "render_with_unity": "False",
-        "MCOM_DEBUG": "False",
+        "render":"False",
+        "render_with_unity":"False",
+        "MCOM_DEBUG":"False",
         "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.conc.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
         ]
     },
-    "ALGORITHM.conc.foundation.py->AlgorithmConfig": {
-        # please checkout ./ALGORITHM/conc/foundation.py for information
+
+    "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,
         "actor_attn_mod": "False",
         "extral_train_loop": "False",
-        "lr": 0.0005,
+        "lr": 5e-4,
         "ppo_epoch": 24,
         "train_traj_needed": "64",
-        "load_checkpoint": "False"
+        "load_checkpoint": False
     }
 }
-
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -258,12 +236,12 @@ DELAY = 10
 
 if __name__ == '__main__':
         
-    # input('确认执行？')
-    # input('确认执行！')
+    input('Confirm execution? 确认执行?')
+    input('Confirm execution! 确认执行!')
 
     t = 0
     while (t >= 0):
-        print('运行倒计时：', t)
+        print('Counting down ', t)
         time.sleep(1)
         t -= 1
 
