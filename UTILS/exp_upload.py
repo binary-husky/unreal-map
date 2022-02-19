@@ -10,6 +10,7 @@ class DataCentralServer(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comme
     usr = 'None'
     pwd = 'None'
 
+from stat import S_ISDIR
 
 # great thank to skoll for sharing this at stackoverflow:
 # https://stackoverflow.com/questions/4409502/directory-transfers-with-paramiko
@@ -27,6 +28,30 @@ class MySFTPClient(paramiko.SFTPClient):
             else:
                 self.mkdir('%s/%s' % (target, item), ignore_existing=True)
                 self.put_dir(os.path.join(source, item), '%s/%s' % (target, item), ignore_list)
+    
+    def isfile(self, path):
+        try:
+            return not S_ISDIR(self.stat(path).st_mode)
+        except IOError:
+            #Path does not exist, so by definition not a directory
+            return True
+
+    def get_dir(self, source, target, ignore_list=[]):
+        ''' Download the contents of the source directory to the target path. The
+            target directory needs to exists. All subdirectories in source are 
+            created under target.
+        '''
+        for item in self.listdir(source):
+            if item in ignore_list: continue
+            if self.isfile(os.path.join(source, item).replace('\\','/')):
+                # print亮靛('uploading: %s --> %s'%(os.path.join(source, item),'%s/%s' % (target, item)))
+                self.get(os.path.join(source, item).replace('\\','/'), '%s/%s' % (target, item))
+            else:
+                if os.path.exists('%s/%s' % (target, item)):
+                    print('local dir already exists:', '%s/%s' % (target, item))
+                    continue
+                os.mkdir('%s/%s' % (target, item))
+                self.get_dir(os.path.join(source, item).replace('\\','/'), '%s/%s' % (target, item), ignore_list)
 
     def mkdir(self, path, mode=511, ignore_existing=False):
         ''' Augments mkdir by adding an option to not fail if the folder exists  '''
