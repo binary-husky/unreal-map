@@ -41,6 +41,7 @@ window.glb.core_Obj = [];
 window.glb.line_Obj = [];
 window.glb.flash_Obj = [];
 window.glb.base_geometry = {};
+window.glb.base_material = {};
 // global vars
 window.glb.play_fps = 5;
 window.glb.play_pointer = 0; // 位置读取指针

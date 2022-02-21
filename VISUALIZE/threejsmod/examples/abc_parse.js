@@ -66,6 +66,10 @@ function parse_init(buf_str) {
         if(str.search(">>advanced_geometry_rotate_scale_translate") != -1){
             parse_advanced_geometry(str)
         }
+        if(str.search(">>advanced_geometry_material") != -1){
+            parse_advanced_geometry_material(str)
+        }
+        
     }
 }
 
@@ -291,6 +295,7 @@ function geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, tr
     geometry.translate(trans_x, trans_y, trans_z)
     return geometry
 }
+
 function parse_advanced_geometry(str){
     const pattern = />>advanced_geometry_rotate_scale_translate\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
     let match_res = str.match(pattern)
@@ -321,6 +326,28 @@ function parse_advanced_geometry(str){
     window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
 }
 
+function parse_advanced_geometry_material(str){
+    const pattern = />>advanced_geometry_material\('(.*?)'/
+    let match_res = str.match(pattern)
+    let name = match_res[1]
+
+    window.glb.base_material[name] = null;
+    kargs = {}
+    let map = match_karg(str, 'map', 'str', null)
+    let bumpMap = match_karg(str, 'bumpMap', 'str', null)
+    let bumpScale = match_karg(str, 'bumpScale', 'float', null)
+    let specularMap = match_karg(str, 'specularMap', 'str', null)
+    let specular = match_karg(str, 'specular', 'str', null)
+
+    if (map){kargs['map'] = THREE.ImageUtils.loadTexture(map)}
+    if (bumpMap){kargs['bumpMap'] = THREE.ImageUtils.loadTexture(bumpMap)}
+    if (bumpScale){kargs['bumpScale'] = bumpScale}
+    if (specularMap){kargs['specularMap'] = THREE.ImageUtils.loadTexture(specularMap)}
+    if (specular){kargs['specular'] = new THREE.Color(specular)}
+
+    window.glb.base_material[name] = new THREE.MeshPhongMaterial(kargs)
+
+}
 
 function parse_geometry(str){
     const pattern = />>geometry_rotate_scale_translate\('(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/

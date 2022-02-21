@@ -9,6 +9,13 @@ def run():
     可视化桥 = mcom(path='RECYCLE/v2d_logger/', draw_mode='Threejs')
     可视化桥.初始化3D(); 可视化桥.设置样式('star')
     可视化桥.其他几何体之旋转缩放和平移('ball', 'SphereGeometry(1)',   0,0,0,  1,1,1, 0,0,0) # 球体   
+    # 可视化桥.advanced_geometry_material('ball', 
+    #     map='/examples/planets/images/earthmap1k.jpg',
+    #     bumpMap='/examples/planets/images/earthmap1k.jpg',
+    #     bumpScale = 0.05,
+    #     specularMap='/examples/images/earthmap1k.jpg',
+    #     specular='Gray'
+    # )  
     # 设置初始参数
     colors = ['Yellow', 'Red', 'Blue']
     size = [0.04, 0.04, 0.04]

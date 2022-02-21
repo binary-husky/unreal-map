@@ -17,10 +17,6 @@ function makeClearText(object, text, textcolor, HWRatio=10){
     sprite.scale.z = 17* object.generalSize
     sprite.position.set(object.generalSize, object.generalSize, -object.generalSize);
 
-    // This value allows the default rendering order of scene graph objects to be overridden 
-    // although opaque and transparent objects remain sorted independently. 
-    // When this property is set for an instance of Group, all descendants objects will be sorted 
-    // and rendered together. Sorting is from lowest to highest renderOrder. Default value is 0.
     sprite.renderOrder = 128
     object.add(sprite)
 }
@@ -40,8 +36,8 @@ function changeCoreObjSize(object, size){
 }
 //添加形状句柄
 MAX_HIS_LEN = 5120
-function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, currentSize, label_marking, label_color, opacity, track_n_frame, parsed_obj_info=null){
-    const object = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: color_str }));
+function addCoreObj(my_id, color_str, geometry, material, x, y, z, ro_x, ro_y, ro_z, currentSize, label_marking, label_color, opacity, track_n_frame, parsed_obj_info=null){
+    const object = new THREE.Mesh(geometry, material);
     object.my_id = my_id;
     object.color_str = color_str;
     object.position.x = x; 
@@ -98,30 +94,28 @@ function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, curre
     window.glb.scene.add(object);
     window.glb.core_Obj.push(object)
 }
+
 //选择形状
 function choose_geometry(type){
-    let geometry_size = 1;
     if (window.glb.base_geometry[type]==null){
         console.log('maybe the geometry is still loading!')
         return null
-        if (type=='tank' || type=='box'){
-            return new THREE.BoxGeometry(geometry_size, geometry_size, geometry_size);
-        }else if(type=='sphe' || type=='ball'){
-            return new THREE.SphereGeometry(geometry_size);
-        }else if(type=='cone'){
-            return new THREE.ConeGeometry(geometry_size, 2*geometry_size);
-        }else{
-            console.log('maybe the geometry is still loading!')
-            return null
-        }
     }
     else{
         // console.log('using geo:'+type)
         return window.glb.base_geometry[type]
     }
-
 }
 
+//选择材质
+function choose_material(type, color_str){
+    if (window.glb.base_material[type]==null){
+        return new THREE.MeshLambertMaterial({ color: color_str })
+    }
+    else{
+        return window.glb.base_material[type]
+    }
+}
 function init_cam(){
     console.log('secondary init_cam')
     let x = 0;
@@ -211,21 +205,20 @@ function apply_update(object, parsed_obj_info){
         // 即可更新历史轨迹
         object.his_positions.push( new THREE.Vector3(object.prev_pos.x, object.prev_pos.y, object.prev_pos.z) );
         object.his_positions.shift()
-        // console.log(new THREE.Vector3(object.prev_pos.x, object.prev_pos.y, object.prev_pos.z) )
 
     }
     else {
         // create obj
         let currentSize = size;
         let geometry = choose_geometry(type);
+        let material = choose_material(type, color_str)
         if (geometry==null){
             console.log('the geometry is still loading!')
             return
         }
         //function (my_id, color_str, geometry, x, y, z, size, label_marking){
-        addCoreObj(my_id, color_str, geometry, 
-            pos_x, pos_y, pos_z, 
-            ro_x, ro_y, ro_z, 
+        addCoreObj(my_id, color_str, geometry, material,
+            pos_x, pos_y, pos_z, ro_x, ro_y, ro_z, 
             currentSize, label_marking, label_color, opacity, track_n_frame, parsed_obj_info)
     }
 }
