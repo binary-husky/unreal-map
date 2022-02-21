@@ -277,7 +277,11 @@ function change_position_rotation_size(object, percent, override, reset_track=fa
 
     let size = object.prev_size * (1 - percent)  + object.next_size * percent
     let opacity = object.prev_opacity * (1 - percent)  + object.next_opacity * percent
-    if (object.material.opacity!=opacity){ object.material.opacity=opacity }
+    if (object.material.opacity!=opacity){ 
+        object.material.opacity = opacity;
+        object.material.transparent = (opacity==1)?false:true;
+        object.renderOrder = (opacity==0)?256:object.renderOrder;
+    }
     changeCoreObjSize(object, size)
 
     if(override){

@@ -782,6 +782,7 @@ function parse_core_obj(str, parsed_frame){
     parsed_obj_info['label_color'] = match_karg(str, 'label_color', 'str', 'black')
     parsed_obj_info['opacity'] = match_karg(str, 'opacity', 'float', 1)
     parsed_obj_info['track_n_frame'] = match_karg(str, 'track_n_frame', 'int', 0)
+    parsed_obj_info['renderOrder'] = match_karg(str, 'renderOrder', 'int', 0)
     parsed_obj_info['track_tension'] = match_karg(str, 'track_tension', 'float', 0)
     parsed_obj_info['track_color'] = match_karg(str, 'track_color', 'str', color_str)
     

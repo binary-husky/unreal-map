@@ -106,7 +106,7 @@ class Scenario(BaseScenario):
                     worker.state.p_pos[0], worker.state.p_pos[1], 
                     0,  ro_x=0, ro_y=-0, ro_z=0,
                     label='', label_color='white',
-                    opacity=1,
+                    opacity=0.99,
                     track_n_frame=5,
                 )
             else:
@@ -120,7 +120,7 @@ class Scenario(BaseScenario):
                     worker.state.p_pos[1] + np.sin(m / n * 2 * np.pi) * 0.1, 
                     0,  ro_x=0, ro_y=-0, ro_z=0,
                     label='', label_color='white',
-                    opacity=1,
+                    opacity=0.99,
                     track_n_frame=5,
                 )
 
@@ -136,6 +136,7 @@ class Scenario(BaseScenario):
                 0,  ro_x=0, ro_y=-0, ro_z=0,
                 label='BioHazard #%d'%index, label_color='Crimson',
                 opacity=0.5,
+                renderOrder=64,
             )
 
             self.threejs_bridge.v2dx(
@@ -145,6 +146,7 @@ class Scenario(BaseScenario):
                 label='drag %d:weight %d'%(len(self.cargo_dragged_by[index]), self.cargo_weight[index]), 
                 label_color='Magenta' if (len(self.cargo_dragged_by[index]) != self.cargo_weight[index]) else 'Green',
                 opacity=0,
+                renderOrder=64,
             )
 
         for index, drop_off_pos in enumerate(self.cargo_drop_off):
@@ -157,7 +159,8 @@ class Scenario(BaseScenario):
                 drop_off_pos[0], drop_off_pos[1], 
                 0,  ro_x=0, ro_y=-0, ro_z=0,
                 label='dst #%d'%index, label_color='Chocolate',
-                opacity=1,
+                opacity=0.99,
+                renderOrder=0,
             )
 
             if self.cargo_hot[index]:

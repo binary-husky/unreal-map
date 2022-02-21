@@ -146,6 +146,7 @@ x=1; y=2; z=3
     x, y, z,                # 三维位置，3/6dof
     ro_x=0, ro_y=0, ro_z=0, # 欧拉旋转变换，3/6dof
     opacity=1,              # 透明度，1为不透明
+    renderOrder=0,          # 渲染顺序。合理使用，能解决透明物体异常遮蔽的情况
     label='',               # 显示标签，空白不显示
     label_color='White',    # 标签颜色
     track_n_frame=3,        # 是否显示轨迹（0代表否），轨迹由最新的track_n_frame次位置连接而成
@@ -153,7 +154,15 @@ x=1; y=2; z=3
     track_color='Green',    # 轨迹的颜色显示，输入js颜色名或者hex值均可
     )
 ```
+其中的“renderOrder”选项比较难以理解，如果没有显示异常，则设置为0，或者干脆删除该键值（默认0）。
 
+用它解决的问题是简单的：
+```
+If: 一个（透明）物体A 被 一个透明物体B遮挡，但A部分或全部不可见
+Then: 增加B的renderOrder，或者减小A的renderOrder（取值范围0~127）
+
+此外，label标签的渲染顺序renderOrder是128，任意全透明物体的渲染顺序renderOrder是256
+```
 ### 发送曲线
 ```python
 # 画一条(0,0,0) -> (1,1,0) -> (2,2,0) -> (3,3,0) 的线

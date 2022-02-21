@@ -16,6 +16,12 @@ function makeClearText(object, text, textcolor, HWRatio=10){
     sprite.scale.y = 17* object.generalSize/HWRatio
     sprite.scale.z = 17* object.generalSize
     sprite.position.set(object.generalSize, object.generalSize, -object.generalSize);
+
+    // This value allows the default rendering order of scene graph objects to be overridden 
+    // although opaque and transparent objects remain sorted independently. 
+    // When this property is set for an instance of Group, all descendants objects will be sorted 
+    // and rendered together. Sorting is from lowest to highest renderOrder. Default value is 0.
+    sprite.renderOrder = 128
     object.add(sprite)
 }
 //修改颜色
@@ -66,6 +72,8 @@ function addCoreObj(my_id, color_str, geometry, x, y, z, ro_x, ro_y, ro_z, curre
     object.prev_opacity = opacity
     object.material.transparent = (opacity==1)?false:true
     object.material.opacity = opacity
+    object.renderOrder = parsed_obj_info['renderOrder']
+    object.renderOrder = (opacity==0)?256:object.renderOrder
     object.track_n_frame = track_n_frame
     object.track_init = false
     object.track_tension = parsed_obj_info['track_tension']
@@ -154,7 +162,6 @@ function apply_update(object, parsed_obj_info){
     let track_n_frame = parsed_obj_info['track_n_frame']
     let track_tension = parsed_obj_info['track_tension']
     let track_color = parsed_obj_info['track_color']
-
     // 已经创建了对象,setfuture
     if (object) {
         if (!init_cam_f2){
@@ -182,6 +189,9 @@ function apply_update(object, parsed_obj_info){
         // load next
         object.next_opacity = opacity;
 
+        // 即刻应用renderOrder
+        object.renderOrder = parsed_obj_info['renderOrder']
+        object.renderOrder = (opacity==0)?256:object.renderOrder;
 
         // 即刻应用color和text
         if (color_str != object.color_str) {
