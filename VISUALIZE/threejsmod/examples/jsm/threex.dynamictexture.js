@@ -61,7 +61,7 @@ THREEx.DynamicTexture.prototype.drawText = function(text, dx, dy, fillStyle, con
 	// set font if needed
 	if( contextFont !== undefined )	this.context.font = contextFont;
 	// if x isnt provided 
-	var textSize	= this.context.measureText(text);
+	var textSize = this.context.measureText(text);
 	x = (this.canvas.width - textSize.width) / 2;
 	y = (this.canvas.height/2); // - textSize.height) / 2;
 	if (!( dx === undefined || dx === null )){
