@@ -226,7 +226,27 @@ function parse_style(str){
                 x = THREE.MathUtils.randFloatSpread( 2000 );
                 y = THREE.MathUtils.randFloatSpread( 2000 );
                 z = THREE.MathUtils.randFloatSpread( 2000 );
-                if ((x*x+y*y+z*z)>20000){break;}
+                if ((x*x+y*y+z*z)>20000){break;} // not too close to the center
+            }
+            vertices.push( x ); // x
+            vertices.push( y ); // y
+            vertices.push( z ); // z
+        }
+        geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+        const particles = new THREE.Points( geometry, new THREE.PointsMaterial( { color: 0x888888 } ) );
+        window.glb.scene.add( particles );
+    }else if(style=='many star'){
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        for ( let i = 0; i < 50000; i ++ ) {
+            let x;
+            let y;
+            let z;
+            while (true){
+                x = THREE.MathUtils.randFloatSpread( 20000 );
+                y = THREE.MathUtils.randFloatSpread( 20000 );
+                z = THREE.MathUtils.randFloatSpread( 20000 );
+                if ((x*x+y*y+z*z)>20000){break;} // not too close to the center
             }
             vertices.push( x ); // x
             vertices.push( y ); // y
@@ -457,6 +477,21 @@ function match_karg(str, key, type, defaultValue){
     if (type=='str'){
         let _RE = str.match(new RegExp(key + "='(.*?)'"));
         res = (!(_RE === null))?_RE[1]:defaultValue;
+        if (!(_RE === null)){
+            res = res.replace("$", "\n");
+        }
+    }
+    if (type=='arr_float'){
+        // label_offset
+        let _RE = str.match(new RegExp(key + "=\\[(.*?)\\]"));
+        if (_RE === null){
+            res = defaultValue;
+        }else{
+            res = _RE[1].split(',');
+            for (i=0; i<res.length; i++){
+                res[i] = parseFloat(res[i]);
+            }
+        }
     }
     return res
 }
@@ -820,6 +855,7 @@ function parse_core_obj(str, parsed_frame){
     }
 
 
+
     let object = find_obj_by_id(my_id)
     let parsed_obj_info = {} 
     parsed_obj_info['name'] = name  
@@ -842,6 +878,7 @@ function parse_core_obj(str, parsed_frame){
     parsed_obj_info['renderOrder'] = match_karg(str, 'renderOrder', 'int', 0)
     parsed_obj_info['track_tension'] = match_karg(str, 'track_tension', 'float', 0)
     parsed_obj_info['track_color'] = match_karg(str, 'track_color', 'str', color_str)
+    parsed_obj_info['label_offset'] = match_karg(str, 'label_offset', 'arr_float', null)
     
     apply_update(object, parsed_obj_info)
     parsed_frame.push(parsed_obj_info)

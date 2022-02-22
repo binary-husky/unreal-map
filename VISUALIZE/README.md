@@ -147,10 +147,11 @@ x=1; y=2; z=3
     ro_x=0, ro_y=0, ro_z=0, # 欧拉旋转变换，3/6dof
     opacity=1,              # 透明度，1为不透明
     renderOrder=0,          # 渲染顺序。合理使用，能解决透明物体异常遮蔽的情况
-    label='',               # 显示标签，空白不显示
+    label='',               # 显示标签，空白不显示，用'\n'换行
     label_color='White',    # 标签颜色
+    # label_offset=np.array([0,2,2]), # 标签与物体之间的相对位置，实验选项，不建议手动指定
     track_n_frame=3,        # 是否显示轨迹（0代表否），轨迹由最新的track_n_frame次位置连接而成
-    track_tension=0.1,      # 轨迹曲线的平滑度，0为不平滑，推荐不平滑
+    track_tension=0.1,      # 轨迹曲线的平滑度，0为不平滑，推荐设置0不平滑
     track_color='Green',    # 轨迹的颜色显示，输入js颜色名或者hex值均可
     )
 ```

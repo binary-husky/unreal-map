@@ -91,7 +91,7 @@ class Scenario(BaseScenario):
             # self.threejs_bridge.geometry_rotate_scale_translate('monkey',0, 0,       np.pi/2, 1, 1, 1,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,      1, 1, 1,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,        1, 1, 1,         0,0,0)
-            self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
+            self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   -0.2,0,0) # x -> y -> z
             self.threejs_bridge.其他几何体之旋转缩放和平移('oct', 'OctahedronGeometry(1,0)', 0,0,0,  1,1,1, 0,0,0)   # 八面体
             self.threejs_bridge.其他几何体之旋转缩放和平移('circle', 'TorusGeometry( 1, 0.3, 16, 100 )', np.pi/2,0,0,  1,1,1, 0,0,0)   # 甜甜圈
 

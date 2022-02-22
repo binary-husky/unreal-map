@@ -43,7 +43,11 @@ function makeClearText_new(object, text, textcolor){
     // sprite.scale.x = 17* object.generalSize
     // sprite.scale.y = 17* object.generalSize
     // sprite.scale.z = 17* object.generalSize
-    text_object.position.set(object.generalSize, object.generalSize, -object.generalSize);
+    if (!object.label_offset){
+        text_object.position.set(object.generalSize, object.generalSize, -object.generalSize);
+    }else{
+        text_object.position.set(object.label_offset[0], object.label_offset[2], -object.label_offset[1]);
+    }
     text_object.renderOrder = 128
 
 
@@ -122,6 +126,8 @@ function addCoreObj(my_id, color_str, geometry, material, x, y, z, ro_x, ro_y, r
     object.track_init = false
     object.track_tension = parsed_obj_info['track_tension']
     object.track_color = parsed_obj_info['track_color']
+    // 即刻应用label_offset
+    object.label_offset = parsed_obj_info['label_offset']
 
     if (!init_cam_f1){
         init_cam_f1=true;
@@ -236,6 +242,8 @@ function apply_update(object, parsed_obj_info){
         object.renderOrder = parsed_obj_info['renderOrder']
         object.renderOrder = (opacity==0)?256:object.renderOrder;
 
+        // 即刻应用label_offset
+        object.label_offset = parsed_obj_info['label_offset']
         // 即刻应用color和text
         if (color_str != object.color_str) {
             changeCoreObjColor(object, color_str)

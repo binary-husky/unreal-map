@@ -1,5 +1,5 @@
 import numpy as np
-import random, time
+import random, time, os
 from scipy.integrate import ode
 from UTILS.tensor_ops import distance_matrix, repeat_at, delta_matrix
 from VISUALIZE.mcom import mcom
@@ -7,19 +7,23 @@ PI = np.pi
 def run():
     # 可视化界面初始化
     可视化桥 = mcom(path='RECYCLE/v2d_logger/', draw_mode='Threejs')
-    可视化桥.初始化3D(); 可视化桥.设置样式('star')
-    可视化桥.其他几何体之旋转缩放和平移('ball', 'SphereGeometry(1)',   0,0,0,  1,1,1, 0,0,0) # 球体   
-    # 可视化桥.advanced_geometry_material('ball', 
-    #     map='/examples/planets/images/earthmap1k.jpg',
-    #     bumpMap='/examples/planets/images/earthmap1k.jpg',
-    #     bumpScale = 0.05,
-    #     specularMap='/examples/images/earthmap1k.jpg',
-    #     specular='Gray'
-    # )  
+    可视化桥.初始化3D()
+    可视化桥.设置样式('star')
+    可视化桥.设置样式('many star')
+
+
+    # (1) download image of a sun, you can do it manually
+    if not os.path.exists("./VISUALIZE/threejsmod/wget/sun_bg.jpg"):
+        os.system('cd ./VISUALIZE/threejsmod/wget && wget https://raw.githubusercontent.com/iWun/solar-system/master/img/sun_bg.jpg')
+    # (2) declear geo
+    可视化桥.其他几何体之旋转缩放和平移('sun', 'SphereGeometry(1)',   0,0,0,  1,1,1, 0,0,0) # 球体   
+    # (3) declear material, only optional
+    可视化桥.advanced_geometry_material('sun', map='/wget/sun_bg.jpg') 
+
     # 设置初始参数
     colors = ['Yellow', 'Red', 'Blue']
     size = [0.04, 0.04, 0.04]
-    labels = ['A1', 'A2', 'A3']
+    labels = ['Sun\nA1', 'Sun\nA2', 'Sun\nA3']
     位置 = np.array([[-1, 0,0],[1, 0,0],[0,0,0]])
     sel = np.random.randint(low=0,high=len(DATA_ARR))
     v1,v2 = DATA_ARR[sel]
@@ -70,9 +74,11 @@ def run():
         if 时间%10==0:
             位置_实部 = 位置.real
             for body in range(N体):
-                可视化桥.发送几何体('ball|%d|%s|%.2f'%(body, colors[body], size[body]),  # 填入核心参量： “已声明的形状|几何体之ID标识|颜色|整体大小”
-                    位置_实部[body, 0], 位置_实部[body, 1], 位置_实部[body, 2], ro_x=0, ro_y=0, ro_z=0, # 6 DOF
-                    opacity=1, label=labels[body], label_color='white',  track_n_frame=2500,  track_tension=0, track_color=colors[body],    # 轨迹的颜色显示，输入js颜色名或者hex值均可
+                可视化桥.发送几何体('sun|%d|%s|%.2f'%(body, colors[body], size[body]),  # 填入核心参量： “已声明的形状|几何体之ID标识|颜色|整体大小”
+                    位置_实部[body, 0], 位置_实部[body, 1], 位置_实部[body, 2], ro_x=0, ro_y=时间/400, ro_z=0, # 6 DOF
+                    opacity=1, label=labels[body], label_color='white',  
+                    label_offset=np.array([0,2,2]),
+                    track_n_frame=1200,  track_tension=0, track_color=colors[body],    # 轨迹的颜色显示，输入js颜色名或者hex值均可
                     )
             可视化桥.结束关键帧()
         print('\r %.2f'%(r.t+dT), end='', flush=True)

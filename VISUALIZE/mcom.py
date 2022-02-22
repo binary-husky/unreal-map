@@ -220,8 +220,8 @@ class mcom():
             elif self.digit == 4: strlist.append("%.4e" % arg)
             strlist.append(",")
         elif isinstance(arg, str):
-            strlist.append("\'"); strlist.append(arg)
-            strlist.append("\'"); strlist.append(",")
+            assert '$' not in arg
+            strlist.extend(["\'", arg.replace('\n', '$'), "\'", ","])
         elif isinstance(arg, list):
             strlist.append(str(arg))
             strlist.append(",")

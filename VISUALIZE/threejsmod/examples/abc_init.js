@@ -85,6 +85,7 @@ function init() {
     window.glb.BarFolder.add( window.glb.panelSettings, 'next frame'     );
     window.glb.BarFolder.add( window.glb.panelSettings, 'previous frame' );
     window.glb.BarFolder.add( window.glb.panelSettings, 'loop to start'  );
+    window.glb.BarFolder.add( window.glb.panelSettings, 'freeze'          );
     window.glb.BarFolder.add( window.glb.panelSettings, 'ppt step'       );
     window.glb.BarFolder.add( window.glb.panelSettings, 'show camera orbit');
     window.glb.BarFolder.add( window.glb.panelSettings, 'use orthcam' ).listen().onChange(
