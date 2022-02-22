@@ -20,6 +20,54 @@ function makeClearText(object, text, textcolor, HWRatio=10){
     sprite.renderOrder = 128
     object.add(sprite)
 }
+function makeClearText_new(object, text, textcolor){
+    const matLite = new THREE.MeshBasicMaterial( {
+        color: textcolor,
+        transparent: false,
+        // transparent: (parsed_obj_info['opacity']==1)?false:true,
+        opacity: 1,
+        // opacity: parsed_obj_info['opacity'],
+        side: THREE.DoubleSide
+    });
+    const geometry = new THREE.ShapeGeometry(
+        window.glb.font.generateShapes( text, object.generalSize/1.5 )
+    );
+    geometry.computeBoundingBox();
+    const xMid = - 0.5 * ( geometry.boundingBox.max.x - geometry.boundingBox.min.x );
+    geometry.translate( xMid, 0, 0 );
+    const text_object = new THREE.Mesh( geometry, matLite );
+
+    text_object.my_id = '_text_' + object.my_id
+    window.glb.text_Obj.push(text_object) 
+
+    // sprite.scale.x = 17* object.generalSize
+    // sprite.scale.y = 17* object.generalSize
+    // sprite.scale.z = 17* object.generalSize
+    text_object.position.set(object.generalSize, object.generalSize, -object.generalSize);
+    text_object.renderOrder = 128
+
+
+    text_object.update_text = function(object, text, textcolor){
+        text_object.geometry = new THREE.ShapeGeometry(
+            window.glb.font.generateShapes( text, object.generalSize/1.5 )
+        );
+        text_object.material = new THREE.MeshBasicMaterial( {
+            color: textcolor,
+            transparent: false,
+            // transparent: (parsed_obj_info['opacity']==1)?false:true,
+            opacity: 1,
+            // opacity: parsed_obj_info['opacity'],
+            side: THREE.DoubleSide
+        });
+        text_object.geometry.computeBoundingBox();
+        const xMid = - 0.5 * ( geometry.boundingBox.max.x - geometry.boundingBox.min.x );
+        text_object.geometry.translate( xMid, 0, 0 );
+
+    }
+    window.glb.text_Obj.push(text_object)
+    object.dynamicTexture2 = text_object
+    object.add(text_object)
+}
 //修改颜色
 function changeCoreObjColor(object, color_str){
     const colorjs = color_str;
@@ -84,7 +132,8 @@ function addCoreObj(my_id, color_str, geometry, material, x, y, z, ro_x, ro_y, r
         window.glb.camera2.position.set(object.position.x, h*100, object.position.z)
     }
     if (label_marking){
-        makeClearText(object, object.label_marking, object.label_color)
+        // makeClearText(object, object.label_marking, object.label_color)
+        makeClearText_new(object, object.label_marking, object.label_color)
     }
     // 初始化历史轨迹
     object.his_positions = [];
@@ -194,10 +243,12 @@ function apply_update(object, parsed_obj_info){
         if (label_marking != object.label_marking || label_color !=object.label_color) {
             object.label_marking = label_marking
             object.label_color = label_color
-            if (!object.dynamicTexture) {
-                makeClearText(object, object.label_marking, object.label_color)
+            if (!object.dynamicTexture2) {
+                // makeClearText(object, object.label_marking, object.label_color)
+                makeClearText_new(object, object.label_marking, object.label_color)
             }
-            object.dynamicTexture.clear().drawText(label_marking, 0, +80, object.label_color)
+            // object.dynamicTexture.clear().drawText(label_marking, 0, +80, object.label_color)
+            object.dynamicTexture2.update_text(object, object.label_marking, object.label_color)
         }
         // 即刻应用
         object.track_n_frame = track_n_frame
@@ -222,3 +273,34 @@ function apply_update(object, parsed_obj_info){
             currentSize, label_marking, label_color, opacity, track_n_frame, parsed_obj_info)
     }
 }
+
+
+// function apply_text_update(parsed_obj_info){
+//     let my_id = '_text_' + parsed_obj_info['my_id'].toString()
+//     let text_object = find_text_by_id(my_id)
+//     if (!window.glb.font){return;}
+//     if (text_object){return;}
+//     else{
+//         const matLite = new THREE.MeshBasicMaterial( {
+//             color: parsed_obj_info['color_str'],
+//             transparent: (parsed_obj_info['opacity']==1)?false:true,
+//             opacity: parsed_obj_info['opacity'],
+//             side: THREE.DoubleSide
+//         });
+
+//         const shapes = window.glb.font.generateShapes( parsed_obj_info['message'], parsed_obj_info['size'] );
+//         const geometry = new THREE.ShapeGeometry( shapes );
+//         geometry.computeBoundingBox();
+//         const xMid = - 0.5 * ( geometry.boundingBox.max.x - geometry.boundingBox.min.x );
+//         geometry.translate( xMid, 0, 0 );
+//         geometry.scale.x = 1;
+//         geometry.scale.y = 1;
+//         geometry.scale.z = 1;
+//         text_object = new THREE.Mesh( geometry, matLite );
+//         // text_object.translate(0,0,0);
+//         text_object.my_id = my_id
+//         window.glb.scene.add(text_object);
+//         window.glb.text_Obj.push(text_object)
+//     }
+
+// }

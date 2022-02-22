@@ -13,6 +13,7 @@ import { LightningStrike } from '/examples/jsm/geometries/LightningStrike.js';
 import { OrbitControls } from '/examples/jsm/controls/OrbitControls.js';
 import { LineMaterial } from './jsm/lines/LineMaterial.js';
 import { LineGeometry } from './jsm/lines/LineGeometry.js';
+import { FontLoader } from './jsm/loaders/FontLoader.js';
 import { Line2 } from './jsm/lines/Line2.js';
 window.glb = Object()
 window.glb.clock = new THREE.Clock();
@@ -22,6 +23,7 @@ window.glb.BarFolder = null;
 window.glb.camera = null;
 window.glb.camera2 = null;
 window.glb.stats = null;
+window.glb.font = null;
 
 window.glb.import_Stats = Stats;
 window.glb.import_GUI = GUI;
@@ -30,6 +32,7 @@ window.glb.import_LightningStrike = LightningStrike;
 window.glb.import_LineMaterial = LineMaterial;
 window.glb.import_LineGeometry = LineGeometry;
 window.glb.import_Line2 = Line2;
+window.glb.import_FontLoader = FontLoader;
 window.glb.renderer = null;
 window.glb.controls=null;
 window.glb.controls2=null;
@@ -39,6 +42,7 @@ window.glb.core_L = [];
 window.glb.parsed_core_L = []
 window.glb.core_Obj = [];
 window.glb.line_Obj = [];
+window.glb.text_Obj = [];
 window.glb.flash_Obj = [];
 window.glb.base_geometry = {};
 window.glb.base_material = {};
@@ -440,6 +444,8 @@ function render() {
     }
     check_flash_life_cyc(delta)
 
+    sprite_like_txt_update()
+
     if(window.glb.panelSettings['use orthcam']) {window.glb.renderer.render(window.glb.scene, window.glb.camera2);}
     else{
         show_cam_orbit();
@@ -448,6 +454,21 @@ function render() {
 
 }
 
+function sprite_like_txt_update(){
+    var lookAtVector = new THREE.Vector3(0, 0, -1);
+    lookAtVector.applyQuaternion(window.glb.camera.quaternion);
+    for (let i = 0; i < window.glb.text_Obj.length; i++) {
+        let text_object = window.glb.text_Obj[i]
+        let target = new THREE.Vector3(); 
+        text_object.getWorldPosition(target)
+        text_object.lookAt(target.add(lookAtVector.clone().negate()));
+        let object = text_object.parent
+        let new_rel_pos = new THREE.Vector3(object.generalSize, object.generalSize, -object.generalSize);
+        let q = object.quaternion.clone().invert()
+        new_rel_pos.applyQuaternion(q)
+        text_object.position.set(new_rel_pos.x,new_rel_pos.y,new_rel_pos.z)
+    }
+}
 
 var cam_orbit_deleted = true;
 function show_cam_orbit(){
@@ -478,9 +499,7 @@ function show_cam_orbit(){
         cam_orbit_deleted = false
     }else if(!cam_orbit_deleted){
         let cam_x = find_lineobj_by_id('cam_x'); 
-        if (cam_x){
-            window.glb.scene.remove(cam_x.mesh);window.glb.line_Obj.remove(cam_x);
-        }
+        if (cam_x){ window.glb.scene.remove(cam_x.mesh);window.glb.line_Obj.remove(cam_x); }
         let cam_y = find_lineobj_by_id('cam_y'); if (cam_y){window.glb.scene.remove(cam_y.mesh);window.glb.line_Obj.remove(cam_y);}
         let cam_z = find_lineobj_by_id('cam_z'); if (cam_z){window.glb.scene.remove(cam_z.mesh);window.glb.line_Obj.remove(cam_z);}
         cam_orbit_deleted=true;

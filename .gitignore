@@ -100,3 +100,6 @@ ZHECKPOINT/test-aii515/*
 !ZHECKPOINT/test-aii515/history_cpt
 ZHECKPOINT/test-aii515/history_cpt/*
 !ZHECKPOINT/test-aii515/history_cpt/init.pkl
+
+
+VISUALIZE/threejsmod/wget/*

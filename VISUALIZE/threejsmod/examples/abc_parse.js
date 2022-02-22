@@ -342,7 +342,9 @@ function parse_advanced_geometry_material(str){
     const pattern = />>advanced_geometry_material\('(.*?)'/
     let match_res = str.match(pattern)
     let name = match_res[1]
-
+    if (!window.glb.base_geometry[name]){
+        alert('[advanced_geometry_material]: Missing the geometry of '+name)
+    }
     window.glb.base_material[name] = null;
     kargs = {}
     let map = match_karg(str, 'map', 'str', null)

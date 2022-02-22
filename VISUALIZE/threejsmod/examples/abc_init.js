@@ -120,5 +120,10 @@ function init() {
     });
     window.glb.BarFolder.open();
     window.addEventListener('resize', onWindowResize);
+
+    const loader = new window.glb.import_FontLoader();
+    loader.load( 'examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
+        window.glb.font = font
+    })
 }
 
