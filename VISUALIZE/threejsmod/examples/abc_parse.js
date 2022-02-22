@@ -529,6 +529,22 @@ function find_lineobj_by_id(my_id){
     }
     return null
 }
+function find_text_by_id(my_id){
+    for (let i = 0; i < window.glb.text_Obj.length; i++) {
+        if (window.glb.text_Obj[i].my_id == my_id) {
+            return window.glb.text_Obj[i];
+        }
+    }
+    return null
+}
+function find_obj_by_id(my_id){
+    for (let i = 0; i < window.glb.core_Obj.length; i++) {
+        if (window.glb.core_Obj[i].my_id == my_id) {
+            return window.glb.core_Obj[i];
+        }
+    }
+    return null
+}
 
 //修改颜色
 function changeCoreObjColor(object, color_str){
@@ -829,11 +845,3 @@ function parse_core_obj(str, parsed_frame){
     parsed_frame.push(parsed_obj_info)
 }
 
-function find_obj_by_id(my_id){
-    for (let i = 0; i < window.glb.core_Obj.length; i++) {
-        if (window.glb.core_Obj[i].my_id == my_id) {
-            return window.glb.core_Obj[i];
-        }
-    }
-    return null
-}
