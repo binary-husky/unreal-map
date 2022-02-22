@@ -405,6 +405,7 @@ function animate() {
     requestAnimationFrame(animate);
     render();
     window.glb.stats.update();
+    window.glb.controls.update()
 }
 
 function start_transition(){

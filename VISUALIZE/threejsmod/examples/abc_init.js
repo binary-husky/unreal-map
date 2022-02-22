@@ -47,7 +47,15 @@ function init() {
     window.glb.controls2.autoRotate = false;
     window.glb.controls.enabled = true;
     window.glb.controls2.enabled = false;
-    
+    window.glb.controls.keys = {
+        LEFT: 'KeyA', //left arrow
+        UP: 'KeyW', // up arrow
+        RIGHT: 'KeyD', // right arrow
+        BOTTOM: 'KeyS' // down arrow
+    };
+    window.glb.controls.listenToKeyEvents(window);
+    window.glb.controls.enableDamping=true;
+
     const panel = new window.glb.import_GUI( { width: 310 } );
     const Folder1 = panel.addFolder( 'General' );
     // FPS adjust
@@ -75,8 +83,8 @@ function init() {
     window.glb.BarFolder.add( window.glb.panelSettings, 'pause'          );
     window.glb.BarFolder.add( window.glb.panelSettings, 'next frame'     );
     window.glb.BarFolder.add( window.glb.panelSettings, 'previous frame' );
-    window.glb.BarFolder.add( window.glb.panelSettings, 'loop to start' );
-    window.glb.BarFolder.add( window.glb.panelSettings, 'ppt step' );
+    window.glb.BarFolder.add( window.glb.panelSettings, 'loop to start'  );
+    window.glb.BarFolder.add( window.glb.panelSettings, 'ppt step'       );
     window.glb.BarFolder.add( window.glb.panelSettings, 'use orthcam' ).listen().onChange(
         function (use_orthcam) {
             if(use_orthcam){
