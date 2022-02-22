@@ -42,7 +42,19 @@ var rayParams_beam = {
     roughness: 0,
     straightness: 1.0
 };
-
+Array.prototype.indexOf = function(val) {
+    for (var i = 0; i < this.length; i++) {
+        if (this[i] == val) return i;
+    }
+    return -1;
+};
+    
+Array.prototype.remove = function(val) {
+    var index = this.indexOf(val);
+    if (index > -1) {
+        this.splice(index, 1);
+    }
+};
 function parse_update_env(buf_str) {
     let each_line = buf_str.split('\n')
     for (let i = 0; i < each_line.length; i++) {

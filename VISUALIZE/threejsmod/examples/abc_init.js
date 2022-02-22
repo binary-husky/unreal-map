@@ -48,10 +48,11 @@ function init() {
     window.glb.controls.enabled = true;
     window.glb.controls2.enabled = false;
     window.glb.controls.keys = {
+        FORWARD: 'KeyW', BACKWARD:'KeyS',
         LEFT: 'KeyA', //left arrow
-        UP: 'KeyW', // up arrow
         RIGHT: 'KeyD', // right arrow
-        BOTTOM: 'KeyS' // down arrow
+        UP: 'KeyE', // up arrow
+        BOTTOM: 'KeyF' // down arrow
     };
     window.glb.controls.listenToKeyEvents(window);
     window.glb.controls.enableDamping=true;
@@ -85,22 +86,38 @@ function init() {
     window.glb.BarFolder.add( window.glb.panelSettings, 'previous frame' );
     window.glb.BarFolder.add( window.glb.panelSettings, 'loop to start'  );
     window.glb.BarFolder.add( window.glb.panelSettings, 'ppt step'       );
+    window.glb.BarFolder.add( window.glb.panelSettings, 'show camera orbit');
     window.glb.BarFolder.add( window.glb.panelSettings, 'use orthcam' ).listen().onChange(
         function (use_orthcam) {
             if(use_orthcam){
                 window.glb.controls.enabled = false ;
                 window.glb.controls2.enabled = true ;
-                window.glb.camera.remove(window.glb.light)
-                window.glb.camera2.add(window.glb.light2)
+                window.glb.camera.remove(window.glb.light);
+                window.glb.camera2.add(window.glb.light2);
+
+                window.glb.panelSettings['smooth control'] = false;
+                window.glb.controls.enableDamping=false;
+                window.glb.controls2.enableDamping=false;
+                window.glb.panelSettings['show camera orbit'] = false;
             }
             else{
-                window.glb.controls.enabled = true ;
-                window.glb.controls2.enabled = false  ;
-                window.glb.camera.add(window.glb.light)
-                window.glb.camera2.remove(window.glb.light2)
+                window.glb.controls.enabled = true;
+                window.glb.controls2.enabled = false;
+                window.glb.camera.add(window.glb.light);
+                window.glb.camera2.remove(window.glb.light2);
             }
     });
-    
+    window.glb.BarFolder.add( window.glb.panelSettings, 'smooth control' ).listen().onChange(
+        function (use_damp) {
+            if(use_damp){
+                window.glb.controls.enableDamping=true;
+                window.glb.controls2.enableDamping=true;
+            }
+            else{
+                window.glb.controls.enableDamping=false;
+                window.glb.controls2.enableDamping=false;
+            }
+    });
     window.glb.BarFolder.open();
     window.addEventListener('resize', onWindowResize);
 }

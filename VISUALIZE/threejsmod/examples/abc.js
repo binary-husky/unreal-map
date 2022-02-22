@@ -58,16 +58,18 @@ var ppt_mode = 0;
 var request=null;
 var req_interval=2.0;
 window.glb.panelSettings = {
-        'play fps': window.glb.play_fps,
-        'play pointer':0,
-        'data req interval': req_interval,
-        'reset to read new': null,
-        'pause': null,
-        'next frame': null,
-        'previous frame': null,
-        'ppt step': null,
-        'loop to start': false,
-        'use orthcam': false
+    'play fps': window.glb.play_fps,
+    'play pointer':0,
+    'data req interval': req_interval,
+    'reset to read new': null,
+    'pause': null,
+    'next frame': null,
+    'previous frame': null,
+    'ppt step': null,
+    'loop to start': false,
+    'smooth control': true,
+    'show camera orbit': false,
+    'use orthcam': false
 };
 
 
@@ -439,11 +441,51 @@ function render() {
     check_flash_life_cyc(delta)
 
     if(window.glb.panelSettings['use orthcam']) {window.glb.renderer.render(window.glb.scene, window.glb.camera2);}
-    else{window.glb.renderer.render(window.glb.scene, window.glb.camera);}
+    else{
+        show_cam_orbit();
+        window.glb.renderer.render(window.glb.scene, window.glb.camera);
+    }
+
 }
 
 
-
+var cam_orbit_deleted = true;
+function show_cam_orbit(){
+    if(window.glb.panelSettings['show camera orbit']) {
+        let target = window.glb.controls.target
+        let distance = window.glb.controls.getDistance()
+        apply_simple_line_update(find_lineobj_by_id('cam_x'), {
+            'x_arr': [target.x,target.x+distance*0.2],
+            'y_arr': [target.y,target.y],
+            'z_arr': [target.z,target.z],
+            'my_id': 'cam_x',
+            'color_str': 'Red',
+        });
+        apply_simple_line_update(find_lineobj_by_id('cam_y'),{
+            'x_arr': [target.x,target.x],
+            'y_arr': [target.y,target.y+distance*0.2],
+            'z_arr': [target.z,target.z],
+            'my_id': 'cam_y',
+            'color_str': 'Blue',
+        });
+        apply_simple_line_update(find_lineobj_by_id('cam_z'),{
+            'x_arr': [target.x,target.x],
+            'y_arr': [target.y,target.y],
+            'z_arr': [target.z-distance*0.2,target.z],
+            'my_id': 'cam_z',
+            'color_str': 'Green',
+        });
+        cam_orbit_deleted = false
+    }else if(!cam_orbit_deleted){
+        let cam_x = find_lineobj_by_id('cam_x'); 
+        if (cam_x){
+            window.glb.scene.remove(cam_x.mesh);window.glb.line_Obj.remove(cam_x);
+        }
+        let cam_y = find_lineobj_by_id('cam_y'); if (cam_y){window.glb.scene.remove(cam_y.mesh);window.glb.line_Obj.remove(cam_y);}
+        let cam_z = find_lineobj_by_id('cam_z'); if (cam_z){window.glb.scene.remove(cam_z.mesh);window.glb.line_Obj.remove(cam_z);}
+        cam_orbit_deleted=true;
+    }
+}
 
 
 init();
