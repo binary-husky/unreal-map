@@ -497,6 +497,7 @@ class DrawProcessThreejs(Process):
                     # 尚未捕获初始化命令，或者第一次client 
                     buf = "".join(tosend)
                 else:
+                    print('[mcom.py] If there are other tabs, please close them now.')
                     buf = "".join(init_cmd_list + tosend)
             else:
                 # 正常连接
