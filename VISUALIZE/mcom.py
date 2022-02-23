@@ -423,6 +423,7 @@ class DrawProcessThreejs(Process):
             if os.path.exists(self.backup_file):
                 print亮红('[mcom.py]: warning, purge previous 3D visual data!')
                 os.remove(self.backup_file)
+        self.client_tokens = {}
 
     def init_threejs(self):
         import threading
@@ -464,8 +465,21 @@ class DrawProcessThreejs(Process):
         dirname = os.path.dirname(__file__) + '/threejsmod'
         import zlib
 
+        self.init_cmd_captured = False
+        init_cmd_list = []
+        def init_cmd_capture_fn(tosend):
+            for strx in tosend:
+                if '>>v2d_show()\n'==strx:
+                    self.init_cmd_captured = True
+                init_cmd_list.append(strx)    
+                if self.init_cmd_captured:
+                    break
+            return
+            
         @app.route("/up", methods=["POST"])
         def upvote():
+
+            # 本次正常情况下，需要发送的数据
             # dont send too much in one POST, might overload the network traffic
             if len(self.buffer_list)>35000:
                 tosend = self.buffer_list[:30000]
@@ -474,8 +488,25 @@ class DrawProcessThreejs(Process):
                 tosend = self.buffer_list
                 self.buffer_list = []
 
+            # 处理断线重连的情况，断线重连时，会出现新的token
+            token = request.data.decode('utf8')
+            if token not in self.client_tokens:
+                print('[mcom.py] Establishing new connection, token:', token)
+                self.client_tokens[token] = 'connected'
+                if (len(self.client_tokens)==0) or (not self.init_cmd_captured):  
+                    # 尚未捕获初始化命令，或者第一次client 
+                    buf = "".join(tosend)
+                else:
+                    buf = "".join(init_cmd_list + tosend)
+            else:
+                # 正常连接
+                buf = "".join(tosend)
+
+            # 尝试捕获并保存初始化部分的命令
+            if not self.init_cmd_captured:
+                init_cmd_capture_fn(tosend)
+
             # use zlib to compress output command, worked out like magic
-            buf = "".join(tosend)
             buf = bytes(buf, encoding='utf8')   
             zlib_compress = zlib.compressobj()
             buf = zlib_compress.compress(buf) + zlib_compress.flush(zlib.Z_FINISH)

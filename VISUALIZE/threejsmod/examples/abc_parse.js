@@ -770,11 +770,13 @@ function parse_flash(str){
 function make_flash(type, src, dst, dur, size, color){
     if (type=='lightning'){
         let rayParams_new = Object.create(rayParams_lightning);
-        rayParams_new.sourceOffset =  find_obj_by_id(src).position;
-        rayParams_new.destOffset =    find_obj_by_id(dst).position;
+        let src_obj = find_obj_by_id(src); if (!src_obj){return};
+        let dst_obj = find_obj_by_id(dst); if (!dst_obj){return};
+        rayParams_new.sourceOffset =  src_obj.position;
+        rayParams_new.destOffset =    dst_obj.position;
         rayParams_new.radius0 = size
         rayParams_new.radius1 = size/4.0
-        if (isNaN(find_obj_by_id(src).position.x) || isNaN(find_obj_by_id(src).position.y)){return}
+        if (isNaN(src_obj.position.x) || isNaN(src_obj.position.y)){return}
         // let lightningColor = new THREE.Color( 0xFFB0FF );
         let lightningStrike = new window.glb.import_LightningStrike( rayParams_new );
         let lightningMaterial = new THREE.MeshBasicMaterial( { color: color } );
@@ -789,11 +791,13 @@ function make_flash(type, src, dst, dur, size, color){
         })
     }else if (type=='beam'){
         let rayParams_new = Object.create(rayParams_beam);
-        rayParams_new.sourceOffset =  find_obj_by_id(src).position;
-        rayParams_new.destOffset =    find_obj_by_id(dst).position;
+        let src_obj = find_obj_by_id(src); if (!src_obj){return};
+        let dst_obj = find_obj_by_id(dst); if (!dst_obj){return};
+        rayParams_new.sourceOffset =  src_obj.position;
+        rayParams_new.destOffset =    dst_obj.position;
         rayParams_new.radius0 = size
         rayParams_new.radius1 = size/4.0
-        if (isNaN(find_obj_by_id(src).position.x) || isNaN(find_obj_by_id(src).position.y)){return}
+        if (isNaN(src_obj.position.x) || isNaN(src_obj.position.y)){return}
         // let lightningColor = new THREE.Color( 0xFFB0FF );
         let lightningStrike = new window.glb.import_LightningStrike( rayParams_new );
         let lightningMaterial = new THREE.MeshBasicMaterial( { color: color } );
