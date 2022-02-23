@@ -213,6 +213,17 @@ self.可视化桥.结束关键帧()
 ```
 
 
+### 测试中-添加贴图
+```python
+可视化桥.advanced_geometry_material('ball', 
+    map='/examples/planets/images/earthmap1k.jpg',
+    bumpMap='/examples/planets/images/earthmap1k.jpg',
+    bumpScale = 0.05,
+    specularMap='/examples/images/earthmap1k.jpg',
+    specular='Gray'
+)  
+```
+
 
 ## API-Eng
 

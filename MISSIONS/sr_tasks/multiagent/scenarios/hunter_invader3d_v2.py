@@ -128,8 +128,10 @@ class Scenario(BaseScenario):
             # self.threejs_bridge.geometry_rotate_scale_translate('monkey',0, 0,       np.pi/2, 1, 1, 1,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,       0.5, 0.5, 1.5,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,        1, 1, 1,         0,0,0)
-            self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
+            self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   -0.5,0,0) # x -> y -> z
+             
             self.threejs_bridge.其他几何体之旋转缩放和平移('oct', 'OctahedronGeometry(1,0)', 0,0,0,  1,1,1, 0,0,0)   # 八面体
+            self.threejs_bridge.advanced_geometry_material('oct', map='/wget/hex_texture.jpg') 
 
             self.threejs_bridge.agent_alive_pos = {}
             self.threejs_bridge.agent_alive_time = {}
@@ -178,17 +180,6 @@ class Scenario(BaseScenario):
                 tension=0,
                 opacity=1,
             )
-            # self.threejs_bridge.line3d(
-            #     'fat|%d|%s|%.3f'%(index+2000, 'Black', 0.005),
-            #     x_arr=np.array([drop_off_pos[0], self.cargo[index][0]]),
-            #     y_arr=np.array([drop_off_pos[1], self.cargo[index][1]]),
-            #     z_arr=np.array([0, 0]),
-            #     dashScale=20,   # to make dash denser, Increase this instead of decrease !!
-            #     dashSize=1,
-            #     gapSize=1,
-            #     tension=0,
-            #     opacity=1,
-            # )
         for index, agent in enumerate(self.hunters):
             dir_1, dir_2 = dir3d_rad(agent.state.p_vel)   # Euler Angle y-x-z
             dis2invader = self.distance[index, :]
@@ -205,20 +196,13 @@ class Scenario(BaseScenario):
                 agent.state.p_pos[1],
                 agent.state.p_pos[2],
                 ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
-                label='', 
+                label='Danger@ %.1f'%nearest_invader_dis, 
                 label_color='Black' if nearest_invader_dis>1 else 'red', 
                 opacity=1
             )
-            self.threejs_bridge.v2dx(
-                'oct|%d|green|0.1'%(index+2999),
-                agent.state.p_pos[0],
-                agent.state.p_pos[1]+0.4,
-                agent.state.p_pos[2]+0.1,
-                ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
-                label='Danger@ %.1f'%nearest_invader_dis, 
-                label_color='Black' if nearest_invader_dis>1 else 'red', 
-                opacity=0
-            )
+
+
+
         self.threejs_bridge.v2dx(
             'oct|%d|green|0.3'%(1999),
             0,

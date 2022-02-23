@@ -52,6 +52,7 @@ window.glb.play_pointer = 0; // 位置读取指针
 window.glb.solid_pointer = 0; // 过渡动画前置位置的指针
 window.glb.sp_future = 0;   // 用于辅助确定 solid_pointer
 window.glb.dt_threshold = 1 / window.glb.play_fps;
+var client_uuid = generateUUID();
 
 var dt_since = 0;
 var buf_str = '';
@@ -120,7 +121,7 @@ var coreReadFunc = function (auto_next=true) {
 
         transfer_ongoing = false;
     };
-    request.send();
+    request.send(client_uuid);
     // console.log('send req')
     transfer_ongoing = true;
     if(auto_next && !DEBUG){setTimeout(coreReadFunc, req_interval*1000);}

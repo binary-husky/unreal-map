@@ -168,7 +168,7 @@ function choose_material(type, color_str){
         return new THREE.MeshLambertMaterial({ color: color_str })
     }
     else{
-        return window.glb.base_material[type]
+        return window.glb.base_material[type].clone()
     }
 }
 function init_cam(){
