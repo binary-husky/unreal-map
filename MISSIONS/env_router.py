@@ -10,6 +10,7 @@ import_path_ref = {
     "sr_tasks->hunter_invader": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader",       'ScenarioConfig'),
     "sr_tasks->hunter_invader3d": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d",   'ScenarioConfig'),
     "sr_tasks->hunter_invader3d_v2": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d_v2",'ScenarioConfig'),
+    "bvr": ("MISSIONS.bvr_sim.init_env",                                                        'ScenarioConfig'),
 }
 
 env_init_function_ref = {
@@ -21,12 +22,13 @@ env_init_function_ref = {
     "sc2": ("MISSIONS.starcraft.sc2_env_wrapper",                                               'make_sc2_env'),
     "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'make_env'),
     "sr_tasks": ("MISSIONS.sr_tasks.multiagent.scenario",                                       'sr_tasks_env'),
+    "bvr": ("MISSIONS.bvr_sim.init_env",                                                        'make_bvr_env'),
 }
 
 ##################################################################################################################################
 ##################################################################################################################################
 from config import GlobalConfig
-import importlib
+import importlib, os
 def make_parallel_envs(process_pool, marker=''):
     from UTILS.shm_env import SuperpoolEnv
     from config import GlobalConfig
@@ -45,6 +47,15 @@ def make_parallel_envs(process_pool, marker=''):
         # 艹tmd有个dll必须在主进程加载
         from MISSIONS.air_fight.environment.pytransform import pyarmor_runtime
         pyarmor_runtime()
+
+    if GlobalConfig.env_name == 'bvr':
+        print('[env_router]: here goes the docker in docker check.')
+        YOUR_ROOT_PASSWORD = 'hmp'  # the sudo password
+        os.system("echo %s|sudo -S date"%YOUR_ROOT_PASSWORD) # get sudo power
+        res = os.popen("sudo docker ps").read()
+        if "CONTAINER ID" not in res:
+            raise "Error checking docker in docker, can not control host docker interface!"
+        pass
 
     if GlobalConfig.num_threads > 1:
         envs = SuperpoolEnv(process_pool, env_args_dict_list)

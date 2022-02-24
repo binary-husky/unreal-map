@@ -65,8 +65,12 @@ class mcom():
         atexit.register(lambda: self.__del__())
 
 
+    # on the end of the program
     def __del__(self):
-        # on the end of the program
+        if hasattr(self,'_deleted_'): return    # avoid exit twice
+        else: self._deleted_ = True     # avoid exit twice
+
+        print红('[mcom.py]: mcom exiting! tag: %s'%self.tag)
         if hasattr(self, 'current_file_handle') and self.current_file_handle is not None:
             end_file_flag = (b'><EndTaskFlag\n')
             self.current_file_handle.write(end_file_flag)

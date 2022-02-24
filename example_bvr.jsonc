@@ -1,0 +1,30 @@
+{
+    "config.py->GlobalConfig": {
+        // please checkout config.py for information
+        "note": "example bvr experiment",                   // in case you forget the purpose of this trainning session, write a note
+        "env_name": "bvr",                                  // which environment, see ./MISSIONS/env_router.py
+        "env_path": "MISSIONS.bvr_sim",                     // path of environment
+        "draw_mode": "Img",                             // activate data plotting (Tensorboard is not used because I do not like it)
+        "num_threads": "16",                            // run N parallel envs, a 'env' is refered to as a 'thread'
+        "report_reward_interval": "16",                 // reporting interval
+        "test_interval": "2048",                        // test every $test_interval episode
+        "fold": "1",                                    // this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
+        "seed": 8888,                                   // seed controls pytorch and numpy
+        "backup_files": [                               // backup files, pack them up
+            "MISSIONS/bvr_sim"
+        ],
+        "device": "cuda:0",                             // choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU) 
+        "gpu_party": "off"                     // default is 'off', // GPU memory is precious! assign multiple training process to a 'party', then they will share GPU memory 
+    },
+
+
+    "MISSIONS.bvr_sim.init_env.py->ScenarioConfig": {
+
+        "TEAM_NAMES": [
+            "ALGORITHM.conc.foundation->ReinforceAlgorithmFoundation"
+        ]
+    },
+    "ALGORITHM.conc.foundation.py->AlgorithmConfig": {
+        "load_checkpoint": false
+    }
+}

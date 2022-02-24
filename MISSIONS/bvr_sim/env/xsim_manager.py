@@ -34,6 +34,8 @@ class XSimManager(object):
 
     def __del__(self):
         print亮红('调用XSimManager的__del__')
+        if hasattr(self,'_deleted_'): return    # avoid exit twice
+        else: self._deleted_ = True     # avoid exit twice
         self.close_env()
 
 
@@ -56,15 +58,24 @@ class XSimManager(object):
         atexit.register(self.clean_container)
 
     def clean_container(self):
+        # import daemon
+        # sudo docker stop -t 0 $(sudo docker ps | grep bvrsim | awk '{print $ 1}')
         YOUR_ROOT_PASSWORD = 'hmp'
-        docker_stop = 'docker stop ' + self.docker_name + self.solo_uuid[:5]
-        print亮红('cleanning docker container:', docker_stop)
-        subprocess.Popen('echo %s|sudo -S %s' % (YOUR_ROOT_PASSWORD, docker_stop))
-        print亮红('cleanning cmd send container:', docker_stop)
+        docker_stop = 'docker stop -t 0 ' + self.docker_name + self.solo_uuid[:5]
+        cmd = 'echo %s|sudo -S %s' % (YOUR_ROOT_PASSWORD, docker_stop)
+        print亮红('os.system(cmd) 开始')
+        os.system(cmd)
+        print亮红('os.system(cmd) 结束')
+
+
 
     def close_env(self):
         self.clean_container()
 
+
+# def shut_down()
+#     import subprocess
+#     subprocess.Popen(open('RECYCLE/close_container'))
 
 class AddressError(Exception):
     """IP地址无效异常"""

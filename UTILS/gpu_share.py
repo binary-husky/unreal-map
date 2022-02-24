@@ -14,9 +14,12 @@ class GpuShareUnit():
         if self.lock_path is None: 
             self.lock_path = os.path.expanduser('~/GpuLock')
         if not os.path.exists(self.lock_path): os.makedirs(self.lock_path)
-        register(self.unregister_uuid_)
+        register(self.__del__)
         
     def __del__(self):
+        if hasattr(self,'_deleted_'): return    # avoid exit twice
+        else: self._deleted_ = True     # avoid exit twice
+
         self.unregister_uuid_()
         try: self.gpu_lock.__exit__(None,None,None)
         except:pass
