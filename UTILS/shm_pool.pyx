@@ -9,7 +9,7 @@
     Note: 
         SHARE_BUF_SIZE: shared memory size, 10MB per process
 """
-import time, pickle
+import time, pickle, traceback
 from multiprocessing import Process, RawArray, RawValue, Semaphore
 from multiprocessing import shared_memory
 from ctypes import c_char, c_uint16, c_bool, c_uint32, c_byte
@@ -123,7 +123,7 @@ class SuperProc(Process):
     def add_targets(self, new_tarprepare_args):
         for new_target_arg in new_tarprepare_args:
             name, gen_fn, arg = new_target_arg
-            if arg is None:              
+            if arg is None:
                 self.automatic_generation(name, gen_fn)
             elif isinstance(arg, tuple): 
                 self.automatic_generation(name, gen_fn, *arg)
@@ -338,12 +338,11 @@ class SmartPool(object):
             self.semaphore_push[j].release()  # notify all child process
 
     def party_over(self):
-        print('[shm_pool]: party over')
         self.__del__()
 
     def __del__(self):
         print('[shm_pool]: executing superpool del')
-        
+        traceback.print_exc()
         if hasattr(self, 'terminated'): 
             print('[shm_pool]: already terminated, skipping ~~')
             return
@@ -355,10 +354,11 @@ class SmartPool(object):
             time.sleep(1)
         except: pass
 
+        # 杀死shm_pool创建的所有子进程，以及子进程的孙进程
         print('[shm_pool]: kill_process_and_its_children(proc)')
         for proc in self.proc_pool: 
             try: kill_process_and_its_children(proc)
-            except: pass
+            except Exception as e: print('error occur when kill_process_and_its_children:\n', e)
             
         print('[shm_pool]: shm.close(); shm.unlink()')
         for shm in self.shared_memory_io_buffer_handle:
@@ -366,5 +366,4 @@ class SmartPool(object):
             except: pass
 
         print('[shm_pool]: __del__ finish')
-        time.sleep(1)
         self.terminated = True
