@@ -73,7 +73,7 @@ if __name__ == '__main__':
     # Get mem-sharing process pool
     assert cfg.num_threads % cfg.fold == 0, ('Use n process to run n*m parallel threads!')
     smart_pool = SmartPool(fold=cfg.fold, proc_num=cfg.num_threads // cfg.fold, base_seed=cfg.seed)
-    atexit.register(smart_pool.party_over)  # exe first Failsafe, handles shm leak
+    atexit.register(smart_pool.party_over)  # failsafe, handles shm leak
 
     # Pytorch has to be init AFTER the process pool starts, set pytorch seed
     pytorch_gpu_init(cfg=cfg)
