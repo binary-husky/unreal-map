@@ -172,6 +172,34 @@ If you are interested in something, you may continue to read:
     experiment batch executor                 -->   mprofile.py
 ```
 
+# How to add a new environment (MISSION) in HMP
+- make a new jsonc config file, using 'example.jsonc' as template
+- mkdir in MISSIONS, e.g. ./MISSIONS/bvr_sim, copy src code of the environment inside it.
+- open ```MISSIONS/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:
+``` python
+env_init_function_ref = {
+    "bvr": ("MISSIONS.bvr_sim.init_env", "ScenarioConfig"),
+}   
+# bvr is the final name that HMP recognize, 
+# MISSIONS.bvr_sim.init_env is a py file, 
+# ScenarioConfig is a class
+```
+- open ```MISSIONS/env_router.py```, add the path of environment's configuration in ```import_path_ref```
+``` python
+import_path_ref = {
+    "bvr": ("MISSIONS.bvr_sim.init_env", 'make_bvr_env'),
+}   
+# bvr is the final name that HMP recognize, 
+# MISSIONS.bvr_sim.init_env is a py file, 
+# make_bvr_env is a function
+```
+- write your own ScenarioConfig. (refer to ```MISSIONS.bvr_sim.init_env.ScenarioConfig```, as a template).
+- write your own env init function. (refer to ```MISSIONS.bvr_sim.init_env.make_bvr_env```, as a template).
+
+
+
+
+
 # Papers Supported by HMP
 
 ```
