@@ -93,9 +93,12 @@ class Scenario(BaseScenario):
             self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,        1, 1, 1,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   -0.2,0,0) # x -> y -> z
             self.threejs_bridge.其他几何体之旋转缩放和平移('oct', 'OctahedronGeometry(1,0)', 0,0,0,  1,1,1, 0,0,0)   # 八面体
-            self.threejs_bridge.其他几何体之旋转缩放和平移('circle', 'TorusGeometry( 1, 0.1, 16, 100 )', np.pi/2,0,0,  1,1,1, 0,0,0)   # 甜甜圈
+            self.threejs_bridge.其他几何体之旋转缩放和平移('dst', 'TorusGeometry( 1, 0.1, 16, 100 )', np.pi/2,0,0,  1,1,1, 0,0,0)   # 甜甜圈
             self.threejs_bridge.advanced_geometry_material('box', 
                 map='/wget/bz.jpg',
+            )  
+            self.threejs_bridge.advanced_geometry_material('dst', 
+                map='/wget/wen.jpg',
             )  
             self.threejs_bridge.agent_alive_pos = {}
             self.threejs_bridge.agent_alive_time = {}
@@ -159,7 +162,7 @@ class Scenario(BaseScenario):
             else:
                 color = 'Black'
             self.threejs_bridge.v2dx(
-                'circle|%d|%s|%.2f'%(index+1500, color, 0.05),
+                'dst|%d|%s|%.2f'%(index+1500, color, 0.05),
                 drop_off_pos[0], drop_off_pos[1], 
                 0,  ro_x=0, ro_y=-0, ro_z=0,
                 label='dst #%d'%index, label_color='Chocolate',
