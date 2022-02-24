@@ -29,6 +29,7 @@ env_init_function_ref = {
 ##################################################################################################################################
 from config import GlobalConfig
 import importlib, os
+from UTILS.colorful import print亮蓝
 def make_parallel_envs(process_pool, marker=''):
     from UTILS.shm_env import SuperpoolEnv
     from config import GlobalConfig
@@ -49,11 +50,14 @@ def make_parallel_envs(process_pool, marker=''):
         pyarmor_runtime()
 
     if GlobalConfig.env_name == 'bvr':
-        print('[env_router]: here goes the docker in docker check.')
+        # 1、如果没用hmp的docker，请设置好 YOUR_ROOT_PASSWORD，不止这一处，请全局搜索"YOUR_ROOT_PASSWORD"替换所有
+        # 2、用docker的sock挂载到容器中，方法在SetupDocker.md中
+        print亮蓝('[env_router]: here goes the docker in docker check.')
         YOUR_ROOT_PASSWORD = 'hmp'  # the sudo password
         os.system("echo %s|sudo -S date"%YOUR_ROOT_PASSWORD) # get sudo power
         res = os.popen("sudo docker ps").read()
         if "CONTAINER ID" not in res:
+            print亮蓝('[env_router]: Error checking docker in docker, can not control host docker interface!')
             raise "Error checking docker in docker, can not control host docker interface!"
         pass
 

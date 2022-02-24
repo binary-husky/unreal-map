@@ -52,14 +52,18 @@ class XSimManager(object):
         docker_run = "docker run --rm -p {}:{} -itd --name {} -w /home/x64 {} python daemon_server.py {} {} {}  {}"\
             .format(self.port, self.port, self.docker_name+solo_uuid[:5], self.image_name, self.xsim_time_ratio, self.port, self.domain_group, RTMNum)
 
+        # 1、如果没用hmp的docker，请设置好 YOUR_ROOT_PASSWORD，不止这一处，请全局搜索"YOUR_ROOT_PASSWORD"替换所有
+        # 2、用docker的sock挂载到容器中，方法在SetupDocker.md中
         YOUR_ROOT_PASSWORD = 'hmp'
         os.system('echo %s|sudo -S %s' % (YOUR_ROOT_PASSWORD, docker_run))
 
         atexit.register(self.clean_container)
 
     def clean_container(self):
-        # import daemon
         # sudo docker stop -t 0 $(sudo docker ps | grep bvrsim | awk '{print $ 1}')
+
+        # 1、如果没用hmp的docker，请设置好 YOUR_ROOT_PASSWORD，不止这一处，请全局搜索"YOUR_ROOT_PASSWORD"替换所有
+        # 2、用docker的sock挂载到容器中，方法在SetupDocker.md中
         YOUR_ROOT_PASSWORD = 'hmp'
         docker_stop = 'docker stop -t 0 ' + self.docker_name + self.solo_uuid[:5]
         cmd = 'echo %s|sudo -S %s' % (YOUR_ROOT_PASSWORD, docker_stop)
