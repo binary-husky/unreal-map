@@ -329,7 +329,8 @@ function geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, tr
 }
 
 function parse_advanced_geometry(str){
-    const pattern = />>advanced_geometry_rotate_scale_translate\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
+    const pattern = get_reg_exp(">>advanced_geometry_rotate_scale_translate\\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\\)")
+    // const pattern = />>advanced_geometry_rotate_scale_translate\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
     let match_res = str.match(pattern)
     let name = match_res[1]
     let build_cmd = match_res[2]
@@ -359,7 +360,8 @@ function parse_advanced_geometry(str){
 }
 
 function parse_advanced_geometry_material(str){
-    const pattern = />>advanced_geometry_material\('(.*?)'/
+    const pattern = get_reg_exp(">>advanced_geometry_material\\('(.*?)'")
+    // const pattern = />>advanced_geometry_material\('(.*?)'/
     let match_res = str.match(pattern)
     let name = match_res[1]
     if (!window.glb.base_geometry[name]){
@@ -384,7 +386,7 @@ function parse_advanced_geometry_material(str){
 }
 
 function parse_geometry(str){
-    const pattern = />>geometry_rotate_scale_translate\('(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
+    const pattern = get_reg_exp(">>geometry_rotate_scale_translate\\('(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\\)")
     let match_res = str.match(pattern)
     let name = match_res[1]
     let ro_x = parseFloat(match_res[2])
@@ -404,7 +406,6 @@ function parse_geometry(str){
     let trans_y = parseFloat(match_res[10])
     // z --> y, y --- z reverse z axis and y axis
     let trans_z = -parseFloat(match_res[9])
-
 
     let lib = {
         'monkey':'examples/models/json/suzanne_buffergeometry.json'
@@ -463,27 +464,41 @@ function parse_update_flash(buf_str) {
     }
 }
 
+var reg_exp = {}
+function get_reg_exp(exp){
+    if(!reg_exp[exp]){
+        reg_exp[exp] = new RegExp(exp);
+    }
+    return reg_exp[exp];
+}
+
 function match_karg(str, key, type, defaultValue){
     let res = null;
     if (type=='float'){
-        
-        let _RE = str.match(new RegExp(key + "=([^,)]*)"));
+        let reg_exp = get_reg_exp(key + "=([^,)]*)");
+        // let reg_exp = new RegExp(key + "=([^,)]*)")
+        let _RE = str.match(reg_exp);
         res = (!(_RE === null))?parseFloat(_RE[1]):defaultValue;
     }
     if (type=='int'){
-        let _RE = str.match(new RegExp(key + "=([^,)]*)"));
+        let reg_exp = get_reg_exp(key + "=([^,)]*)");
+        // let reg_exp = new RegExp(key + "=([^,)]*)");
+        let _RE = str.match(reg_exp);
         res = (!(_RE === null))?parseInt(_RE[1]):defaultValue;
     }
     if (type=='str'){
-        let _RE = str.match(new RegExp(key + "='(.*?)'"));
+        let reg_exp = get_reg_exp(key + "='(.*?)'");
+        // let reg_exp = new RegExp(key + "='(.*?)'");
+        let _RE = str.match(reg_exp);
         res = (!(_RE === null))?_RE[1]:defaultValue;
         if (!(_RE === null)){
             res = res.replace("$", "\n");
         }
     }
     if (type=='arr_float'){
-        // label_offset
-        let _RE = str.match(new RegExp(key + "=\\[(.*?)\\]"));
+        let reg_exp = get_reg_exp(key + "=\\[(.*?)\\]");
+        // let reg_exp = new RegExp(key + "=\\[(.*?)\\]");
+        let _RE = str.match(reg_exp);
         if (_RE === null){
             res = defaultValue;
         }else{
@@ -507,26 +522,14 @@ function parse_line(str){
     let color_str = name_split[2]   //Violet
     let size = parseFloat(name_split[3]) //0.010
 
-    // x_arr
-    let re_res = str.match(/x_arr=\[(.*?)\]/)
-    let x_arr = re_res[1].split(',')
-    for (i=0; i<x_arr.length; i++){
-        x_arr[i] = parseFloat(x_arr[i])
-    }
 
-    // y_arr
-    re_res = str.match(/z_arr=\[(.*?)\]/)
-    let y_arr = re_res[1].split(',')
-    for (i=0; i<y_arr.length; i++){
-        y_arr[i] = parseFloat(y_arr[i])
-    }
+    let x_arr = match_karg(str, 'x_arr', 'arr_float', null)
+    let y_arr = match_karg(str, 'z_arr', 'arr_float', null)
 
-    // z_arr
-    re_res = str.match(/y_arr=\[(.*?)\]/)
-    let z_arr = re_res[1].split(',')
-    for (i=0; i<z_arr.length; i++){
-        z_arr[i] = -parseFloat(z_arr[i])
-    }
+    let z_arr = match_karg(str, 'y_arr', 'arr_float', null) 
+    if(!x_arr || !y_arr || !z_arr){alert('Cannot parse line3d, x/y/z_arr missing:', str)}
+    for (i=0; i<z_arr.length; i++){z_arr[i] = -z_arr[i]}
+
 
     // find core obj by my_id
     let object = find_lineobj_by_id(my_id)
@@ -813,10 +816,8 @@ function make_flash(type, src, dst, dur, size, color){
     }
 }
 function parse_core_obj(str, parsed_frame){
-    // ">>v2dx(x, y, dir, xxx)"
-    // each_line[i].replace('>>v2dx(')
-    // ">>v2dx('ball|8|blue|0.05',1.98948879e+00,-3.15929300e+00,-4.37260984e-01,ro_x=0,ro_y=0,ro_z=2.10134351e+00,label='',label_color='white',attack_range=0)"
-    const pattern = />>v2dx\('(.*?)',([^,]*),([^,]*),([^,]*),(.*)\)/
+    
+    const pattern = get_reg_exp(">>v2dx\\('(.*?)',([^,]*),([^,]*),([^,]*),(.*)\\)")
     let match_res = str.match(pattern)
     let name = match_res[1]
 
@@ -826,14 +827,11 @@ function parse_core_obj(str, parsed_frame){
     // z --> y, y --- z reverse z axis and y axis
     let pos_z = -parseFloat(match_res[3])
 
-    let ro_x_RE = str.match(/ro_x=([^,)]*)/);
-    let ro_x = (!(ro_x_RE === null))?parseFloat(ro_x_RE[1]):0;
+    let ro_x = match_karg(str, 'ro_x', 'float', 0)
     // z --> y, y --- z reverse z axis and y axis
-    let ro_z_RE = str.match(/ro_z=([^,)]*)/);
-    let ro_y = (!(ro_z_RE === null))?parseFloat(ro_z_RE[1]):0;
+    let ro_y = match_karg(str, 'ro_z', 'float', 0)
     // z --> y, y --- z reverse z axis and y axis
-    let ro_y_RE = str.match(/ro_y=([^,)]*)/);
-    let ro_z = (!(ro_y_RE === null))?-parseFloat(ro_y_RE[1]):0;
+    let ro_z = -match_karg(str, 'ro_y', 'float', 0)
 
     // pattern.test(str)
     let name_split = name.split('|')
@@ -843,21 +841,6 @@ function parse_core_obj(str, parsed_frame){
     let size = parseFloat(name_split[3])
     let label_marking = `id ${my_id}`
     let label_color = "black"
-    // find hp 
-    const hp_pattern = /health=([^,)]*)/
-    let hp_match_res = str.match(hp_pattern)
-    if (!(hp_match_res === null)){
-        let hp = parseFloat(hp_match_res[1])
-        if (Number(hp) === hp && hp % 1 === 0){
-            // is an int
-            hp = Number(hp);
-        }
-        else{
-            hp = hp.toFixed(2);
-        }
-        label_marking = `HP ${hp}`
-    }
-
 
 
     let object = find_obj_by_id(my_id)
@@ -877,12 +860,13 @@ function parse_core_obj(str, parsed_frame){
     parsed_obj_info['size'] = size  
     parsed_obj_info['label_marking'] = match_karg(str, 'label', 'str', `id ${my_id}`)
     parsed_obj_info['label_color'] = match_karg(str, 'label_color', 'str', 'black')
+    parsed_obj_info['label_size'] = match_karg(str, 'label_size', 'float', null)
+    parsed_obj_info['label_offset'] = match_karg(str, 'label_offset', 'arr_float', null)
     parsed_obj_info['opacity'] = match_karg(str, 'opacity', 'float', 1)
     parsed_obj_info['track_n_frame'] = match_karg(str, 'track_n_frame', 'int', 0)
     parsed_obj_info['renderOrder'] = match_karg(str, 'renderOrder', 'int', 0)
     parsed_obj_info['track_tension'] = match_karg(str, 'track_tension', 'float', 0)
     parsed_obj_info['track_color'] = match_karg(str, 'track_color', 'str', color_str)
-    parsed_obj_info['label_offset'] = match_karg(str, 'label_offset', 'arr_float', null)
     
     apply_update(object, parsed_obj_info)
     parsed_frame.push(parsed_obj_info)

@@ -20,7 +20,7 @@ function makeClearText(object, text, textcolor, HWRatio=10){
     sprite.renderOrder = 128
     object.add(sprite)
 }
-function makeClearText_new(object, text, textcolor){
+function makeClearText_new(object, text, textcolor, text_size=null){
     const matLite = new THREE.MeshBasicMaterial( {
         color: textcolor,
         transparent: false,
@@ -29,8 +29,9 @@ function makeClearText_new(object, text, textcolor){
         // opacity: parsed_obj_info['opacity'],
         side: THREE.DoubleSide
     });
+    let font_size = (text_size==null)?object.generalSize/1.5:text_size/1.5
     const geometry = new THREE.ShapeGeometry(
-        window.glb.font.generateShapes( text, object.generalSize/1.5 )
+        window.glb.font.generateShapes( text, font_size)
     );
     geometry.computeBoundingBox();
     const xMid = - 0.5 * ( geometry.boundingBox.max.x - geometry.boundingBox.min.x );
@@ -51,9 +52,10 @@ function makeClearText_new(object, text, textcolor){
     text_object.renderOrder = 128
 
 
-    text_object.update_text = function(object, text, textcolor){
+    text_object.update_text = function(object, text, textcolor, text_size=null){
+        let font_size = (text_size==null)?object.generalSize/1.5:text_size/1.5
         text_object.geometry = new THREE.ShapeGeometry(
-            window.glb.font.generateShapes( text, object.generalSize/1.5 )
+            window.glb.font.generateShapes( text, font_size)
         );
         text_object.material = new THREE.MeshBasicMaterial( {
             color: textcolor,
@@ -139,7 +141,7 @@ function addCoreObj(my_id, color_str, geometry, material, x, y, z, ro_x, ro_y, r
     }
     if (label_marking){
         // makeClearText(object, object.label_marking, object.label_color)
-        makeClearText_new(object, object.label_marking, object.label_color)
+        makeClearText_new(object, object.label_marking, object.label_color, parsed_obj_info['label_size'])
     }
     // 初始化历史轨迹
     object.his_positions = [];
@@ -253,10 +255,10 @@ function apply_update(object, parsed_obj_info){
             object.label_color = label_color
             if (!object.dynamicTexture2) {
                 // makeClearText(object, object.label_marking, object.label_color)
-                makeClearText_new(object, object.label_marking, object.label_color)
+                makeClearText_new(object, object.label_marking, object.label_color, parsed_obj_info['label_size'])
             }
             // object.dynamicTexture.clear().drawText(label_marking, 0, +80, object.label_color)
-            object.dynamicTexture2.update_text(object, object.label_marking, object.label_color)
+            object.dynamicTexture2.update_text(object, object.label_marking, object.label_color, parsed_obj_info['label_size'])
         }
         // 即刻应用
         object.track_n_frame = track_n_frame
