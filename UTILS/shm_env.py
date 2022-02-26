@@ -55,6 +55,7 @@ class EnvWithRay(object):
                 # have info, then update info
                 ob, info_reset = ob
                 info = self.dict_update(info, info_reset)
+                
         # preserve an echo here, 
         # will be use to handle unexpected env pause
         self.echo = [ob, reward, done, info]

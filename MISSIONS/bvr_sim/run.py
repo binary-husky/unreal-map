@@ -18,7 +18,8 @@ class BattleRunnerSignal(EnvRunner):
         EnvRunner.__init__(self, agents, address, mode)  # 仿真环境初始化
 
     def run(self, num_episodes):
-        self._end(); print亮红('press any key to continue')
+        self._end(); 
+        print亮红('press any key to continue')
         input()
         self._reset()
         map_start = 'y' # input("是否已启动态势显示工具? Y or N")
