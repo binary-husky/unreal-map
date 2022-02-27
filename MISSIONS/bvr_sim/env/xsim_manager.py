@@ -34,7 +34,6 @@ class XSimManager(object):
         atexit.register(self.__del__)
 
     def __del__(self):
-        print亮红('调用XSimManager的__del__')
         if hasattr(self,'_deleted_'): return    # avoid exit twice
         else: self._deleted_ = True     # avoid exit twice
         self.clean_container()
@@ -67,11 +66,9 @@ class XSimManager(object):
         YOUR_ROOT_PASSWORD = 'hmp'
         docker_stop = 'docker stop -t 0 ' + self.docker_name
         cmd = 'echo %s|sudo -S %s' % (YOUR_ROOT_PASSWORD, docker_stop)
-        print亮红('os.system(cmd) 开始')
-        f = open('/home/hmp/bvr_docker_kill_list/'+self.docker_name,'w+')
-        f.close()
+        print亮红('[xsim_manager.py] os.system(%s)'%cmd)
         os.system(cmd)
-        print亮红('os.system(cmd) 结束')
+        print亮红('[xsim_manager.py] 容器已经成功清除结束')
 
 
 

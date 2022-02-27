@@ -111,10 +111,15 @@ class SuperProc(Process):
         self.index = index
         self.sem_push = sem_push
         self.sem_pull = sem_pull
+        self.target_tracker = []
 
     def __del__(self):
-        # print('child end: __del__')
+        if hasattr(self,'_deleted_'): return    # avoid exit twice
+        else: self._deleted_ = True     # avoid exit twice
+        print('executing child exit')
         self.shared_memory.close()
+        for target_name in self.target_tracker: 
+            setattr(self, target_name, None)    # GC by clearing the pointer.
         return
 
     def automatic_generation(self, name, gen_fn, *arg):
@@ -126,6 +131,7 @@ class SuperProc(Process):
     def add_targets(self, new_tarprepare_args):
         for new_target_arg in new_tarprepare_args:
             name, gen_fn, arg = new_target_arg
+            if name not in self.target_tracker: self.target_tracker.append(name)
             if arg is None:
                 self.automatic_generation(name, gen_fn)
             elif isinstance(arg, tuple): 

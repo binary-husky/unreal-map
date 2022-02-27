@@ -313,6 +313,7 @@ class tcp_server():
         self.handler = None
         self.queue = None
         self.buff = ['']
+        self.recv_buf_max = 10240
  
     def wait_connection(self):
         import threading
@@ -335,7 +336,15 @@ class tcp_server():
         assert (self.handler is not None) or (self.queue is not None)
 
         while True:
-            recvData = self.sock.recv(10240)
+            recvData = self.sock.recv(self.recv_buf_max)
+
+            # 防止中文字符被拆解~
+            if len(recvData)==self.recv_buf_max:
+                while True:
+                    tmp = self.sock.recv(1)
+                    recvData = recvData+tmp
+                    if tmp==b'@': break
+
             recvData = str(recvData, encoding = "utf-8")
             ends_with_mark = recvData.endswith('@end@')
             split_res = recvData.split('@end@')

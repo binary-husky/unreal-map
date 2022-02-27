@@ -121,7 +121,12 @@ from VISUALIZE.mcom import mcom
 可视化桥.设置样式('grid')       # 布置2维网格
 可视化桥.设置样式('grid3d')     # 布置3维网格
 可视化桥.设置样式('earth')      # 在场景中放一个地球
-可视化桥.设置样式('background', color='White') # 注意不可以省略参数键值'color=' ！！！
+可视化桥.设置样式('background', color='White') # 注意不可以省略参数键值'color=' ！
+
+# 如果label要使用中文字符，需要设置字体，否则字符会变成问号'?'
+可视化桥.设置样式('font', font_path='/examples/fonts/ttf/HGXH_CNKI.TTF') # 注意不可以省略参数键值'font_path=' ！
+# 如果label要使用中文字符，而且需要换行，则还需要额外设置行距 fontLineHeight
+可视化桥.设置样式('font', fontPath='/examples/fonts/ttf/simhei.ttf', fontLineHeight=1500)   
 ```
 
 ### 声明几何体
@@ -150,6 +155,7 @@ x=1; y=2; z=3
     label='',               # 显示标签，空白不显示，用'\n'换行
     label_color='White',    # 标签颜色
     # label_offset=np.array([0,2,2]), # 标签与物体之间的相对位置，实验选项，不建议手动指定
+    # label_size=0.5, # 测试中，勿使用
     track_n_frame=3,        # 是否显示轨迹（0代表否），轨迹由最新的track_n_frame次位置连接而成
     track_tension=0.1,      # 轨迹曲线的平滑度，0为不平滑，推荐设置0不平滑
     track_color='Green',    # 轨迹的颜色显示，输入js颜色名或者hex值均可

@@ -84,8 +84,10 @@ function createPaths( text, size, data ) {
 
 	const chars = Array.from( text );
 	const scale = size / data.resolution;
-	const line_height = ( data.boundingBox.yMax - data.boundingBox.yMin + data.underlineThickness ) * scale;
-
+	let line_height = ( data.boundingBox.yMax - data.boundingBox.yMin + data.underlineThickness ) * scale;
+	if (data.defLineHeight){
+		line_height = data.defLineHeight * scale
+	}
 	const paths = [];
 
 	let offsetX = 0, offsetY = 0;

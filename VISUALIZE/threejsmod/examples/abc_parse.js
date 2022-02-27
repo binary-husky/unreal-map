@@ -151,15 +151,40 @@ function parse_env(str){
         }
         
     }
-    if(style=="clear_all"){
-        if (!init_terrain){
-        }else{
+    if(style=="clear_everything"){
+        // remove terrain surface
+        if (init_terrain){
             window.glb.scene.remove(window.glb.terrain_mesh);
         }
+
+        // 清除历史轨迹
+        for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
+            window.glb.scene.remove(window.glb.core_Obj[i].track_his.mesh);
+            window.glb.core_Obj[i].track_his = null
+        }
+
+        // remove all objects
         for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
             window.glb.scene.remove(window.glb.core_Obj[i]);
             window.glb.core_Obj.pop();
         }
+        // clear flash
+        for (let i = window.glb.flash_Obj.length-1; i>=0; i--) {
+            window.glb.flash_Obj[i]['valid'] = false;
+            window.glb.scene.remove(window.glb.flash_Obj[i]['mesh']);
+        }
+        // line 3d
+        for (let i = window.glb.line_Obj.length-1; i>=0; i--) {
+            window.glb.flash_Obj[i]['valid'] = false;
+            window.glb.scene.remove(window.glb.line_Obj[i]['mesh']);
+        }
+        // sprite text
+        for (let i = window.glb.text_Obj.length-1; i>=0 ; i--) {
+            // window.glb.scene.remove(window.glb.text_Obj[i]);
+            window.glb.text_Obj.pop();
+        }
+        
+
     }
     if(style=="clear_track"){
         for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
@@ -315,7 +340,20 @@ function parse_style(str){
         var mesh	= new THREE.Mesh(geometry, material );
         mesh.scale.multiplyScalar(1.15);
         containerEarth.add( mesh );
-        window.glb.renderer.shadowMapEnabled	= true
+        window.glb.renderer.shadowMapEnabled = true
+    }else if(style=="font"){
+        let fontPath = match_karg(str, 'fontPath', 'str', null)
+        let fontLineHeight = match_karg(str, 'fontLineHeight', 'int', null)
+        if (fontPath){
+            const loader = new window.glb.import_TTFLoader();
+            loader.load( fontPath, function ( json ) {
+                window.glb.font = new window.glb.import_Font( json );
+                if (fontLineHeight){window.glb.font.data.defLineHeight = fontLineHeight}
+            } );
+        }
+    }
+    else{
+        alert('style not understood:'+str)
     }
 }
 
@@ -492,7 +530,8 @@ function match_karg(str, key, type, defaultValue){
         let _RE = str.match(reg_exp);
         res = (!(_RE === null))?_RE[1]:defaultValue;
         if (!(_RE === null)){
-            res = res.replace("$", "\n");
+            res = res.replace(/\$/g,"\n");
+            // res = res.replace("$", "\n"); 不能用replace，replace只能替换一次
         }
     }
     if (type=='arr_float'){
@@ -525,7 +564,6 @@ function parse_line(str){
 
     let x_arr = match_karg(str, 'x_arr', 'arr_float', null)
     let y_arr = match_karg(str, 'z_arr', 'arr_float', null)
-
     let z_arr = match_karg(str, 'y_arr', 'arr_float', null) 
     if(!x_arr || !y_arr || !z_arr){alert('Cannot parse line3d, x/y/z_arr missing:', str)}
     for (i=0; i<z_arr.length; i++){z_arr[i] = -z_arr[i]}
@@ -821,16 +859,14 @@ function parse_core_obj(str, parsed_frame){
     let match_res = str.match(pattern)
     let name = match_res[1]
 
+    // z --> y, y --- z reverse z axis and y axis
     let pos_x = parseFloat(match_res[2])
-    // z --> y, y --- z reverse z axis and y axis
     let pos_y = parseFloat(match_res[4])
-    // z --> y, y --- z reverse z axis and y axis
     let pos_z = -parseFloat(match_res[3])
 
+    // z --> y, y --- z reverse z axis and y axis
     let ro_x = match_karg(str, 'ro_x', 'float', 0)
-    // z --> y, y --- z reverse z axis and y axis
     let ro_y = match_karg(str, 'ro_z', 'float', 0)
-    // z --> y, y --- z reverse z axis and y axis
     let ro_z = -match_karg(str, 'ro_y', 'float', 0)
 
     // pattern.test(str)

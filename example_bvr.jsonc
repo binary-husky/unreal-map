@@ -17,14 +17,13 @@
         "gpu_party": "off"                     // default is 'off', // GPU memory is precious! assign multiple training process to a 'party', then they will share GPU memory 
     },
 
-
+    
     "MISSIONS.bvr_sim.init_env.py->ScenarioConfig": {
-
+        "render": true,
         "TEAM_NAMES": [
-            "ALGORITHM.conc.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.script_ai.dummy->DummyAlgorithm"
         ]
     },
-    "ALGORITHM.conc.foundation.py->AlgorithmConfig": {
-        "load_checkpoint": false
+    "ALGORITHM.script_ai.dummy.py->DummyAlgConfig": {
     }
 }
