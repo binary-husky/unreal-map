@@ -38,12 +38,85 @@ git pull && python main.py -c ZHECKPOINT/test-cargo50/test-cargo50.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-50+50/test-50+50.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
 ```
+
+# Dependency
+We use docker to solve dependency: [SetupDocker](./SetupDocker.md)
+
+
+# Introducing the structure of HMP
+
+## HMP's config system (How to experiment)
+Unfinished doc
+
+## Task runner
+Unfinished doc
+
+## ALGORITHM
+Unfinished doc
+
+## MISSIONS
+Unfinished doc
+
+## Execution Pool
+Unfinished doc
+
+## VHMAP, a component of HMP
+VHMAP is a visulization component of HMP. [VHMAP](./VISUALIZE/README.md)
+
+It is unfortunate that 
+all existing RL environments fails to provide a visual
+interface satisfying following useful features:
+
+- Allowing visualizing while training, without slowing down the training server. 
+- Using as little resourse as possible.
+- Friendly to SSH users, faster than RDP and X server which is notoriously slow.
+- No dependency, even an Android with a browser can access.
+- Smooth, using client's CPU and GPU to render instead of server's.
+- Simple. No verbose lines about lights, buffering, reflesh and bla.bla.bla about which we researchers never care.
+
+VHMAP is just the answer,Features:
+- Python interface simplified to the max
+- Rendering on the client side, automatic frame insertion, and silky smooth frame rates
+- Few server-side dependencies
+- Very low server-side resource consumption
+- Based on ThreeJs, drag and drop support, mobile touch screen support
+- Support switching between perspective and projection views
+- Playback support
+- Use zlib to compress data streams, low network bandwidth requirement
+
+<div align="center">
+<img src="VISUALIZE/md_imgs/动画9.gif" width="700" >
+</div>
+
+Interface functions, operation introduction.
+- Right mouse button to pan, left mouse button to rotate, scroll wheel to zoom
+- Support touch screen, if your laptop or phone has a touch screen
+- Rendering refresh rate is displayed in the upper left corner
+- play fps: how many key frames per second (less than the rendering refresh rate, then insert frames; greater than the rendering refresh rate, then the excess is invalid)
+- pause: pause
+- next frame: pause and switch the next frame
+- previous frame: pause and switch the previous frame
+- loop to start: play all data, go back to the first frame
+- ppt step: play a frame at a very slow speed, easy to record the screen, will be stuck for a few seconds after pressing
+- use orthcam: switch the perspective view (object near large and far small)/projection view (have you learned engineering drawing?)
+- P.S. The first time you switch to the projection view, you need to use the mouse wheel to enlarge the screen
+
+
+
 # Quick Start
 
 ## 0. dependency
 We use docker to solve dependency: 
 [SetupDocker](./SetupDocker.md)
 
+Please read SetupDocker.md, then set up the container using:
+```bash
+$ docker run -itd   --name  hmp-$USER \
+--net host \
+--gpus all \
+--shm-size=16G \
+fuqingxu/hmp:latest
+```
 
 ## 1. all default: testing
 ```
@@ -98,6 +171,34 @@ If you are interested in something, you may continue to read:
 
     experiment batch executor                 -->   mprofile.py
 ```
+
+# How to add a new environment (MISSION) in HMP
+- make a new jsonc config file, using 'example.jsonc' as template
+- mkdir in MISSIONS, e.g. ./MISSIONS/bvr_sim, copy src code of the environment inside it.
+- open ```MISSIONS/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:
+``` python
+env_init_function_ref = {
+    "bvr": ("MISSIONS.bvr_sim.init_env", "ScenarioConfig"),
+}   
+# bvr is the final name that HMP recognize, 
+# MISSIONS.bvr_sim.init_env is a py file, 
+# ScenarioConfig is a class
+```
+- open ```MISSIONS/env_router.py```, add the path of environment's configuration in ```import_path_ref```
+``` python
+import_path_ref = {
+    "bvr": ("MISSIONS.bvr_sim.init_env", 'make_bvr_env'),
+}   
+# bvr is the final name that HMP recognize, 
+# MISSIONS.bvr_sim.init_env is a py file, 
+# make_bvr_env is a function
+```
+- write your own ScenarioConfig. (refer to ```MISSIONS.bvr_sim.init_env.ScenarioConfig```, as a template).
+- write your own env init function. (refer to ```MISSIONS.bvr_sim.init_env.make_bvr_env```, as a template).
+
+
+
+
 
 # Papers Supported by HMP
 

@@ -7,14 +7,16 @@ from VISUALIZE.mcom import *
 
 
 class RecallProcessThreejs(Process):
-    def __init__(self, file_path):
+    def __init__(self, file_path, port):
         super(RecallProcessThreejs, self).__init__()
         self.buffer_list = []
         self.file_path = file_path
+        self.port = port
+        self.client_send_pointer = {}
 
     def init_threejs(self):
         import threading
-        t = threading.Thread(target=self.run_flask, args=(5051,))
+        t = threading.Thread(target=self.run_flask, args=(self.port,))
         t.daemon = True
         t.start()
 
@@ -50,12 +52,21 @@ class RecallProcessThreejs(Process):
         @app.route("/up", methods=["POST"])
         def upvote():
             # dont send too much in one POST, might overload the network traffic
-            if len(self.buffer_list)>35000:
-                tosend = self.buffer_list[:30000]
-                self.buffer_list = self.buffer_list[30000:]
+            token = request.data.decode('utf8')
+            if token not in self.client_send_pointer:
+                print('[mcom_replay.py] Establishing new connection, token:', token)
+                current_pointer = 0
             else:
-                tosend = self.buffer_list
-                self.buffer_list = []
+                current_pointer = self.client_send_pointer[token]
+
+            if len(self.buffer_list)-current_pointer>35000:
+                tosend = self.buffer_list[current_pointer:current_pointer+30000]
+                current_pointer = current_pointer+30000
+            else:
+                tosend = self.buffer_list[current_pointer:]
+                current_pointer = len(self.buffer_list)
+                
+            self.client_send_pointer[token] = current_pointer
 
             # use zlib to compress output command, worked out like magic
             buf = "".join(tosend)

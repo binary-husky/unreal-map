@@ -91,10 +91,15 @@ class Scenario(BaseScenario):
             # self.threejs_bridge.geometry_rotate_scale_translate('monkey',0, 0,       np.pi/2, 1, 1, 1,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,      1, 1, 1,         0,0,0)
             self.threejs_bridge.geometry_rotate_scale_translate('ball',  0, 0,      0,        1, 1, 1,         0,0,0)
-            self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
+            self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   -0.2,0,0) # x -> y -> z
             self.threejs_bridge.其他几何体之旋转缩放和平移('oct', 'OctahedronGeometry(1,0)', 0,0,0,  1,1,1, 0,0,0)   # 八面体
-            self.threejs_bridge.其他几何体之旋转缩放和平移('circle', 'TorusGeometry( 1, 0.3, 16, 100 )', np.pi/2,0,0,  1,1,1, 0,0,0)   # 甜甜圈
-
+            self.threejs_bridge.其他几何体之旋转缩放和平移('dst', 'TorusGeometry( 1, 0.1, 16, 100 )', np.pi/2,0,0,  1,1,1, 0,0,0)   # 甜甜圈
+            self.threejs_bridge.advanced_geometry_material('box', 
+                map='/wget/bz.jpg',
+            )  
+            self.threejs_bridge.advanced_geometry_material('dst', 
+                map='/wget/wen.jpg',
+            )  
             self.threejs_bridge.agent_alive_pos = {}
             self.threejs_bridge.agent_alive_time = {}
 
@@ -106,7 +111,7 @@ class Scenario(BaseScenario):
                     worker.state.p_pos[0], worker.state.p_pos[1], 
                     0,  ro_x=0, ro_y=-0, ro_z=0,
                     label='', label_color='white',
-                    opacity=1,
+                    opacity=0.99,
                     track_n_frame=5,
                 )
             else:
@@ -120,7 +125,7 @@ class Scenario(BaseScenario):
                     worker.state.p_pos[1] + np.sin(m / n * 2 * np.pi) * 0.1, 
                     0,  ro_x=0, ro_y=-0, ro_z=0,
                     label='', label_color='white',
-                    opacity=1,
+                    opacity=0.99,
                     track_n_frame=5,
                 )
 
@@ -134,18 +139,22 @@ class Scenario(BaseScenario):
                 'box|%d|%s|%.2f'%(index+1000, color, 0.1*self.cargo_weight[index]/10),
                 cargo_pos[0], cargo_pos[1], 
                 0,  ro_x=0, ro_y=-0, ro_z=0,
-                label='BioHazard #%d'%index, label_color='Crimson',
+                label='BioHazard #%d\ndrag %d:weight %d'%(index,len(self.cargo_dragged_by[index]), self.cargo_weight[index]), 
+                label_color='Crimson',
+                label_size=self.cargo_weight[index]*0.01,
                 opacity=0.5,
+                renderOrder=64,
             )
 
-            self.threejs_bridge.v2dx(
-                'box|%d|%s|%.2f'%(index+5000, color, 0.05),
-                cargo_pos[0], cargo_pos[1]-0.2, 
-                0.2,  ro_x=0, ro_y=-0, ro_z=0,
-                label='drag %d:weight %d'%(len(self.cargo_dragged_by[index]), self.cargo_weight[index]), 
-                label_color='Magenta' if (len(self.cargo_dragged_by[index]) != self.cargo_weight[index]) else 'Green',
-                opacity=0,
-            )
+            # self.threejs_bridge.v2dx(
+            #     'box|%d|%s|%.2f'%(index+5000, color, 0.05),
+            #     cargo_pos[0], cargo_pos[1]-0.2, 
+            #     0.2,  ro_x=0, ro_y=-0, ro_z=0,
+            #     label='drag %d:weight %d'%(), 
+            #     label_color='Magenta' if (len(self.cargo_dragged_by[index]) != self.cargo_weight[index]) else 'Green',
+            #     opacity=0,
+            #     renderOrder=64,
+            # )
 
         for index, drop_off_pos in enumerate(self.cargo_drop_off):
             if self.cargo_hot[index]:
@@ -153,11 +162,12 @@ class Scenario(BaseScenario):
             else:
                 color = 'Black'
             self.threejs_bridge.v2dx(
-                'circle|%d|%s|%.2f'%(index+1500, color, 0.05),
+                'dst|%d|%s|%.2f'%(index+1500, color, 0.05),
                 drop_off_pos[0], drop_off_pos[1], 
                 0,  ro_x=0, ro_y=-0, ro_z=0,
                 label='dst #%d'%index, label_color='Chocolate',
-                opacity=1,
+                opacity=0.99,
+                renderOrder=0,
             )
 
             if self.cargo_hot[index]:

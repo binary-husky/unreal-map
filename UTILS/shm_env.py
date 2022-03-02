@@ -29,6 +29,10 @@ class EnvWithRay(object):
         self.action_space = self.env.action_space
         self.echo = None
 
+    def __del__(self):
+        print亮红('[shm_env.py] exec EnvWithRay exit')
+        del self.env
+
     def step(self, act):
         if np.isnan(act).any(): 
             # env is paused, skip by returning previous obs
@@ -55,6 +59,7 @@ class EnvWithRay(object):
                 # have info, then update info
                 ob, info_reset = ob
                 info = self.dict_update(info, info_reset)
+                
         # preserve an echo here, 
         # will be use to handle unexpected env pause
         self.echo = [ob, reward, done, info]
@@ -123,7 +128,6 @@ class SuperpoolEnv(object):
         try:
             return np.stack(obs), np.stack(rews), np.stack(dones), np.stack(infos)
         except:
-            print('not align! ',obs, rews, dones)
             assert False, ('unalign! ',obs, rews, dones)
 
 

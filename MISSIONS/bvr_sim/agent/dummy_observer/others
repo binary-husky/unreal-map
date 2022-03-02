@@ -1,0 +1,147 @@
+
+    def situation_eva(self, obs_side_1):
+        # flag = 0
+        our_weapon = np.array(
+            [plane['LeftWeapon'] for plane in obs_side_1['platforminfos'] if plane['Availability'] == 1.0])
+        our_weapon_nums = our_weapon.sum()
+        our_plane_nums = our_weapon.size
+
+        hos_plane_nums = len(
+            [plane for plane in obs_side_1['trackinfos'] if plane['Availability'] == 1.0])
+
+        Attack_hos_vip = True if hos_plane_nums - our_weapon_nums >= our_plane_nums else False
+        # Protect_our_vip = True if our_plane_nums - hos_weapon_nums >= hos_plane_nums else False
+
+        # if Attack_hos_vip : flag = 1
+        # if Protect_our_vip and Attack_hos_vip == False: flag = 2
+
+        return Attack_hos_vip
+
+    def situation_angle(self, obs_side, optimal_dst=2500, optimal_Y=2500):
+        our_color = obs_side['platforminfos'][0]['Identification']
+        our_plane = [plane for plane in obs_side['platforminfos'] if plane['Availability'] == 1.0]
+        our_plane_loc = np.array([[plane['X'], plane['Y'], plane['Alt']] for plane in our_plane])
+        weapon_left = np.array([plane['LeftWeapon'] for plane in our_plane])
+        weapon_zero = np.array(weapon_left == 0) + 0
+        our_target = [plane for plane in obs_side['trackinfos'] if plane['Availability'] == 1.0]
+        our_target_id = [plane['ID'] for plane in our_target]
+        our_launch = [missle for missle in obs_side['missileinfos'] if
+                      missle['Identification'] == our_color and missle['EngageTargetID'] in our_target_id]
+
+        hos_launch = [missle for missle in obs_side['missileinfos'] if
+                      missle['Identification'] == obs_side['trackinfos'][0]['Identification']]
+        norm = np.linalg.norm
+        Plane_index = np.arange(len(our_plane))
+        Attack_Target = []
+
+        if len(our_launch) > 0:
+            our_plane_ang = our_plane_loc[:, -2].reshape(1, -1)
+            missle_ang = np.array([missle['Y'] for missle in our_launch]).reshape(-1, 1)
+            theta = np.abs(missle_ang - our_plane_ang)
+            Target_plane = [plane for plane in our_target for missle in our_launch if
+                            plane['ID'] == missle['EngageTargetID']]
+            Plane_dst_to_target = []
+
+            for i in range(len(our_launch)):
+                missle = our_launch[i]
+                missle_Target = Target_plane[i]
+                missle_loc = np.array([missle['X'], missle['Y'], missle['Alt']])
+                missle_Target_loc = np.array([missle_Target['X'], missle_Target['Y'], missle_Target['Alt']])
+                dst = norm(missle_loc - missle_Target_loc).reshape(1, -1)
+                Other_plane_dst = norm(missle_Target_loc.reshape(1, -1) - our_plane_loc, axis=-1)
+                dst_seek = np.abs(dst - Other_plane_dst - optimal_dst)
+                Plane_dst_to_target.append(dst_seek)
+            Plane_dst_to_target = np.array(Plane_dst_to_target) + 1e5 * weapon_zero
+            Plane_dst_to_target = Plane_dst_to_target.squeeze(1)
+            Dst_index = np.array(Plane_dst_to_target < 500) + 0  # 距离之差在五公里内发射第二枚
+            theta_label = np.array(theta > optimal_Y) + 0  # Y坐标之差在1.5公里以上发射第二枚
+            Last_label = Dst_index * theta_label
+
+            if Last_label.max() > 0:
+                recoder = [True] * len(our_plane)
+                for i in range(Last_label.shape[0]):
+                    if Last_label[i].max() > 0:
+                        # print(Plane_dst_to_target[i], '33333333333', Last_label[i])
+                        Dst_balance = Plane_dst_to_target[i][Last_label[i] > 0]
+
+                        Dst_sort = Dst_balance.argsort()
+                        balance_index = Plane_index[Last_label[i] > 0]
+                        for j in range(len(Dst_sort)):
+                            desk_plane = Dst_sort[j]
+                            if recoder[Dst_sort[j]]:
+                                recoder[Dst_sort[j]] = False
+                                Attack_Target.append({"AttackPlane": our_plane[balance_index[desk_plane]],
+                                                      "TargetPlane": Target_plane[i]})
+                                break
+        return Attack_Target
+
+    def jiaji(self):
+        attack_t = self.situation_angle(self.obs_side_1)
+        obs_side = self.obs_side_1
+        our_target = [plane for plane in obs_side['trackinfos'] if plane['Availability'] == 1.0]
+        our_target_id = [plane['ID'] for plane in our_target]
+        our_launch = [missle for missle in obs_side['missileinfos'] if
+                      missle['Identification'] == obs_side['platforminfos'][0]['Identification'] and missle[
+                          'EngageTargetID'] in our_target_id]
+        if len(attack_t) > 0:
+            for i in range(len(attack_t)):
+                Attack_plane = attack_t[i]["AttackPlane"]['ID']
+                Target_plane = attack_t[i]["TargetPlane"]['ID']
+                can_fire = True
+                for missle in our_launch:
+                    if missle['LauncherID'] == Attack_plane and missle['EngageTargetID'] == Target_plane:
+                        can_fire = False
+                        break
+                    if Attack_plane == obs_side['platforminfos'][0]['ID'] and obs_side['platforminfos'][0][
+                        'LeftWeapon'] < 2:
+                        can_fire = False
+                        break
+                if can_fire:
+                    self.cmd_list.append(
+                        CmdEnv.make_attackparam(Attack_plane, Target_plane, 1))
+                    # print("Attack_plane", Attack_plane, "Target_plane", Target_plane)
+
+                    self.times += 1
+                    # print(self.times)
+    def global_situation(self):
+        obs_side = self.obs_side_1
+        vip_escape_cold = False
+        our_hostile= self.op_planes
+        self.Hos_id = [plane.OpLeftWeapon for plane in self.op_planes]
+        our_plane = [plane for plane in obs_side['platforminfos'] if plane['Availability'] == 1.0]
+        ene_plane = [plane for plane in obs_side['trackinfos'] if plane['Availability'] == 1.0]
+        hos_missle_nums=sum([hos.OpLeftWeapon for hos in self.op_planes])
+
+
+        our_vip = [p for p in self.my_planes if p.is_vip][0]
+        our_vip_spotted_by = [op for op in self.op_planes if (our_vip in op.in_target_zoo)]
+        if len(our_vip_spotted_by)>0:
+            our_hos_loc=np.array([[hosile.X,hosile.Y,hosile.Z]for hosile in our_vip_spotted_by])
+            our_vip_loc=np.array([our_vip.X,our_vip.Y,our_vip.Z]).reshape(1,-1)
+            vip_hos_dst=np.linalg.norm(our_vip_loc-our_hos_loc).reshape(-1)
+            if min(vip_hos_dst) < 55e3 or len(our_plane)-hos_missle_nums>=len(ene_plane):
+                # vip_escape_cold = True
+                self.our_vantage = True
+        # return vip_escape_cold
+            #dst_sort_inc=vip_hos_dst.sort()
+
+
+
+
+
+
+    def plane_mis_is_flay(self,obs_side,uav_ID,target_ID):
+        missile_flaying = True
+        our_color = obs_side['platforminfos'][0]['Identification']
+        our_target = [plane for plane in obs_side['trackinfos'] if plane['Availability'] == 1.0]
+        our_target_id = [plane['ID'] for plane in our_target]
+        our_launch = [missle for missle in obs_side['missileinfos'] if
+                      missle['Identification'] == our_color and missle['EngageTargetID'] in our_target_id]
+        if len(our_launch) > 0:
+            for i in range(len(our_launch)):
+                if uav_ID == 'EngageTargetID' and target_ID == 'LauncherID':
+                    missile_flaying = False
+                    break
+        return missile_flaying
+
+

@@ -10,15 +10,19 @@ mcom_fn_list_define = [
     "ylabel", "drawnow", "v2d", "v2d_init", "v3d_init", "v2L", "title", "plot3", "grid", "v3dx", "v2d_show", 
     "v2d_pop", "v2d_line_object", "v2d_clear", "v2d_add_terrain", "set_style", "set_env", "use_geometry", 
     "geometry_rotate_scale_translate", "test_function_terrain", 'line3d', 'advanced_geometry_rotate_scale_translate',
+    "advanced_geometry_material", "skip"
 ]
 别名对齐 = [
     ('初始化3D', 'v2d_init'),
     ('设置样式', 'set_style'),
     ('形状之旋转缩放和平移','geometry_rotate_scale_translate'),
     ('其他几何体之旋转缩放和平移','advanced_geometry_rotate_scale_translate'),
+    ('其他几何体之材质','advanced_geometry_material'),
     ('发送几何体','v2dx'),
     ('结束关键帧','v2d_show'),
     ('发送线条','line3d'),
+    ('发射光束','flash'),
+    ('空指令','skip'),
 ]
 
 # The Design Principle: Under No Circumstance should this program Interrupt the main program!
@@ -62,8 +66,12 @@ class mcom():
         atexit.register(lambda: self.__del__())
 
 
+    # on the end of the program
     def __del__(self):
-        # on the end of the program
+        if hasattr(self,'_deleted_'): return    # avoid exit twice
+        else: self._deleted_ = True     # avoid exit twice
+
+        print红('[mcom.py]: mcom exiting! tag: %s'%self.tag)
         if hasattr(self, 'current_file_handle') and self.current_file_handle is not None:
             end_file_flag = (b'><EndTaskFlag\n')
             self.current_file_handle.write(end_file_flag)
@@ -217,8 +225,8 @@ class mcom():
             elif self.digit == 4: strlist.append("%.4e" % arg)
             strlist.append(",")
         elif isinstance(arg, str):
-            strlist.append("\'"); strlist.append(arg)
-            strlist.append("\'"); strlist.append(",")
+            assert '$' not in arg
+            strlist.extend(["\'", arg.replace('\n', '$'), "\'", ","])
         elif isinstance(arg, list):
             strlist.append(str(arg))
             strlist.append(",")
@@ -306,6 +314,7 @@ class tcp_server():
         self.handler = None
         self.queue = None
         self.buff = ['']
+        self.recv_buf_max = 10240
  
     def wait_connection(self):
         import threading
@@ -328,7 +337,15 @@ class tcp_server():
         assert (self.handler is not None) or (self.queue is not None)
 
         while True:
-            recvData = self.sock.recv(10240)
+            recvData = self.sock.recv(self.recv_buf_max)
+
+            # 防止中文字符被拆解~
+            if len(recvData)==self.recv_buf_max:
+                while True:
+                    tmp = self.sock.recv(1)
+                    recvData = recvData+tmp
+                    if tmp==b'@': break
+
             recvData = str(recvData, encoding = "utf-8")
             ends_with_mark = recvData.endswith('@end@')
             split_res = recvData.split('@end@')
@@ -420,6 +437,7 @@ class DrawProcessThreejs(Process):
             if os.path.exists(self.backup_file):
                 print亮红('[mcom.py]: warning, purge previous 3D visual data!')
                 os.remove(self.backup_file)
+        self.client_tokens = {}
 
     def init_threejs(self):
         import threading
@@ -461,8 +479,21 @@ class DrawProcessThreejs(Process):
         dirname = os.path.dirname(__file__) + '/threejsmod'
         import zlib
 
+        self.init_cmd_captured = False
+        init_cmd_list = []
+        def init_cmd_capture_fn(tosend):
+            for strx in tosend:
+                if '>>v2d_show()\n'==strx:
+                    self.init_cmd_captured = True
+                init_cmd_list.append(strx)    
+                if self.init_cmd_captured:
+                    break
+            return
+            
         @app.route("/up", methods=["POST"])
         def upvote():
+
+            # 本次正常情况下，需要发送的数据
             # dont send too much in one POST, might overload the network traffic
             if len(self.buffer_list)>35000:
                 tosend = self.buffer_list[:30000]
@@ -471,8 +502,26 @@ class DrawProcessThreejs(Process):
                 tosend = self.buffer_list
                 self.buffer_list = []
 
+            # 处理断线重连的情况，断线重连时，会出现新的token
+            token = request.data.decode('utf8')
+            if token not in self.client_tokens:
+                print('[mcom.py] Establishing new connection, token:', token)
+                self.client_tokens[token] = 'connected'
+                if (len(self.client_tokens)==0) or (not self.init_cmd_captured):  
+                    # 尚未捕获初始化命令，或者第一次client 
+                    buf = "".join(tosend)
+                else:
+                    print('[mcom.py] If there are other tabs, please close them now.')
+                    buf = "".join(init_cmd_list + tosend)
+            else:
+                # 正常连接
+                buf = "".join(tosend)
+
+            # 尝试捕获并保存初始化部分的命令
+            if not self.init_cmd_captured:
+                init_cmd_capture_fn(tosend)
+
             # use zlib to compress output command, worked out like magic
-            buf = "".join(tosend)
             buf = bytes(buf, encoding='utf8')   
             zlib_compress = zlib.compressobj()
             buf = zlib_compress.compress(buf) + zlib_compress.flush(zlib.Z_FINISH)
@@ -495,7 +544,7 @@ class DrawProcessThreejs(Process):
         print('JS visualizer online (localhost): http://localhost:%d'%(port))
         print('--------------------------------')
         # app.run(host='0.0.0.0', port=port)
-        serve(app, threads=4, ipv4=True, ipv6=True, listen='*:%d'%port)
+        serve(app, threads=8, ipv4=True, ipv6=True, listen='*:%d'%port)
 
 
 class DrawProcess(Process):

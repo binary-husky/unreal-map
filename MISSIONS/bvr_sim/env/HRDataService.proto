@@ -1,0 +1,376 @@
+syntax = "proto3";
+
+// 数据服务
+service HRDataService {
+    // 态势数据接口
+    rpc GetDataObservation (ObservationRequest) returns (ObservationResponse) {}
+
+    // 推进引擎, 发送指令
+	rpc Step(CmdRequest) returns (CmdResponse) {}
+
+	// 重置关闭引擎
+	// ControlRequest:  reset restart close
+	rpc Terminal(ControlRequest) returns (ControlResponse) {}
+}
+
+
+// 态势请求体
+message ObservationRequest {
+    // XSIM域ID
+    string DomainID = 1;
+
+    // XSIM引擎ID
+    string EngineID = 2;
+}
+
+
+// 态势响应体
+message ObservationResponse {
+    // ["仿真时间", Default = 0]
+    double CurTime = 1;
+
+    // ["引擎标识", Key]
+    uint32 XSimTag = 2;
+
+    // ["态势信息"]
+    repeated IdenInfo IdenInfos = 3;
+}
+
+
+// 指令请求体
+message CmdRequest {
+    repeated CmdInitEntity CmdInitEntityControl = 1;
+    repeated CmdLinePatrol CmdLinePatrolControl = 2;
+    repeated CmdAreaPatrol CmdAreaPatrolControl = 3;
+    repeated CmdChangeMotion CmdChangeMotionControl = 4;
+    repeated CmdTargetFollow CmdTargetFollowControl = 5;
+    repeated CmdAttack CmdAttackControl = 6;
+}
+
+
+// 指令响应体
+message CmdResponse {
+    string Tip = 1;
+}
+
+
+// 引擎控制指令请求体, control = "reset" or "restart" or "close"
+message ControlRequest {
+    string Control = 1;
+}
+
+
+// 引擎控制指令响应体
+message ControlResponse {
+    string Tip = 1;
+}
+
+
+// 属方信息
+message IdenInfo {
+    // ["己方作战平台"]
+    repeated PlatformInfo PlatformInfos = 1;
+
+    // ["目标信息"]
+    repeated TrackInfo TargetInfos = 2;
+
+    // ["来袭导弹"]
+    repeated MissileInfo MissileInfos = 3;
+}
+
+
+// 己方作战平台信息
+message PlatformInfo {
+    // ["名称", Default = ""]
+    string Name = 1;
+
+    // ["属方", Default = ""]
+    string Identification = 2;
+
+    // ["ID", Default = 0]
+    uint32 ID = 3;
+
+    // ["类型", Default = 2], 0-Unknown，1-有人机，2-无人机，3-空空导弹
+    uint32 Type = 4;
+
+    // ["可用性", Default = 1.0],取值范围：[0,1]
+    double Availability = 5;
+
+    // ["X轴", Default = 0],单位：米，取值范围：[-150000,150000]
+    double X = 6;
+
+    // ["Y轴", Default = 0],单位：米，取值范围：[-150000,150000]
+    double Y = 7;
+
+    // ["经度", Default = 90], 单位：度，取值范围：(-180,180]
+    double Lon = 8;
+
+    // ["纬度", Default = 45],单位：度，取值范围：[-90,90]
+    double Lat = 9;
+
+    // ["高度", Default = 8000.0],单位：米，海拔高度
+    double Alt = 10;
+
+    //  ["航向", Default=0],单位：度，取值范围：[0,360]，正北为0，顺时针为正
+    double Heading = 11;
+
+    // ["俯仰", Default=0],单位：度，取值范围：[-90,90]，水平为0，上正下负
+    double Pitch = 12;
+
+    // ["滚转", Default=0], 单位：度，取值范围：[0,360]，暂不考虑
+    double Roll = 13;
+
+    // ["速度", Default=240], 单位：米/秒，有人机取值范围：[150,400]，无人机取值范围：[100,300]
+    double Speed = 14;
+
+    // ["仿真时间", Default=0]
+    double CurTime = 15;
+
+    // ["加速度", Default=0],单位：G，有人机取值范围：[-1,1]，无人机取值范围：[-2,2]
+    double AccMag = 16;
+
+    // ["过载", Default=0],单位：G，有人机取值范围：[-6,6]，无人机取值范围：[-12,12]
+	double NormalG = 17;
+
+	// ["被锁定", Default=false]
+	bool IsLocked = 18;
+
+	// ["状态"]
+	uint32 Status = 19;
+
+	// ["武器剩余数量", Default=0]
+	uint32 LeftWeapon = 20;
+}
+
+
+// 目标信息
+message TrackInfo {
+    // ["名称", Default = ""]
+    string Name = 1;
+
+    // ["属方", Default = ""]
+    string Identification = 2;
+
+    // ["ID", Default = 0]
+    uint32 ID = 3;
+
+    // ["类型", Default = 2], 0-Unknown，1-有人机，2-无人机，3-空空导弹
+    uint32 Type = 4;
+
+    // ["可用性", Default = 1.0],取值范围：[0,1]
+    double Availability = 5;
+
+    // ["X轴", Default = 0],单位：米，取值范围：[-150000,150000]
+    double X = 6;
+
+    // ["Y轴", Default = 0],单位：米，取值范围：[-150000,150000]
+    double Y = 7;
+
+    // ["经度", Default = 90], 单位：度，取值范围：(-180,180]
+    double Lon = 8;
+
+    // ["纬度", Default = 45],单位：度，取值范围：[-90,90]
+    double Lat = 9;
+
+    // ["高度", Default = 8000.0],单位：米，海拔高度
+    double Alt = 10;
+
+    //  ["航向", Default=0],单位：度，取值范围：[0,360]，正北为0，顺时针为正
+    double Heading = 11;
+
+    // ["俯仰", Default=0],单位：度，取值范围：[-90,90]，水平为0，上正下负
+    double Pitch = 12;
+
+    // ["滚转", Default=0], 单位：度，取值范围：[0,360]，暂不考虑
+    double Roll = 13;
+
+    // ["速度", Default=240], 单位：米/秒，有人机取值范围：[150,400]，无人机取值范围：[100,300]
+    double Speed = 14;
+
+    // ["仿真时间", Default=0]
+    double CurTime = 15;
+
+    // ["是否被锁定", Default=false]
+    bool IsLocked = 16;
+}
+
+
+// 来袭导弹信息
+message MissileInfo {
+    // ["名称", Default = ""]
+    string Name = 1;
+
+    // ["属方", Default = ""]
+    string Identification = 2;
+
+    // ["ID", Default = 0]
+    uint32 ID = 3;
+
+    // ["类型", Default = 2], 0-Unknown，1-有人机，2-无人机，3-空空导弹
+    uint32 Type = 4;
+
+    // ["可用性", Default = 1.0],取值范围：[0,1]
+    double Availability = 5;
+
+    // ["X轴", Default = 0],单位：米，取值范围：[-150000,150000]
+    double X = 6;
+
+    // ["Y轴", Default = 0],单位：米，取值范围：[-150000,150000]
+    double Y = 7;
+
+    // ["经度", Default = 90], 单位：度，取值范围：(-180,180]
+    double Lon = 8;
+
+    // ["纬度", Default = 45],单位：度，取值范围：[-90,90]
+    double Lat = 9;
+
+    // ["高度", Default = 8000.0],单位：米，海拔高度
+    double Alt = 10;
+
+    //  ["航向", Default=0],单位：度，取值范围：[0,360]，正北为0，顺时针为正
+    double Heading = 11;
+
+    // ["俯仰", Default=0],单位：度，取值范围：[-90,90]，水平为0，上正下负
+    double Pitch = 12;
+
+    // ["滚转", Default=0], 单位：度，取值范围：[0,360]，暂不考虑
+    double Roll = 13;
+
+    // ["速度", Default=240], 单位：米/秒，有人机取值范围：[150,400]，无人机取值范围：[100,300]
+    double Speed = 14;
+
+    // ["仿真时间", Default=0]
+    double CurTime = 15;
+
+    // ["发射平台", Default=0]
+    uint32 LauncherID = 16;
+
+    // ["打击目标", Default=0]
+    uint32 EngageTargetID = 17;
+}
+
+
+// 初始化实体指令
+message CmdInitEntity {
+    int32 HandleID = 1;
+    int32 Receiver = 2;
+
+    // ["初始位置"],初始位置为战场坐标
+    TSVector3dType InitPos = 3;
+
+    // ["初始速度", Default=0],单位：米/秒，有人机取值范围：[150,400]，无人机取值范围：[100,300]
+    double InitSpeed = 4;
+
+    // ["初始朝向", Default=0],单位：度，取值范围[0,360]，与正北方向的夹角
+    double InitHeading = 5;
+}
+
+
+// 坐标
+message TSVector3dType {
+    double X = 1;
+    double Y = 2;
+    double Z = 3;
+}
+
+
+// 返回状态码
+enum RetCode {
+    Success = 0;
+    Failure = 1;
+}
+
+
+// 航线巡逻
+message CmdLinePatrol {
+    int32 HandleID = 1;
+    int32 Receiver = 2;
+
+    // ["路径点坐标列表"],区域x，y不得超过作战区域， 有人机高度限制[2000,15000]，无人机高度限制[2000,10000]
+    repeated TSVector3dType CoordList = 3;
+
+    // ["指令速度", Default=0], 单位：米/秒，有人机取值范围：[150,400]，无人机取值范围：[100,300]
+    double CmdSpeed = 4;
+
+    // ["指令加速度", Default=0],单位：G，有人机取值范围：[-1,1]，无人机取值范围：[-2,2]
+    double CmdAccMag = 5;
+
+    // ["指令过载", Default=0],单位：G，有人机取值范围：[-6,6]，无人机取值范围：[-12,12]
+    double CmdG = 6;
+}
+
+
+// 区域巡逻
+message CmdAreaPatrol {
+    int32 HandleID = 1;
+    int32 Receiver = 2;
+
+    // ["区域中心坐标"], 区域x，y不得超过作战区域， 有人机高度限制[2000,15000]，无人机高度限制[2000,10000]
+    TSVector3dType CenterCoord = 3;
+
+    // ["区域长", Default=10000], 单位：米，经度方向边长，abs(CenterCoord.x +- AreaLength/2) <= 150000
+    double AreaLength = 4;
+
+    // ["区域宽", Default=10000], 单位：米，纬度方向边长，abs(CenterCoord.y +- AreaWidth/2) <= 150000
+    double AreaWidth = 5;
+
+    // ["指令速度", Default=0], 单位：米/秒，有人机取值范围：[150,400]，无人机取值范围：[100,300]
+    double CmdSpeed = 6;
+
+    // ["指令加速度", Default=0], 单位：G，有人机取值范围：[-1,1]，无人机取值范围：[-2,2]
+    double CmdAccMag = 7;
+
+    // ["指令过载", Default=0], 单位：G，有人机取值范围：[-6,6]，无人机取值范围：[-12,12]
+    double CmdG = 8;
+}
+
+
+// 机动参数调整控制指令
+message CmdChangeMotion {
+    int32 HandleID = 1;
+    int32 Receiver = 2;
+
+    // ["调整机动参数", Default=0], 可实现组合赋值，例如：CMDSPPED | CMDACCMAG
+    uint32 UpdateMotionType = 3;
+
+    //  ["指令速度", Default=0], 单位：米/秒，有人机取值范围：[150,400]，无人机取值范围：[100,300]
+    double CmdSpeed = 4;
+
+    // ["指令加速度", Default=0], 单位：G，有人机取值范围：[-1,1]，无人机取值范围：[-2,2]
+    double CmdAccMag = 5;
+
+    // ["指令过载", Default=0], 单位：G，有人机取值范围：[-6,6]，无人机取值范围：[-12,12]
+    double CmdG = 6;
+}
+
+
+// 跟随目标指令
+message CmdTargetFollow {
+    int32 HandleID = 1;
+    int32 Receiver = 2;
+
+    // ["目标ID", Default = 0], 友方敌方均可
+    uint32 TgtID = 3;
+
+    // ["指令速度", Default=0], 单位：米/秒，有人机取值范围：[150,400]，无人机取值范围：[100,300]
+    double CmdSpeed = 4;
+
+    // ["指令加速度", Default=0], 单位：G，有人机取值范围：[-1,1]，无人机取值范围：[-2,2]
+    double CmdAccMag = 5;
+
+    // ["指令过载", Default=0], 单位：G，有人机取值范围：[-6,6]，无人机取值范围：[-12,12]
+    double CmdG = 6;
+}
+
+
+// 打击目标
+message CmdAttack {
+    int32 HandleID = 1;
+    int32 Receiver = 2;
+
+    // ["目标ID", Default = 0]
+    uint32 TgtID = 3;
+
+    // ["开火范围", Default = 0], 开火范围，最大探测范围的百分比，取值范围[0, 1]
+    double Range = 4;
+}

@@ -30,6 +30,8 @@ Unpredictable errors may occur if you decide to use ```-p``` parameter to mount 
 
 Finally check docker status with ```docker ps```, should be seeing a container named ```hmp``` at running state.
 
+
+
 # Get inside HMP container via SSH
 ```
 $ docker exec -it hmp-$USER service ssh start
@@ -109,6 +111,19 @@ After getting ```inside``` the HMP container:
 # run experiment 
 (hmp-container)$ python main.py --cfg ./example.jsonc
 ```
+
+# Docker in Docker
+
+If you want to play ```docker in docker```, please mount ```/var/run/docker.sock```:
+```bash
+docker run -itd   --name  hmp-$USER \
+--volume /var/run/docker.sock:/var/run/docker.sock \
+--net host \
+--gpus all \
+--shm-size=16G \
+fuqingxu/hmp:latest
+```
+
 <!-- ```
 git clone git@gitee.com:hh505030475/hmp-2g.git
 ``` -->

@@ -10,6 +10,7 @@ import_path_ref = {
     "sr_tasks->hunter_invader": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader",       'ScenarioConfig'),
     "sr_tasks->hunter_invader3d": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d",   'ScenarioConfig'),
     "sr_tasks->hunter_invader3d_v2": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d_v2",'ScenarioConfig'),
+    "bvr": ("MISSIONS.bvr_sim.init_env",                                                        'ScenarioConfig'),
 }
 
 env_init_function_ref = {
@@ -21,12 +22,14 @@ env_init_function_ref = {
     "sc2": ("MISSIONS.starcraft.sc2_env_wrapper",                                               'make_sc2_env'),
     "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'make_env'),
     "sr_tasks": ("MISSIONS.sr_tasks.multiagent.scenario",                                       'sr_tasks_env'),
+    "bvr": ("MISSIONS.bvr_sim.init_env",                                                        'make_bvr_env'),
 }
 
 ##################################################################################################################################
 ##################################################################################################################################
 from config import GlobalConfig
-import importlib
+import importlib, os
+from UTILS.colorful import print亮蓝
 def make_parallel_envs(process_pool, marker=''):
     from UTILS.shm_env import SuperpoolEnv
     from config import GlobalConfig
@@ -45,6 +48,18 @@ def make_parallel_envs(process_pool, marker=''):
         # 艹tmd有个dll必须在主进程加载
         from MISSIONS.air_fight.environment.pytransform import pyarmor_runtime
         pyarmor_runtime()
+
+    if GlobalConfig.env_name == 'bvr':
+        # 1、如果没用hmp的docker，请设置好 YOUR_ROOT_PASSWORD，不止这一处，请全局搜索"YOUR_ROOT_PASSWORD"替换所有
+        # 2、用docker的sock挂载到容器中，方法在SetupDocker.md中
+        print亮蓝('[env_router]: here goes the docker in docker check.')
+        YOUR_ROOT_PASSWORD = 'hmp'  # the sudo password
+        os.system("echo %s|sudo -S date"%YOUR_ROOT_PASSWORD) # get sudo power
+        res = os.popen("sudo docker ps").read()
+        if "CONTAINER ID" not in res:
+            print亮蓝('[env_router]: Error checking docker in docker, can not control host docker interface!')
+            raise "Error checking docker in docker, can not control host docker interface!"
+        pass
 
     if GlobalConfig.num_threads > 1:
         envs = SuperpoolEnv(process_pool, env_args_dict_list)

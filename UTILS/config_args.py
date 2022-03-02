@@ -30,7 +30,9 @@ def override_config_file(cfg_group, new_cfg, vb):
     str_pro = '------------- %s -------------'%cfg_group
     if vb:  print绿(str_pro)
     file_, class_ = cfg_group.split('->')
-    if '.py' in file_: file_ = file_.rstrip('.py')
+    if '.py' in file_: 
+        # replace it with removesuffix('.py') if you have python>=3.9
+        if file_.endswith('.py'): file_ = file_[:-3]    
     default_configs = getattr(importlib.import_module(file_), class_)
     for key in new_cfg:
         if new_cfg[key] is None: continue

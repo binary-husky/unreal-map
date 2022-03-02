@@ -42,7 +42,19 @@ var rayParams_beam = {
     roughness: 0,
     straightness: 1.0
 };
-
+Array.prototype.indexOf = function(val) {
+    for (var i = 0; i < this.length; i++) {
+        if (this[i] == val) return i;
+    }
+    return -1;
+};
+    
+Array.prototype.remove = function(val) {
+    var index = this.indexOf(val);
+    if (index > -1) {
+        this.splice(index, 1);
+    }
+};
 function parse_update_env(buf_str) {
     let each_line = buf_str.split('\n')
     for (let i = 0; i < each_line.length; i++) {
@@ -66,6 +78,10 @@ function parse_init(buf_str) {
         if(str.search(">>advanced_geometry_rotate_scale_translate") != -1){
             parse_advanced_geometry(str)
         }
+        if(str.search(">>advanced_geometry_material") != -1){
+            parse_advanced_geometry_material(str)
+        }
+        
     }
 }
 
@@ -135,15 +151,43 @@ function parse_env(str){
         }
         
     }
-    if(style=="clear_all"){
-        if (!init_terrain){
-        }else{
+    if(style=="clear_everything"){
+        // remove terrain surface
+        if (init_terrain){
             window.glb.scene.remove(window.glb.terrain_mesh);
         }
+
+        // 清除历史轨迹
+        for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
+            if (window.glb.core_Obj[i].track_init){
+                window.glb.scene.remove(window.glb.core_Obj[i].track_his.mesh);
+                window.glb.core_Obj[i].track_his = null;
+                window.glb.core_Obj[i].track_init = false;
+            }
+        }
+
+        // remove all objects
         for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
             window.glb.scene.remove(window.glb.core_Obj[i]);
             window.glb.core_Obj.pop();
         }
+        // clear flash
+        for (let i = window.glb.flash_Obj.length-1; i>=0; i--) {
+            window.glb.flash_Obj[i]['valid'] = false;
+            window.glb.scene.remove(window.glb.flash_Obj[i]['mesh']);
+        }
+        // line 3d
+        for (let i = window.glb.line_Obj.length-1; i>=0; i--) {
+            window.glb.line_Obj[i]['valid'] = false;
+            window.glb.scene.remove(window.glb.line_Obj[i]['mesh']);
+        }
+        // sprite text
+        for (let i = window.glb.text_Obj.length-1; i>=0 ; i--) {
+            // window.glb.scene.remove(window.glb.text_Obj[i]);
+            window.glb.text_Obj.pop();
+        }
+        
+
     }
     if(style=="clear_track"){
         for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
@@ -210,7 +254,27 @@ function parse_style(str){
                 x = THREE.MathUtils.randFloatSpread( 2000 );
                 y = THREE.MathUtils.randFloatSpread( 2000 );
                 z = THREE.MathUtils.randFloatSpread( 2000 );
-                if ((x*x+y*y+z*z)>20000){break;}
+                if ((x*x+y*y+z*z)>20000){break;} // not too close to the center
+            }
+            vertices.push( x ); // x
+            vertices.push( y ); // y
+            vertices.push( z ); // z
+        }
+        geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+        const particles = new THREE.Points( geometry, new THREE.PointsMaterial( { color: 0x888888 } ) );
+        window.glb.scene.add( particles );
+    }else if(style=='many star'){
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        for ( let i = 0; i < 50000; i ++ ) {
+            let x;
+            let y;
+            let z;
+            while (true){
+                x = THREE.MathUtils.randFloatSpread( 20000 );
+                y = THREE.MathUtils.randFloatSpread( 20000 );
+                z = THREE.MathUtils.randFloatSpread( 20000 );
+                if ((x*x+y*y+z*z)>20000){break;} // not too close to the center
             }
             vertices.push( x ); // x
             vertices.push( y ); // y
@@ -279,7 +343,94 @@ function parse_style(str){
         var mesh	= new THREE.Mesh(geometry, material );
         mesh.scale.multiplyScalar(1.15);
         containerEarth.add( mesh );
-        window.glb.renderer.shadowMapEnabled	= true
+        window.glb.renderer.shadowMapEnabled = true
+    }else if(style=="font"){
+        let fontPath = match_karg(str, 'fontPath', 'str', null)
+        let fontLineHeight = match_karg(str, 'fontLineHeight', 'int', null)
+        if (fontPath){
+            const loader = new window.glb.import_TTFLoader();
+            loader.load( fontPath, function ( json ) {
+                window.glb.font = new window.glb.import_Font( json );
+                if (fontLineHeight){window.glb.font.data.defLineHeight = fontLineHeight}
+            } );
+        }
+    }else if(style=="sky"){
+        async function loadsky() {
+            let SkyMod = await import('./jsm/objects/Sky.js');
+            const effectController = {
+                turbidity: 10,
+                rayleigh: 3,
+                mieCoefficient: 0.005,
+                mieDirectionalG: 0.7,
+                elevation: 2,
+                azimuth: 180,
+                exposure: window.glb.renderer.toneMappingExposure
+            };
+            sky = new SkyMod.Sky();
+            sky.scale.setScalar( 450000 );
+            window.glb.scene.add( sky );
+            sun = new THREE.Vector3();
+            const uniforms = sky.material.uniforms;
+            uniforms[ 'turbidity' ].value = effectController.turbidity;
+            uniforms[ 'rayleigh' ].value = effectController.rayleigh;
+            uniforms[ 'mieCoefficient' ].value = effectController.mieCoefficient;
+            uniforms[ 'mieDirectionalG' ].value = effectController.mieDirectionalG;
+            const phi = THREE.MathUtils.degToRad( 90 - effectController.elevation );
+            const theta = THREE.MathUtils.degToRad( effectController.azimuth );
+            sun.setFromSphericalCoords( 1, phi, theta );
+            uniforms[ 'sunPosition' ].value.copy( sun );
+            window.glb.renderer.toneMappingExposure = effectController.exposure;
+        }
+        loadsky()
+
+    }else if(style=="skybox"){
+        async function loadskybox() {
+            const textureLoader = new THREE.TextureLoader();
+            let skyboxPath = match_karg(str, 'path', 'str', null)
+            if(skyboxPath){
+                textureEquirec = textureLoader.load( skyboxPath );
+                textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
+                textureEquirec.encoding = THREE.sRGBEncoding;
+                window.glb.scene.background = textureEquirec;
+                const ambient = new THREE.AmbientLight( 0xffffff );
+				window.glb.scene.add( ambient );
+                window.glb.renderer.outputEncoding = THREE.sRGBEncoding;
+            }else{
+                alert('Skybox path not given! Please use path=xxxx !')
+            }
+        }
+        loadskybox()
+
+    }else if(style=="skybox6side"){
+        async function loadskybox6side() {
+            const loader = new THREE.CubeTextureLoader();
+            // const textureLoader = new THREE.TextureLoader();
+            let posx = match_karg(str, 'posx', 'str', null)
+            let negx = match_karg(str, 'negx', 'str', null)
+            let posy = match_karg(str, 'posy', 'str', null)
+            let negy = match_karg(str, 'negy', 'str', null)
+            let posz = match_karg(str, 'posz', 'str', null)
+            let negz = match_karg(str, 'negz', 'str', null)
+            if(posx){
+                
+                let textureCube = loader.load( [ posx, negx, posy, negy, posz, negz ] );
+                textureCube.encoding = THREE.sRGBEncoding;
+
+                
+
+                window.glb.scene.background = textureCube;
+                const ambient = new THREE.AmbientLight( 0xffffff );
+				window.glb.scene.add( ambient );
+                window.glb.renderer.outputEncoding = THREE.sRGBEncoding;
+            }else{
+                alert('Skybox path not given! Please use path=xxxx !')
+            }
+        }
+        loadskybox6side()
+
+    }
+    else{
+        alert('style not understood:'+str)
     }
 }
 
@@ -291,8 +442,10 @@ function geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, tr
     geometry.translate(trans_x, trans_y, trans_z)
     return geometry
 }
+
 function parse_advanced_geometry(str){
-    const pattern = />>advanced_geometry_rotate_scale_translate\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
+    const pattern = get_reg_exp(">>advanced_geometry_rotate_scale_translate\\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\\)")
+    // const pattern = />>advanced_geometry_rotate_scale_translate\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
     let match_res = str.match(pattern)
     let name = match_res[1]
     let build_cmd = match_res[2]
@@ -316,14 +469,54 @@ function parse_advanced_geometry(str){
 
     // load geo
     window.glb.base_geometry[name] = null;
-    // very basic shapes
-    window.glb.base_geometry[name] = eval('new THREE.'+build_cmd)
-    window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
+    if(build_cmd.includes('fbx=')){
+        let each_part = build_cmd.split('=')
+        let path_of_fbx_file = each_part[1]
+        const loader = new window.glb.import_FBXLoader();
+        loader.load(path_of_fbx_file, function ( object ) {
+            window.glb.base_geometry[name] = object.children[0].geometry;
+            // window.glb.base_geometry[name] = object.mesh;
+            window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
+        });
+
+        // path_of_fbx_file = window.glb.import_FBXLoader()
+        // window.glb.base_geometry[name] = eval('new THREE.'+build_cmd)
+        // window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
+    }else{
+        // very basic shapes
+        window.glb.base_geometry[name] = eval('new THREE.'+build_cmd)
+        window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
+    }
 }
 
+function parse_advanced_geometry_material(str){
+    const pattern = get_reg_exp(">>advanced_geometry_material\\('(.*?)'")
+    // const pattern = />>advanced_geometry_material\('(.*?)'/
+    let match_res = str.match(pattern)
+    let name = match_res[1]
+    if (!window.glb.base_geometry[name]){
+        alert('[advanced_geometry_material]: Missing the geometry of '+name)
+    }
+    window.glb.base_material[name] = null;
+    kargs = {}
+    let map = match_karg(str, 'map', 'str', null)
+    let bumpMap = match_karg(str, 'bumpMap', 'str', null)
+    let bumpScale = match_karg(str, 'bumpScale', 'float', null)
+    let specularMap = match_karg(str, 'specularMap', 'str', null)
+    let specular = match_karg(str, 'specular', 'str', null)
+
+    if (map){kargs['map'] = THREE.ImageUtils.loadTexture(map)}
+    if (bumpMap){kargs['bumpMap'] = THREE.ImageUtils.loadTexture(bumpMap)}
+    if (bumpScale){kargs['bumpScale'] = bumpScale}
+    if (specularMap){kargs['specularMap'] = THREE.ImageUtils.loadTexture(specularMap)}
+    if (specular){kargs['specular'] = new THREE.Color(specular)}
+
+    window.glb.base_material[name] = new THREE.MeshPhongMaterial(kargs)
+
+}
 
 function parse_geometry(str){
-    const pattern = />>geometry_rotate_scale_translate\('(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
+    const pattern = get_reg_exp(">>geometry_rotate_scale_translate\\('(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\\)")
     let match_res = str.match(pattern)
     let name = match_res[1]
     let ro_x = parseFloat(match_res[2])
@@ -343,7 +536,6 @@ function parse_geometry(str){
     let trans_y = parseFloat(match_res[10])
     // z --> y, y --- z reverse z axis and y axis
     let trans_z = -parseFloat(match_res[9])
-
 
     let lib = {
         'monkey':'examples/models/json/suzanne_buffergeometry.json'
@@ -402,20 +594,50 @@ function parse_update_flash(buf_str) {
     }
 }
 
+var reg_exp = {}
+function get_reg_exp(exp){
+    if(!reg_exp[exp]){
+        reg_exp[exp] = new RegExp(exp);
+    }
+    return reg_exp[exp];
+}
+
 function match_karg(str, key, type, defaultValue){
     let res = null;
     if (type=='float'){
-        
-        let _RE = str.match(new RegExp(key + "=([^,)]*)"));
+        let reg_exp = get_reg_exp(key + "=([^,)]*)");
+        // let reg_exp = new RegExp(key + "=([^,)]*)")
+        let _RE = str.match(reg_exp);
         res = (!(_RE === null))?parseFloat(_RE[1]):defaultValue;
     }
     if (type=='int'){
-        let _RE = str.match(new RegExp(key + "=([^,)]*)"));
+        let reg_exp = get_reg_exp(key + "=([^,)]*)");
+        // let reg_exp = new RegExp(key + "=([^,)]*)");
+        let _RE = str.match(reg_exp);
         res = (!(_RE === null))?parseInt(_RE[1]):defaultValue;
     }
     if (type=='str'){
-        let _RE = str.match(new RegExp(key + "='(.*?)'"));
+        let reg_exp = get_reg_exp(key + "='(.*?)'");
+        // let reg_exp = new RegExp(key + "='(.*?)'");
+        let _RE = str.match(reg_exp);
         res = (!(_RE === null))?_RE[1]:defaultValue;
+        if (!(_RE === null)){
+            res = res.replace(/\$/g,"\n");
+            // res = res.replace("$", "\n"); 不能用replace，replace只能替换一次
+        }
+    }
+    if (type=='arr_float'){
+        let reg_exp = get_reg_exp(key + "=\\[(.*?)\\]");
+        // let reg_exp = new RegExp(key + "=\\[(.*?)\\]");
+        let _RE = str.match(reg_exp);
+        if (_RE === null){
+            res = defaultValue;
+        }else{
+            res = _RE[1].split(',');
+            for (i=0; i<res.length; i++){
+                res[i] = parseFloat(res[i]);
+            }
+        }
     }
     return res
 }
@@ -431,26 +653,13 @@ function parse_line(str){
     let color_str = name_split[2]   //Violet
     let size = parseFloat(name_split[3]) //0.010
 
-    // x_arr
-    let re_res = str.match(/x_arr=\[(.*?)\]/)
-    let x_arr = re_res[1].split(',')
-    for (i=0; i<x_arr.length; i++){
-        x_arr[i] = parseFloat(x_arr[i])
-    }
 
-    // y_arr
-    re_res = str.match(/z_arr=\[(.*?)\]/)
-    let y_arr = re_res[1].split(',')
-    for (i=0; i<y_arr.length; i++){
-        y_arr[i] = parseFloat(y_arr[i])
-    }
+    let x_arr = match_karg(str, 'x_arr', 'arr_float', null)
+    let y_arr = match_karg(str, 'z_arr', 'arr_float', null)
+    let z_arr = match_karg(str, 'y_arr', 'arr_float', null) 
+    if(!x_arr || !y_arr || !z_arr){alert('Cannot parse line3d, x/y/z_arr missing:', str)}
+    for (i=0; i<z_arr.length; i++){z_arr[i] = -z_arr[i]}
 
-    // z_arr
-    re_res = str.match(/y_arr=\[(.*?)\]/)
-    let z_arr = re_res[1].split(',')
-    for (i=0; i<z_arr.length; i++){
-        z_arr[i] = -parseFloat(z_arr[i])
-    }
 
     // find core obj by my_id
     let object = find_lineobj_by_id(my_id)
@@ -486,6 +695,22 @@ function find_lineobj_by_id(my_id){
     for (let i = 0; i < window.glb.line_Obj.length; i++) {
         if (window.glb.line_Obj[i].my_id == my_id) {
             return window.glb.line_Obj[i];
+        }
+    }
+    return null
+}
+function find_text_by_id(my_id){
+    for (let i = 0; i < window.glb.text_Obj.length; i++) {
+        if (window.glb.text_Obj[i].my_id == my_id) {
+            return window.glb.text_Obj[i];
+        }
+    }
+    return null
+}
+function find_obj_by_id(my_id){
+    for (let i = 0; i < window.glb.core_Obj.length; i++) {
+        if (window.glb.core_Obj[i].my_id == my_id) {
+            return window.glb.core_Obj[i];
         }
     }
     return null
@@ -678,11 +903,13 @@ function parse_flash(str){
 function make_flash(type, src, dst, dur, size, color){
     if (type=='lightning'){
         let rayParams_new = Object.create(rayParams_lightning);
-        rayParams_new.sourceOffset =  find_obj_by_id(src).position;
-        rayParams_new.destOffset =    find_obj_by_id(dst).position;
+        let src_obj = find_obj_by_id(src); if (!src_obj){return};
+        let dst_obj = find_obj_by_id(dst); if (!dst_obj){return};
+        rayParams_new.sourceOffset =  src_obj.position;
+        rayParams_new.destOffset =    dst_obj.position;
         rayParams_new.radius0 = size
         rayParams_new.radius1 = size/4.0
-        if (isNaN(find_obj_by_id(src).position.x) || isNaN(find_obj_by_id(src).position.y)){return}
+        if (isNaN(src_obj.position.x) || isNaN(src_obj.position.y)){return}
         // let lightningColor = new THREE.Color( 0xFFB0FF );
         let lightningStrike = new window.glb.import_LightningStrike( rayParams_new );
         let lightningMaterial = new THREE.MeshBasicMaterial( { color: color } );
@@ -697,11 +924,13 @@ function make_flash(type, src, dst, dur, size, color){
         })
     }else if (type=='beam'){
         let rayParams_new = Object.create(rayParams_beam);
-        rayParams_new.sourceOffset =  find_obj_by_id(src).position;
-        rayParams_new.destOffset =    find_obj_by_id(dst).position;
+        let src_obj = find_obj_by_id(src); if (!src_obj){return};
+        let dst_obj = find_obj_by_id(dst); if (!dst_obj){return};
+        rayParams_new.sourceOffset =  src_obj.position;
+        rayParams_new.destOffset =    dst_obj.position;
         rayParams_new.radius0 = size
         rayParams_new.radius1 = size/4.0
-        if (isNaN(find_obj_by_id(src).position.x) || isNaN(find_obj_by_id(src).position.y)){return}
+        if (isNaN(src_obj.position.x) || isNaN(src_obj.position.y)){return}
         // let lightningColor = new THREE.Color( 0xFFB0FF );
         let lightningStrike = new window.glb.import_LightningStrike( rayParams_new );
         let lightningMaterial = new THREE.MeshBasicMaterial( { color: color } );
@@ -717,27 +946,20 @@ function make_flash(type, src, dst, dur, size, color){
     }
 }
 function parse_core_obj(str, parsed_frame){
-    // ">>v2dx(x, y, dir, xxx)"
-    // each_line[i].replace('>>v2dx(')
-    // ">>v2dx('ball|8|blue|0.05',1.98948879e+00,-3.15929300e+00,-4.37260984e-01,ro_x=0,ro_y=0,ro_z=2.10134351e+00,label='',label_color='white',attack_range=0)"
-    const pattern = />>v2dx\('(.*?)',([^,]*),([^,]*),([^,]*),(.*)\)/
+    
+    const pattern = get_reg_exp(">>v2dx\\('(.*?)',([^,]*),([^,]*),([^,]*),(.*)\\)")
     let match_res = str.match(pattern)
     let name = match_res[1]
 
+    // z --> y, y --- z reverse z axis and y axis
     let pos_x = parseFloat(match_res[2])
-    // z --> y, y --- z reverse z axis and y axis
     let pos_y = parseFloat(match_res[4])
-    // z --> y, y --- z reverse z axis and y axis
     let pos_z = -parseFloat(match_res[3])
 
-    let ro_x_RE = str.match(/ro_x=([^,)]*)/);
-    let ro_x = (!(ro_x_RE === null))?parseFloat(ro_x_RE[1]):0;
     // z --> y, y --- z reverse z axis and y axis
-    let ro_z_RE = str.match(/ro_z=([^,)]*)/);
-    let ro_y = (!(ro_z_RE === null))?parseFloat(ro_z_RE[1]):0;
-    // z --> y, y --- z reverse z axis and y axis
-    let ro_y_RE = str.match(/ro_y=([^,)]*)/);
-    let ro_z = (!(ro_y_RE === null))?-parseFloat(ro_y_RE[1]):0;
+    let ro_x = match_karg(str, 'ro_x', 'float', 0)
+    let ro_y = match_karg(str, 'ro_z', 'float', 0)
+    let ro_z = -match_karg(str, 'ro_y', 'float', 0)
 
     // pattern.test(str)
     let name_split = name.split('|')
@@ -747,21 +969,10 @@ function parse_core_obj(str, parsed_frame){
     let size = parseFloat(name_split[3])
     let label_marking = `id ${my_id}`
     let label_color = "black"
-    // find hp 
-    const hp_pattern = /health=([^,)]*)/
-    let hp_match_res = str.match(hp_pattern)
-    if (!(hp_match_res === null)){
-        let hp = parseFloat(hp_match_res[1])
-        if (Number(hp) === hp && hp % 1 === 0){
-            // is an int
-            hp = Number(hp);
-        }
-        else{
-            hp = hp.toFixed(2);
-        }
-        label_marking = `HP ${hp}`
-    }
-
+    
+    let ro_order = match_karg(str, 'ro_order', 'str', 'XYZ')
+    // swap Y and Z, e.g. 'XYZ' -> 'XZY'
+    ro_order = ro_order.replace('Y','T');ro_order = ro_order.replace('Z','Y');ro_order = ro_order.replace('T','Z');
 
     let object = find_obj_by_id(my_id)
     let parsed_obj_info = {} 
@@ -780,20 +991,17 @@ function parse_core_obj(str, parsed_frame){
     parsed_obj_info['size'] = size  
     parsed_obj_info['label_marking'] = match_karg(str, 'label', 'str', `id ${my_id}`)
     parsed_obj_info['label_color'] = match_karg(str, 'label_color', 'str', 'black')
+    parsed_obj_info['label_size'] = match_karg(str, 'label_size', 'float', null)
+    parsed_obj_info['label_offset'] = match_karg(str, 'label_offset', 'arr_float', null)
+    parsed_obj_info['label_opacity'] = match_karg(str, 'label_opacity', 'float', 1)
     parsed_obj_info['opacity'] = match_karg(str, 'opacity', 'float', 1)
     parsed_obj_info['track_n_frame'] = match_karg(str, 'track_n_frame', 'int', 0)
+    parsed_obj_info['renderOrder'] = match_karg(str, 'renderOrder', 'int', 0)
     parsed_obj_info['track_tension'] = match_karg(str, 'track_tension', 'float', 0)
     parsed_obj_info['track_color'] = match_karg(str, 'track_color', 'str', color_str)
+    parsed_obj_info['ro_order'] = ro_order
     
     apply_update(object, parsed_obj_info)
     parsed_frame.push(parsed_obj_info)
 }
 
-function find_obj_by_id(my_id){
-    for (let i = 0; i < window.glb.core_Obj.length; i++) {
-        if (window.glb.core_Obj[i].my_id == my_id) {
-            return window.glb.core_Obj[i];
-        }
-    }
-    return null
-}
