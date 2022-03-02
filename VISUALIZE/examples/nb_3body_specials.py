@@ -28,9 +28,9 @@ def run():
     )
 
 
-    # (1) download image of a sun, you can do it manually
-    if not os.path.exists("./VISUALIZE/threejsmod/wget/sun_bg.jpg"):
-        os.system('cd ./VISUALIZE/threejsmod/wget && wget https://raw.githubusercontent.com/iWun/solar-system/master/img/sun_bg.jpg')
+    # # (1) download image of a sun, you can do it manually
+    # if not os.path.exists("./VISUALIZE/threejsmod/wget/sun_bg.jpg"):
+    #     os.system('cd ./VISUALIZE/threejsmod/wget && wget https://raw.githubusercontent.com/iWun/solar-system/master/img/sun_bg.jpg')
     # (2) declear geo
     可视化桥.其他几何体之旋转缩放和平移('sun', 'SphereGeometry(1)',   0,0,0,  1,1,1, 0,0,0) # 球体   
     # (3) declear material, only optional
