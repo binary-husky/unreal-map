@@ -159,8 +159,11 @@ function parse_env(str){
 
         // 清除历史轨迹
         for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
-            window.glb.scene.remove(window.glb.core_Obj[i].track_his.mesh);
-            window.glb.core_Obj[i].track_his = null
+            if (window.glb.core_Obj[i].track_init){
+                window.glb.scene.remove(window.glb.core_Obj[i].track_his.mesh);
+                window.glb.core_Obj[i].track_his = null;
+                window.glb.core_Obj[i].track_init = false;
+            }
         }
 
         // remove all objects
@@ -175,7 +178,7 @@ function parse_env(str){
         }
         // line 3d
         for (let i = window.glb.line_Obj.length-1; i>=0; i--) {
-            window.glb.flash_Obj[i]['valid'] = false;
+            window.glb.line_Obj[i]['valid'] = false;
             window.glb.scene.remove(window.glb.line_Obj[i]['mesh']);
         }
         // sprite text
@@ -351,6 +354,80 @@ function parse_style(str){
                 if (fontLineHeight){window.glb.font.data.defLineHeight = fontLineHeight}
             } );
         }
+    }else if(style=="sky"){
+        async function loadsky() {
+            let SkyMod = await import('./jsm/objects/Sky.js');
+            const effectController = {
+                turbidity: 10,
+                rayleigh: 3,
+                mieCoefficient: 0.005,
+                mieDirectionalG: 0.7,
+                elevation: 2,
+                azimuth: 180,
+                exposure: window.glb.renderer.toneMappingExposure
+            };
+            sky = new SkyMod.Sky();
+            sky.scale.setScalar( 450000 );
+            window.glb.scene.add( sky );
+            sun = new THREE.Vector3();
+            const uniforms = sky.material.uniforms;
+            uniforms[ 'turbidity' ].value = effectController.turbidity;
+            uniforms[ 'rayleigh' ].value = effectController.rayleigh;
+            uniforms[ 'mieCoefficient' ].value = effectController.mieCoefficient;
+            uniforms[ 'mieDirectionalG' ].value = effectController.mieDirectionalG;
+            const phi = THREE.MathUtils.degToRad( 90 - effectController.elevation );
+            const theta = THREE.MathUtils.degToRad( effectController.azimuth );
+            sun.setFromSphericalCoords( 1, phi, theta );
+            uniforms[ 'sunPosition' ].value.copy( sun );
+            window.glb.renderer.toneMappingExposure = effectController.exposure;
+        }
+        loadsky()
+
+    }else if(style=="skybox"){
+        async function loadskybox() {
+            const textureLoader = new THREE.TextureLoader();
+            let skyboxPath = match_karg(str, 'path', 'str', null)
+            if(skyboxPath){
+                textureEquirec = textureLoader.load( skyboxPath );
+                textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
+                textureEquirec.encoding = THREE.sRGBEncoding;
+                window.glb.scene.background = textureEquirec;
+                const ambient = new THREE.AmbientLight( 0xffffff );
+				window.glb.scene.add( ambient );
+                window.glb.renderer.outputEncoding = THREE.sRGBEncoding;
+            }else{
+                alert('Skybox path not given! Please use path=xxxx !')
+            }
+        }
+        loadskybox()
+
+    }else if(style=="skybox6side"){
+        async function loadskybox6side() {
+            const loader = new THREE.CubeTextureLoader();
+            // const textureLoader = new THREE.TextureLoader();
+            let posx = match_karg(str, 'posx', 'str', null)
+            let negx = match_karg(str, 'negx', 'str', null)
+            let posy = match_karg(str, 'posy', 'str', null)
+            let negy = match_karg(str, 'negy', 'str', null)
+            let posz = match_karg(str, 'posz', 'str', null)
+            let negz = match_karg(str, 'negz', 'str', null)
+            if(posx){
+                
+                let textureCube = loader.load( [ posx, negx, posy, negy, posz, negz ] );
+                textureCube.encoding = THREE.sRGBEncoding;
+
+                
+
+                window.glb.scene.background = textureCube;
+                const ambient = new THREE.AmbientLight( 0xffffff );
+				window.glb.scene.add( ambient );
+                window.glb.renderer.outputEncoding = THREE.sRGBEncoding;
+            }else{
+                alert('Skybox path not given! Please use path=xxxx !')
+            }
+        }
+        loadskybox6side()
+
     }
     else{
         alert('style not understood:'+str)
@@ -392,9 +469,24 @@ function parse_advanced_geometry(str){
 
     // load geo
     window.glb.base_geometry[name] = null;
-    // very basic shapes
-    window.glb.base_geometry[name] = eval('new THREE.'+build_cmd)
-    window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
+    if(build_cmd.includes('fbx=')){
+        let each_part = build_cmd.split('=')
+        let path_of_fbx_file = each_part[1]
+        const loader = new window.glb.import_FBXLoader();
+        loader.load(path_of_fbx_file, function ( object ) {
+            window.glb.base_geometry[name] = object.children[0].geometry;
+            // window.glb.base_geometry[name] = object.mesh;
+            window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
+        });
+
+        // path_of_fbx_file = window.glb.import_FBXLoader()
+        // window.glb.base_geometry[name] = eval('new THREE.'+build_cmd)
+        // window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
+    }else{
+        // very basic shapes
+        window.glb.base_geometry[name] = eval('new THREE.'+build_cmd)
+        window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
+    }
 }
 
 function parse_advanced_geometry_material(str){
@@ -877,7 +969,10 @@ function parse_core_obj(str, parsed_frame){
     let size = parseFloat(name_split[3])
     let label_marking = `id ${my_id}`
     let label_color = "black"
-
+    
+    let ro_order = match_karg(str, 'ro_order', 'str', 'XYZ')
+    // swap Y and Z, e.g. 'XYZ' -> 'XZY'
+    ro_order = ro_order.replace('Y','T');ro_order = ro_order.replace('Z','Y');ro_order = ro_order.replace('T','Z');
 
     let object = find_obj_by_id(my_id)
     let parsed_obj_info = {} 
@@ -898,11 +993,13 @@ function parse_core_obj(str, parsed_frame){
     parsed_obj_info['label_color'] = match_karg(str, 'label_color', 'str', 'black')
     parsed_obj_info['label_size'] = match_karg(str, 'label_size', 'float', null)
     parsed_obj_info['label_offset'] = match_karg(str, 'label_offset', 'arr_float', null)
+    parsed_obj_info['label_opacity'] = match_karg(str, 'label_opacity', 'float', 1)
     parsed_obj_info['opacity'] = match_karg(str, 'opacity', 'float', 1)
     parsed_obj_info['track_n_frame'] = match_karg(str, 'track_n_frame', 'int', 0)
     parsed_obj_info['renderOrder'] = match_karg(str, 'renderOrder', 'int', 0)
     parsed_obj_info['track_tension'] = match_karg(str, 'track_tension', 'float', 0)
     parsed_obj_info['track_color'] = match_karg(str, 'track_color', 'str', color_str)
+    parsed_obj_info['ro_order'] = ro_order
     
     apply_update(object, parsed_obj_info)
     parsed_frame.push(parsed_obj_info)

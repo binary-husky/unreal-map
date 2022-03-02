@@ -13,6 +13,7 @@ import { LightningStrike } from '/examples/jsm/geometries/LightningStrike.js';
 import { OrbitControls } from '/examples/jsm/controls/OrbitControls.js';
 import { LineMaterial } from './jsm/lines/LineMaterial.js';
 import { LineGeometry } from './jsm/lines/LineGeometry.js';
+import { FBXLoader } from './jsm/loaders/FBXLoader.js';
 import { Font, FontLoader } from './jsm/loaders/FontLoader.js';
 import { TTFLoader } from './jsm/loaders/TTFLoader.js';
 import { Line2 } from './jsm/lines/Line2.js';
@@ -36,11 +37,11 @@ window.glb.import_Line2 = Line2;
 window.glb.import_Font = Font;
 window.glb.import_FontLoader = FontLoader;
 window.glb.import_TTFLoader = TTFLoader;
+window.glb.import_FBXLoader = FBXLoader;
 window.glb.renderer = null;
 window.glb.controls=null;
 window.glb.controls2=null;
 // var window.glb.scene;
-// 历史轨迹
 window.glb.core_L = [];
 window.glb.parsed_core_L = []
 window.glb.core_Obj = [];

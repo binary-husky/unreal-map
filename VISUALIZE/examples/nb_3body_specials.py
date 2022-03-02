@@ -8,8 +8,24 @@ def run():
     # 可视化界面初始化
     可视化桥 = mcom(path='RECYCLE/v2d_logger/', draw_mode='Threejs')
     可视化桥.初始化3D()
-    可视化桥.设置样式('star')
-    可视化桥.设置样式('many star')
+    # 可视化桥.设置样式('star')
+    # 可视化桥.设置样式('many star')
+
+
+    # from PIL import Image
+    # im = Image.open("./VISUALIZE/threejsmod/wget/mars_textures/mars_posy.jpg")
+    # angle = 180
+    # out = im.rotate(angle)
+    # out.save("./VISUALIZE/threejsmod/wget/mars_textures/mars_posy_fix.jpg")
+    # 可视化桥.设置样式('skybox', path='/wget/shabby.jpg')
+    可视化桥.设置样式('skybox6side', 
+        posx='/wget/mars_textures/mars_posx.jpg',
+        negx='/wget/mars_textures/mars_negx.jpg',
+        posy='/wget/mars_textures/mars_posy.jpg',
+        negy='/wget/mars_textures/mars_negy.jpg',
+        posz='/wget/mars_textures/mars_posz.jpg',
+        negz='/wget/mars_textures/mars_negz.jpg',
+    )
 
 
     # (1) download image of a sun, you can do it manually

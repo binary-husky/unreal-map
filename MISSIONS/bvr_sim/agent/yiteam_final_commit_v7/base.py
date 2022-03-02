@@ -34,6 +34,16 @@ class Special():
     # Dive_Horizental = 10000  # 躲导弹时，下潜点的水平距离
     Dive_Z = 5000
 
+
+
+'''
+    争议参数:
+        Vip.prepare_escape_distance
+        Drone.DeadZooRadarDis = 20e3 ->35e3
+'''
+
+
+
 # 无人机的参量
 class Drone():
     MIN_X = -145e3
@@ -60,7 +70,7 @@ class Drone():
 
     DeadZooRadarHorizon = 12
     DeadZooRadarVertical = 12
-    DeadZooRadarDis = 20e3
+    DeadZooRadarDis = 35e3
 
     prepare_escape_distance = 12e3
     escape_angle = 180
@@ -94,9 +104,9 @@ class Vip():
 
     DeadZooRadarHorizon = 50
     DeadZooRadarVertical = 50
-    DeadZooRadarDis = 20e3
+    DeadZooRadarDis = 35e3
 
-    prepare_escape_distance = 30e3
+    prepare_escape_distance = 40e3
     escape_distance = 1.8e3
 
     Flying_to_distance = 55e3

@@ -127,6 +127,19 @@ from VISUALIZE.mcom import mcom
 可视化桥.设置样式('font', font_path='/examples/fonts/ttf/HGXH_CNKI.TTF') # 注意不可以省略参数键值'font_path=' ！
 # 如果label要使用中文字符，而且需要换行，则还需要额外设置行距 fontLineHeight
 可视化桥.设置样式('font', fontPath='/examples/fonts/ttf/simhei.ttf', fontLineHeight=1500)   
+
+
+可视化桥.设置样式('skybox', path='/wget/shabby.jpg')    # 设置天空盒子，注意不可以省略参数键值'path='
+可视化桥.设置样式('skybox6side',    # 设置天空盒子，注意不可以省略参数键值 !!
+    posx='/wget/mars_textures/mars_posx.jpg',   
+    negx='/wget/mars_textures/mars_negx.jpg',   
+    posy='/wget/mars_textures/mars_posy.jpg',
+    negy='/wget/mars_textures/mars_negy.jpg',
+    posz='/wget/mars_textures/mars_posz.jpg',
+    negz='/wget/mars_textures/mars_negz.jpg',
+)
+
+
 ```
 
 ### 声明几何体
@@ -139,6 +152,8 @@ from VISUALIZE.mcom import mcom
 可视化桥.其他几何体之旋转缩放和平移('ball', 'SphereGeometry(1)',   0,0,0,  1,1,1, 0,0,0) # 球体
 # declare geo 'box'
 可视化桥.其他几何体之旋转缩放和平移('box', 'BoxGeometry(1,1,1)',   0,0,0,  1,1,1, 0,0,0) # 长方体
+# declare geo 'Plane', 使用fbx模型，路径为/VISUALIZE/threejsmod/examples/files/plane.fbx
+可视化桥.其他几何体之旋转缩放和平移('Plane', 'fbx=/examples/files/plane.fbx', -np.pi/2, 0, np.pi/2,  1,1,1, 0,0,0)   # 八面体
 
 ```
 
@@ -150,11 +165,12 @@ x=1; y=2; z=3
     'ball|8848|MidnightBlue|0.5',  # 填入核心参量： “已声明的形状|几何体的唯一ID标识|颜色|整体大小”
     x, y, z,                # 三维位置，3/6dof
     ro_x=0, ro_y=0, ro_z=0, # 欧拉旋转变换，3/6dof
+    # ro_order='XYZ',       # （测试中，勿使用）欧拉旋转顺序，详情见 https://threejs.org/docs/index.html?q=object#api/en/math/Euler
     opacity=1,              # 透明度，1为不透明
     renderOrder=0,          # 渲染顺序。合理使用，能解决透明物体异常遮蔽的情况
     label='',               # 显示标签，空白不显示，用'\n'换行
     label_color='White',    # 标签颜色
-    # label_offset=np.array([0,2,2]), # 标签与物体之间的相对位置，实验选项，不建议手动指定
+    # label_offset=np.array([0,2,2]), # 标签与物体之间的相对位置，实验选项，测试中，勿使用
     # label_size=0.5, # 测试中，勿使用
     track_n_frame=3,        # 是否显示轨迹（0代表否），轨迹由最新的track_n_frame次位置连接而成
     track_tension=0.1,      # 轨迹曲线的平滑度，0为不平滑，推荐设置0不平滑

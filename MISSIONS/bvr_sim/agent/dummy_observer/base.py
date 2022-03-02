@@ -10,11 +10,7 @@ import numpy as np
 import time
 from .tools import distance_matrix
 
-'''
-    y     [-150000, +150000]
-    red_x [-150000, -125000]
-    blue_x [125000,  150000]
-'''
+
 # 定义了地图中一些特殊点和量
 class Special():
     NE = np.array([125000, 125000])
@@ -137,7 +133,7 @@ class Plane(object):
                 setattr(self, key, getattr(Ability, key))
         self.pos3d = np.array([self.X, self.Y, self.Alt], dtype=float)
         self.pos2d = np.array([self.X, self.Y], dtype=float)
-        self.h_angle = 90-self.Heading*180/np.pi
+        self.h_angle = 90-self.Heading*180/np.pi    # np.pi/2 - self.heading
 
         if init and ('LeftWeapon' not in data):
             self.OpLeftWeapon = 4 if self.is_vip else 2
@@ -770,21 +766,7 @@ class Baseclass(Agent):
 
     def check_and_make_linepatrolparam(self, receiver, coord_list, cmd_speed, cmd_accmag, cmd_g, force_old_way=False):
         host = self.find_plane_by_id(receiver)
-        '''
-        for point in coord_list:
-            if point['X'] > host.MAX_X:
-                point['X'] = host.MAX_X          #; ## print红('if point[X] > host.MAX_X: point[X] = host.MAX_X;')
-            if point['X'] < host.MIN_X:
-                point['X'] = host.MIN_X          #; ## print红('if point[X] < host.MIN_X: point[X] = host.MIN_X;')
-            if point['Y'] > host.MAX_Y: 
-                point['Y'] = host.MAX_Y          #; ## print红('if point[Y] > host.MAX_Y: point[Y] = host.MAX_Y;')
-            if point['Y'] < host.MIN_Y: 
-                point['Y'] = host.MIN_Y          #; ## print红('if point[Y] < host.MIN_Y: point[Y] = host.MIN_Y;')
-            if point['Z'] < host.MinHeight: 
-                point['Z'] = host.MinHeight      #; ### print红('if point[Z] < host.MinHeight: point[Z] = host.MinHeight;')
-            if point['Z'] > host.MaxHeight: 
-                point['Z'] = host.MaxHeight      #; ### print红('if point[Z] > host.MaxHeight: point[Z] = host.MaxHeight;')
-        '''
+ 
         def old_way(point):
             if point['X'] > host.MAX_X:
                 point['X'] = host.MAX_X          #; ## print红('if point[X] > host.MAX_X: point[X] = host.MAX_X;')

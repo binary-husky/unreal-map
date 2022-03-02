@@ -20,12 +20,12 @@ function makeClearText(object, text, textcolor, HWRatio=10){
     sprite.renderOrder = 128
     object.add(sprite)
 }
-function makeClearText_new(object, text, textcolor, text_size=null){
+function makeClearText_new(object, text, textcolor, text_size=null, label_opacity){
     const matLite = new THREE.MeshBasicMaterial( {
         color: textcolor,
-        transparent: false,
+        transparent: (label_opacity!=1),
         // transparent: (parsed_obj_info['opacity']==1)?false:true,
-        opacity: 1,
+        opacity: label_opacity,
         // opacity: parsed_obj_info['opacity'],
         side: THREE.DoubleSide
     });
@@ -52,16 +52,16 @@ function makeClearText_new(object, text, textcolor, text_size=null){
     text_object.renderOrder = 128
 
 
-    text_object.update_text = function(object, text, textcolor, text_size=null){
+    text_object.update_text = function(object, text, textcolor, text_size=null, label_opacity){
         let font_size = (text_size==null)?object.generalSize/1.5:text_size/1.5
         text_object.geometry = new THREE.ShapeGeometry(
             window.glb.font.generateShapes( text, font_size)
         );
         text_object.material = new THREE.MeshBasicMaterial( {
             color: textcolor,
-            transparent: false,
+            transparent: (label_opacity!=1),
             // transparent: (parsed_obj_info['opacity']==1)?false:true,
-            opacity: 1,
+            opacity: label_opacity,
             // opacity: parsed_obj_info['opacity'],
             side: THREE.DoubleSide
         });
@@ -103,6 +103,8 @@ function addCoreObj(my_id, color_str, geometry, material, x, y, z, ro_x, ro_y, r
     object.rotation.x = ro_x;  
     object.rotation.y = ro_y;  
     object.rotation.z = ro_z;  
+    object.rotation.reorder(parsed_obj_info['ro_order']);
+
     object.next_ro = {x:ro_x, y:ro_y, z:ro_z};
     object.prev_ro = {x:ro_x, y:ro_y, z:ro_z};
 
@@ -141,7 +143,7 @@ function addCoreObj(my_id, color_str, geometry, material, x, y, z, ro_x, ro_y, r
     }
     if (label_marking){
         // makeClearText(object, object.label_marking, object.label_color)
-        makeClearText_new(object, object.label_marking, object.label_color, parsed_obj_info['label_size'])
+        makeClearText_new(object, object.label_marking, object.label_color, parsed_obj_info['label_size'], parsed_obj_info['label_opacity'])
     }
     // 初始化历史轨迹
     object.his_positions = [];
@@ -193,6 +195,15 @@ function init_cam(){
     window.glb.camera2.position.set(x, h*100, z)
 }
 
+function load_and_compare_prev(object, parsed_obj_info, attribute){
+    // this function can only be executed once each update for each attribute!
+    if (!object.prev){object.prev={};}
+    if (!object.changed){object.changed={};}
+
+    object.changed[attribute] = (object.prev[attribute] != parsed_obj_info[attribute])
+    object.prev[attribute] = parsed_obj_info[attribute]
+}
+
 //将parsed_obj_info中的位置、旋转、大小、文本、颜色等等变化应用
 function apply_update(object, parsed_obj_info){
     let name = parsed_obj_info['name']
@@ -214,13 +225,17 @@ function apply_update(object, parsed_obj_info){
     let track_n_frame = parsed_obj_info['track_n_frame']
     let track_tension = parsed_obj_info['track_tension']
     let track_color = parsed_obj_info['track_color']
+
+
+
     // 已经创建了对象,setfuture
     if (object) {
         if (!init_cam_f2){
             init_cam_f2 = true;
             init_cam()
         }
-        
+
+
         // roll previous
         object.prev_pos.copy(object.next_pos); //  Object.assign({}, object.next_pos); 
         // load next
@@ -247,19 +262,22 @@ function apply_update(object, parsed_obj_info){
 
         // 即刻应用label_offset
         object.label_offset = parsed_obj_info['label_offset']
+
+        load_and_compare_prev(object, parsed_obj_info, 'label_marking'); object.label_marking = label_marking
+        load_and_compare_prev(object, parsed_obj_info, 'label_color');   object.label_color = label_color
+        load_and_compare_prev(object, parsed_obj_info, 'label_opacity'); object.label_opacity = parsed_obj_info['label_opacity']
+
         // 即刻应用color和text
         if (color_str != object.color_str) {
             changeCoreObjColor(object, color_str)
         }
-        if (label_marking != object.label_marking || label_color !=object.label_color) {
-            object.label_marking = label_marking
-            object.label_color = label_color
+        if (object.changed['label_marking'] || object.changed['label_color'] || object.changed['label_color']) {
             if (!object.dynamicTexture2) {
                 // makeClearText(object, object.label_marking, object.label_color)
-                makeClearText_new(object, object.label_marking, object.label_color, parsed_obj_info['label_size'])
+                makeClearText_new(object, object.label_marking, object.label_color, parsed_obj_info['label_size'], parsed_obj_info['label_opacity'])
             }
             // object.dynamicTexture.clear().drawText(label_marking, 0, +80, object.label_color)
-            object.dynamicTexture2.update_text(object, object.label_marking, object.label_color, parsed_obj_info['label_size'])
+            object.dynamicTexture2.update_text(object, object.label_marking, object.label_color, parsed_obj_info['label_size'], parsed_obj_info['label_opacity'])
         }
         // 即刻应用
         object.track_n_frame = track_n_frame
