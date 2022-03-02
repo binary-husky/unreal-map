@@ -40,73 +40,87 @@ assert len(n_run_mode)==n_run
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "A14_AII_D5_nk=3_run1",  "A14_AII_D5_nk=3_run2",
-                    "A14_AII_D5_nk=4_run1",  "A14_AII_D5_nk=4_run2",
-                    "A14_AII_D5_nk=5_run1",  "A14_AII_D5_nk=5_run2",
+                    "experimental_rmDeadSample_run1",  "experimental_rmDeadSample_run2", "experimental_rmDeadSample_run3",  
+                    "normal_1",  "normal_2", "normal_3",  
+                    
                 ],
 
     "config.py->GlobalConfig-->seed":       
                 [
-                    145252651, 143235675,
-                    145252652, 143235676,
-                    145252653, 143235677,
+                    145252651, 143235675, 145252652, 
+
+                    145252651, 143235675, 145252652, 
+                              
                 ],
 
+    "ALGORITHM.conc.foundation.py->AlgorithmConfig-->experimental_rmDeadSample":       
+                [
+                    True, True, True, 
+                    
+                    False, False, False
+                ],
+
+    "config.py->GlobalConfig-->device":       
+                [
+                    "cuda:0","cuda:0",
+                    "cuda:6","cuda:6",
+                    "cuda:7","cuda:7",
+                ],
+
+    "config.py->GlobalConfig-->gpu_party":       
+                [
+                    "off","off",
+                    "off","off",
+                    "off","off",
+                ],
 }
 
 
 
 base_conf = {
-    # // python main.py -c d12-conc-orig.jsonc
     "config.py->GlobalConfig": {
-        "note": "train_origin_T(80itf)",
+        "note": "train_origin_T_R3",
         "env_name":"collective_assult",
         "env_path":"MISSIONS.collective_assult",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
         "test_interval": "2048",
-        # // "use_float64": true,
-        # // "device": "cuda:4",
-        # // "gpu_party": "Cuda4-Party0",
+        "device": "cuda:0",
+        "gpu_party": "Cuda0Party0",
+        "gpu_fraction": 0.7,
         "fold": "1",
-        "seed": 9995,
+        "seed": 2022,
         "backup_files":[
-            "ALGORITHM/concentration/net.py",
-            "ALGORITHM/concentration/ppo.py",
-            "ALGORITHM/concentration/shell_env.py",
-            "ALGORITHM/concentration/foundation.py",
-            "MISSIONS/collective_assult/envs/collective_assult_env.py",
-            "ALGORITHM/concentration/trajectory.py"
+            "ALGORITHM/conc",
+            "MISSIONS/collective_assult"
         ]
     },
 
     "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
         "size": "5",
-        "random_jam_prob": 0.80,
+        "random_jam_prob": 0.05,
         "introduce_terrain":"True",
         "terrain_parameters": [0.05, 0.2],
         "num_steps": "180",
         "render":"False",
-        "render_with_unity":"False",
-        "MCOM_DEBUG":"False",
-        "render_ip_with_unity": "cn-cd-dx-1.natfrp.cloud:55861",
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.concentration.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.conc.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.concentration.foundation.py->AlgorithmConfig": {
-        "n_focus_on": 2,
-        "actor_attn_mod": "False",
-        "extral_train_loop": "False",
-        "lr": 5e-4,
-        "ppo_epoch": 24,
-        "train_traj_needed": "64",
-        "load_checkpoint": False
+    "ALGORITHM.conc.foundation.py->AlgorithmConfig": {
+        "n_focus_on": 2,               
+        "actor_attn_mod": "False",     
+        "lr": 0.0005,                  
+        "ppo_epoch": 24,               
+        "train_traj_needed": "64",     
+        "load_checkpoint": "True",
+        "experimental_rmDeadSample": "True",
     }
 }
+
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -127,7 +141,7 @@ exp_json_dir = log_dir+'exp_json'
 if not os.path.exists('PROFILE/%s'%exp_json_dir):
     os.makedirs('PROFILE/%s'%exp_json_dir)
 
-
+conf_list = []
 new_json_paths = []
 for i in range(n_run):
     conf = copy.deepcopy(base_conf)
@@ -138,12 +152,34 @@ for i in range(n_run):
         conf[tree_path][item] = conf_override[key][i]
     with open(new_json_path,'w') as f:
         json.dump(conf, f, indent=4)
-    print(conf)
+    # print(conf)
+    conf_list.append(conf)
     new_json_paths.append(new_json_path)
+
+print红('\n')
+print红('\n')
+print红('\n')
+
+printX = [print亮红,print亮绿,print亮黄,print亮蓝,print亮紫,print亮靛, print红,print绿,print黄,print蓝,print紫,print靛,]
+conf_base_ = conf_list[0]
+for k_ in conf_base_:
+    conf_base = conf_base_[k_]
+    for key in conf_base:
+        different = False
+        for i in range(len(conf_list)):
+            if conf_base[key]!=conf_list[i][k_][key]:
+                different = True
+                break
+        # 
+        if different:
+            for i in range(len(conf_list)):
+                printX[i](key, conf_list[i][k_][key])
+        else:
+            print(key, conf_base[key])
+
 
 
 final_arg_list = []
-printX = [print红,print绿,print黄,print蓝,print紫,print靛,print亮红,print亮绿,print亮黄,print亮蓝,print亮紫,print亮靛]
 
 for ith_run in range(n_run):
     final_arg = copy.deepcopy(arg_base)

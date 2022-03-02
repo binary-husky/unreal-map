@@ -156,22 +156,22 @@ class PPO():
 
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
-    def train_on_traj(self, traj_pool, task):
-
-        with self.gpu_share_unit:
-            self.train_on_traj_(traj_pool, task) 
-
-
     # def train_on_traj(self, traj_pool, task):
-    #     while True: # 这里train_on_traj_只需要运行一次, while语法是为了处理显存溢出的情况
-    #         try:
-    #             with self.gpu_share_unit:
-    #                 self.train_on_traj_(traj_pool, task) 
-    #             break # 运行到这说明一切正常, 立刻脱离while
-    #         except RuntimeError as e:
-    #             self.n_div += 1
-    #             print亮红('No More GPU Memory! 切分样本, 当前n_div: %d'%self.n_div)
-    #         torch.cuda.empty_cache()
+
+    #     with self.gpu_share_unit:
+    #         self.train_on_traj_(traj_pool, task) 
+
+
+    def train_on_traj(self, traj_pool, task):
+        while True: # 这里train_on_traj_只需要运行一次, while语法是为了处理显存溢出的情况
+            try:
+                with self.gpu_share_unit:
+                    self.train_on_traj_(traj_pool, task) 
+                break # 运行到这说明一切正常, 立刻脱离while
+            except RuntimeError as e:
+                self.n_div += 1
+                print亮红('No More GPU Memory! 切分样本, 当前n_div: %d'%self.n_div)
+            torch.cuda.empty_cache()
 
     def train_on_traj_(self, traj_pool, task):
         ppo_valid_percent_list = []
