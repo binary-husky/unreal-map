@@ -10,7 +10,7 @@
         SHARE_BUF_SIZE: shared memory size, 10MB per process
 """
 import time, pickle #, traceback
-from multiprocessing import Process, RawArray, RawValue, Semaphore
+from multiprocessing import Process, RawValue, Semaphore
 from multiprocessing import shared_memory
 from ctypes import c_char, c_uint16, c_bool, c_uint32, c_byte
 import numpy as np

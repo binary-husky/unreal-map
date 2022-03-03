@@ -139,6 +139,7 @@ class PPO():
 
         self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
         self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
+
         # self.ae_parameter = [p for p_name, p in self.all_parameter if 'AE_' in p_name]
         # self.ae_optimizer = optim.Adam(self.ae_parameter, lr=self.lr*100.0) #(self.lr)
         self.g_update_delayer = 0
@@ -156,6 +157,12 @@ class PPO():
 
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
+        self.experimental_useApex = ppo_config.experimental_useApex
+        if self.experimental_useApex:
+            from apex import amp
+            self.amp_ = amp
+            self.policy_and_critic, optimizers = self.amp_.initialize(self.policy_and_critic, [self.at_optimizer, self.ct_optimizer], opt_level="O1")
+            self.at_optimizer, self.ct_optimizer = optimizers
     # def train_on_traj(self, traj_pool, task):
 
     #     with self.gpu_share_unit:
@@ -190,7 +197,13 @@ class PPO():
                 loss_final = loss_final*0.5 /self.n_div
                 if (e+i)==0:
                     print亮红('[PPO.py] Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
-                loss_final.backward()
+
+                # maybe we can use apex?
+                if not self.experimental_useApex: 
+                    loss_final.backward()
+                else:
+                    with self.amp_.scale_loss(loss_final, [self.at_optimizer, self.ct_optimizer]) as scaled_loss:
+                        scaled_loss.backward()
                 # log
                 ppo_valid_percent_list.append(others.pop('PPO valid percent').item())
                 self.log_trivial(dictionary=others); others = None

@@ -4,35 +4,35 @@
 n_run = 6
 n_run_mode = [
     {
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
     },
     {
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
     },    
     {
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
     },    
     {
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
     },
     {
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
     },
     {
-        "addr": "172.18.116.149:2233",
-        "usr": "hmp",
-        "pwd": "hmp"
-    },    
+        "addr": "172.18.116.150:2233",
+        "usr": "fuqingxu",
+        "pwd": "clara"
+    },
 
 ]
 assert len(n_run_mode)==n_run
@@ -40,31 +40,33 @@ assert len(n_run_mode)==n_run
 conf_override = {
     "config.py->GlobalConfig-->note":       
                 [
-                    "experimental_rmDeadSample_run1",  "experimental_rmDeadSample_run2", "experimental_rmDeadSample_run3",  
-                    "normal_1",  "normal_2", "normal_3",  
-                    
+                    "apex_run1",  "apex_run2", "apex_run3",  
+                    "normal_run4",  "normal_run5", "normal_run6",  
                 ],
 
     "config.py->GlobalConfig-->seed":       
                 [
-                    145252651, 143235675, 145252652, 
-
-                    145252651, 143235675, 145252652, 
-                              
+                    8746186, 727287, 2727274, 
+                    8746186, 727287, 2727274, 
                 ],
 
-    "ALGORITHM.conc.foundation.py->AlgorithmConfig-->experimental_rmDeadSample":       
+    "ALGORITHM.conc.foundation.py->AlgorithmConfig-->lr":
+                [
+                    5e-4, 5e-4, 5e-4,
+                    5e-4, 5e-4, 5e-4
+                ],
+
+    "ALGORITHM.conc.foundation.py->AlgorithmConfig-->experimental_useApex":       
                 [
                     True, True, True, 
-                    
-                    False, False, False
+                    False, False, False, 
                 ],
 
     "config.py->GlobalConfig-->device":       
                 [
-                    "cuda:0","cuda:0",
-                    "cuda:6","cuda:6",
-                    "cuda:7","cuda:7",
+                    "cuda:0","cuda:2",
+                    "cuda:3","cuda:4",
+                    "cuda:5","cuda:6",
                 ],
 
     "config.py->GlobalConfig-->gpu_party":       
@@ -113,11 +115,12 @@ base_conf = {
     "ALGORITHM.conc.foundation.py->AlgorithmConfig": {
         "n_focus_on": 2,               
         "actor_attn_mod": "False",     
-        "lr": 0.0005,                  
+        "lr": 5e-4,                  
         "ppo_epoch": 24,               
         "train_traj_needed": "64",     
-        "load_checkpoint": "True",
-        "experimental_rmDeadSample": "True",
+        "load_checkpoint": "False",
+        "experimental_rmDeadSample": "False",
+        "experimental_useApex": "True",
     }
 }
 

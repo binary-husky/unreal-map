@@ -42,7 +42,9 @@ class AlgorithmConfig:  # configuration, open to jsonc modification
     alternative_critic = False
 
     experimental_rmDeadSample = False
+    experimental_useApex = False
 
+    
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
         self.n_thread = n_thread
