@@ -30,7 +30,7 @@ class Emergent():
                     if min_ms_dis <= 45e3:
                         p.step_state = 'vip_180_escape'
 
-                    if min_ms_dis <= 25e3:
+                    if min_ms_dis <= 15e3:
                         p.step_state = 'vip_90_escape'
 
                     # if min_ms_dis <= p.prepare_escape_distance:  # 2e3: # 2000ok 1500ok

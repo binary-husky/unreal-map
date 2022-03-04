@@ -2,6 +2,7 @@ from ..env_cmd import CmdEnv
 from .UTILS.colorful import *
 from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_deg_at, reg_rad, repeat_at
 import numpy as np
+import logging
 from .tools import distance_matrix
 import uuid
 from .missile_exe import MS_exe
@@ -17,7 +18,7 @@ class MS_policy(MS_exe, MS_solo):
     def __mspolicy_init__(self):
         self.coop_list = {}
         self.solo_list = {}
-        ## print亮绿('☆☆ 导弹策略初始化')
+        logging.info('☆☆ 导弹策略初始化')
         for p in self.my_planes:
             if not hasattr(p, 'mspolicy_state'):
                 p.mspolicy_state = 'default'
@@ -72,7 +73,7 @@ class MS_policy(MS_exe, MS_solo):
                 'type': 'prior_ms',
                 'req_finished':False
             })
-            ## print亮绿('☆☆☆ 副攻导弹请求已添加')
+            logging.info('☆☆☆ 副攻导弹请求已添加')
 
         # 处理独奏. 主攻的任务 1、发射导弹，追踪敌机，2、继续追踪敌机，直到导弹进入末制导
         for uuid_ in self.solo_list:
@@ -88,68 +89,7 @@ class MS_policy(MS_exe, MS_solo):
             if ms.ms_at_terminal:
                 p.ms_policy_suggested_target = None
 
-        # # 再处理主攻请求. 主攻的任务 1、等待副攻的导弹到位，追踪敌机，2、发射导弹，追踪敌机，3、继续追踪敌机，直到导弹进入末制导
-        # for p in self.my_planes:
-        #     if 'primary' not in p.mspolicy_state: continue  # 不是主攻
-        #     if p.mspolicy_state == 'primary_waiting':   # 等待导弹发射+追踪的状态
-        #         # 检查是否达到了发射距离
-        #         assert p.primary_task_uuid is not None
-        #         coop_info = self.coop_list[p.primary_task_uuid]
-        #         if coop_info['prior_ms'] is None: continue   # 先发导弹暂不存在
-        #         敌机 = coop_info['target_to_hit']
-        #         先发导弹 = coop_info['prior_ms']
-        #         敌方与导弹的距离 = self.get_dis(先发导弹.ID, 敌机.ID)
-        #         自己与敌方的距离 = self.get_dis(p.ID, 敌机.ID)
-        #         deg1 = self.get_points_angle_deg(pt1=p.pos2d, pt_center=敌机.pos2d, pt2=敌机.pos2d_prediction())
-        #         deg2 = self.get_points_angle_deg(pt1=先发导弹.pos2d, pt_center=敌机.pos2d, pt2=敌机.pos2d_prediction())
-        #         delta_angle_deg = deg1 - deg2
-        #         同步发射距离 = self.thresh_hold_projection(
-        #             x=delta_angle_deg, 
-        #             min_x=-90, y_min_x=-2.4e3,  # 后发先到，说明提前多，减少y提前值
-        #             max_x= 90,  y_max_x= 5.5e3)   
-        #         # center = （5-1.5）/2=1.75
-        #         # center = （5-2）/2=1.5
-        #         # center = （5-2.5）/2=1.25
-        #         if (敌方与导弹的距离-自己与敌方的距离) < 同步发射距离:
-        #             # 同步发射
-        #             p.ms_to_launch.append({
-        #                 'target_ID_to_hit': 敌机.ID,
-        #                 'launch_state': None,
-        #                 'related_uuid': p.primary_task_uuid,
-        #                 'type': 'follow_ms',
-        #                 'req_finished':False
-        #             })
-        #             p.mspolicy_state = 'primary_tracking'
-        #             ## print亮绿('☆☆☆ 主攻导弹发射机会，敌机：',敌机.Name, '主机：', p.Name, 
-        #                 'deg后发%.2f， deg先发%.2f, 差距%.2f'%(deg1,deg2, deg1 - deg2), ' 同步发射距离:', 同步发射距离)
-        #             pass
-        #         else: # 距离没有达到同步条件
-        #             continue
-        #     elif p.mspolicy_state == 'primary_tracking':
-        #         coop_info = self.coop_list[p.primary_task_uuid]
-        #         敌机 = self.coop_list[p.primary_task_uuid]['target_to_hit']
-        #         if not 敌机.alive:
-        #             coop_info['valid'] = False
-
-        #         if not coop_info['valid']:
-        #             # 处于某种原因，合作已经没有必要了，即刻终止
-        #             p.mspolicy_state = 'default'
-        #             p.primary_task_uuid = None
-        #             coop_info['primary_uav'].ms_policy_suggested_target = None
-        #             coop_info['secondary_uav'].ms_policy_suggested_target = None
-
-        #         if coop_info['follow_ms'] is None: continue   # 后发导弹暂不存在
-        #         assert coop_info['prior_ms'] is not None
-        #         # 两个导弹应该都有了
-        #         # 当两个导弹都进入末制导，任务结束，清理相关变量
-        #         if coop_info['follow_ms'].ms_at_terminal and coop_info['prior_ms'].ms_at_terminal:
-        #             ## print亮绿('☆☆☆ 两枚导弹进入末制导', coop_info['follow_ms'].Name, coop_info['prior_ms'].Name)
-        #             p.mspolicy_state = 'default'
-        #             p.primary_task_uuid = None
-        #             coop_info['primary_uav'].ms_policy_suggested_target = None
-        #             coop_info['secondary_uav'].ms_policy_suggested_target = None
-
-###################################################################################
+        ###################################################################################
         # 再处理主攻请求. 主攻的任务 1、等待副攻的导弹到位，追踪敌机，2、发射导弹，追踪敌机，3、继续追踪敌机，直到导弹进入末制导
         for p in self.my_planes:
             if 'primary' not in p.mspolicy_state: continue  # 不是主攻
@@ -222,7 +162,7 @@ class MS_policy(MS_exe, MS_solo):
                 # 当两个导弹都进入末制导，任务结束，清理相关变量，第三发导弹不再考虑范围内
                 if coop_info['follow_ms'].ms_at_terminal and coop_info['prior_ms'].ms_at_terminal:
                     if (not coop_info['third_ms_needed']) or (coop_info['third_ms_needed'] and coop_info['third_ms'].ms_at_terminal):
-                        ## print亮绿('☆☆☆ 两/三枚导弹进入末制导',  coop_info['follow_ms'].Name,  coop_info['prior_ms'].Name)
+                        logging.info(''.join(['☆☆☆ 两/三枚导弹进入末制导',  coop_info['follow_ms'].Name,  coop_info['prior_ms'].Name]))
                         p.mspolicy_state = 'default'
                         p.primary_task_uuid = None
                         coop_info['primary_uav'].ms_policy_suggested_target = None
@@ -233,27 +173,35 @@ class MS_policy(MS_exe, MS_solo):
     # 在 coop_list 高层调整
     def assign_primary_and_secondary(self, 敌机):
         # “不是其他敌机的主攻”，“敌机在该飞机的射程内”，“有导弹” ,“非vip” 4个条件
+        # 获取我方可作为主攻战机的集合
         my_canfire_planes = [
             p for p in self.my_planes 
-            if (p.n_avail_ms > 0) and 
-            ('primary' not in p.mspolicy_state) and
-            p.is_drone and
-            self.get_dis(敌机.ID, p.ID) < p.RadarDis
+            if (p.n_avail_ms > 0) and   # “有导弹”
+            ('primary' not in p.mspolicy_state) and # “不是其他敌机的主攻”
+            p.is_drone and  # “非vip”
+            self.get_dis(敌机.ID, p.ID) < p.RadarDis  # “该敌机在该飞机的射程内”
         ]
+        # 集合重新排序，排序依据是和该敌机的距离
         友机列表_根据距离排序 = sorted(my_canfire_planes, key=lambda p:self.get_dis(敌机.ID, p.ID))
         if len(友机列表_根据距离排序) == 0: return # 没有适合作为主攻的友机
 
+        # 建立临时的合作候选列表
         tmp_coop_list_uuid = []
         # 选择最适合的主攻
         for 主攻 in 友机列表_根据距离排序:
-            主攻.mspolicy_state = 'primary_waiting' # ☆☆☆☆
-            res, coop_uuid = self.选择副攻(主攻=主攻, 打击目标=敌机)
-            if res == 'CoopOptionGenerated': tmp_coop_list_uuid.append(coop_uuid)
-            主攻.mspolicy_state = 'default' # 先恢复状态，等一会再处理
+            主攻.mspolicy_state = 'primary_waiting' # mspolicy_state:  default --> default
+            res, coop_uuid = self.选择副攻(主攻=主攻, 打击目标=敌机)    # 如果合适，会在self.coop_list中加入候选
+            if res == 'CoopOptionGenerated': tmp_coop_list_uuid.append(coop_uuid) # 加入coop_uuid
+            # 先恢复状态，等一会再处理
+            主攻.mspolicy_state = 'default' # mspolicy_state:  default --> default
 
         tmp_coop_list = [self.coop_list[coop_uuid] for coop_uuid in tmp_coop_list_uuid]
+
+        # 将各个（固定敌机，主攻，副攻）夹角从大到小进行排列
         tmp_coop_list = sorted(tmp_coop_list, key=lambda coop: -coop['cross_fire_angle'])
+        # 如果没有任何可用组合，则退出，选择下一个敌机
         if len(tmp_coop_list) <= 0: return
+
         # 选取夹角最大的一组
         tmp_coop = tmp_coop_list[0]
         主攻 = tmp_coop['primary_uav']
@@ -261,12 +209,12 @@ class MS_policy(MS_exe, MS_solo):
         coop_uuid = tmp_coop['coop_uid']
         cross_fire_angle = tmp_coop['cross_fire_angle']
         max_cross_fired_angle = 敌机.max_angle_cross_fired
-        cross_angle_threshold = min(max_cross_fired_angle*0.6666, 30)
-        # transport
+        cross_angle_threshold = min(max_cross_fired_angle*0.5, 30)
         
+        # 夹角最大的一组，夹角依然太小，（夹角至少要 大于最大可能夹角的一半，或者 大于30度）
         夹角太小_放弃此次协作 = (cross_fire_angle < cross_angle_threshold)
         if 夹角太小_放弃此次协作:
-            # ## print绿('预案 ☆☆☆☆ 夹角太小_放弃此次协作, 没有合适的副攻候选')
+            logging.info('预案 ☆☆☆☆ 夹角太小_放弃此次协作, 没有合适的副攻候选 | %.2f < %.2f'%(cross_fire_angle, cross_angle_threshold))
             return
 
         tmp_coop['valid'] = True    # 让协作模式生效
@@ -281,8 +229,8 @@ class MS_policy(MS_exe, MS_solo):
         # if 敌机.under_double_attack>0:
             ## print('敌机.under_double_attack', 敌机.under_double_attack)
         # assert not 敌机.under_double_attack
-        ## print亮蓝('☆☆☆☆☆☆ 生成协作模式, 主攻:', 主攻.Name, ' 副攻:',副攻.Name, '打击目标:',敌机.Name)
-        ## print亮蓝('☆☆☆☆☆☆ 生成协作模式完毕')
+        logging.info(''.join(['☆☆☆☆☆☆ 生成协作模式, 主攻:', 主攻.Name, ' 副攻:',副攻.Name, '打击目标:',敌机.Name]))
+        logging.info('☆☆☆☆☆☆ 生成协作模式完毕')
 
 
 
@@ -299,7 +247,7 @@ class MS_policy(MS_exe, MS_solo):
             min_x=-90, y_min_x=-2.4e3,  # 后发先到，说明提前多，减少y提前值
             max_x= 90,  y_max_x= 5.5e3)   
         if (敌方与导弹的距离-自己与敌方的距离-提前距离) < 同步发射距离: 
-            ## print亮绿('☆☆☆ 主攻导弹发射机会，敌机：',敌机.Name, '主机：', p.Name,  'deg后发%.2f， deg先发%.2f, 差距%.2f'%(deg1,deg2, deg1 - deg2), ' 同步发射距离:', 同步发射距离)
+            logging.info('☆☆☆ 主攻导弹发射机会,敌机:%s, 主机:%s, deg后发%.2f, deg先发%.2f, 差距%.2f, 同步发射距离%.2f'%(敌机.Name, p.Name, deg1, deg2, deg1-deg2, 同步发射距离))
             return True
         else: return False
 
@@ -312,7 +260,7 @@ class MS_policy(MS_exe, MS_solo):
             pri_ms_done = (coop_info['prior_ms'] is not None)  and ((not coop_info['prior_ms'].alive)  or (not coop_info['prior_ms'].tracking_target))
             flo_ms_done = (coop_info['follow_ms'] is not None) and ((not coop_info['follow_ms'].alive) or (not coop_info['follow_ms'].tracking_target))
             if pri_ms_done and flo_ms_done:
-                ## print亮绿('☆☆☆ 导弹生命周期完结，coop_list将被删除')
+                logging.info('☆☆☆ 导弹生命周期完结，coop_list将被删除')
                 if coop_info['target_to_hit'].alive:  # 打击失败
                     coop_info['target_to_hit'].under_double_attack -= 1
                     coop_info['valid'] = False
@@ -326,7 +274,7 @@ class MS_policy(MS_exe, MS_solo):
             # assert solo_info['valid']
             ms_done = (solo_info['ms'] is not None) and ((not solo_info['ms'].alive) or (not solo_info['ms'].tracking_target))
             if ms_done:
-                ## print亮绿('☆☆☆ 导弹生命周期完结，solo_list将被删除')
+                logging.info('☆☆☆ 导弹生命周期完结，solo_list将被删除')
                 if solo_info['target_to_hit'].alive:  # 打击失败
                     assert solo_info['target_to_hit'].under_solo_attack
                     solo_info['target_to_hit'].under_solo_attack = False
@@ -335,16 +283,20 @@ class MS_policy(MS_exe, MS_solo):
                     
 
     def overall_cross_fire_angle_analyse(self):
+        
         for op in self.op_planes: 
             max_angle_cross_fired = 0
             max_angle_cross_fired_info = None
-            for p1 in self.my_planes:
-                for p2 in self.my_planes:
-                    if p2 is p1: continue
+
+            # 计算op和每一个my_planes的夹角
+            for i, p1 in enumerate(self.my_planes):
+                for j, p2 in enumerate(self.my_planes):
+                    if j <= i: continue # if p2 is p1: continue
                     delta_deg = self.get_angle_deg(p1=p1, p_center=op, p2=p2)
                     if delta_deg <= max_angle_cross_fired: continue
                     max_angle_cross_fired = delta_deg
                     max_angle_cross_fired_info = {'p1':p1,'p2':p2}
+
             op.max_angle_cross_fired = max_angle_cross_fired
             op.max_angle_cross_fired_info = max_angle_cross_fired_info
 
@@ -371,42 +323,47 @@ class MS_policy(MS_exe, MS_solo):
         # 选择最适合的副攻，可以是vip
         副攻候选 = [
             p for p in self.my_planes 
-            if (p.n_avail_ms > 0) and 
-            ('primary' not in p.mspolicy_state) and
-            self.get_dis(op.ID, p.ID) < p.RadarDis
+            if (p.n_avail_ms > 0) and   # “有可用导弹”
+            ('primary' not in p.mspolicy_state) and  # “非primary或primary_waiting”
+            self.get_dis(op.ID, p.ID) < p.RadarDis  # 距离在射程之内
         ]
         # 有些已经分配主攻友机恰巧也能做副攻，因为恰巧在雷达射程内
         副攻候选_2 = [
             p for p in self.my_planes 
-            if (p.n_avail_ms > 0) and 
-            ('primary' in p.mspolicy_state) and
-            (op in p.in_radar)
+            if (p.n_avail_ms > 0) and    # “有可用导弹”
+            ('primary' in p.mspolicy_state) and    ## ! “primary或primary_waiting”
+            (op in p.in_radar) and  # 恰好在攻击雷达范围内
+            (p is not 主攻)
         ]
         副攻候选 = 副攻候选 + 副攻候选_2
         if len(副攻候选)<=0:
-            ## print绿('预案 ☆☆☆☆ 如果没有合适的副攻候选')
+            logging.info('预案 ☆☆☆☆ %s 没有合适的副攻候选(有可用导弹,非primary,距离在射程之内)'%(主攻.Name))
             return 'NoResult', None
 
         # 如果有合适的副攻候选
         # if len(副攻候选)>0:
         副攻候选 = [
             p for p in 副攻候选
-            if self.get_dis(op.ID, p.ID) > 主攻距离
+            if self.get_dis(op.ID, p.ID) > 主攻距离 # 过滤掉比主攻战机距离还要近的副攻，不合理
         ]
+        # 按距离排序_施加角度的影响，夹角每多45度，相当于少10km（10km / 45deg）
         副攻候选_按距离排序_施加角度的影响 = sorted(副攻候选, key=lambda p:self.score副攻_(主攻=主攻, 副攻=p, 打击目标=op))
 
         if len(副攻候选_按距离排序_施加角度的影响)<=0:
-            ## print绿('预案 ☆☆☆☆ 如果没有合适的副攻候选')
+            logging.info('预案 ☆☆☆☆ 如果没有合适的副攻候选')
             return 'NoResult', None
 
-        # if len(副攻候选_按距离排序_施加角度的影响)>0:
-        副攻 = 副攻候选_按距离排序_施加角度的影响[0]    # 最近，且夹角较大
+        # 综合考虑距离近，夹角大，选择针对该（敌机，主攻）组合，最合适的副攻对象
+        副攻 = 副攻候选_按距离排序_施加角度的影响[0]
+
+        # 计算和记录夹角大小
         cross_fire_angle = self.get_angle_deg(p1=副攻, p_center=op, p2=主攻)
 
         # 在这里生成合作
         # 副攻.mspolicy_state = 'secondary_fire' # ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
         third_ms_needed = True if (op.is_vip and 副攻.n_avail_ms>=2) else False
 
+        # assert 主攻.ID != 副攻.ID, ("如果报了这个错误，仔细检查，修正副攻候选_2的选择条件")
         coop_uuid = uuid.uuid1().hex
         self.coop_list[coop_uuid] = {
             'target_to_hit': op,
@@ -425,8 +382,8 @@ class MS_policy(MS_exe, MS_solo):
             'cross_fire_angle': cross_fire_angle,
             'valid': False
         }
-        ## print蓝('预案 ☆☆☆☆☆☆ 候选协作模式, 主攻:', 主攻.Name, ' 副攻:',[p.Name for p in 副攻候选], '打击目标:',op.Name)
-        ## print蓝('预案 ☆☆☆☆☆☆ 排序候选协作模式, 主攻:', 主攻.Name, ' 副攻:',[p.Name for p in 副攻候选_按距离排序_施加角度的影响], '打击目标:',op.Name)
+        logging.info(''.join(['预案 ☆☆☆☆☆☆ 候选协作模式, 主攻:', 主攻.Name, ' 副攻:', str([p.Name for p in 副攻候选]), '打击目标:',op.Name]))
+        logging.info(''.join(['预案 ☆☆☆☆☆☆ 排序候选协作模式, 主攻:', 主攻.Name, ' 副攻:',str([p.Name for p in 副攻候选_按距离排序_施加角度的影响]), '打击目标:',op.Name]))
         return 'CoopOptionGenerated', coop_uuid
 
 
@@ -443,8 +400,8 @@ class MS_policy(MS_exe, MS_solo):
         threat = -nearest_distance*C01
 
         # step 02 是否已经被攻击
-        C0211 = 999999
-        C0212 = 30
+        C0211 = 999999  # not permitted to fired third roll
+        C0212 = 30  # can fire second roll
         for i, op in enumerate(op_planes): 
             if op.under_double_attack > 0 and op.is_drone:
                 threat[i] = threat[i] - C0211
@@ -511,24 +468,18 @@ class MS_policy(MS_exe, MS_solo):
 
 
     # 调整导弹的用量
+    nPreserveMsList = {
+        '红有人机':  1, '蓝有人机':  1,
+        '红无人机1': 0, '蓝无人机1': 0,
+        '红无人机2': 0, '蓝无人机2': 0,
+        '红无人机3': 0, '蓝无人机3': 0,
+        '红无人机4': 0, '蓝无人机4': 0,
+    }
     def process_missile_usage(self):
         self.ms_check_unable_launch() # calculate p.on_hold_ms
         for p in self.my_planes:
-            if '有人机' in p.Name:
-                p.n_preserve_ms = 1
-                p.n_avail_ms = p.LeftWeapon - p.n_preserve_ms - p.on_hold_ms
-            if '无人机1' in p.Name:
-                p.n_preserve_ms = 0
-                p.n_avail_ms = p.LeftWeapon - p.n_preserve_ms - p.on_hold_ms
-            if '无人机2' in p.Name:
-                p.n_preserve_ms = 0
-                p.n_avail_ms = p.LeftWeapon - p.n_preserve_ms - p.on_hold_ms
-            if '无人机3' in p.Name:
-                p.n_preserve_ms = 0
-                p.n_avail_ms = p.LeftWeapon - p.n_preserve_ms - p.on_hold_ms
-            if '无人机4' in p.Name:
-                p.n_preserve_ms = 0
-                p.n_avail_ms = p.LeftWeapon - p.n_preserve_ms - p.on_hold_ms
+            p.n_preserve_ms = self.nPreserveMsList[p.Name]
+            p.n_avail_ms = p.LeftWeapon - p.n_preserve_ms - p.on_hold_ms
 
     @staticmethod
     def get_points_angle_deg(pt1, pt_center, pt2):
@@ -553,9 +504,6 @@ class MS_policy(MS_exe, MS_solo):
         delta_deg = delta_rad * 180/np.pi
         return delta_deg
 
-
-
-
     def process_client_one_by_one(self, sorted_op_list):
         for op in sorted_op_list:
             # 双重打击策略
@@ -564,19 +512,24 @@ class MS_policy(MS_exe, MS_solo):
         self.assign_solo_service()
         self.last_stand_service()
 
-
     # 导弹的运营
     def missile_policy(self):
         # 简单的局部持久变量初始化
         if self.coop_list is None: 
             self.__mspolicy_init__()
 
-        # 处理我方导弹用途，从LeftWeapon出发
+        # 处理我方导弹用途，从LeftWeapon出发，其中有人机保留一个导弹 p.n_avail_ms
         self.process_missile_usage()
+        # 计算每个op当前的最大夹击角
         self.overall_cross_fire_angle_analyse()
+        # 调整敌方接受服务的顺序
         sorted_op_list = self.determine_op_rank(self.op_planes)
+        # 逐个op分析，双重打击策略 或 单机进攻
         self.process_client_one_by_one(sorted_op_list)
+
+        # 具体落实顶层的攻击决策，处理攻击的时机
         self.execute_ms_coop()
+        # 落实攻击时机的导弹发射
         self.ms_launch()
 
         self.清理无效的coop和solo()

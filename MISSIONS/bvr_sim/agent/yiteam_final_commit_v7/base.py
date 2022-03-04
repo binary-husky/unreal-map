@@ -9,6 +9,7 @@ import random
 import numpy as np
 import time
 from .tools import distance_matrix
+import logging
 
 '''
     y     [-150000, +150000]
@@ -62,7 +63,7 @@ class Drone():
 
     RadarHorizon = 30
     RadarVertical = 10
-    RadarDis = 39e3
+    RadarDis = 39e3     # this is the key distance in coop attack
 
     AttackRadarHorizon = 20
     AttackRadarVertical = 10
@@ -70,7 +71,7 @@ class Drone():
 
     DeadZooRadarHorizon = 12
     DeadZooRadarVertical = 12
-    DeadZooRadarDis = 35e3
+    DeadZooRadarDis = 20e3 # used in assign_drone_solo
 
     prepare_escape_distance = 12e3
     escape_angle = 180
@@ -96,7 +97,7 @@ class Vip():
     MaxOverload = 6
     RadarHorizon = 60
     RadarVertical = 60
-    RadarDis = 58e3
+    RadarDis = 58e3     # this is the key distance in coop attack
 
     AttackRadarHorizon = 50
     AttackRadarVertical = 50
@@ -104,9 +105,9 @@ class Vip():
 
     DeadZooRadarHorizon = 50
     DeadZooRadarVertical = 50
-    DeadZooRadarDis = 35e3
+    DeadZooRadarDis = 20e3  # used in assign_drone_solo
 
-    prepare_escape_distance = 40e3
+    prepare_escape_distance = 30e3
     escape_distance = 1.8e3
 
     Flying_to_distance = 55e3
@@ -438,13 +439,6 @@ class MS(object):
 
         d_angle = reg_deg_at(self.target.h_angle, ref=self.h_angle + 180) - (self.h_angle + 180)
         # 处于转向阶段的飞机 不适用
-        # if np.abs(d_angle) < 1:
-        #     if self.flying_time == 2:
-        #         with open('./log/ft1.txt', 'a+') as f:
-        #             f.write('speed %.2f, delta %.2f \n'%(self.previous_speed, self.distance[-1]-self.distance[-2]))
-        #     elif self.flying_time>2:
-        #         with open('./log/ft2.txt', 'a+') as f:
-        #             f.write('speed %.2f, delta %.2f \n'%(self.previous_speed, self.distance[-1]-self.distance[-2]))
 
         self.previous_speed = self.Speed
         self.previous_pos3d = self.pos3d
@@ -638,6 +632,7 @@ class Baseclass(Agent):
         return self.everything_dis[index1, index2]
 
     def step(self, sim_time, obs_side, **kwargs) -> List[dict]:
+        logging.info('sim_time:%.2f'%sim_time)
         self.cmd_list = []
         self.my_process_observation_and_show(obs_side, sim_time)
         try:

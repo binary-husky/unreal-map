@@ -62,7 +62,7 @@ fqx*.jsonc
 my_*.jsonc
 result.prof
 ignore
-
+bvrAI.log
 ZHECKPOINT/*
 
 !ZHECKPOINT/test-50+50

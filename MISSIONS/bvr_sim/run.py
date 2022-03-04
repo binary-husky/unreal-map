@@ -12,7 +12,7 @@ class BattleRunnerSignal(EnvRunner):
     """
         对战环境
         @Examples:
-        @Author：wubinxing
+        @Author:wubinxing
         """
     def __init__(self, agents, address, mode='host'):
         EnvRunner.__init__(self, agents, address, mode)  # 仿真环境初始化
@@ -46,16 +46,16 @@ class BattleRunnerSignal(EnvRunner):
                         if done[0]:  # 对战结束后环境重置
                             with open('debug_profile.txt', 'a+') as f:
                                 f.write('Dead\n')
-                            print("到达终止条件！！！！")
+                            print("到达终止条件!!!!")
                             battle_results[0] += int(done [1]==1 and done[2]==0)
                             battle_results[1] += int(done [1]==0 and done[2]==1)
                             battle_results[2] += int((done [1]==1 and done[2]==1) or (done [1]==0 and done[2]==0))
                             if(done [1]==1 and done[2]==0):
-                                print("第",i + 1,  "局 ：  红方胜")
+                                print("第",i + 1,  "局 :  红方胜")
                             elif(done [1]==0 and done[2]==1):
-                                print("第", i + 1, "局：   蓝方胜")
+                                print("第", i + 1, "局:   蓝方胜")
                             else:
-                                print("第", i + 1, "局：   平  局")
+                                print("第", i + 1, "局:   平  局")
                             break
                         obs = self.run_env(obs)
 
@@ -65,9 +65,9 @@ class BattleRunnerSignal(EnvRunner):
                         #     break
 
                     # sleep(20)
-                    print("共", i + 1, "局：   红方胜", battle_results[0], "局：   蓝方胜", battle_results[1], "局：   平局",battle_results[2], "局")
+                    print("共", i + 1, "局:   红方胜", battle_results[0], "局:   蓝方胜", battle_results[1], "局:   平局",battle_results[2], "局")
                     self._end()
-                    print("请点击态势显示工具的实时态势按钮或者快捷键F2！")
+                    print("请点击态势显示工具的实时态势按钮或者快捷键F2!")
                     input()
                     reset = 'y'
                     print("重置运行:", reset)
@@ -87,19 +87,19 @@ class BattleRunnerSignal(EnvRunner):
                         done = self.get_done(obs)  # 推演结束(分出胜负或达到最大时长)
                         #print("done:", done)
                         if done[0]:  # 对战结束后环境重置
-                            print("到达终止条件！！！！")
+                            print("到达终止条件!!!!")
                             battle_results[0] += int(done [1]==1 and done[2]==0)
                             battle_results[1] += int(done [1]==0 and done[2]==1)
                             battle_results[2] += int((done [1]==1 and done[2]==1) or (done [1]==0 and done[2]==0))
                             if(done [1]==1 and done[2]==0):
-                                print("第",i + 1,  "局 ：  红方胜")
+                                print("第",i + 1,  "局 :  红方胜")
                             elif(done [1]==0 and done[2]==1):
-                                print("第", i + 1, "局：   蓝方胜")
+                                print("第", i + 1, "局:   蓝方胜")
                             else:
-                                print("第", i + 1, "局：   平  局")
+                                print("第", i + 1, "局:   平  局")
                             break
                         obs = self.run_env(obs)
-                    print("共", i + 1, "局：   红方胜", battle_results[0], "局：   蓝方胜", battle_results[1], "局：   平局",battle_results[2], "局")
+                    print("共", i + 1, "局:   红方胜", battle_results[0], "局:   蓝方胜", battle_results[1], "局:   平局",battle_results[2], "局")
                     self._reset()
                     print(i, "重置")
             return battle_results
@@ -116,19 +116,19 @@ class BattleRunnerSignal(EnvRunner):
                     continue
                 done = self.get_done(obs)  # 推演结束(分出胜负或达到最大时长)
                 if done[0]:  # 对战结束后环境重置
-                    print("到达终止条件！！！！")
+                    print("到达终止条件!!!!")
                     battle_results[0] += int(done [1]==1 and done[2]==0)
                     battle_results[1] += int(done [1]==0 and done[2]==1)
                     battle_results[2] += int((done [1]==1 and done[2]==1) or (done [1]==0 and done[2]==0))
                     if done [1]==1 and done[2]==0:
-                        print("第",i + 1,  "局 ：  红方胜")
+                        print("第",i + 1,  "局:  红方胜")
                     elif done [1]==0 and done[2]==1 :
-                        print("第", i + 1, "局：   蓝方胜")
+                        print("第", i + 1, "局:   蓝方胜")
                     else:
-                        print("第", i + 1, "局：   平  局")
+                        print("第", i + 1, "局:   平  局")
                     break
                 obs = self.run_env(obs)
-            print("共", i + 1, "局：   红方胜", battle_results[0], "局：   蓝方胜", battle_results[1], "局：   平局", battle_results[2], "局")
+            print("共", i + 1, "局:   红方胜", battle_results[0], "局:   蓝方胜", battle_results[1], "局:   平局", battle_results[2], "局")
             self._reset()
             print(i + 1, "重置")
         return battle_results
@@ -149,14 +149,14 @@ def main_signal():
     # register(lambda: os.system(r"docker stop $(docker ps | grep bvrsim | awk '{print $ 1}')"))  # Failsafe, handles shm leak
 
     # 输出对抗胜负结果
-    print("共", episode_num, "局：   红方胜",results[0],"局：   蓝方胜",results[1],"局：   平局",results[2],"局")
+    print("共", episode_num, "局:   红方胜",results[0],"局:   蓝方胜",results[1],"局:   平局",results[2],"局")
 
 
 def mult(agents, address):
     battle_runner = BattleRunnerSignal(agents, address, 'port')
     episode_num = config["episode_time"]
     results = battle_runner.run2(episode_num)
-    print("共", episode_num, "局：   红方胜",results[0],"局：   蓝方胜",results[1],"局：   平局",results[2],"局")
+    print("共", episode_num, "局:   红方胜",results[0],"局:   蓝方胜",results[1],"局:   平局",results[2],"局")
 
 
 # 启动多个xsim,不支持实时展示

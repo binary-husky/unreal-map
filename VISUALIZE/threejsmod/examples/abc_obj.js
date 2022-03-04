@@ -156,13 +156,14 @@ function addCoreObj(my_id, color_str, geometry, material, x, y, z, ro_x, ro_y, r
 
 //选择形状
 function choose_geometry(type){
-    if (window.glb.base_geometry[type]==null){
-        alert('The geometry is not defined for name:'+type+' , or maybe the geometry is still loading!')
-        // console.log('maybe the geometry is still loading!')
+    if (!window.glb.base_geometry[type]){
+        alert('The geometry is not defined for name:'+type)
+        // console.log('The geometry is not defined for name:'+type+' , or maybe the geometry is still loading!')
         return null
-    }
-    else{
-        // console.log('using geo:'+type)
+    }else if(window.glb.base_geometry[type]=='loading'){
+        console.log('The geometry is not defined for name:' + type + ' , or maybe the geometry is still loading!')
+        return null
+    }else{
         return window.glb.base_geometry[type]
     }
 }

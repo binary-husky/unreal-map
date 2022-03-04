@@ -473,6 +473,7 @@ function parse_advanced_geometry(str){
         let each_part = build_cmd.split('=')
         let path_of_fbx_file = each_part[1]
         const loader = new window.glb.import_FBXLoader();
+        window.glb.base_geometry[name] = 'loading'
         loader.load(path_of_fbx_file, function ( object ) {
             window.glb.base_geometry[name] = object.children[0].geometry;
             // window.glb.base_geometry[name] = object.mesh;
@@ -556,8 +557,9 @@ function parse_geometry(str){
             window.glb.base_geometry[name] = new THREE.ConeGeometry(1, 2*1);
             window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
         }else{
-        // other shapes in lib
+            // other shapes in lib
             const loader = new THREE.BufferGeometryLoader();
+            window.glb.base_geometry[name] = 'loading'
             loader.load(path, function (geometry) {
                 geometry.computeVertexNormals();
                 window.glb.base_geometry[name] = geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);

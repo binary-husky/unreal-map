@@ -4,10 +4,8 @@ from ..env_cmd import CmdEnv
 from .UTILS.colorful import *
 from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
 from .maneuver import maneuver_angle_to_ms, maneuver_angle_to_ms3d, maneuver_speed_to_ms, maneuver_vip
-import copy
-import random
+import copy, logging, random, time
 import numpy as np
-import time
 from .tools import distance_matrix
 from .base import Baseclass, Special, Drone, Vip, Plane, MS
 from .missile_policy import MS_policy
@@ -80,6 +78,7 @@ class Attack_Adjust():
         op_list_sorted = op_list[sorted_index]
         op_attk_by_squad_1 = op_list_sorted
         op_attk_by_squad_2 = list(reversed(op_list_sorted))
+        # 一组攻击上边缘，一组攻击下边缘
         squad_1_mem = [p for p in self.my_planes if p.squad_name == "U1"]
         squad_2_mem = [p for p in self.my_planes if p.squad_name == "U2"]
         for p in squad_1_mem:
@@ -108,7 +107,7 @@ class Attack_Adjust():
 
 
     # 根据敌方每个飞机的剩余的弹药量，变动进攻序列，将无弹的目标放到最末的优先级
-    # 调整的条件：1、敌方无弹，2、没有正在往这个敌方目标飞行的导弹
+    # 调整的条件：1、敌方无弹，2、无人机，3、没有正在往这个敌方目标飞行的导弹
     def adjust_by_left_ammo(self):
         for p in self.my_planes:
             attack_list = [self.find_plane_by_name(op_name) for op_name in p.attack_order]

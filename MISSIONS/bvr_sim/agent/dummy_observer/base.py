@@ -38,7 +38,7 @@ class Drone():
     MAX_Y = 145e3
     
     MaxSpeed = 300
-    MinSpeed = 100
+    MinSpeed = 101
     FollowSpeed = 300
     MaxHeight = 10000
     EscapeHeight = 5000
@@ -73,7 +73,7 @@ class Vip():
     MAX_Y = 145e3
 
     MaxSpeed = 400
-    MinSpeed = 150
+    MinSpeed = 151
     FollowSpeed = 400
     MaxHeight = 15000
     EscapeHeight = 5000
@@ -137,6 +137,7 @@ class Plane(object):
 
         if init and ('LeftWeapon' not in data):
             self.OpLeftWeapon = 4 if self.is_vip else 2
+            self.PlayerHeightSetting = 9999 # z >= 9000 and z <= 10000
 
     def incoming_msid(self):
         return 0

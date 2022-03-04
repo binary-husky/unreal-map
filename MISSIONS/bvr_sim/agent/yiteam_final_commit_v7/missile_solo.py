@@ -4,7 +4,7 @@ from .UTILS.colorful import *
 from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_deg_at, reg_rad, repeat_at
 import numpy as np
 from .tools import distance_matrix
-import uuid
+import uuid, logging
 # class missle_client():
 #     def __init__(self, op) -> None:
 #         self.op = op
@@ -18,7 +18,6 @@ class MS_solo():
         # 时机条件：全部飞机都挤在一个小象限内，或者只有一个飞机还有剩余弹药
         # 位置条件：距离敌机非常近，小于其易逃逸距离
         # 保持距离的需要：有人机希望保持和敌方有人机的距离，发射导弹逼迫距离的拉开
-        # 时间条件：至少在8min之后？
 
         # if self.time_of_game < 400: 
         #     return # 8分钟多一点点
@@ -27,12 +26,18 @@ class MS_solo():
         #     return  # 敌方的导弹多余半数
 
         for p in self.my_planes:
+            # 过滤掉没有导弹的飞机
+            if p.n_avail_ms<=0: continue 
+
+            # 谨慎发射
             careful_launch = False
+
+            # 谨慎发射的条件
             作为副攻任务清单为空 = len(p.secondary_request)==0
             不作为主攻 = (p.mspolicy_state == 'default')
-            if p.n_avail_ms<=0: continue
             if not 作为副攻任务清单为空: careful_launch=True
             if not 不作为主攻:  careful_launch=True
+
             # Bool 作为副攻任务清单为空 and 不作为主攻 and 有可用弹
             if p.is_vip:
                 self.assign_vip_solo(p, careful_launch)
@@ -44,12 +49,16 @@ class MS_solo():
         pass
 
     def assign_drone_solo(self,p, careful_launch):
+        # 将进入攻击死区的敌机排序，按距离从小到大排列
         op_距离从近到远 = sorted(p.in_attack_deadzoo, key=lambda op: self.get_dis(op.ID, p.ID))
-        # 按距离从小到大排列
+        # 过滤掉已经被打击得目标
         op_距离从近到远_滤除已打击 = [op for op in op_距离从近到远
             if (op.under_double_attack==0) and (not op.under_solo_attack)]
+        # 如果没有候选，退出
         if len(op_距离从近到远_滤除已打击)<=0: return
+        # 如果有，打距离最近者
         打击敌机 = op_距离从近到远_滤除已打击[0]
+        # -> confirm_solo_attack
         self.confirm_solo_attack(主机=p, 打击敌机=打击敌机, careful_launch=careful_launch)
 
 
@@ -100,8 +109,6 @@ class MS_solo():
                 if dis < 8e3:
                     self.confirm_solo_attack(主机=我方有人机, 打击敌机=敌方有人机, careful_launch=False)
 
-
-
     def confirm_solo_attack(self, 主机, 打击敌机, careful_launch):
         solo_uuid = uuid.uuid1().hex
         self.solo_list[solo_uuid] = {
@@ -122,9 +129,8 @@ class MS_solo():
         打击敌机.under_solo_attack = True
         if 主机.is_drone: 主机.ms_policy_suggested_target = 打击敌机
         else: self.notify_drones_to_track(打击敌机, solo_uuid)
-
-        ## print紫('预案 ☆☆☆☆☆☆ 候选独奏模式, 主攻:', 主机.Name, ' 打击目标:',打击敌机.Name)
-        ## print亮紫('☆☆☆ 独奏导弹请求已添加')
+        logging.info('预案 ☆☆☆☆☆☆ 候选独奏模式, 主攻:%s, 打击目标:%s'%(主机.Name, 打击敌机.Name))
+        logging.info('☆☆☆ 独奏导弹请求已添加')
         return
 
     def notify_drones_to_track(self, 打击敌机, solo_uuid):

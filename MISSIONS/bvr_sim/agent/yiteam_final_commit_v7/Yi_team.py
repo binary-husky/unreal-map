@@ -7,12 +7,20 @@ from .maneuver import maneuver_angle_to_ms, maneuver_angle_to_ms3d, maneuver_spe
 import copy
 import random
 import numpy as np
+import datetime
 import time
 from .tools import distance_matrix
 from .base import Baseclass, Special, Drone, Vip, Plane, MS
 from .missile_policy import MS_policy
 from .emergent import Emergent
 from .attack_seq_adjust import Attack_Adjust
+import logging
+
+logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
+                    level=logging.INFO,
+                    filename='bvrAI.log',
+                    filemode='w+', force=True)
+
 # Enable_Evade = True
 
 Fleet_Attack_Angle = 110
@@ -27,6 +35,7 @@ class Yi_team(Baseclass, MS_policy, Emergent, Attack_Adjust):
         self.init()
         self.times=0
         self.obs_side_1 = []
+        logging.info('AI initialize')
 
 
     # 获取必杀范围内的敌机
