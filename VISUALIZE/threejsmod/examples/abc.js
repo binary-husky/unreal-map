@@ -46,7 +46,7 @@ window.glb.core_L = [];
 window.glb.parsed_core_L = []
 window.glb.core_Obj = [];
 window.glb.line_Obj = [];
-window.glb.text_Obj = [];
+// window.glb.text_Obj = [];
 window.glb.flash_Obj = [];
 window.glb.base_geometry = {};
 window.glb.base_material = {};
@@ -245,15 +245,67 @@ function parse_time_step(pp){
         parse_update_without_re(pp)
         parse_update_flash(buf_str)
     }else{
+        // first time parse
         buf_str = window.glb.core_L[pp]
         parse_init(buf_str)
         parse_update_env(buf_str)
         parse_update_core(buf_str, pp)
         parse_update_flash(buf_str)
     }
+    tmp_object_manager()
 }
 
 
+
+
+
+function tmp_object_manager(){
+    for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
+        let object = window.glb.core_Obj[i]
+        if (object.fade_level){
+            if (object.fade_level<0){
+                
+                object.fade_level = null;
+                if (object.track_init){
+                    window.glb.scene.remove(object.track_his.mesh);
+                    object.track_his = null;
+                    object.track_init = false;
+                }
+                window.glb.scene.remove(object);
+                window.glb.core_Obj.splice(i,1); // remove ith object
+
+            }else if (object.fade_level>=1){
+
+                object.fade_level = 1 - 1 / object.fade_step;
+            }else{
+
+                // a fading object, change opacity
+                object.material.transparent = true
+                object.prev_opacity = object.next_opacity; 
+                object.next_opacity -= 1 / object.fade_step;
+                if (object.next_opacity<0){object.next_opacity=0;}
+                
+                // text_object opacity
+                if (object.text_object){
+                    object.text_object.material.transparent = true;
+                    object.text_object.material.opacity -= 1 / object.fade_step;
+                    if (object.text_object.material.opacity<0){object.text_object.material.opacity=0;}
+                }
+                if (object.track_init){
+                    object.track_his.mesh.material.transparent = true;
+                    object.track_his.mesh.material.opacity -= 1 / object.fade_step;
+                    if (object.track_his.mesh.material.opacity<0){object.track_his.mesh.material.opacity=0;}
+                }
+
+                // fade more
+                object.fade_level -= 1 / object.fade_step;
+            }
+        }
+        else{
+            continue;
+        }
+    }
+}
 
 
 
@@ -348,7 +400,7 @@ function plot_obj_track(object){
         curve.mesh.geometry.computeBoundingSphere();
         position.needsUpdate = true;
     }else{
-        // 初始化轨迹
+        // 初始化轨迹  
         object.track_init = true;
         const positions = [];
         for ( let i = (object.his_positions.length - object.track_n_frame); i < object.his_positions.length; i++) {
@@ -385,6 +437,7 @@ function set_next_play_frame() {
     if (window.glb.core_L.length == 0) { return; }
     if (window.glb.play_pointer >= window.glb.core_L.length) {
         window.glb.play_pointer = window.glb.panelSettings['loop to start']?0:window.glb.core_L.length-1;
+        if(!window.glb.panelSettings['loop to start'] && window.glb.play_pointer==(window.glb.core_L.length-1)){ return; }
     }
     parse_time_step(window.glb.play_pointer)
     window.glb.solid_pointer = window.glb.sp_future; window.glb.panelSettings['play pointer'] = window.glb.solid_pointer; window.glb.sp_future = window.glb.play_pointer;
@@ -411,8 +464,6 @@ function force_move_all(pp, test_freeze=false){ // 手动调整进度条时触�
             object.next_pos = object.position.clone()
             object.prev_ro.x = object.rotation.x; object.prev_ro.y = object.rotation.y; object.prev_ro.z = object.rotation.z
             object.next_ro.x = object.rotation.x; object.next_ro.y = object.rotation.y; object.next_ro.z = object.rotation.z
-            // object.prev_ro = object.rotation.clone()
-            // object.next_ro = object.rotation.clone()
             object.prev_opacity = object.material.opacity
             object.next_opacity = object.material.opacity
             object.prev_size = object.currentSize
@@ -470,7 +521,7 @@ function render() {
         let percent = Math.min(dt_since / window.glb.dt_threshold, 1.0);
         move_to_future(percent);
     }
-    check_flash_life_cyc(delta)
+    check_flash_life_cyc(delta) // consider moving it somewhere else?
 
     sprite_like_txt_update()
 
@@ -485,8 +536,9 @@ function render() {
 function sprite_like_txt_update(){
     var lookAtVector = new THREE.Vector3(0, 0, -1);
     lookAtVector.applyQuaternion(window.glb.camera.quaternion);
-    for (let i = 0; i < window.glb.text_Obj.length; i++) {
-        let text_object = window.glb.text_Obj[i]
+    for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
+        if (!window.glb.core_Obj[i].text_object){continue;}
+        let text_object = window.glb.core_Obj[i].text_object
         let target = new THREE.Vector3(); 
         text_object.getWorldPosition(target)
         text_object.lookAt(target.add(lookAtVector.clone().negate()));

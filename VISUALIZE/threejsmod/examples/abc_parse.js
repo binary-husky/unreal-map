@@ -88,12 +88,7 @@ function parse_init(buf_str) {
 function parse_update_without_re(pp){
     let parsed_frame = window.glb.parsed_core_L[pp]
     for (let i = 0; i < parsed_frame.length; i++) {
-        let parsed_obj_info = parsed_frame[i]
-        let my_id = parsed_obj_info['my_id']
-        // find core obj by my_id
-        let object = find_obj_by_id(my_id)
-
-        apply_update(object, parsed_obj_info)
+        apply_update(parsed_frame[i])
     }
 }
 
@@ -157,20 +152,19 @@ function parse_env(str){
             window.glb.scene.remove(window.glb.terrain_mesh);
         }
 
-        // 清除历史轨迹
+        // remove all objects
         for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
+            // 清除历史轨迹
             if (window.glb.core_Obj[i].track_init){
                 window.glb.scene.remove(window.glb.core_Obj[i].track_his.mesh);
                 window.glb.core_Obj[i].track_his = null;
                 window.glb.core_Obj[i].track_init = false;
             }
+            // if (window.glb.core_Obj[i].fade_level){continue;}
+            window.glb.scene.remove(window.glb.core_Obj[i]);
+            window.glb.core_Obj.splice(i,1); // remove ith object
         }
 
-        // remove all objects
-        for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
-            window.glb.scene.remove(window.glb.core_Obj[i]);
-            window.glb.core_Obj.pop();
-        }
         // clear flash
         for (let i = window.glb.flash_Obj.length-1; i>=0; i--) {
             window.glb.flash_Obj[i]['valid'] = false;
@@ -181,12 +175,7 @@ function parse_env(str){
             window.glb.line_Obj[i]['valid'] = false;
             window.glb.scene.remove(window.glb.line_Obj[i]['mesh']);
         }
-        // sprite text
-        for (let i = window.glb.text_Obj.length-1; i>=0 ; i--) {
-            // window.glb.scene.remove(window.glb.text_Obj[i]);
-            window.glb.text_Obj.pop();
-        }
-        
+
 
     }
     if(style=="clear_track"){
@@ -701,14 +690,14 @@ function find_lineobj_by_id(my_id){
     }
     return null
 }
-function find_text_by_id(my_id){
-    for (let i = 0; i < window.glb.text_Obj.length; i++) {
-        if (window.glb.text_Obj[i].my_id == my_id) {
-            return window.glb.text_Obj[i];
-        }
-    }
-    return null
-}
+// function find_text_by_id(my_id){
+//     for (let i = 0; i < window.glb.text_Obj.length; i++) {
+//         if (window.glb.text_Obj[i].my_id == my_id) {
+//             return window.glb.text_Obj[i];
+//         }
+//     }
+//     return null
+// }
 function find_obj_by_id(my_id){
     for (let i = 0; i < window.glb.core_Obj.length; i++) {
         if (window.glb.core_Obj[i].my_id == my_id) {
@@ -948,7 +937,6 @@ function make_flash(type, src, dst, dur, size, color){
     }
 }
 function parse_core_obj(str, parsed_frame){
-    
     const pattern = get_reg_exp(">>v2dx\\('(.*?)',([^,]*),([^,]*),([^,]*),(.*)\\)")
     let match_res = str.match(pattern)
     let name = match_res[1]
@@ -969,41 +957,43 @@ function parse_core_obj(str, parsed_frame){
     let my_id = parseInt(name_split[1])
     let color_str = name_split[2]
     let size = parseFloat(name_split[3])
-    let label_marking = `id ${my_id}`
-    let label_color = "black"
     
-    let ro_order = match_karg(str, 'ro_order', 'str', 'XYZ')
     // swap Y and Z, e.g. 'XYZ' -> 'XZY'
+    let ro_order = match_karg(str, 'ro_order', 'str', 'XYZ')
     ro_order = ro_order.replace('Y','T');ro_order = ro_order.replace('Z','Y');ro_order = ro_order.replace('T','Z');
 
-    let object = find_obj_by_id(my_id)
-    let parsed_obj_info = {} 
-    parsed_obj_info['name'] = name  
-    parsed_obj_info['pos_x'] = pos_x  
-    parsed_obj_info['pos_y'] = pos_y
-    parsed_obj_info['pos_z'] = pos_z
-
-    parsed_obj_info['ro_x'] = ro_x  
-    parsed_obj_info['ro_y'] = ro_y
-    parsed_obj_info['ro_z'] = ro_z
-
-    parsed_obj_info['type'] = type  
-    parsed_obj_info['my_id'] = my_id  
-    parsed_obj_info['color_str'] = color_str  
-    parsed_obj_info['size'] = size  
-    parsed_obj_info['label_marking'] = match_karg(str, 'label', 'str', `id ${my_id}`)
-    parsed_obj_info['label_color'] = match_karg(str, 'label_color', 'str', 'black')
-    parsed_obj_info['label_size'] = match_karg(str, 'label_size', 'float', null)
-    parsed_obj_info['label_offset'] = match_karg(str, 'label_offset', 'arr_float', null)
-    parsed_obj_info['label_opacity'] = match_karg(str, 'label_opacity', 'float', 1)
-    parsed_obj_info['opacity'] = match_karg(str, 'opacity', 'float', 1)
-    parsed_obj_info['track_n_frame'] = match_karg(str, 'track_n_frame', 'int', 0)
-    parsed_obj_info['renderOrder'] = match_karg(str, 'renderOrder', 'int', 0)
-    parsed_obj_info['track_tension'] = match_karg(str, 'track_tension', 'float', 0)
-    parsed_obj_info['track_color'] = match_karg(str, 'track_color', 'str', color_str)
-    parsed_obj_info['ro_order'] = ro_order
     
-    apply_update(object, parsed_obj_info)
+    let parsed_obj_info = {};
+    parsed_obj_info['name'] = name;
+    parsed_obj_info['pos_x'] = pos_x;
+    parsed_obj_info['pos_y'] = pos_y;
+    parsed_obj_info['pos_z'] = pos_z;
+
+    parsed_obj_info['ro_x'] = ro_x;
+    parsed_obj_info['ro_y'] = ro_y;
+    parsed_obj_info['ro_z'] = ro_z;
+
+    parsed_obj_info['type'] = type;
+    parsed_obj_info['my_id'] = my_id;
+    parsed_obj_info['color_str'] = color_str;
+    parsed_obj_info['size'] = size;
+    parsed_obj_info['label_marking'] = match_karg(str, 'label', 'str', `id ${my_id}`);
+    parsed_obj_info['label_color'] = match_karg(str, 'label_color', 'str', 'black');
+    parsed_obj_info['label_size'] = match_karg(str, 'label_size', 'float', null);
+    parsed_obj_info['label_offset'] = match_karg(str, 'label_offset', 'arr_float', null);
+    parsed_obj_info['label_opacity'] = match_karg(str, 'label_opacity', 'float', 1);
+    parsed_obj_info['opacity'] = match_karg(str, 'opacity', 'float', 1);
+    parsed_obj_info['track_n_frame'] = match_karg(str, 'track_n_frame', 'int', 0);
+    parsed_obj_info['renderOrder'] = match_karg(str, 'renderOrder', 'int', 0);
+    parsed_obj_info['track_tension'] = match_karg(str, 'track_tension', 'float', 0);
+    parsed_obj_info['track_color'] = match_karg(str, 'track_color', 'str', color_str);
+    parsed_obj_info['ro_order'] = ro_order;
+    parsed_obj_info['fade_step'] = match_karg(str, 'fade_step', 'int', null); 
+    
+    // check parameters
+    if (parsed_obj_info['fade_step'] && parsed_obj_info['fade_step']<=0){ alert('fade_step must >=1 !') }
+    
+    apply_update(parsed_obj_info)
     parsed_frame.push(parsed_obj_info)
 }
 
