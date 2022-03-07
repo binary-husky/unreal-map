@@ -126,12 +126,12 @@ function parse_env(str){
         if (!init_terrain){
             init_terrain=true;
             if(!TerrainMaterialKargs['map']){
-                let texture = THREE.ImageUtils.loadTexture('/wget/dirt.jpg');
+                let texture = THREE.ImageUtils.loadTexture('/wget/dirt2.jpg');
                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                 texture.repeat.set(8, 8);
-                TerrainMaterialKargs['map'] = texture;
+                // TerrainMaterialKargs['map'] = texture;
                 TerrainMaterialKargs['bumpMap'] = texture;
-                TerrainMaterialKargs['bumpScale'] = 0.05;
+                TerrainMaterialKargs['bumpScale'] = 0.01;
             }
             window.glb.renderer.shadowMap.enabled = true;
             var light = new THREE.DirectionalLight(0xffffff,0.9);
@@ -469,7 +469,6 @@ function geo_transform(geometry, ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, tr
 
 function parse_advanced_geometry(str){
     const pattern = get_reg_exp(">>advanced_geometry_rotate_scale_translate\\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\\)")
-    // const pattern = />>advanced_geometry_rotate_scale_translate\('(.*?)','(.*?)',([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)(.*)\)/
     let match_res = str.match(pattern)
     let name = match_res[1]
     let build_cmd = match_res[2]
