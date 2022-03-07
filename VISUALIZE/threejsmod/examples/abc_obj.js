@@ -12,9 +12,7 @@ function makeClearText_new(object, text, textcolor, text_size=null, label_opacit
         side: THREE.DoubleSide
     });
     let font_size = (text_size==null)?object.generalSize/1.5:text_size/1.5
-    const geometry = new THREE.ShapeGeometry(
-        window.glb.font.generateShapes( text, font_size)
-    );
+    const geometry = new THREE.ShapeGeometry(window.glb.font.generateShapes( text, font_size ));
     geometry.computeBoundingBox();
     const xMid = - 0.5 * ( geometry.boundingBox.max.x - geometry.boundingBox.min.x );
     geometry.translate( xMid, 0, 0 );
@@ -22,15 +20,18 @@ function makeClearText_new(object, text, textcolor, text_size=null, label_opacit
 
     text_object.my_id = '_text_' + object.my_id
 
-    // sprite.scale.x = 17* object.generalSize
-    // sprite.scale.y = 17* object.generalSize
-    // sprite.scale.z = 17* object.generalSize
     if (!object.label_offset){
         text_object.position.set(object.generalSize, object.generalSize, -object.generalSize);
     }else{
         text_object.position.set(object.label_offset[0], object.label_offset[2], -object.label_offset[1]);
     }
     text_object.renderOrder = 128
+
+
+
+
+    object.text_object = text_object
+    object.add(text_object)
 
 
     text_object.update_text = function(object, text, textcolor, text_size=null, label_opacity){
@@ -51,9 +52,6 @@ function makeClearText_new(object, text, textcolor, text_size=null, label_opacit
         text_object.geometry.translate( xMid, 0, 0 );
 
     }
-    // window.glb.text_Obj.push(text_object)
-    object.text_object = text_object
-    object.add(text_object)
 }
 //修改颜色
 function changeCoreObjColor(object, color_str){
