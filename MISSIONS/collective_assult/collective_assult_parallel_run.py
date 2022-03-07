@@ -453,19 +453,36 @@ class collective_assultGlobalEnv(gym.Env):
             # self.threejs_bridge.set_style('star')
             # self.threejs_bridge.set_style('grid')
             # self.threejs_bridge.set_style('grid3d')
-            self.threejs_bridge.set_style('gray')
+            self.threejs_bridge.set_style('font', fontPath='/examples/fonts/ttf/FZYTK.TTF', fontLineHeight=1500) # 注意不可以省略参数键值'font_path=','fontLineHeight=' ！！！
+            # self.threejs_bridge.set_style('gray')
+            self.threejs_bridge.set_style('skybox6side',    # 设置天空盒子，注意不可以省略参数键值 !!
+                posx='/wget/mars_textures/mars_posx.jpg',   
+                negx='/wget/mars_textures/mars_negx.jpg',   
+                posy='/wget/mars_textures/mars_posy.jpg',
+                negy='/wget/mars_textures/mars_negy.jpg',
+                posz='/wget/mars_textures/mars_posz.jpg',
+                negz='/wget/mars_textures/mars_negz.jpg',
+            )
+            self.threejs_bridge.其他几何体之旋转缩放和平移('tower', 'BoxGeometry(1,1,1)',   0,0,0,  1,1,8, 0,0,-4) # 长方体
+            self.threejs_bridge.其他几何体之旋转缩放和平移('tower2', 'BoxGeometry(1,1,1)',   0,0,0,  0,0,5, 0,0,-4) # 长方体
+
             self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,       3, 2, 1,         0, 0, 0)
             self.threejs_bridge.geometry_rotate_scale_translate('cone',  0, np.pi/2, 0,       1.2, 0.9, 0.9,   1.5,0,0.5) # x -> y -> z
             self.threejs_bridge.terrain_theta=0
+            for _ in range(20):
+                # 等待加载字体
+                self.threejs_bridge.空指令()
+                self.threejs_bridge.v2d_show()
 
-            self.threejs_bridge.v2dx('box|1000|%s|0.15'%('Gray'), 3, 3, 1, ro_x=0, ro_y=0, ro_z=0,
-                label='(+3,+3)', label_color='Crimson', opacity=0.05)
-            self.threejs_bridge.v2dx('box|1001|%s|0.15'%('Gray'), 3, -3, 1, ro_x=0, ro_y=0, ro_z=0,
-                label='(+3,-3)', label_color='Crimson', opacity=0.05)
-            self.threejs_bridge.v2dx('box|1002|%s|0.15'%('Gray'), -3, 3, 1, ro_x=0, ro_y=0, ro_z=0,
-                label='(-3,+3)', label_color='Crimson', opacity=0.05)
-            self.threejs_bridge.v2dx('box|1003|%s|0.15'%('Gray'), -3, -3, 1, ro_x=0, ro_y=0, ro_z=0,
-                label='(-3,-3)', label_color='Crimson', opacity=0.05)
+
+        self.threejs_bridge.v2dx('tower|1000|%s|0.15'%('FireBrick'), 3, 3, 1, ro_x=0, ro_y=0, ro_z=0,
+            label='坐标(+3,+3)', label_color='White', opacity=1)
+        self.threejs_bridge.v2dx('tower|1001|%s|0.15'%('FireBrick'), 3, -3, 1, ro_x=0, ro_y=0, ro_z=0,
+            label='坐标(+3,-3)', label_color='White', opacity=1)
+        self.threejs_bridge.v2dx('tower|1002|%s|0.15'%('FireBrick'), -3, 3, 1, ro_x=0, ro_y=0, ro_z=0,
+            label='坐标(-3,+3)', label_color='White', opacity=1)
+        self.threejs_bridge.v2dx('tower|1003|%s|0.15'%('FireBrick'), -3, -3, 1, ro_x=0, ro_y=0, ro_z=0,
+            label='坐标(-3,-3)', label_color='White', opacity=1)
 
         if self.threejs_bridge.terrain_theta != self.world.init_theta:
             self.threejs_bridge.terrain_theta = self.world.init_theta
@@ -473,10 +490,10 @@ class collective_assultGlobalEnv(gym.Env):
 
         n_red= len([0 for agent in self.world.agents if agent.alive and agent.attacker])
         n_blue = len([0 for agent in self.world.agents if agent.alive and not agent.attacker])
-        self.threejs_bridge.v2dx('box|1004|Gray|0.15', -0.2, 1, 1, ro_x=0, ro_y=0, ro_z=0,
-            label='Blue(RL): %d'%(n_blue), label_color='Blue', opacity=0.0)
-        self.threejs_bridge.v2dx('box|1005|Gray|0.15', +0.2, 1, 1, ro_x=0, ro_y=0, ro_z=0,
-            label='Red(Built-in AI): %d'%(n_red), label_color='Red', opacity=0.0)
+        who_is_winning = '蓝方(Conc强化学习)领先' if n_blue>n_red else '红方(游戏脚本)领先'
+        self.threejs_bridge.v2dx('tower2|1004|Gray|0.2', 0, 3, 1, ro_x=0, ro_y=0, ro_z=0,
+            label='蓝方剩余单位(Conc强化学习): %d\n红方剩余单位(游戏脚本): %d\n%s'%(n_blue, n_red, who_is_winning), label_color='Aqua', opacity=0)
+
 
         for index, agent in enumerate(self.world.agents):
             x = agent.state.p_pos[0]; y = agent.state.p_pos[1]

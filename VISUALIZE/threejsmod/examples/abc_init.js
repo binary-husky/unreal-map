@@ -47,13 +47,7 @@ function init() {
     window.glb.controls2.autoRotate = false;
     window.glb.controls.enabled = true;
     window.glb.controls2.enabled = false;
-    window.glb.controls.keys = {
-        FORWARD: 'KeyW', BACKWARD:'KeyS',
-        LEFT: 'KeyA', //left arrow
-        RIGHT: 'KeyD', // right arrow
-        UP: 'KeyE', // up arrow
-        BOTTOM: 'KeyF' // down arrow
-    };
+
     window.glb.controls.listenToKeyEvents(window);
     window.glb.controls.enableDamping=true;
 
@@ -71,6 +65,7 @@ function init() {
             req_interval = interval;
     });
     Folder1.add( window.glb.panelSettings, 'reset to read new' );
+    Folder1.add( window.glb.panelSettings, 'auto fps' );
     Folder1.open();
 
     window.glb.BarFolder = panel.addFolder('Play Pointer');

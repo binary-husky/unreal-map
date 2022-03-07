@@ -58,6 +58,9 @@ window.glb.sp_future = 0;   // 用于辅助确定 solid_pointer
 window.glb.dt_threshold = 1 / window.glb.play_fps;
 var client_uuid = generateUUID();
 
+//1e4
+window.glb.buffer_size = 1e6
+
 var dt_since = 0;
 var buf_str = '';
 var DEBUG = false;
@@ -70,6 +73,7 @@ window.glb.panelSettings = {
     'play fps': window.glb.play_fps,
     'play pointer':0,
     'data req interval': req_interval,
+    'auto fps': false,
     'reset to read new': null,
     'pause': null,
     'next frame': null,
@@ -83,7 +87,8 @@ window.glb.panelSettings = {
 };
 
 
-
+var pre_rec_time = -1
+var incoming_per_sec = -1
 
 //////////////////////main read function//////////////////////////
 var coreReadFunc = function (auto_next=true) {
@@ -103,7 +108,7 @@ var coreReadFunc = function (auto_next=true) {
         alert('xhr request timeout!')
     };
     request.onload = () => {
-        // console.log('loaded')
+
         let inflat;
         if (!DEBUG){
             let byteArray = toUint8Arr(request.response);
@@ -121,6 +126,25 @@ var coreReadFunc = function (auto_next=true) {
         }else{
             req_interval = 0
             window.glb.panelSettings['data req interval'] = req_interval
+        }
+
+        let time_now = new Date().getTime() / 1000;
+        if (pre_rec_time<0){
+            pre_rec_time = time_now; // first run
+        }else{
+            let data_receive_per_sec = n_new_data/(time_now-pre_rec_time)
+            if (incoming_per_sec<0){
+                incoming_per_sec = 5;
+            }else{
+                incoming_per_sec = incoming_per_sec*0.99 + data_receive_per_sec*0.01
+            }
+            console.log('pre_rec_time:'+incoming_per_sec+'    data_receive_per_sec:'+data_receive_per_sec)
+            pre_rec_time = time_now; // first run
+            if(window.glb.panelSettings['auto fps'] && (Math.abs(window.glb.panelSettings['play fps'] - incoming_per_sec)>=1) ){
+                window.glb.panelSettings['play fps'] = incoming_per_sec;
+                change_fps(window.glb.panelSettings['play fps'])
+                console.log('change_fps:'+window.glb.panelSettings['play fps'])
+            }
         }
 
         transfer_ongoing = false;
@@ -441,7 +465,7 @@ function set_next_play_frame() {
     }
     parse_time_step(window.glb.play_pointer)
     window.glb.solid_pointer = window.glb.sp_future; window.glb.panelSettings['play pointer'] = window.glb.solid_pointer; window.glb.sp_future = window.glb.play_pointer;
-    console.log('set_next_play_frame sp:'+window.glb.solid_pointer+' spf:'+window.glb.sp_future)
+    // console.log('set_next_play_frame sp:'+window.glb.solid_pointer+' spf:'+window.glb.sp_future)
 
     window.glb.play_pointer = window.glb.play_pointer + 1
     if (window.glb.play_pointer >= window.glb.core_L.length) {

@@ -82,7 +82,14 @@ class OrbitControls extends EventDispatcher {
 		this.autoRotateSpeed = 2.0; // 30 seconds per orbit when fps is 60
 
 		// The four arrow keys
-		this.keys = {FORWARD: 'KeyW', BACKWARD:'KeyS', LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' };
+		this.keys = {
+			FORWARD: 'KeyW', BACKWARD:'KeyS',
+			LEFT: 'KeyA', RIGHT: 'KeyD', // right arrow
+			UP: 'KeyE', BOTTOM: 'KeyF', // down arrow
+			SlowLeft: 'ArrowLeft', SlowRight: 'ArrowRight', 
+		};
+		
+		//{FORWARD: 'KeyW', BACKWARD:'KeyS', LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' };
 
 		// Mouse buttons
 		this.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN };
@@ -644,13 +651,25 @@ class OrbitControls extends EventDispatcher {
 					pan( - scope.keyPanSpeed, 0 );
 					needsUpdate = true;
 					break;
+
 				case scope.keys.FORWARD:
 					dollyIn( getZoomScale() );
 					needsUpdate = true;
 					break;
+
 				case scope.keys.BACKWARD:
 					dollyOut( getZoomScale() );
 					needsUpdate = true;
+					break;
+
+				case scope.keys.SlowLeft:
+					scope.autoRotate = true;
+					scope.autoRotateSpeed = 0.05;
+					break;
+
+				case scope.keys.SlowRight:
+					scope.autoRotate = true;
+					scope.autoRotateSpeed = -0.05;
 					break;
 			}
 

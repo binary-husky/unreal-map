@@ -56,7 +56,7 @@ class XSimManager(object):
         docker_run = "docker run --rm -p {}:{} -itd --name {} -w /home/x64 {} python daemon_server.py {} {} {} {}"\
             .format(self.port, self.port, self.docker_name, self.image_name, self.xsim_time_ratio, self.port, self.domain_group, RTMNum)
         print(docker_run)
-        YOUR_ROOT_PASSWORD = 'hmp'
+        YOUR_ROOT_PASSWORD = 'clara'
         os.system('echo %s|sudo -S %s' % (YOUR_ROOT_PASSWORD, docker_run))
 
 
@@ -65,7 +65,7 @@ class XSimManager(object):
 
         # 1、如果没用hmp的docker，请设置好 YOUR_ROOT_PASSWORD，不止这一处，请全局搜索"YOUR_ROOT_PASSWORD"替换所有
         # 2、用docker的sock挂载到容器中，方法在SetupDocker.md中
-        YOUR_ROOT_PASSWORD = 'hmp'
+        YOUR_ROOT_PASSWORD = 'clara'
         docker_stop = 'docker stop -t 0 ' + self.docker_name
         cmd = 'echo %s|sudo -S %s' % (YOUR_ROOT_PASSWORD, docker_stop)
         print亮红('[xsim_manager.py] os.system(%s)'%cmd)

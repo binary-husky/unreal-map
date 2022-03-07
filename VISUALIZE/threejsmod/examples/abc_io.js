@@ -51,11 +51,11 @@ function core_update(buf) {
     }
     //
     window.glb.core_L = window.glb.core_L.concat(tmp);
-    if (window.glb.core_L.length>1e8){
+    if (window.glb.core_L.length > window.glb.buffer_size){
         window.glb.core_L.splice(0, tmp.length);
-        play_pointer = play_pointer - tmp.length;
-        if (play_pointer<0){
-            play_pointer=0;
+        window.glb.play_pointer = window.glb.play_pointer - tmp.length;
+        if (window.glb.play_pointer<0){
+            window.glb.play_pointer=0;
         }
     }
     window.glb.BarFolder.__controllers[0].max(window.glb.core_L.length);

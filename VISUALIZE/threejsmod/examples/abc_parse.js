@@ -96,27 +96,54 @@ function parse_update_without_re(pp){
 
 
 var init_terrain = false;
+var TerrainMaterialKargs = {}
 
 function parse_env(str){
     let re_style = />>set_env\('(.*?)'/
     let re_res = str.match(re_style)
     let style = re_res[1]
+
     if(style=="terrain"){
         let get_theta = />>set_env\('terrain',theta=([^,)]*)/
         let get_theta_res = str.match(get_theta)
         let theta = parseFloat(get_theta_res[1])
         
+        // 投射阴影
+        for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
+            window.glb.core_Obj[i].castShadow = true;
+        }
+    
+    
         ////////////////////// add terrain /////////////////////
         let width = 30; let height = 30;
         let Segments = 200;
         if (!init_terrain){
             init_terrain=true;
+            if(!TerrainMaterialKargs['map']){
+                let texture = THREE.ImageUtils.loadTexture('/wget/dirt.jpg');
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                texture.repeat.set(8, 8);
+                TerrainMaterialKargs['map'] = texture;
+                TerrainMaterialKargs['bumpMap'] = texture;
+                TerrainMaterialKargs['bumpScale'] = 0.05;
+            }
+            window.glb.renderer.shadowMap.enabled = true;
+            var light = new THREE.DirectionalLight(0xffffff,0.9);
+            light.castShadow = true;
+            light.position.set(0,50,7);
+            window.glb.scene.add(light);
+            window.glb.camera.children[0].visible = false;
+
         }else{
             window.glb.scene.remove(window.glb.terrain_mesh);
         }
         let geometry = new THREE.PlaneBufferGeometry(width, height, Segments - 1, Segments - 1); //(width, height,widthSegments,heightSegments)
         geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-        window.glb.terrain_mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({}));
+    
+    
+    
+        window.glb.terrain_mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial(TerrainMaterialKargs));
+        window.glb.terrain_mesh.receiveShadow = true;
         window.glb.scene.add(window.glb.terrain_mesh);
         let array = geometry.attributes.position.array;
         for (let i = 0; i < Segments * Segments; i++) {
@@ -124,7 +151,7 @@ function parse_env(str){
             let _x_ = array[i * 3 + 0];
             let z = array[i * 3 + 2];
             let _y_ = -array[i * 3 + 2];
-
+    
             let A=0.05; 
             let B=0.2;
             let X_ = _x_*Math.cos(theta) + _y_*Math.sin(theta);
@@ -134,9 +161,9 @@ function parse_env(str){
             Z = (Z-1)*4;
             Z = Z - 0.1
             array[i * 3 + 1] = Z
-
         }
-        geometry.computeBoundingSphere(); geometry.computeVertexNormals();
+        geometry.computeBoundingSphere(); 
+        geometry.computeVertexNormals();
         console.log('update terrain')
     }
     if(style=="terrain_rm"){
@@ -204,6 +231,12 @@ function parse_style(str){
     let style = re_res[1]
     if(style=="terrain"){
         console.log('use set_env')
+    }else if (style=="vhmap_buffer_size"){
+        let vhmap_buffer_size = match_karg(str, 'size', 'int', null)
+        if(vhmap_buffer_size){
+            
+            window.glb.buffer_size = vhmap_buffer_size
+        }
     }
     else if (style=="grid3d"){
         let gridXZ = new THREE.GridHelper(1000, 10, 0xEED5B7, 0xEED5B7);
@@ -379,11 +412,11 @@ function parse_style(str){
             if(skyboxPath){
                 textureEquirec = textureLoader.load( skyboxPath );
                 textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
-                textureEquirec.encoding = THREE.sRGBEncoding;
+                // textureEquirec.encoding = THREE.sRGBEncoding;
                 window.glb.scene.background = textureEquirec;
-                const ambient = new THREE.AmbientLight( 0xffffff );
-				window.glb.scene.add( ambient );
-                window.glb.renderer.outputEncoding = THREE.sRGBEncoding;
+                // const ambient = new THREE.AmbientLight( 0xffffff );
+				// window.glb.scene.add( ambient );
+                // window.glb.renderer.outputEncoding = THREE.sRGBEncoding;
             }else{
                 alert('Skybox path not given! Please use path=xxxx !')
             }
@@ -401,16 +434,12 @@ function parse_style(str){
             let posz = match_karg(str, 'posz', 'str', null)
             let negz = match_karg(str, 'negz', 'str', null)
             if(posx){
-                
                 let textureCube = loader.load( [ posx, negx, posy, negy, posz, negz ] );
-                textureCube.encoding = THREE.sRGBEncoding;
-
-                
-
+                // textureCube.encoding = THREE.sRGBEncoding;
                 window.glb.scene.background = textureCube;
-                const ambient = new THREE.AmbientLight( 0xffffff );
-				window.glb.scene.add( ambient );
-                window.glb.renderer.outputEncoding = THREE.sRGBEncoding;
+                // const ambient = new THREE.AmbientLight( 0x020202 );
+				// window.glb.scene.add( ambient );
+                // window.glb.renderer.outputEncoding = THREE.sRGBEncoding;
             }else{
                 alert('Skybox path not given! Please use path=xxxx !')
             }
@@ -465,13 +494,8 @@ function parse_advanced_geometry(str){
         window.glb.base_geometry[name] = 'loading'
         loader.load(path_of_fbx_file, function ( object ) {
             window.glb.base_geometry[name] = object.children[0].geometry;
-            // window.glb.base_geometry[name] = object.mesh;
             window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
         });
-
-        // path_of_fbx_file = window.glb.import_FBXLoader()
-        // window.glb.base_geometry[name] = eval('new THREE.'+build_cmd)
-        // window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
     }else{
         // very basic shapes
         window.glb.base_geometry[name] = eval('new THREE.'+build_cmd)
