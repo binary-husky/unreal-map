@@ -64,7 +64,7 @@ function init() {
         function (interval) {
             req_interval = interval;
     });
-    Folder1.add( window.glb.panelSettings, 'reset to read new' );
+    // Folder1.add( window.glb.panelSettings, 'reset to read new' );
     Folder1.add( window.glb.panelSettings, 'auto fps' );
     Folder1.open();
 

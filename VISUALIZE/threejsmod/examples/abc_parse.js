@@ -65,20 +65,26 @@ function parse_update_env(buf_str) {
     }
 }
 
+// all init cmd must only be executed once
+var executed_init_cmd = {}
 function parse_init(buf_str) {
     let each_line = buf_str.split('\n')
     for (let i = 0; i < each_line.length; i++) {
         let str = each_line[i]
         if(str.search(">>set_style") != -1){
+            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]='';}
             parse_style(str)
         }
         if(str.search(">>geometry_rotate_scale_translate") != -1){
+            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]='';}
             parse_geometry(str)
         }
         if(str.search(">>advanced_geometry_rotate_scale_translate") != -1){
+            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]='';}
             parse_advanced_geometry(str)
         }
         if(str.search(">>advanced_geometry_material") != -1){
+            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]='';}
             parse_advanced_geometry_material(str)
         }
         
@@ -234,7 +240,7 @@ function parse_style(str){
     }else if (style=="vhmap_buffer_size"){
         let vhmap_buffer_size = match_karg(str, 'size', 'int', null)
         if(vhmap_buffer_size){
-            
+
             window.glb.buffer_size = vhmap_buffer_size
         }
     }

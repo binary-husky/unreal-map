@@ -59,7 +59,7 @@ window.glb.dt_threshold = 1 / window.glb.play_fps;
 var client_uuid = generateUUID();
 
 //1e4
-window.glb.buffer_size = 1e6
+window.glb.buffer_size = 1e4
 
 var dt_since = 0;
 var buf_str = '';
@@ -74,7 +74,7 @@ window.glb.panelSettings = {
     'play pointer':0,
     'data req interval': req_interval,
     'auto fps': false,
-    'reset to read new': null,
+    // 'reset to read new': null,
     'pause': null,
     'next frame': null,
     'previous frame': null,
@@ -155,13 +155,14 @@ var coreReadFunc = function (auto_next=true) {
     if(auto_next && !DEBUG){setTimeout(coreReadFunc, req_interval*1000);}
     // console.log('next update '+req_interval)
 }
-window.glb.panelSettings['reset to read new'] = function (){
-    if (transfer_ongoing){
-        request.abort()
-        transfer_ongoing = false;
-    }
-    coreReadFunc(false)
-}
+// window.glb.panelSettings['reset to read new'] = function (){
+//     if (transfer_ongoing){
+//         request.abort()
+//         transfer_ongoing = false;
+//     }
+//     coreReadFunc(false)
+// }
+
 setTimeout(coreReadFunc, 100);
 
 function change_fps(fps) {
@@ -263,20 +264,20 @@ function removeEntity(object) {
 
 
 function parse_time_step(pp){
-    if(window.glb.parsed_core_L[pp]) {
-        buf_str = window.glb.core_L[pp]
-        parse_update_env(buf_str)
-        parse_update_without_re(pp)
-        parse_update_flash(buf_str)
-    }else{
+    // if(window.glb.parsed_core_L[pp]) {
+    //     buf_str = window.glb.core_L[pp]
+    //     parse_update_env(buf_str)
+    //     parse_update_without_re(pp)
+    //     parse_update_flash(buf_str)
+    // }else{
         // first time parse
-        buf_str = window.glb.core_L[pp]
-        parse_init(buf_str)
-        parse_update_env(buf_str)
-        parse_update_core(buf_str, pp)
-        parse_update_flash(buf_str)
-    }
-    tmp_object_manager()
+    buf_str = window.glb.core_L[pp];
+    parse_init(buf_str);
+    parse_update_env(buf_str);
+    parse_update_core(buf_str, pp);
+    parse_update_flash(buf_str);
+    // }
+    // tmp_object_manager()
 }
 
 
