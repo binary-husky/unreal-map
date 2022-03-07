@@ -93,11 +93,10 @@ var incoming_per_sec = -1
 //////////////////////main read function//////////////////////////
 var coreReadFunc = function (auto_next=true) {
     if (transfer_ongoing){
-        // console.log('ongoing')
         req_interval = req_interval+1;
-        window.glb.panelSettings['data req interval'] = req_interval
+        window.glb.panelSettings['data req interval'] = req_interval;
         if (!DEBUG){setTimeout(coreReadFunc, req_interval*1000);}
-        return
+        return;
     }
     request = new XMLHttpRequest();
     request.open('POST', `/up`);
@@ -110,50 +109,55 @@ var coreReadFunc = function (auto_next=true) {
     request.onload = () => {
 
         let inflat;
-        if (!DEBUG){
-            let byteArray = toUint8Arr(request.response);
-            inflat = pako.inflate(byteArray,{to: 'string'}); //window.pako.inflate(byteArray)
-        }else{
-            inflat = request.responseText
-        }
+        if (!DEBUG){inflat = pako.inflate(toUint8Arr(request.response),{to: 'string'});}
+        else{inflat = request.responseText;}
+
         let n_new_data = core_update(inflat)
         if (n_new_data==0){
             req_interval = req_interval+1;
-            if (req_interval>100){
-                req_interval=100;
-            }
-            window.glb.panelSettings['data req interval'] = req_interval
+            if (req_interval>100){req_interval=100;}
+            window.glb.panelSettings['data req interval'] = req_interval;
         }else{
-            req_interval = 0
-            window.glb.panelSettings['data req interval'] = req_interval
+            req_interval = 0;
+            window.glb.panelSettings['data req interval'] = req_interval;
         }
 
         let time_now = new Date().getTime() / 1000;
-        if (pre_rec_time<0){
-            pre_rec_time = time_now; // first run
-        }else{
+        if (pre_rec_time<0){pre_rec_time = time_now;}
+        else{
             let data_receive_per_sec = n_new_data/(time_now-pre_rec_time)
-            if (incoming_per_sec<0){
-                incoming_per_sec = 5;
-            }else{
-                incoming_per_sec = incoming_per_sec*0.99 + data_receive_per_sec*0.01
-            }
-            console.log('pre_rec_time:'+incoming_per_sec+'    data_receive_per_sec:'+data_receive_per_sec)
+            if (incoming_per_sec<0){incoming_per_sec = 5;}
+            else{incoming_per_sec = incoming_per_sec*0.98 + data_receive_per_sec*0.02;}
+
+            console.log('pre_rec_time:'+incoming_per_sec+'\tdata_receive_per_sec:'+data_receive_per_sec)
             pre_rec_time = time_now; // first run
-            if(window.glb.panelSettings['auto fps'] && (Math.abs(window.glb.panelSettings['play fps'] - incoming_per_sec)>=1) ){
-                window.glb.panelSettings['play fps'] = incoming_per_sec;
-                change_fps(window.glb.panelSettings['play fps'])
-                console.log('change_fps:'+window.glb.panelSettings['play fps'])
+            if (window.glb.panelSettings['auto fps']){
+                // automatically change fps
+                let need_fps_change = true;
+                if ((window.glb.core_L.length - window.glb.play_pointer)> window.glb.buffer_size*0.3){ // 20% buffer size
+                    window.glb.panelSettings['play fps'] = incoming_per_sec*5;
+                }else if ((window.glb.core_L.length - window.glb.play_pointer)< window.glb.buffer_size*0.05){ // 20% buffer size
+                    window.glb.panelSettings['play fps'] = incoming_per_sec*0.5;
+                }else if((Math.abs(window.glb.panelSettings['play fps'] - incoming_per_sec)>=1) ){ // 10% ~ 30% buffer size
+                    window.glb.panelSettings['play fps'] = incoming_per_sec;
+                }else{
+                    need_fps_change = false;
+                }
+
+                if (window.glb.panelSettings['play fps']>144){window.glb.panelSettings['play fps']=144;}
+                if (window.glb.panelSettings['play fps']<0.1){window.glb.panelSettings['play fps']=0.1;}
+                if (need_fps_change) {change_fps(window.glb.panelSettings['play fps']);}
+                if (need_fps_change) {console.log('change_fps:'+window.glb.panelSettings['play fps']);}
             }
+
+
         }
 
         transfer_ongoing = false;
     };
     request.send(client_uuid);
-    // console.log('send req')
     transfer_ongoing = true;
     if(auto_next && !DEBUG){setTimeout(coreReadFunc, req_interval*1000);}
-    // console.log('next update '+req_interval)
 }
 // window.glb.panelSettings['reset to read new'] = function (){
 //     if (transfer_ongoing){
@@ -166,6 +170,7 @@ var coreReadFunc = function (auto_next=true) {
 setTimeout(coreReadFunc, 100);
 
 function change_fps(fps) {
+    if (Math.abs(window.glb.play_fps-fps)<0.5){ return; }
     window.glb.play_fps = fps;
     dt_since = 0;
     window.glb.dt_threshold = 1 / window.glb.play_fps;
