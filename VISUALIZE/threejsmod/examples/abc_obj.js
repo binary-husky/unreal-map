@@ -2,57 +2,229 @@
 var init_cam_f1 = false;
 var init_cam_f2 = false;
 
-function makeClearText_new(object, text, textcolor, text_size=null, label_opacity){
-    const matLite = new THREE.MeshBasicMaterial( {
-        color: textcolor,
-        transparent: (label_opacity!=1),
-        // transparent: (parsed_obj_info['opacity']==1)?false:true,
-        opacity: label_opacity,
-        // opacity: parsed_obj_info['opacity'],
-        side: THREE.DoubleSide
-    });
-    let font_size = (text_size==null)?object.generalSize/1.5:text_size/1.5
-    const geometry = new THREE.ShapeGeometry(window.glb.font.generateShapes( text, font_size ));
-    geometry.computeBoundingBox();
-    const xMid = - 0.5 * ( geometry.boundingBox.max.x - geometry.boundingBox.min.x );
-    geometry.translate( xMid, 0, 0 );
-    const text_object = new THREE.Mesh( geometry, matLite );
 
-    text_object.my_id = '_text_' + object.my_id
-
-    if (!object.label_offset){
-        text_object.position.set(object.generalSize, object.generalSize, -object.generalSize);
+function getTextBackground(text_object, parsed_obj_info){
+    text_object.geometry.computeBoundingBox();
+    let dx = text_object.geometry.boundingBox.max.x - text_object.geometry.boundingBox.min.x;
+    let dy = text_object.geometry.boundingBox.max.y - text_object.geometry.boundingBox.min.y;
+    
+    if (isFinite(dx)){
+        const geometry = new THREE.PlaneGeometry( dx*1.15, dy*1.15 );
+        // const yMid = - 0.5 * dy;
+        // geometry.translate( 0, yMid, 0 );
+        const material = new THREE.MeshBasicMaterial( {color: parsed_obj_info['label_bgcolor'], side: THREE.DoubleSide, transparent: true, opacity:0.5} );
+        const plane = new THREE.Mesh( geometry, material );
+        plane.renderOrder = 127;
+        return plane;
     }else{
-        text_object.position.set(object.label_offset[0], object.label_offset[2], -object.label_offset[1]);
+        return null;
     }
-    text_object.renderOrder = 128
 
+}
 
-
-
-    object.text_object = text_object
-    object.add(text_object)
-
-
-    text_object.update_text = function(object, text, textcolor, text_size=null, label_opacity){
-        let font_size = (text_size==null)?object.generalSize/1.5:text_size/1.5
-        text_object.geometry = new THREE.ShapeGeometry(
-            window.glb.font.generateShapes( text, font_size)
-        );
-        text_object.material = new THREE.MeshBasicMaterial( {
-            color: textcolor,
-            transparent: (label_opacity!=1),
-            // transparent: (parsed_obj_info['opacity']==1)?false:true,
-            opacity: label_opacity,
-            // opacity: parsed_obj_info['opacity'],
-            side: THREE.DoubleSide
-        });
-        text_object.geometry.computeBoundingBox();
-        const xMid = - 0.5 * ( geometry.boundingBox.max.x - geometry.boundingBox.min.x );
-        text_object.geometry.translate( xMid, 0, 0 );
-
+// assign or replace
+function AoR(obj, new_obj){
+    if(!obj){
+        return new_obj;
+    }
+    else{
+        obj.material = new_obj.material;
+        obj.geometry = new_obj.geometry;
+        new_obj = null;
+        return obj;
     }
 }
+
+function text_object_centering(text_object) {
+    text_object.geometry.computeBoundingBox();
+    const xMid = -0.5 * (text_object.geometry.boundingBox.max.x + text_object.geometry.boundingBox.min.x);
+    const yMid = -0.5 * (text_object.geometry.boundingBox.max.y + text_object.geometry.boundingBox.min.y);
+    let dx = text_object.geometry.boundingBox.max.x - text_object.geometry.boundingBox.min.x;
+    text_object.geometry.translate(xMid, yMid, dx / 50);
+}
+function get_text_geometry(object, text, parsed_obj_info){
+    let text_size = parsed_obj_info['label_size'];
+    let font_size = (text_size==null)?object.generalSize/1.5:text_size/1.5
+    return new THREE.ShapeGeometry(window.glb.font.generateShapes( text, font_size ));
+}
+
+
+function get_text_material(object, text, parsed_obj_info){
+    let label_opacity = parsed_obj_info['label_opacity'];
+    let textcolor = parsed_obj_info['label_color'];
+    return new THREE.MeshBasicMaterial( {
+        color: textcolor,
+        transparent: (label_opacity!=1),
+        opacity: label_opacity,
+        side: THREE.DoubleSide
+    });
+}
+function get_text_material_arr(object, text, parsed_obj_info, color_arr){
+    let label_opacity = parsed_obj_info['label_opacity'];
+
+    let res = []
+    for (i=0;i<color_arr.length;i++){
+        res.push(new THREE.MeshBasicMaterial( {
+            color: color_arr[i],
+            transparent: (label_opacity!=1),
+            opacity: label_opacity,
+            side: THREE.DoubleSide
+        }))
+    }
+
+    return res
+}
+function makeClearText_old(object, text, parsed_obj_info){
+    if(object.text_object){init=true;}
+    else{init=false;}
+
+    object.text_object = AoR(
+        object.text_object,
+        new THREE.Mesh( 
+            get_text_geometry(object, text, parsed_obj_info), 
+            get_text_material(object, text, parsed_obj_info) 
+        )
+    );
+
+    text_object_centering(object.text_object)
+
+    if (!init){
+
+        // (init) fixed id and offset
+        object.text_object.my_id = '_text_' + object.my_id
+        if (!object.label_offset){object.text_object.position.set(object.generalSize, object.generalSize, -object.generalSize);}
+        else{object.text_object.position.set(object.label_offset[0], object.label_offset[2], -object.label_offset[1]);}
+        // (init) renderOrder
+        object.text_object.renderOrder = 128
+    }
+    if (parsed_obj_info['label_bgcolor']){
+        object.text_object.background = AoR(
+            object.text_object.background,
+            getTextBackground(object.text_object, parsed_obj_info)
+        );
+    }
+
+    if (!init){
+        // (init) add objects
+        object.add(object.text_object)
+        if (object.text_object.background){object.text_object.add(object.text_object.background)}
+    }
+
+}
+
+function my_match_all(text, pattern){
+    const pattern_color = get_reg_exp_g(pattern);
+    let match_color_ = text.matchAll(pattern_color);
+    let match_color = [];
+    while(true){
+        let x = match_color_.next();
+        if (x.done){break;}
+        match_color.push(x.value[1])
+    }
+    return match_color;
+}
+
+
+
+function get_text_geometry_arr(object, text, parsed_obj_info, each_color, word_color, match_color){
+    let text_size = parsed_obj_info['label_size'];
+    let font_size = (text_size==null)?object.generalSize/1.5:text_size/1.5;
+    let shape_arr = window.glb.font.myGenerateShapes( text, font_size, each_color, word_color );
+    // let geo_res = [];
+    let nShapeEachColor = []
+    let all_shape = []
+    for(i=0; i<match_color.length; i++){
+        let color = match_color[i]
+        nShapeEachColor.push(shape_arr[color].length)
+        Array.prototype.push.apply( all_shape ,  shape_arr[color] );
+    }
+    let geo = new THREE.ShapeGeometry(all_shape);
+    
+    let sumpren = 0;
+    for(c=0; c<nShapeEachColor.length; c++){
+        let n = nShapeEachColor[c];
+        for(j=sumpren;j<sumpren+n;j++){
+            geo.groups[j].materialIndex = c;
+        }
+        sumpren += n;
+    }
+
+    return geo;
+}
+
+
+
+function makeClearText(object, text, parsed_obj_info){
+    if(object.text_object){init=true;}
+    else{init=false;}
+
+    let match_color = my_match_all(text, '<(.*?)>');
+    let match_text = my_match_all(text, '>([\\s\\S]*?)<');
+
+    if (match_color.length==0 || match_color.length != match_text.length+1){
+        makeClearText_old(object, text, parsed_obj_info);
+        return;
+    }
+    match_color = match_color.slice(0, match_color.length-1)
+
+    each_color_list = []
+    each_color = {} // 颜色字典
+    word_color = [] // 各个字的颜色
+    text_raw = '' // 去除颜色标识的文字
+
+    for(i=0; i < match_color.length; i++){
+        let color_ = match_color[i];
+        let text_ = match_text[i];
+        each_color[color_] = []
+        for(j=0; j < text_.length;j++){
+            word_color.push(color_)
+        }
+        let color_already_in_list = (each_color_list.indexOf(color_) >= 0)
+        if (!color_already_in_list){
+            each_color_list.push(color_);
+        }
+        text_raw = text_raw + text_
+    }
+
+    let material = get_text_material_arr(object, text_raw, parsed_obj_info, each_color_list);
+    let geometry = get_text_geometry_arr(object, text_raw, parsed_obj_info, each_color, word_color, each_color_list);
+
+    object.text_object = AoR(
+        object.text_object,
+        new THREE.Mesh( 
+            geometry,
+            material
+        )
+    );
+
+    text_object_centering(object.text_object)
+
+    if (!init){
+
+        // (init) fixed id and offset
+        object.text_object.my_id = '_text_' + object.my_id
+        if (!object.label_offset){object.text_object.position.set(object.generalSize, object.generalSize, -object.generalSize);}
+        else{object.text_object.position.set(object.label_offset[0], object.label_offset[2], -object.label_offset[1]);}
+        // (init) renderOrder
+        object.text_object.renderOrder = 128
+    }
+    if (parsed_obj_info['label_bgcolor']){
+        object.text_object.background = AoR(
+            object.text_object.background,
+            getTextBackground(object.text_object, parsed_obj_info)
+        );
+    }
+
+    if (!init){
+        // (init) add objects
+        object.add(object.text_object)
+        if (object.text_object.background){object.text_object.add(object.text_object.background)}
+    }
+ 
+
+}
+
+
 //修改颜色
 function changeCoreObjColor(object, color_str){
     const colorjs = color_str;
@@ -122,7 +294,7 @@ function addCoreObj(my_id, color_str, geometry, material, x, y, z, ro_x, ro_y, r
         window.glb.camera2.position.set(object.position.x, h*100, object.position.z)
     }
     if (label_marking){
-        makeClearText_new(object, object.label_marking, object.label_color, parsed_obj_info['label_size'], parsed_obj_info['label_opacity'])
+        makeClearText(object, object.label_marking, parsed_obj_info)
     }
     // 初始化历史轨迹
     object.his_positions = [];
@@ -252,8 +424,7 @@ function apply_update(parsed_obj_info){
         // 即刻应用color和text
         if (color_str != object.color_str) {changeCoreObjColor(object, color_str)}
         if (object.changed['label_marking'] || object.changed['label_color'] || object.changed['label_color']) {
-            if (!object.text_object) {makeClearText_new(object, object.label_marking, object.label_color, parsed_obj_info['label_size'], parsed_obj_info['label_opacity'])}
-            object.text_object.update_text(object, object.label_marking, object.label_color, parsed_obj_info['label_size'], parsed_obj_info['label_opacity'])
+            makeClearText(object, object.label_marking, parsed_obj_info);
         }
         // 即刻应用
         object.track_n_frame = track_n_frame

@@ -72,19 +72,19 @@ function parse_init(buf_str) {
     for (let i = 0; i < each_line.length; i++) {
         let str = each_line[i]
         if(str.search(">>set_style") != -1){
-            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]='';}
+            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]=true;}
             parse_style(str)
         }
         if(str.search(">>geometry_rotate_scale_translate") != -1){
-            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]='';}
+            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]=true;}
             parse_geometry(str)
         }
         if(str.search(">>advanced_geometry_rotate_scale_translate") != -1){
-            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]='';}
+            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]=true;}
             parse_advanced_geometry(str)
         }
         if(str.search(">>advanced_geometry_material") != -1){
-            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]='';}
+            if (executed_init_cmd[str]) {continue;} else{executed_init_cmd[str]=true;}
             parse_advanced_geometry_material(str)
         }
         
@@ -621,7 +621,13 @@ function get_reg_exp(exp){
     }
     return reg_exp[exp];
 }
-
+var reg_exp_g = {}
+function get_reg_exp_g(exp){
+    if(!reg_exp_g[exp]){
+        reg_exp_g[exp] = new RegExp(exp, 'g');
+    }
+    return reg_exp_g[exp];
+}
 function match_karg(str, key, type, defaultValue){
     let res = null;
     if (type=='float'){
@@ -727,9 +733,21 @@ function find_lineobj_by_id(my_id){
 //     }
 //     return null
 // }
+
+var dictionary_id2index = {}
 function find_obj_by_id(my_id){
+    let string_id = my_id.toString()
+    if (dictionary_id2index[string_id]!=null){
+        let i = dictionary_id2index[string_id];
+        if (window.glb.core_Obj[i].my_id == my_id) {
+            return window.glb.core_Obj[i];
+        }
+    }
+
+    // the usual way
     for (let i = 0; i < window.glb.core_Obj.length; i++) {
         if (window.glb.core_Obj[i].my_id == my_id) {
+            dictionary_id2index[string_id] = i;
             return window.glb.core_Obj[i];
         }
     }
@@ -1018,6 +1036,7 @@ function parse_core_obj(str, parsed_frame){
     parsed_obj_info['track_color'] = match_karg(str, 'track_color', 'str', color_str);
     parsed_obj_info['ro_order'] = ro_order;
     parsed_obj_info['fade_step'] = match_karg(str, 'fade_step', 'int', null); 
+    parsed_obj_info['label_bgcolor'] = match_karg(str, 'label_bgcolor', 'str', null); 
     
     // check parameters
     if (parsed_obj_info['fade_step'] && parsed_obj_info['fade_step']<=0){ alert('fade_step must >=1 !') }

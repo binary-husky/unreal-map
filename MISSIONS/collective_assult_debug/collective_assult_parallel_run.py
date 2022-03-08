@@ -204,7 +204,8 @@ class collective_assultGlobalEnv(gym.Env):
         obs_n = np.array(obs_n)
         if self.render_on: 
             if self.render_with_unity: 
-                self.unity_render()
+                assert False
+                # self.unity_render()
             else:
                 self.render()
         return obs_n, reward_n, done, info
@@ -362,31 +363,31 @@ class collective_assultGlobalEnv(gym.Env):
         self.render_geoms_xform = None
 
 
-    def unity_render(self):
-        summary_list = []
-        for i, agent in enumerate(self.world.agents):
-            pos = np.array([agent.state.p_pos[0],agent.state.p_pos[1]])
-            shift = 0.8*agent.size*np.array([np.cos(agent.state.p_ang), np.sin(agent.state.p_ang)])
-            ang = agent.state.p_ang
-            gun_pos = pos + 0.8*agent.size*np.array([np.cos(ang), np.sin(ang)])
+    # def unity_render(self):
+    #     summary_list = []
+    #     for i, agent in enumerate(self.world.agents):
+    #         pos = np.array([agent.state.p_pos[0],agent.state.p_pos[1]])
+    #         shift = 0.8*agent.size*np.array([np.cos(agent.state.p_ang), np.sin(agent.state.p_ang)])
+    #         ang = agent.state.p_ang
+    #         gun_pos = pos + 0.8*agent.size*np.array([np.cos(ang), np.sin(ang)])
             
-            agent_info = {
-                "Position": [agent.state.p_pos[0],agent.state.p_pos[1]],    # 载具位置
-                "IsAlive": agent.alive,     # 存活
-                "IsDead": (not agent.alive),    # ~存活
-                "GunFiring": (agent.action.shoot and agent.numbullets > 0), # 是否开火（显示扇形攻击区域）
-                "GunPosition": [gun_pos[0],gun_pos[1]], #载具上的武器位置，和载具的中心有些许偏差
-                "GunAngle": agent.state.p_ang,  # 武器指向 弧度，+x 方向为0度
-                "GunAngle(deg)": agent.state.p_ang*180/np.pi,   # 武器指向 角度
-                "GunRange": agent.shootRad, # 扇形半径
-                "GunKillAngle": agent.shootWin, # 扇形展开夹角 弧度
-                "GunKillAngle(deg)": agent.shootWin*180/np.pi, # 扇形展开夹角 角度
-                "Color": "red" if str(agent.color.tolist()[1]) == "1.0" else "blue",  # 颜色（代表阵营）
-                "WorldTimeStep": self.world.time_step   # 当前episode时间
-            }
-            summary_list.append(agent_info)
-        res = json.dumps({"AgentList":summary_list})
-        self.mcv.send(res)
+    #         agent_info = {
+    #             "Position": [agent.state.p_pos[0],agent.state.p_pos[1]],    # 载具位置
+    #             "IsAlive": agent.alive,     # 存活
+    #             "IsDead": (not agent.alive),    # ~存活
+    #             "GunFiring": (agent.action.shoot and agent.numbullets > 0), # 是否开火（显示扇形攻击区域）
+    #             "GunPosition": [gun_pos[0],gun_pos[1]], #载具上的武器位置，和载具的中心有些许偏差
+    #             "GunAngle": agent.state.p_ang,  # 武器指向 弧度，+x 方向为0度
+    #             "GunAngle(deg)": agent.state.p_ang*180/np.pi,   # 武器指向 角度
+    #             "GunRange": agent.shootRad, # 扇形半径
+    #             "GunKillAngle": agent.shootWin, # 扇形展开夹角 弧度
+    #             "GunKillAngle(deg)": agent.shootWin*180/np.pi, # 扇形展开夹角 角度
+    #             "Color": "red" if str(agent.color.tolist()[1]) == "1.0" else "blue",  # 颜色（代表阵营）
+    #             "WorldTimeStep": self.world.time_step   # 当前episode时间
+    #         }
+    #         summary_list.append(agent_info)
+    #     res = json.dumps({"AgentList":summary_list})
+    #     self.mcv.send(res)
 
 
     def render(self):
@@ -409,10 +410,11 @@ class collective_assultGlobalEnv(gym.Env):
                 posz='/wget/mars_textures/mars_posz.jpg',
                 negz='/wget/mars_textures/mars_negz.jpg',
             )
-            self.threejs_bridge.其他几何体之旋转缩放和平移('tower', 'BoxGeometry(1,1,1)',   0,0,0,  1,1,6, 0,0,-3) # 长方体
+            self.threejs_bridge.其他几何体之旋转缩放和平移('tower', 'BoxGeometry(1,1,1)',   0,0,0,  1,1,5, 0,0,-3) # 长方体
             self.threejs_bridge.advanced_geometry_material('tower', 
                 map='/wget/hex_texture.jpg',
             )
+            self.threejs_bridge.time_cnt = 0
 
             self.threejs_bridge.其他几何体之旋转缩放和平移('tower2', 'BoxGeometry(1,1,1)',   0,0,0,  0,0,5, 0,0,-4) # 长方体
 
@@ -424,14 +426,15 @@ class collective_assultGlobalEnv(gym.Env):
                 self.threejs_bridge.空指令()
                 self.threejs_bridge.v2d_show()
 
-
-        self.threejs_bridge.v2dx('tower|1000|%s|0.15'%('White'), 3, 3, 1, ro_x=0, ro_y=0, ro_z=0,
+        t = self.threejs_bridge.time_cnt
+        self.threejs_bridge.time_cnt += 1
+        self.threejs_bridge.v2dx('tower|1000|%s|0.15'%('White'), 3, 3, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
             label='坐标(+3,+3)', label_color='Indigo', opacity=0.8)
-        self.threejs_bridge.v2dx('tower|1001|%s|0.15'%('White'), 3, -3, 1, ro_x=0, ro_y=0, ro_z=0,
+        self.threejs_bridge.v2dx('tower|1001|%s|0.15'%('White'), 3, -3, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
             label='坐标(+3,-3)', label_color='Indigo', opacity=0.8)
-        self.threejs_bridge.v2dx('tower|1002|%s|0.15'%('White'), -3, 3, 1, ro_x=0, ro_y=0, ro_z=0,
+        self.threejs_bridge.v2dx('tower|1002|%s|0.15'%('White'), -3, 3, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
             label='坐标(-3,+3)', label_color='Indigo', opacity=0.8)
-        self.threejs_bridge.v2dx('tower|1003|%s|0.15'%('White'), -3, -3, 1, ro_x=0, ro_y=0, ro_z=0,
+        self.threejs_bridge.v2dx('tower|1003|%s|0.15'%('White'), -3, -3, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
             label='坐标(-3,-3)', label_color='Indigo', opacity=0.8)
 
         if self.threejs_bridge.terrain_theta != self.world.init_theta:
@@ -440,9 +443,9 @@ class collective_assultGlobalEnv(gym.Env):
 
         n_red= len([0 for agent in self.world.agents if agent.alive and agent.attacker])
         n_blue = len([0 for agent in self.world.agents if agent.alive and not agent.attacker])
-        who_is_winning = '蓝方(强化学习AI)领先' if n_blue>n_red else '红方(脚本)领先'
-        self.threejs_bridge.v2dx('tower2|1004|Gray|0.2', 0, 3, 1, ro_x=0, ro_y=0, ro_z=0,
-            label='蓝方剩余单位(强化学习AI): %d\n红方剩余单位(脚本): %d\n%s'%(n_blue, n_red, who_is_winning), label_color='DarkGreen', opacity=0)
+        who_is_winning = '<Blue>蓝方(强化学习AI)<Black>领先' if n_blue>n_red else '<Red>红方(作战脚本)<Black>领先'
+        self.threejs_bridge.v2dx('tower2|1004|Gray|0.2', 0, 3, 1, ro_x=0, ro_y=0, ro_z=0, label_bgcolor='Green',
+            label='<Blue>蓝方(强化学习AI)<Black>剩余单位: <Blue>%d\n<Red>红方(作战脚本)<Black>剩余单位: <Red>%d \n%s<End>'%(n_blue, n_red, who_is_winning), label_color='DarkGreen', opacity=0)
 
 
         for index, agent in enumerate(self.world.agents):

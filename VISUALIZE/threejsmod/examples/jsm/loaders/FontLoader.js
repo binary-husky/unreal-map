@@ -78,6 +78,58 @@ class Font {
 
 	}
 
+	myGenerateShapes( text, size = 100, each_color=null, word_color=null ) {
+
+
+		const paths = myCreatePaths( text, size, this.data );
+		const chars = Array.from( text );
+
+		for ( let p = 0, pl = paths.length; p < pl; p ++ ) {
+			if (!paths[p]){continue;}
+			// console.log(chars[p], word_color[ p ])
+
+			Array.prototype.push.apply( each_color[ word_color[ p ] ], paths[ p ].toShapes() );
+		}
+
+		return each_color;
+
+	}
+}
+
+function myCreatePaths( text, size, data ) {
+
+	const chars = Array.from( text );
+	const scale = size / data.resolution;
+	let line_height = ( data.boundingBox.yMax - data.boundingBox.yMin + data.underlineThickness ) * scale;
+	if (data.defLineHeight){
+		line_height = data.defLineHeight * scale
+	}
+	const paths = [];
+
+	let offsetX = 0, offsetY = 0;
+
+	for ( let i = 0; i < chars.length; i ++ ) {
+
+		const char = chars[ i ];
+
+		if ( char === '\n' ) {
+
+			offsetX = 0;
+			offsetY -= line_height;
+			paths.push( null );
+
+		} else {
+
+			const ret = createPath( char, scale, offsetX, offsetY, data );
+			offsetX += ret.offsetX;
+			paths.push( ret.path );
+
+		}
+
+	}
+
+	return paths;
+
 }
 
 function createPaths( text, size, data ) {
