@@ -1,7 +1,7 @@
 import time, gym
 import numpy as np
 from UTILS.tensor_ops import my_view
-from ..core import World, Agent, EntityState
+from ..core import World, Agent
 
 class collective_assultEnvV1(gym.Env):  
     metadata = {'render.modes': ['human']}   
@@ -10,43 +10,32 @@ class collective_assultEnvV1(gym.Env):
         self.init_dis = ScenarioConfig.init_distance
         self.half_death_reward = ScenarioConfig.half_death_reward
         self.random_jam_prob = ScenarioConfig.random_jam_prob
-        # environment will have guards(green) and attackers(red)
-        # red bullets - can hurt green agents, vice versa
-        # single hit - if hit once agent dies
         self.world = World() 
-        # 场地尺寸size,在参数后面初始化
         self.world.wall_pos=[-1*size,1*size,-1*size,1*size]
         self.world.init_box=[-1*5,1*5,-1*5,1*5]
         self.world.fortDim = 0.15   # radius
-        self.world.doorLoc = np.array([0,0]) #堡垒的位置
+        self.world.doorLoc = np.array([0,0]) #
         self.world.numGuards = numguards  # initial number of guards, attackers and bullets
         self.world.numAttackers = numattackers
-        self.world.numBullets = 0
         self.world.numAgents = self.world.numGuards + self.world.numAttackers
         self.world.numAliveGuards, self.world.numAliveAttackers, self.world.numAliveAgents = self.world.numGuards, self.world.numAttackers, self.world.numAgents
         self.world.atttacker_reached = False     ## did any attacker succeed to reach the gate?
-        landmarks = [] # as of now no obstacles, landmarks 
         self.attacker_reward_sum = 0
         self.guard_reward_sum = 0
 
-        self.world.agents = [Agent(iden=i) for i in range(self.world.numAgents)]  # first we have the guards and then we have the attackers
+        self.world.agents = [Agent(iden=i) for i in range(self.world.numAgents)]
         for i, agent in enumerate(self.world.agents):
             agent.name = 'agent %d' % (i+1)
             agent.collide = False
             agent.collide_wall = True
             agent.silent = True
-            agent.bullets_is_limited = False #设置子弹是否受限制
-            agent.numbullets = 10 #设置子弹数量
+            agent.bullets_is_limited = False #
             agent.attacker = False if i < self.world.numGuards else True
-            # agent.shootRad = 0.8 if i<self.world.numGuards else 0.6
-            agent.accel = 3  ## guards and attackers have same speed and accel
-            agent.max_speed = 1.0   ## used in integrate_state() inside core.py. slowing down so that bullet can move fast and still it doesn't seem that the bullet is skipping steps
-            agent.max_rot = 0.17 ## approx 10 degree
-            # agent.action_callback_test = self.action_callback if agent.attacker else None #评估的时候是否采用规则
-            agent.action_callback = self.action_callback if agent.attacker else None #评估的时候是否采用规则
-            # agent.size = 0.1
-            # agent.action_callback
-            # agent.script = False if i < self.world.numGuards else True
+            agent.accel = 3  ## guard
+            agent.max_speed = 1.0   #
+            agent.max_rot = 0.17 ## a
+            agent.action_callback = self.action_callback if agent.attacker else None #
+
         self.viewers = [None]
         self.render_geoms = None
         self.shared_viewer = True
@@ -56,14 +45,6 @@ class collective_assultEnvV1(gym.Env):
         self.world.vizAttn = True        # whether to visualize attentions
         self.world.gameResult = np.array([0,0,0,0,0]) #  [guards all win, guard win, attacker all win, attcker win, draw]
         self.reset_world()        
-        if ScenarioConfig.MCOM_DEBUG:
-            from VISUALIZE.mcom import mcom
-            from config import GlobalConfig as cfg
-            self.mcv = mcom(ip='127.0.0.1',
-                        port=12084,
-                        path='%s/v2d_logger/'%cfg.logdir,
-                        digit=16, rapid_flush=True, draw_mode='OFF')
-            self.mcv.v2d_init()
 
     # a fake callback, don't know what's for, do not del it 
     def action_callback(self,agent,world):
@@ -72,6 +53,7 @@ class collective_assultEnvV1(gym.Env):
 
     def reset_world(self):
         # light green for guards and light red for attackers
+        self.world.render_reset_flag = True
         self.world.time_step = 0
         self.world.bullets = [] ##
         self.world.numAliveAttackers = self.world.numAttackers
@@ -85,62 +67,54 @@ class collective_assultEnvV1(gym.Env):
         for i, agent in enumerate(self.world.agents):
             agent.alive = True
             agent.color = np.array([0.0, 1.0, 0.0]) if not agent.attacker else np.array([1.0, 0.0, 0.0])
-            agent.state.p_vel = np.zeros(self.world.dim_p-1)    ##
-            agent.state.c = np.zeros(self.world.dim_c)
-            agent.state.p_ang = (theta+np.pi) + (np.random.rand()-0.5)/12 if agent.attacker else (theta + (np.random.rand()-0.5)/12)
-            agent.numbullets = 10
+            agent.vel = np.zeros(self.world.dim_p-1)    ##
+            # agent.state.c = np.zeros(self.world.dim_c)
+            agent.atk_rad = (theta+np.pi) + (np.random.rand()-0.5)/12 if agent.attacker else (theta + (np.random.rand()-0.5)/12)
 
             xMin, xMax, yMin, yMax = self.world.init_box
             xMid = xMin/2 + xMax/2
             yMid = yMin/2 + yMax/2
             xInitDis = self.init_dis
-            # now we will set the initial positions
-            # attackers start from far away
-            #攻击者是红方,防守者是蓝方
 
             if agent.attacker:
                 #随机初始化位置
-                # agent.state.p_pos = np.concatenate((np.random.uniform(xMax,0.8*xMax,1), np.random.uniform(yMin,1*yMax,1)))
-
-                x_ = xMid+xInitDis/2 
+                x_ = xMid+xInitDis/2
                 y_ = (yMax-yMin)/self.world.numAttackers*(agent.iden - self.world.numGuards +0.5) + yMin
-                agent.state.p_pos = np.array([x_, y_])
-                agent.state.p_pos += (np.random.randn(2,)-0.5)/10
+                agent.pos = np.array([x_, y_])
+                agent.pos += (np.random.randn(2,)-0.5)/10
 
-                if self.world.numAttackers>50:
+                if self.world.numAttackers>48:
                     centering = np.array([xMid, yMid])
                     ratio = 1
                     if agent.iden%3 == 0:
                         ratio = 0.5
                     if agent.iden%3 == 1:
                         ratio = 0.75
-                    agent.state.p_pos = centering + (agent.state.p_pos-centering)*ratio
+                    agent.pos = centering + (agent.pos-centering)*ratio
 
-                agent.state.p_pos = np.dot(agent.state.p_pos, rotate.T)
+                agent.pos = np.dot(agent.pos, rotate.T)
 
-            # guards start near the door
             else:
                 #随机初始化位置
-                # agent.state.p_pos = np.concatenate((np.random.uniform(xMin,0.8*xMin,1), np.random.uniform(yMin,1*yMax,1)))
-                agent.state.p_pos = np.concatenate((   np.array([xMid-xInitDis/2]),
-                                                       np.array([(yMax-yMin)/self.world.numGuards*(agent.iden+0.5) + yMin])))
-                agent.state.p_pos += (np.random.randn(2,)-0.5)/10
+                x_ = xMid-xInitDis/2 
+                y_ = (yMax-yMin)/self.world.numGuards*(agent.iden+0.5) + yMin
+                agent.pos = np.array([x_, y_])
+                agent.pos += (np.random.randn(2,)-0.5)/10
 
-                if self.world.numGuards>50:
+                if self.world.numGuards>48:
                     centering = np.array([xMid, yMid])
                     ratio = 1
-                    if agent.iden%3 == 0:
+                    if agent.iden%3 == 0: 
                         ratio = 0.5
                     if agent.iden%3 == 1:
                         ratio = 0.75
-                    agent.state.p_pos = centering + (agent.state.p_pos-centering)*ratio
+                    agent.pos = centering + (agent.pos-centering)*ratio # 以地图中心为中心，按照ratio放射向量变换位置
 
-                agent.state.p_pos = np.dot(agent.state.p_pos, rotate.T)
+                agent.pos = np.dot(agent.pos, rotate.T)
 
-
-            agent.numHit = 0         # overall in one episode
+            agent.numHit = 0
             agent.numWasHit = 0
-            agent.hit = False        # in last time step
+            agent.hit = False
             agent.wasHit = False
 
     # return all agents that are attackers
@@ -166,23 +140,23 @@ class collective_assultEnvV1(gym.Env):
         return main_reward
 
     def attacker_reward(self, agent):
-        rew0, rew1, rew2, rew3, rew4, rew5, rew10 = 0,0,0,0,0,0,0
+        rew3, rew4 = 0,0
         for agents in self.alive_attackers():
             if agents.hit:
                 rew3 = +1
             if agents.wasHit:
                 rew4 = -1 if not self.half_death_reward else -0.5
 
-        self.attacker_reward_sum = rew0+rew1+rew2+rew3+rew4+rew5+rew10
+        self.attacker_reward_sum = rew3+rew4
         return self.attacker_reward_sum
 
     def guard_reward(self, agent):
-        rew0, rew1, rew2, rew3, rew4, rew5, rew6, rew7, rew8,rew10 = 0,0,0,0,0,0,0,0,0,0
+        rew5, rew6 = 0,0
         if agent.hit:
             rew5 += 1
         if agent.wasHit:
             rew6 = -1 if not self.half_death_reward else -0.5
-        self.guard_reward_sum = rew0+rew1+rew2+rew3+rew4+rew5+rew6+rew7+rew8 +rew10
+        self.guard_reward_sum = rew5+rew6
 
         return self.guard_reward_sum
         
@@ -244,17 +218,17 @@ class collective_assultEnvV1(gym.Env):
             self.obs_arr = self.raw_obs_array()
             for guard in self.guards():
                 self.obs_arr.append([guard.alive])
-                self.obs_arr.append(guard.state.p_pos)
-                self.obs_arr.append([guard.state.p_ang])
-                self.obs_arr.append(guard.state.p_vel)
+                self.obs_arr.append(guard.pos)
+                self.obs_arr.append([guard.atk_rad])
+                self.obs_arr.append(guard.vel)
                 self.obs_arr.append([guard.iden])
                 self.obs_arr.append([guard.terrain])
                 self.obs_arr.append(bi_hot[guard.iden])
             for attacker in self.attackers():
                 self.obs_arr.append([attacker.alive])
-                self.obs_arr.append(attacker.state.p_pos)
-                self.obs_arr.append([attacker.state.p_ang])
-                self.obs_arr.append(attacker.state.p_vel)
+                self.obs_arr.append(attacker.pos)
+                self.obs_arr.append([attacker.atk_rad])
+                self.obs_arr.append(attacker.vel)
                 self.obs_arr.append([attacker.iden])
                 self.obs_arr.append([attacker.terrain])
                 self.obs_arr.append(bi_hot[attacker.iden])
@@ -272,13 +246,13 @@ class collective_assultEnvV1(gym.Env):
             self.mcv = cfg.ak_logger
             self.mcv.v2d_clear()
             for index, guard in enumerate(self.guards()):
-                self.mcv.v2dx('cir|%d|b|0.04'%(index), guard.state.p_pos[0], guard.state.p_pos[1])
+                self.mcv.v2dx('cir|%d|b|0.04'%(index), guard.pos[0], guard.pos[1])
                 if not guard.alive:
-                    self.mcv.v2dx('cir|%d|k|0.04'%(index), guard.state.p_pos[0], guard.state.p_pos[1])
+                    self.mcv.v2dx('cir|%d|k|0.04'%(index), guard.pos[0], guard.pos[1])
             for index, attacker in enumerate(self.attackers()):
-                self.mcv.v2dx('cir|%d|r|0.04'%(index+50), attacker.state.p_pos[0], attacker.state.p_pos[1])
+                self.mcv.v2dx('cir|%d|r|0.04'%(index+50), attacker.pos[0], attacker.pos[1])
                 if not attacker.alive:
-                    self.mcv.v2dx('cir|%d|k|0.04'%(index+50), attacker.state.p_pos[0], attacker.state.p_pos[1])
+                    self.mcv.v2dx('cir|%d|k|0.04'%(index+50), attacker.pos[0], attacker.pos[1])
             self.mcv.v2d_show()
             '''
             self.new_obs = shit.astype(np.float32)

@@ -112,6 +112,10 @@ function parse_env(str){
     if(style=="terrain"){
         let get_theta = />>set_env\('terrain',theta=([^,)]*)/
         let get_theta_res = str.match(get_theta)
+        let terrain_A   = match_karg(str, 'terrain_A',   'float', null)  
+        let terrain_B   = match_karg(str, 'terrain_B',   'float', null)  
+        let show_lambda = match_karg(str, 'show_lambda', 'float', null)        
+        // match_karg(str, 'color', 'str', null)
         let theta = parseFloat(get_theta_res[1])
         
         // 投射阴影
@@ -158,13 +162,14 @@ function parse_env(str){
             let z = array[i * 3 + 2];
             let _y_ = -array[i * 3 + 2];
     
-            let A=0.05; 
-            let B=0.2;
+            let A=0.05; if(terrain_A){A=terrain_A};
+            let B=0.2; if(terrain_B){B=terrain_B};
+            let lambda=4; if(show_lambda){lambda=show_lambda};
             let X_ = _x_*Math.cos(theta) + _y_*Math.sin(theta);
             let Y_ = -_x_*Math.sin(theta) + _y_*Math.cos(theta);
             let Z = -1 +B*( (0.1*X_) ** 2 + (0.1*Y_) ** 2 )- A * Math.cos(2 * Math.PI * (0.3*X_))  - A * Math.cos(2 * Math.PI * (0.5*Y_))
             Z = -Z;
-            Z = (Z-1)*4;
+            Z = (Z-1)*lambda;
             Z = Z - 0.1
             array[i * 3 + 1] = Z
         }
@@ -675,7 +680,7 @@ function parse_line(str){
 
     let name_split = name.split('|')
     let type = name_split[0] // norm
-    let my_id = parseInt(name_split[1]) // 0
+    let my_id = name_split[1] // 0
     let color_str = name_split[2]   //Violet
     let size = parseFloat(name_split[3]) //0.010
 
@@ -690,7 +695,7 @@ function parse_line(str){
     // find core obj by my_id
     let object = find_lineobj_by_id(my_id)
     let parsed_obj_info = {} 
-    parsed_obj_info['name'] = name  
+    parsed_obj_info['name'] = name
     parsed_obj_info['x_arr'] = x_arr  
     parsed_obj_info['y_arr'] = y_arr
     parsed_obj_info['z_arr'] = z_arr
@@ -739,7 +744,7 @@ function find_obj_by_id(my_id){
     let string_id = my_id.toString()
     if (dictionary_id2index[string_id]!=null){
         let i = dictionary_id2index[string_id];
-        if (window.glb.core_Obj[i].my_id == my_id) {
+        if (window.glb.core_Obj[i]!=null && window.glb.core_Obj[i].my_id == my_id) {
             return window.glb.core_Obj[i];
         }
     }
@@ -1001,7 +1006,7 @@ function parse_core_obj(str, parsed_frame){
     // pattern.test(str)
     let name_split = name.split('|')
     let type = name_split[0]
-    let my_id = parseInt(name_split[1])
+    let my_id = name_split[1]
     let color_str = name_split[2]
     let size = parseFloat(name_split[3])
     

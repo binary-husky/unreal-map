@@ -12,6 +12,20 @@ import json
 from config import ChainVar
 from UTILS.colorful import print亮绿
 import cProfile, pstats
+
+def distance_matrix_AB(A, B):
+    assert A.shape[-1] == 2 # assert 2D situation
+    assert B.shape[-1] == 2 # assert 2D situation
+    n_A_subject = A.shape[-2]
+    n_B_subject = B.shape[-2]
+    A = np.repeat(np.expand_dims(A,-2), n_B_subject, axis=-2) # =>(64, Na, Nb, 2)
+    B = np.repeat(np.expand_dims(B,-2), n_A_subject, axis=-2) # =>(64, Nb, Na, 2)
+    Bt = np.swapaxes(B,-2,-3) # =>(64, Na, Nb, 2)
+    dis = Bt-A # =>(64, Na, Nb, 2)
+    dis = np.linalg.norm(dis, axis=-1)
+    return dis
+
+
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
     num_guards = 50
     num_attackers = 50
@@ -68,6 +82,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
 
     # 调试
     MCOM_DEBUG = False
+    Terrain_DEBUG = False
     DISALBE_RED_FUNCTION = False
     half_death_reward = True
 
@@ -106,6 +121,7 @@ class collective_assultGlobalEnv(gym.Env):
         self.render_on = ScenarioConfig.render
         self.render_with_unity = ScenarioConfig.render_with_unity
         self.render_ip_with_unity = ScenarioConfig.render_ip_with_unity
+        self.s_cfg = ScenarioConfig
         # 当并行时，只有0号环境可以渲染
         self.id = id
         if self.id!=0: 
@@ -289,34 +305,23 @@ class collective_assultGlobalEnv(gym.Env):
 
     # set env action for a particular agent
     def _set_action(self, action, agent, action_space, time=None):
-        agent.action.u = np.zeros(self.world.dim_p)
-        agent.action.c = np.zeros(self.world.dim_c)
-        # process action
-        # if isinstance(action_space, MultiDiscrete):
-        #     act = []
-        #     size = action_space.high - action_space.low + 1
-        #     index = 0
-        #     for s in size:
-        #         act.append(action[index:(index+s)])
-        #         index += s
-        #     action = act
-        # else:
+        agent.act = np.zeros(self.world.dim_p)
         action = [action]
 
         if agent.movable:
             # print('self.discrete_action_input', self.discrete_action_input) # True
             # physical action
             if self.discrete_action_input:
-                agent.action.u = np.zeros(self.world.dim_p)     ## We'll use this now for Graph NN
+                agent.act = np.zeros(self.world.dim_p)     ## We'll use this now for Graph NN
                 # process discrete action
                 ## if action[0] == 0, then do nothing
-                if action[0] == 1: agent.action.u[0] = +1.0
-                if action[0] == 2: agent.action.u[0] = -1.0
-                if action[0] == 3: agent.action.u[1] = +1.0
-                if action[0] == 4: agent.action.u[1] = -1.0
-                if action[0] == 5: agent.action.u[2] = +agent.max_rot
-                if action[0] == 6: agent.action.u[2] = -agent.max_rot
-                agent.action.shoot = True #if action[0] == 7 else False
+                if action[0] == 1: agent.act[0] = +1.0
+                if action[0] == 2: agent.act[0] = -1.0
+                if action[0] == 3: agent.act[1] = +1.0
+                if action[0] == 4: agent.act[1] = -1.0
+                if action[0] == 5: agent.act[2] = +agent.max_rot
+                if action[0] == 6: agent.act[2] = -agent.max_rot
+                agent.can_fire = True #if action[0] == 7 else False
 
             else:
                 if self.force_discrete_action:       
@@ -325,34 +330,26 @@ class collective_assultGlobalEnv(gym.Env):
                     action[0][d] = 1.0
                 if self.discrete_action_space:      ## this was begin used in PR2 Paper
                     # print('action', action)
-                    agent.action.u[0] += action[0][1] - action[0][2]    ## each is 0 to 1, so total is -1 to 1
-                    agent.action.u[1] += action[0][3] - action[0][4]    ## same as above
+                    agent.act[0] += action[0][1] - action[0][2]    ## each is 0 to 1, so total is -1 to 1
+                    agent.act[1] += action[0][3] - action[0][4]    ## same as above
                     
                     ## simple shooting action
-                    agent.action.shoot = True if action[0][6]>0.5 else False   # a number greater than 0.5 would mean shoot
+                    agent.can_fire = True if action[0][6]>0.5 else False   # a number greater than 0.5 would mean shoot
 
                     ## simple rotation model
-                    agent.action.u[2] = 2*(action[0][5]-0.5)*agent.max_rot
+                    agent.act[2] = 2*(action[0][5]-0.5)*agent.max_rot
             
                 else:
-                    agent.action.u = action[0]
+                    agent.act = action[0]
             sensitivity = 5.0   # default if no value specified for accel
             if agent.accel is not None:
                 sensitivity = agent.accel
-            agent.action.u[:2] *= sensitivity
+            agent.act[:2] *= sensitivity
             
             ## remove used actions
             action = action[1:]
         
 
-        if not agent.silent:
-            # communication action
-            if self.discrete_action_input:
-                agent.action.c = np.zeros(self.world.dim_c)
-                agent.action.c[action[0]] = 1.0
-            else:
-                agent.action.c = action[0]
-            action = action[1:]
         
         # make sure we used all elements of action
         assert len(action) == 0
@@ -362,32 +359,6 @@ class collective_assultGlobalEnv(gym.Env):
         self.render_geoms = None
         self.render_geoms_xform = None
 
-
-    # def unity_render(self):
-    #     summary_list = []
-    #     for i, agent in enumerate(self.world.agents):
-    #         pos = np.array([agent.state.p_pos[0],agent.state.p_pos[1]])
-    #         shift = 0.8*agent.size*np.array([np.cos(agent.state.p_ang), np.sin(agent.state.p_ang)])
-    #         ang = agent.state.p_ang
-    #         gun_pos = pos + 0.8*agent.size*np.array([np.cos(ang), np.sin(ang)])
-            
-    #         agent_info = {
-    #             "Position": [agent.state.p_pos[0],agent.state.p_pos[1]],    # 载具位置
-    #             "IsAlive": agent.alive,     # 存活
-    #             "IsDead": (not agent.alive),    # ~存活
-    #             "GunFiring": (agent.action.shoot and agent.numbullets > 0), # 是否开火（显示扇形攻击区域）
-    #             "GunPosition": [gun_pos[0],gun_pos[1]], #载具上的武器位置，和载具的中心有些许偏差
-    #             "GunAngle": agent.state.p_ang,  # 武器指向 弧度，+x 方向为0度
-    #             "GunAngle(deg)": agent.state.p_ang*180/np.pi,   # 武器指向 角度
-    #             "GunRange": agent.shootRad, # 扇形半径
-    #             "GunKillAngle": agent.shootWin, # 扇形展开夹角 弧度
-    #             "GunKillAngle(deg)": agent.shootWin*180/np.pi, # 扇形展开夹角 角度
-    #             "Color": "red" if str(agent.color.tolist()[1]) == "1.0" else "blue",  # 颜色（代表阵营）
-    #             "WorldTimeStep": self.world.time_step   # 当前episode时间
-    #         }
-    #         summary_list.append(agent_info)
-    #     res = json.dumps({"AgentList":summary_list})
-    #     self.mcv.send(res)
 
 
     def render(self):
@@ -415,7 +386,6 @@ class collective_assultGlobalEnv(gym.Env):
                 map='/wget/hex_texture.jpg',
             )
             self.threejs_bridge.time_cnt = 0
-
             self.threejs_bridge.其他几何体之旋转缩放和平移('tower2', 'BoxGeometry(1,1,1)',   0,0,0,  0,0,5, 0,0,-4) # 长方体
 
             self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0,       0,       3, 2, 1,         0, 0, 0)
@@ -426,31 +396,40 @@ class collective_assultGlobalEnv(gym.Env):
                 self.threejs_bridge.空指令()
                 self.threejs_bridge.v2d_show()
 
+        if self.world.render_reset_flag:
+            self.world.render_reset_flag = False
+            self.threejs_bridge.set_env('clear_everything')
+            self.threejs_bridge.v2d_show()
+
         t = self.threejs_bridge.time_cnt
         self.threejs_bridge.time_cnt += 1
-        self.threejs_bridge.v2dx('tower|1000|%s|0.15'%('White'), 3, 3, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
-            label='坐标(+3,+3)', label_color='Indigo', opacity=0.8)
-        self.threejs_bridge.v2dx('tower|1001|%s|0.15'%('White'), 3, -3, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
-            label='坐标(+3,-3)', label_color='Indigo', opacity=0.8)
-        self.threejs_bridge.v2dx('tower|1002|%s|0.15'%('White'), -3, 3, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
-            label='坐标(-3,+3)', label_color='Indigo', opacity=0.8)
-        self.threejs_bridge.v2dx('tower|1003|%s|0.15'%('White'), -3, -3, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
-            label='坐标(-3,-3)', label_color='Indigo', opacity=0.8)
+        self.threejs_bridge.v2dx('tower|1000|%s|0.15'%('White'), 5, 5, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
+            label='坐标(+5,+5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
+        self.threejs_bridge.v2dx('tower|1001|%s|0.15'%('White'), 5, -5, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
+            label='坐标(+5,-5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
+        self.threejs_bridge.v2dx('tower|1002|%s|0.15'%('White'), -5, 5, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
+            label='坐标(-5,+5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
+        self.threejs_bridge.v2dx('tower|1003|%s|0.15'%('White'), -5, -5, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
+            label='坐标(-5,-5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
+
+        show_lambda = 2
 
         if self.threejs_bridge.terrain_theta != self.world.init_theta:
             self.threejs_bridge.terrain_theta = self.world.init_theta
-            self.threejs_bridge.set_env('terrain', theta=self.world.init_theta)
+            terrain_A = self.s_cfg.terrain_parameters[0]
+            terrain_B = self.s_cfg.terrain_parameters[1]
+            self.threejs_bridge.set_env('terrain', theta=self.world.init_theta, terrain_A=terrain_A, terrain_B=terrain_B, show_lambda=show_lambda)
 
         n_red= len([0 for agent in self.world.agents if agent.alive and agent.attacker])
         n_blue = len([0 for agent in self.world.agents if agent.alive and not agent.attacker])
         who_is_winning = '<Blue>蓝方(强化学习AI)<Black>领先' if n_blue>n_red else '<Red>红方(作战脚本)<Black>领先'
-        self.threejs_bridge.v2dx('tower2|1004|Gray|0.2', 0, 3, 1, ro_x=0, ro_y=0, ro_z=0, label_bgcolor='Green',
+        self.threejs_bridge.v2dx('tower2|1004|Gray|0.2', 0, 3, 1, ro_x=0, ro_y=0, ro_z=0, label_bgcolor='GhostWhite',
             label='<Blue>蓝方(强化学习AI)<Black>剩余单位: <Blue>%d\n<Red>红方(作战脚本)<Black>剩余单位: <Red>%d \n%s<End>'%(n_blue, n_red, who_is_winning), label_color='DarkGreen', opacity=0)
 
 
         for index, agent in enumerate(self.world.agents):
-            x = agent.state.p_pos[0]; y = agent.state.p_pos[1]
-            dir_ = dir2rad(agent.state.p_vel)
+            x = agent.pos[0]; y = agent.pos[1]
+            dir_ = dir2rad(agent.vel)
             color = 'red' if agent.attacker else 'blue'
             base_color = 'LightPink' if agent.attacker else 'CornflowerBlue'
             if not agent.alive:
@@ -463,12 +442,15 @@ class collective_assultGlobalEnv(gym.Env):
 
             self.threejs_bridge.v2dx(
                 'cone|%d|%s|%.3f'%(agent.iden, color, size),
-                x, y, (agent.terrain-1)*4,
-                ro_x=0, ro_y=0, ro_z=agent.state.p_ang,  # Euler Angle y-x-z
-                label='', label_color='white', attack_range=0, opacity=1)
+                x, y, (agent.terrain-1)*show_lambda,
+                # label_bgcolor='Black', if self.s_cfg.Terrain_DEBUG:
+                ro_x=0, ro_y=0, ro_z=agent.atk_rad, 
+                label='',
+                # label='T %.3f, R %.3f'%(agent.terrain, agent.shootRad*agent.terrain), if self.s_cfg.Terrain_DEBUG:
+                label_color='white', attack_range=0, opacity=1)
             self.threejs_bridge.v2dx(
                 'box|%d|%s|%.3f'%(agent.iden+500, base_color, size),
-                x, y, (agent.terrain-1)*4-0.025,
+                x, y, (agent.terrain-1)*show_lambda-0.025,
                 ro_x=0, ro_y=0, ro_z=dir_,  # Euler Angle y-x-z
                 label='', label_color='white', attack_range=0, opacity=1)
 
@@ -478,6 +460,69 @@ class collective_assultGlobalEnv(gym.Env):
                 self.threejs_bridge.flash(flash_type, src=agent.wasHitBy.iden, dst=agent.iden, dur=0.2, size=0.03, color=flash_color)
                 agent.wasHitBy = None
                 
+        if self.s_cfg.Terrain_DEBUG:
+            # 临时 - 调试地形
+            # 计算双方距离
+
+            # blue_pos = np.array([agent.pos for agent in self.world.agents if not agent.attacker])
+            # red_pos = np.array([agent.pos for agent in self.world.agents if agent.attacker])
+            # distance = distance_matrix_AB(blue_pos, red_pos)
+            for blue_agent in [agent for agent in self.world.agents if not agent.attacker]:
+                for red_agent in [agent for agent in self.world.agents if agent.attacker]:
+
+
+
+                    dis = np.linalg.norm(red_agent.pos - blue_agent.pos)
+
+
+                    if dis <= blue_agent.shootRad*blue_agent.terrain:
+                        self.threejs_bridge.发送线条(
+                            'simple|2000%s|MidnightBlue|0.03'%(str(blue_agent.iden)+'-'+str(red_agent.iden)), # 填入核心参量： “simple|线条的唯一ID标识|颜色|整体大小”
+                            x_arr=np.array([blue_agent.pos[0],          red_agent.pos[0],        ]),   # 曲线的x坐标列表
+                            y_arr=np.array([blue_agent.pos[1],          red_agent.pos[1],        ]),   # 曲线的y坐标列表
+                            z_arr=np.array([(blue_agent.terrain-1)*show_lambda,   (red_agent.terrain-1)*show_lambda, ]),   # 曲线的z坐标列表
+                            tension=0,  # 曲线的平滑度，0为不平滑，推荐不平滑
+                        )
+                        agent = blue_agent
+                        x = agent.pos[0]; y = agent.pos[1]
+                        dir_ = dir2rad(agent.vel)
+                        color = 'red' if agent.attacker else 'blue'
+                        base_color = 'LightPink' if agent.attacker else 'CornflowerBlue'
+                        if not agent.alive:
+                            color = "#330000" if agent.attacker else "#000033"
+                            base_color = "#330000" if agent.attacker else "#000033"
+                        size = 0.025 if agent.alive else 0.01
+
+                        self.threejs_bridge.v2dx(
+                            'cone|%d|%s|%.3f'%(agent.iden, color, size),
+                            x, y, (agent.terrain-1)*show_lambda, label_bgcolor='Black',
+                            ro_x=0, ro_y=0, ro_z=agent.atk_rad,  # Euler Angle y-x-z
+                            label='T %.3f, R %.3f, D %.3f'%(agent.terrain, agent.shootRad*agent.terrain, dis), label_color='white', attack_range=0, opacity=1)
+
+                    if dis <= red_agent.shootRad*red_agent.terrain:
+                        self.threejs_bridge.发送线条(
+                            'simple|3000%s|Pink|0.03'%(str(red_agent.iden)+'-'+str(blue_agent.iden)), # 填入核心参量： “simple|线条的唯一ID标识|颜色|整体大小”
+                            x_arr=np.array([red_agent.pos[0],           blue_agent.pos[0],        ]),   # 曲线的x坐标列表
+                            y_arr=np.array([red_agent.pos[1],           blue_agent.pos[1],        ]),   # 曲线的y坐标列表
+                            z_arr=np.array([(red_agent.terrain-1)*show_lambda+0.03,    (blue_agent.terrain-1)*show_lambda+0.03, ]),   # 曲线的z坐标列表
+                            tension=0,  # 曲线的平滑度，0为不平滑，推荐不平滑
+                        )
+                        agent = red_agent
+                        x = agent.pos[0]; y = agent.pos[1]
+                        dir_ = dir2rad(agent.vel)
+                        color = 'red' if agent.attacker else 'blue'
+                        base_color = 'LightPink' if agent.attacker else 'CornflowerBlue'
+                        if not agent.alive:
+                            color = "#330000" if agent.attacker else "#000033"
+                            base_color = "#330000" if agent.attacker else "#000033"
+                        size = 0.025 if agent.alive else 0.01
+
+                        self.threejs_bridge.v2dx(
+                            'cone|%d|%s|%.3f'%(agent.iden, color, size),
+                            x, y, (agent.terrain-1)*show_lambda, label_bgcolor='Black',
+                            ro_x=0, ro_y=0, ro_z=agent.atk_rad,  # Euler Angle y-x-z
+                            label='T %.3f, R %.3f, D %.3f'%(agent.terrain, agent.shootRad*agent.terrain, dis), label_color='white', attack_range=0, opacity=1)
+
         self.threejs_bridge.v2d_show()
 
 
