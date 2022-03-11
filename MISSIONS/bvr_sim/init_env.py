@@ -44,17 +44,14 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     # meanning [MinHeight , MaxHeight]  
     # MinHeight + (MaxHeight - MinHeight)*( i/(HeightLevels-1) ), i = [0,1,2,3,4]
 
+    internal_step = 1
 
     ################ needed by some ALGORITHM ################
     state_provided = False
     avail_act_provided = False
     n_actions = 4
 
-    # n_actions = 6 + map_param_registry[map_]['n_enemies']
-    # n_actions_cv = ChainVar(
-    #     lambda map_:6 + map_param_registry[map_]['n_enemies'], 
-    #     chained_with=['map_']
-    # )
+
     obs_vec_length = 6
     return_mat = False
     block_invalid_action = True # sc2 中，需要始终屏蔽掉不可用的动作
@@ -81,8 +78,8 @@ class BaseEnv(object):
 
 
 def make_bvr_env(env_id, rank):
-    # return BVR_PVE(rank)
-    return BVR_EVE(rank)
+    return BVR_PVE(rank)
+    # return BVR_EVE(rank)
 # class BASE_ENV_PVP(BVR):
 #     def __init__(self) -> None:
 #         super().__init__()
@@ -149,7 +146,7 @@ class BVR_PVE(BVR, Converter):
 
         self.player_color = "red"
         self.opp_color = "blue"
-        self.internal_step = 4
+        self.internal_step = self.ScenarioConfig.internal_step
 
 
 
@@ -183,7 +180,6 @@ class BVR_PVE(BVR, Converter):
         # randomly switch sides
         if np.random.rand() < 0.5: self.player_color, self.opp_color = ("red", "blue")
         else: self.player_color, self.opp_color = ("blue", "red")
-
 
         # initialize controllers
         # controller 1

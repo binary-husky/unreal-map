@@ -86,7 +86,7 @@ class trajectory(TRAJ_BASE):
                 threat[:(i+1)] += (~(dead_mask[i+1]&dead_mask[i])).astype(np.int)
             elif i+1 == self.time_pointer:
                 threat[:] += (~dead_mask[i]).astype(np.int)
-        
+
         SAFE_LIMIT = 11
         threat = np.clip(threat, -1, SAFE_LIMIT)
         setattr(self, 'threat', np.expand_dims(threat, -1))
