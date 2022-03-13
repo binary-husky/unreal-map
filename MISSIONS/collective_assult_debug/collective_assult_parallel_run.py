@@ -85,9 +85,10 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     Terrain_DEBUG = False
     DISALBE_RED_FUNCTION = False
     half_death_reward = True
+    REWARD_DEBUG = False
 
     n_actions = 7
-    
+ 
 def make_collective_assult_env(env_id, rank):
     # scenario = gym.make('collective_assult-v1')
     from .envs.collective_assult_env import collective_assultEnvV1
@@ -210,11 +211,18 @@ class collective_assultGlobalEnv(gym.Env):
         ## implement single done reflecting game state
         done, info = self._get_done()
         info['others'] = info_n
+        reward_n = np.array(reward_n)
+        # if done:
+        #     print('win', info['win'])
+        if ScenarioConfig.REWARD_DEBUG and done and info['win']:
+            win_extra_reward = 1
+            reward_n += win_extra_reward
+            pass
+
         # all agents get total reward in cooperative case
         # print(reward_n)
-        reward = np.sum(reward_n)
-        # print(reward)
         if self.shared_reward:
+            reward = np.sum(reward_n)
             reward_n = [reward] * self.n
         self.world.time_step += 1
         obs_n = np.array(obs_n)

@@ -141,7 +141,7 @@ class Runner(object):
             print靛('\r[task runner]: test run started!')
             self.init_test_runner()
             # loop until all env is done
-            assert self.test_epoch%self.n_thread == 0, ('please set test_epoch as (n_thread times N)')
+            assert self.test_epoch%self.n_thread == 0, ('please set test_epoch as (n_thread * N)!')
             ntimesthread = self.test_epoch // self.n_thread
             print靛('\r[task runner]: test run is going to run %d episode'%self.test_epoch)
             while True:
@@ -157,8 +157,10 @@ class Runner(object):
                     self.mcv.rec(reward_avg_itr_agent, 'test-reward')
                     self.mcv.rec(win_rate, 'test-win-rate')
                     self.mcv.rec_show()
-                    print靛('\r[task runner]: test finished, reward average:%.2f, win rate %.2f'%(reward_avg_itr_agent, win_rate))
+                    print_info = 'average reward: %.2f, win rate: %.2f'%(reward_avg_itr_agent, win_rate)
+                    print靛('\r[task runner]: test finished, %s'%print_info )
                     if cfg.upload_after_test: upload_experiment_results(cfg)
+                    self.platform_controller.notify_teams(message='test done:%s', win_rate=win_rate, mean_reward=reward_avg_itr_agent)
                     return
         def init_test_runner(self):
             if not hasattr(self, 'test_envs'):
