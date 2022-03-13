@@ -203,7 +203,7 @@ class SuperProc(Process):
         send_obj = opti_numpy_object(send_obj, shm=self.shared_memory_io_buffer)
         picked_obj = pickle.dumps(send_obj, protocol=pickle.HIGHEST_PROTOCOL)
         lenOfObj = len(picked_obj)
-        assert lenOfObj <= 500000, ('警告非numpy内容已经超越0.5MB，不合常规需要检查', lenOfObj)
+        assert lenOfObj <= 500000, ('The non-numpy content size > 0.5MB, please check!', lenOfObj)
         self.shared_memory_io_buffer_len_indicator.value = lenOfObj
         self.shared_memory_io_buffer[:lenOfObj] = picked_obj
         # then light up the work flag, turn off the processed flag
@@ -256,7 +256,7 @@ class SmartPool(object):
         send_obj = opti_numpy_object(send_obj, shm=self.shared_memory_io_buffer[target_proc])
         picked_obj = pickle.dumps(send_obj, protocol=pickle.HIGHEST_PROTOCOL)
         lenOfObj = len(picked_obj)
-        assert lenOfObj <= 500000, ('警告非numpy内容已经超越0.5MB，不合常规需要检查', lenOfObj)
+        assert lenOfObj <= 500000, ('The non-numpy content size > 0.5MB, please check!', lenOfObj)
         self.shared_memory_io_buffer_len_indicator[target_proc].value = lenOfObj
         self.shared_memory_io_buffer[target_proc][:lenOfObj] = picked_obj
         self.last_time_response_handled[target_proc] = False  # then light up the work flag, turn off the processed flag

@@ -192,26 +192,31 @@ class ReinforceAlgorithmFoundation(object):
             update_cnt = self.batch_traj_manager.train_and_clear_traj_pool()
             toc = time.time()
             print('训练用时:',toc-tic)
-            self.__save_model(update_cnt)
+            # self.__save_model(update_cnt)
 
 
-
-
+    def on_notify(self, message, **kargs):
+        self.__save_model(
+            update_cnt = self.batch_traj_manager.update_cnt,
+            info=str(kargs)
+        )
+        return
 
     def __dummy_hook(self, f2): 
         return
 
-    def __save_model(self, update_cnt):
+    def __save_model(self, update_cnt, info=None):
         logdir = GlobalConfig.logdir
         flag = '%s/save_now'%logdir
-        if os.path.exists(flag) or update_cnt%50==0:
+        if os.path.exists(flag) or update_cnt%50==0 or (info is not None):
             # dir 1
             pt_path = '%s/model.pt'%logdir
             print绿('saving model to %s'%pt_path)
             torch.save(self.policy.state_dict(), pt_path)
 
             # dir 2
-            pt_path = '%s/history_cpt/model_%d.pt'%(logdir, update_cnt)
+            info = str(update_cnt) if info is None else ''.join([str(update_cnt),'_',info])
+            pt_path = '%s/history_cpt/model_%s.pt'%(logdir, info)
             torch.save(self.policy.state_dict(), pt_path)
             try: os.remove(flag)
             except: pass
