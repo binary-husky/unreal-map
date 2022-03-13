@@ -649,50 +649,89 @@ class Baseclass(Agent):
         if time >= 4: self.make_decision()
         return
 
-    # 初始化位置
+
     def init_pos(self, cmd_list):
-        '''
-            y     [-150000, +150000]
-            red_x [-150000, -125000]
-            blue_x [125000,  150000]
-        '''
-        Special.init_Y = (2*np.random.rand() - 1)*60000  # -125000 #
-        leader_original_pos = {}  # 用以初始化当前方的位置
-        if self.name == "red":
-            # leader_original_pos = {"X": -Special.init_X, "Y": Special.init_Y, "Z": Special.init_Z}
-            leader_original_pos = {"X": -Special.init_X, "Y": -Special.init_Y, "Z": Special.init_Z}
-            init_dir = 90
-        else:
-            leader_original_pos = {"X": Special.init_X, "Y": Special.init_Y, "Z": Special.init_Z}
-            init_dir = 360 - 90
 
-        interval_distance = 20000   # 间隔 5000米排列
-        sub_index = 0
 
-        for p in self.my_planes:
-            if p.is_vip:
-                cmd_list.append(
-                    CmdEnv.make_entityinitinfo(
-                        p.ID,
-                        leader_original_pos['X'], leader_original_pos['Y'], leader_original_pos['Z'],
-                        Special.init_speed_vip, init_dir))
-            elif p.is_drone:
-                sub_pos = copy.deepcopy(leader_original_pos)
-                offset = 0 if sub_index<=1 else 1e3
-                if sub_index & 1 == 0:
-                    cmd_list.append(
-                        CmdEnv.make_entityinitinfo(p.ID,
-                                                   sub_pos['X'], sub_pos['Y'] + interval_distance + offset,
-                                                   sub_pos['Z'], Special.init_speed_drone, init_dir))
-                else:
-                    cmd_list.append(
-                        CmdEnv.make_entityinitinfo(p.ID,
-                                                   sub_pos['X'], sub_pos['Y'] - interval_distance - offset,
-                                                   sub_pos['Z'], Special.init_speed_drone, init_dir))
-                    # interval_distance *= 2 # 编号翻倍
-                sub_index += 1
-            else:
-                assert False, ('???')
+        squad_1_mem = [p for p in self.my_planes if p.squad_name == "U1"]
+        squad_2_mem = [p for p in self.my_planes if p.squad_name == "U2"]
+        xc = -Special.init_X if self.name == "red" else Special.init_X
+        random_max_y = 50e3
+        yc = (2*np.random.rand() - 1)*random_max_y
+        zc = Special.init_Z
+
+        init_dir = 90 if self.name == "red" else (360 - 90)
+        interval_distance = 42e3
+        in_squad_distance = 20e3
+
+        # 50e3 42e3 20e3
+        assert (random_max_y + interval_distance + in_squad_distance) < 140e3
+
+
+        arrange_order = {
+            '红有人机':  0, '蓝有人机':  0,
+            '红无人机1': -1, '蓝无人机1': -1,
+            '红无人机2': 1, '蓝无人机2': 1,
+
+            '红无人机3': -1, '蓝无人机3': -1,
+            '红无人机4': 1, '蓝无人机4': 1,
+        }
+
+        for p in squad_1_mem:
+            in_squad_order = arrange_order[p.Name]
+            y = yc + (interval_distance + in_squad_order*5000)
+            cmd_list.append(CmdEnv.make_entityinitinfo(p.ID,
+                xc, 
+                y,
+                zc,
+                Special.init_speed_drone, init_dir))
+
+        for p in squad_2_mem:
+            in_squad_order = arrange_order[p.Name]
+            y = yc - (interval_distance - in_squad_order*5000)
+            cmd_list.append(CmdEnv.make_entityinitinfo(p.ID,
+                xc, 
+                y,
+                zc,
+                Special.init_speed_drone, init_dir))
+        return 
+
+    # # 初始化位置
+    # def init_pos_old(self, cmd_list):
+    #     '''
+    #         y     [-150000, +150000]
+    #         red_x [-150000, -125000]
+    #         blue_x [125000,  150000]
+    #     '''
+    #     Special.init_Y = (2*np.random.rand() - 1)*60000  # -125000 #
+
+    #     interval_distance = 20000   # 间隔 5000米排列
+    #     sub_index = 0
+
+    #     for p in self.my_planes:
+    #         if p.is_vip:
+    #             cmd_list.append(
+    #                 CmdEnv.make_entityinitinfo(
+    #                     p.ID,
+    #                     leader_original_pos['X'], leader_original_pos['Y'], leader_original_pos['Z'],
+    #                     Special.init_speed_vip, init_dir))
+    #         elif p.is_drone:
+    #             sub_pos = copy.deepcopy(leader_original_pos)
+    #             offset = 0 if sub_index<=1 else 1e3
+    #             if sub_index & 1 == 0:
+    #                 cmd_list.append(
+    #                     CmdEnv.make_entityinitinfo(p.ID,
+    #                                                sub_pos['X'], sub_pos['Y'] + interval_distance + offset,
+    #                                                sub_pos['Z'], Special.init_speed_drone, init_dir))
+    #             else:
+    #                 cmd_list.append(
+    #                     CmdEnv.make_entityinitinfo(p.ID,
+    #                                                sub_pos['X'], sub_pos['Y'] - interval_distance - offset,
+    #                                                sub_pos['Z'], Special.init_speed_drone, init_dir))
+    #                 # interval_distance *= 2 # 编号翻倍
+    #             sub_index += 1
+    #         else:
+    #             assert False, ('???')
 
     # 初始化攻击序列，游戏开始后，会二次调整
     def init_attack_order(self):
