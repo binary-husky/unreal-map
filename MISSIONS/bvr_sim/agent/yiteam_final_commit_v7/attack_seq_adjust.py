@@ -2,7 +2,7 @@ from typing import List
 from ..agent import Agent
 from ..env_cmd import CmdEnv
 from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at, avg_rad
 from .maneuver import maneuver_angle_to_ms, maneuver_angle_to_ms3d, maneuver_speed_to_ms, maneuver_vip
 import copy, logging, random, time
 import numpy as np
@@ -10,67 +10,87 @@ from .tools import distance_matrix
 from .base import Baseclass, Special, Drone, Vip, Plane, MS
 from .missile_policy import MS_policy
 from .emergent import Emergent
-Init_attack_order_adjust_dis = 150e3
+Init_attack_order_adjust_dis = 100e3
 
 class Attack_Adjust():
+    @staticmethod
+    def test_rank(center, q, phi0, alpha_deg, polar=1):
+        delta = q-center
+        d = np.linalg.norm(delta)
+        phi = (np.arctan2(delta[1],delta[0])-phi0)*polar
+        alpha = alpha_deg * (np.pi/180)
+        small_first_rank = d*np.cos(phi) - d*np.sin(phi)*np.tan(alpha) 
+        return small_first_rank
 
-
-    def new_init_adjust(self):
+    def new_new_init_adjust(self, squad_name):
         all_my_plane_center = np.array([p.pos2d for p in self.my_planes])
         all_my_plane_center = all_my_plane_center.mean(axis=0)
+        # squad_mem_center = np.array([p.pos2d for p in self.my_planes if p.squad_name == squad_name])
+        # squad_mem_center = squad_mem_center.mean(axis=0)
+        center = all_my_plane_center
+        # # 找出敌方处于边缘的两架飞机
+        # angle = -9999
+        # op1_tmp = None
+        # op2_tmp = None
+        # for op1 in self.op_planes:
+        #     for op2 in self.op_planes:
+        #         if op1 is op2: continue
+        #         delta_deg = self.get_points_angle_deg(pt1=op1.pos2d, 
+        #             pt_center=center, 
+        #             pt2=op2.pos2d)
+        #         if delta_deg > angle:
+        #             angle = delta_deg
+        #             op1_tmp = op1
+        #             op2_tmp = op2
 
-        # 找出敌方处于边缘的两架飞机
-        angle = -9999
-        op1_tmp = None
-        op2_tmp = None
-        for op1 in self.op_planes:
-            for op2 in self.op_planes:
-                if op1 is op2: continue
-                delta_deg = self.get_points_angle_deg(pt1=op1.pos2d, 
+        # rad1 = dir2rad(op1_tmp.pos2d-center) # 最侧翼的敌机1
+        # rad2 = dir2rad(op2_tmp.pos2d-center) # 最侧翼的敌机2，另一侧
+        # phi0 = avg_rad(rad1, rad2)
+        op_vip = [op for op in self.op_planes if op.is_vip][0]
+        phi0 = dir2rad(op_vip.pos2d-all_my_plane_center)
+
+        for op in self.op_planes:
+            if op.is_vip: continue
+            v1 = op_vip.pos2d - all_my_plane_center
+            v2 = op.pos2d - all_my_plane_center
+            v1n = np.linalg.norm(v1)
+            v2n = np.linalg.norm(v2)
+            theta = self.get_points_angle_deg(pt1=op_vip.pos2d, 
                     pt_center=all_my_plane_center, 
-                    pt2=op2.pos2d)
-                if delta_deg > angle:
-                    angle = delta_deg
-                    op1_tmp = op1
-                    op2_tmp = op2
-        # 以其中的op1作为角度零点，再进行计算排序
-        new_op_rank = [self.get_points_angle_deg(
-                        op1_tmp.pos2d, 
-                        all_my_plane_center, 
-                        op.pos2d) for op in self.op_planes]
-        sorted_index = np.argsort(new_op_rank)
-        op_list = np.array([op for op in self.op_planes], dtype=object)
-        op_list_sorted = op_list[sorted_index]
-        op_attk_by_squad_1 = op_list_sorted
-        op_attk_by_squad_2 = list(reversed(op_list_sorted))
-        # 一组攻击上边缘，一组攻击下边缘
-        squad_1_mem = [p for p in self.my_planes if p.squad_name == "U1"]
-        squad_2_mem = [p for p in self.my_planes if p.squad_name == "U2"]
-        for p in squad_1_mem:
-            p.attack_order = [op.Name for op in op_attk_by_squad_1]
-            logging.info("'{0}' 分配战机进攻序列： '{1}'".format(p.Name, p.attack_order[0]))
-        for p in squad_2_mem:
-            p.attack_order = [op.Name for op in op_attk_by_squad_2]
-            logging.info("'{0}' 分配战机进攻序列： '{1}'".format(p.Name, p.attack_order[0]))
+                    pt2=op.pos2d)*np.pi/180
+            alpha = np.arctan((v2n*np.cos(theta)-v1n)/(v2n*np.sin(theta)))
+            print(op.Name, alpha*180/np.pi)
 
-        # op_attk_by_squad_2 = op_list_sorted[1::2]
-        # op_list1_has_op_vip = any([op.is_vip for op in op_attk_by_squad_1])
-        # op_list2_has_op_vip = any([op.is_vip for op in op_attk_by_squad_2])
-        # op_vip = [op for op in self.op_planes if op.is_vip][0]
-        # assert (op_list1_has_op_vip and (not op_list2_has_op_vip)) or (
-        #     op_list2_has_op_vip and (not op_list1_has_op_vip))
-        # if op_list2_has_op_vip:
-        #     t = op_attk_by_squad_1
-        #     op_attk_by_squad_1 = op_attk_by_squad_2
-        #     op_attk_by_squad_2 = t
-        #     # 如果攻击序列中没有有人机，则把有人机放到最后
-        #     if not any(['有人机' in p_name for p_name in p.attack_order]):
-        #         p.attack_order.append(op_vip.Name)
-        #     # ## print亮绿(p.Name, '分配战机进攻序列：', p.attack_order)
-        #     # 如果攻击序列中没有有人机，则把有人机放到最后
-        #     if not any(['有人机' in p_name for p_name in p.attack_order]):
-        #         p.attack_order.append(op_vip.Name)
-        # pass
+        if squad_name == "U1":
+            small_first_rank = [self.test_rank(
+                        center,
+                        q = op.pos2d,
+                        phi0 = phi0,
+                        alpha_deg=15,
+                        polar = 1 if self.name == "red" else -1
+                        ) for op in self.op_planes]
+
+        if squad_name == "U2":
+            small_first_rank = [self.test_rank(
+                        center,
+                        q = op.pos2d,
+                        phi0 = phi0,
+                        alpha_deg=15,
+                        polar = -1 if self.name == "red" else 1
+                    ) for op in self.op_planes]
+
+        op_list = np.array([op for op in self.op_planes], dtype=object)
+        sorted_index = np.argsort(small_first_rank)   # argsort is small-first
+
+        op_list_sorted = op_list[sorted_index]
+
+        op_attk_by_squad = op_list_sorted
+
+        # 一组攻击上边缘，一组攻击下边缘
+        squad_mem = [p for p in self.my_planes if p.squad_name == squad_name]
+        for p in squad_mem:
+            p.attack_order = [op.Name for op in op_attk_by_squad]
+            logging.info("'{0}' 分配战机进攻序列： '{1}'".format(p.Name, p.attack_order[0]))
 
 
     # 根据敌方每个飞机的剩余的弹药量，变动进攻序列，将无弹的目标放到最末的优先级
@@ -107,7 +127,12 @@ class Attack_Adjust():
 
         min_distance = min([self.get_dis(op.ID, p.ID) for op in self.op_planes for p in self.my_planes])
         if min_distance > Init_attack_order_adjust_dis:
-            self.new_init_adjust()
+            self.new_new_init_adjust(squad_name="U1")
+            self.new_new_init_adjust(squad_name="U2")
+        else:
+            self.new_new_init_adjust(squad_name="U1")
+            self.new_new_init_adjust(squad_name="U2")
+            print('over range')
 
         # 根据将敌方的无弹目标放到末优先级
         self.adjust_by_left_ammo()
