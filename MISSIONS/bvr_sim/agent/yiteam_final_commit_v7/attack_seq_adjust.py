@@ -13,42 +13,7 @@ from .emergent import Emergent
 Init_attack_order_adjust_dis = 150e3
 
 class Attack_Adjust():
-    # 只执行一次的初始化调整，敌我距离小于 Init_attack_order_adjust_dis 时执行一次
-    def init_adjust(self):
-        op_list = np.array([op for op in self.op_planes], dtype=object)
-        op_dis_2_vip = [self.get_dis(
-            op.ID, p.ID) for op in self.op_planes
-            for p in self.my_planes if p.is_vip]
-        assert len(op_dis_2_vip) == len(self.op_planes)
-        sorted_index = np.argsort(op_dis_2_vip)
 
-        op_list_sorted = op_list[sorted_index]
-        op_attk_by_squad_1 = op_list_sorted[0::2]
-        op_attk_by_squad_2 = op_list_sorted[1::2]
-        op_list1_has_op_vip = any([op.is_vip for op in op_attk_by_squad_1])
-        op_list2_has_op_vip = any([op.is_vip for op in op_attk_by_squad_2])
-        op_vip = [op for op in self.op_planes if op.is_vip][0]
-        assert (op_list1_has_op_vip and (not op_list2_has_op_vip)) or (
-            op_list2_has_op_vip and (not op_list1_has_op_vip))
-        if op_list2_has_op_vip:
-            t = op_attk_by_squad_1
-            op_attk_by_squad_1 = op_attk_by_squad_2
-            op_attk_by_squad_2 = t
-        squad_1_mem = [p for p in self.my_planes if p.squad_name == "U1"]
-        squad_2_mem = [p for p in self.my_planes if p.squad_name == "U2"]
-        for p in squad_1_mem:
-            p.attack_order = [op.Name for op in op_attk_by_squad_1]
-            # 如果攻击序列中没有有人机，则把有人机放到最后
-            if not any(['有人机' in p_name for p_name in p.attack_order]):
-                p.attack_order.append(op_vip.Name)
-            # ## print亮绿(p.Name, '分配战机进攻序列：', p.attack_order)
-        for p in squad_2_mem:
-            p.attack_order = [op.Name for op in op_attk_by_squad_2]
-            # 如果攻击序列中没有有人机，则把有人机放到最后
-            if not any(['有人机' in p_name for p_name in p.attack_order]):
-                p.attack_order.append(op_vip.Name)
-            # ## print亮蓝(p.Name, '分配战机进攻序列：', p.attack_order)
-        pass
 
     def new_init_adjust(self):
         all_my_plane_center = np.array([p.pos2d for p in self.my_planes])
@@ -83,8 +48,10 @@ class Attack_Adjust():
         squad_2_mem = [p for p in self.my_planes if p.squad_name == "U2"]
         for p in squad_1_mem:
             p.attack_order = [op.Name for op in op_attk_by_squad_1]
+            logging.info("'{0}' 分配战机进攻序列： '{1}'".format(p.Name, p.attack_order[0]))
         for p in squad_2_mem:
             p.attack_order = [op.Name for op in op_attk_by_squad_2]
+            logging.info("'{0}' 分配战机进攻序列： '{1}'".format(p.Name, p.attack_order[0]))
 
         # op_attk_by_squad_2 = op_list_sorted[1::2]
         # op_list1_has_op_vip = any([op.is_vip for op in op_attk_by_squad_1])
