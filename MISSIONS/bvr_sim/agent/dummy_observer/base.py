@@ -109,14 +109,13 @@ class Plane(object):
     def __init__(self, data=None, manager=None) -> None:
         self.manager = manager
         super().__init__()
-        if data is not None: self.update_info(data, init=True)
-        self.persistent_state = 'follow'
-        self.advantage_state = 'default'
-        # self.hanging_attack_by = []
+        if data is not None: self.update_info(data, sim_time=0, init=True)
         self.attacked_by_ms = []
         self.previous_ms_list = []
+        self.latest_update_time = 0
 
-    def update_info(self, data, init=False):
+    def update_info(self, data, sim_time, init=False):
+        self.latest_update_time = sim_time
         self.alive = (data['Availability'] != 0)
         self.data = data
         if hasattr(self, 'ID'):
@@ -124,6 +123,7 @@ class Plane(object):
         for key in data:
             setattr(self, key, data[key])
 
+        # first update
         if not hasattr(self, 'is_drone'):
             self.is_drone = (self.Type == 2)
             self.is_vip = (self.Type == 1)
@@ -131,6 +131,8 @@ class Plane(object):
             for key in Ability.__dict__:
                 if '__' in key: continue
                 setattr(self, key, getattr(Ability, key))
+
+
         self.pos3d = np.array([self.X, self.Y, self.Alt], dtype=float)
         self.pos2d = np.array([self.X, self.Y], dtype=float)
         self.h_angle = 90-self.Heading*180/np.pi    # np.pi/2 - self.heading
@@ -200,34 +202,7 @@ class Plane(object):
             threat_dis = self.get_dis(nearest_op.ID)
         return res, threat_dis
 
-    def 调试_正在被高度优势vip导弹追踪_且距离小于25km_估计撞击点预计在万米之上(self):
-        # 调用该函数的前提条件是 1、调用者是无人机, 2、没有任何导弹在飞机的12km范围内
-        assert self.is_drone
-        ms = self.nearest_ms()
-        if len(self.attacked_by_ms)==0: return False
-        if ms is None: return False
-        if not ms.tracking_target: return False
-        if (ms.host is not None) and ms.host.is_vip: # 正在被vip打
-            if ms.Z > 10e3: # 超出uav的飞行高度
-                dis = self.manager.get_dis(ms.ID, self.ID)
-                if dis < 25e3: # 距离小于25km
-                    # 估计撞击点
-                    撞击点高度 = self.Z + 0.25*(ms.Z - self.Z)
-                    if 撞击点高度 > 9500 or hasattr(ms, '估计撞击点预计在万米之上_特殊规避'):
-                        ms.估计撞击点预计在万米之上_特殊规避 = True
-                        return True
-                    else:
-                        return False
-        return False
 
-    def 调试_正在被高度优势vip导弹追踪_sudden_dive_towards_goto_location(self):
-        ms = self.nearest_ms()
-        assert self.manager.get_dis(ms.ID, self.ID) > 10e3
-        vec2ms_2d = ms.pos2d - self.pos2d
-        vec2ms_2d_unit_direction = vec2ms_2d / (np.linalg.norm(vec2ms_2d)+1e-7)
-        vec2ms_2d_1km = vec2ms_2d_unit_direction*3e3    # 1km 长度的方向向量
-
-        return [{"X": self.X+vec2ms_2d_1km[0], "Y":self.Y+vec2ms_2d_1km[1], "Z": self.MinHeight}]
 
 # 导弹的类
 class MS(object):
@@ -297,11 +272,12 @@ class MS(object):
             [1000.00, -1299.993]
         ]
         self.speed_peak = False
-        if data is not None: self.update_info(data)
+        if data is not None: self.update_info(data, 0)
         self.flying_dis = 0
 
         self.debug_estimate_next_pos = None
         self.debug_estimate_uav_next_pos = None
+        self.latest_update_time = 0
 
     def estimate_terminal_dis(self):
         p_dis = self.distance[-1]
@@ -363,7 +339,9 @@ class MS(object):
             if pointer > 10:
                 return
 
-    def update_info(self, data):
+    def update_info(self, data, sim_time):
+        self.latest_update_time = sim_time
+
         self.alive = (data['Availability'] != 0)
         self.data = data
         if hasattr(self, 'ID'):
@@ -423,7 +401,7 @@ class MS(object):
         self.debug_estimate_uav_next_pos[1] += self.target.Speed * np.cos(self.target.Pitch) * np.sin(
             self.target.h_angle * np.pi / 180)
 
-        d_angle = reg_deg_at(self.target.h_angle, ref=self.h_angle + 180) - (self.h_angle + 180)
+        # d_angle = reg_deg_at(self.target.h_angle, ref=self.h_angle + 180) - (self.h_angle + 180)
         # 处于转向阶段的飞机 不适用
         # if np.abs(d_angle) < 1:
         #     if self.flying_time == 2:
@@ -485,6 +463,7 @@ class Baseclass(Agent):
         # self.vip_prepare_escape_distance = 75e3
 
         self.initial_attack_order_adjusted = False
+        self.Id2PlaneLookup = {}
 
     def find_plane_by_name(self, name):
         for p in self.my_planes + self.op_planes:
@@ -494,7 +473,45 @@ class Baseclass(Agent):
     def find_planes_by_squad(self, squad_name):
         return [p for p in self.my_planes  if p.squad_name == squad_name]
 
+
+    '''
+    var dictionary_id2index = {}
+    function find_obj_by_id(my_id){
+        let string_id = my_id.toString()
+        if (dictionary_id2index[string_id]!=null){
+            let i = dictionary_id2index[string_id];
+            if (window.glb.core_Obj[i]!=null && window.glb.core_Obj[i].my_id == my_id) {
+                return window.glb.core_Obj[i];
+            }
+        }
+
+        // the usual way
+        for (let i = 0; i < window.glb.core_Obj.length; i++) {
+            if (window.glb.core_Obj[i].my_id == my_id) {
+                dictionary_id2index[string_id] = i;
+                return window.glb.core_Obj[i];
+            }
+        }
+        return null
+    }
+    '''
+    # add a ID->plane obj table
     def find_plane_by_id(self, ID):
+        if ID in self.Id2PlaneLookup:
+            if (self.Id2PlaneLookup[ID].ID == ID):
+                return self.Id2PlaneLookup[ID]
+
+        # otherwise, no match, or dictionary with no record
+        for p in self.my_planes + self.op_planes:
+            if p.ID == ID: 
+                self.Id2PlaneLookup[ID] = p # register
+                return p
+
+        # otherwise, no match at all
+        return None
+
+    # add a ID->plane obj table
+    def find_plane_by_id_old(self, ID):
         for p in self.my_planes + self.op_planes:
             if p.ID == ID: return p
         return None
@@ -510,6 +527,17 @@ class Baseclass(Agent):
 
     # 加载观测量
     def my_process_observation_and_show(self, obs_side, sim_time):
+        reward_related_info = {
+            'my_plane_fallen': 0,
+            'op_plane_fallen': 0,
+            'my_ms_miss_dead': 0,
+            'op_ms_miss_dead': 0,
+            'my_ms_miss_alive': 0,
+            'op_ms_miss_alive': 0,
+            'my_ms_hit': 0,
+            'op_ms_hit': 0,
+        }
+
         # need init?
         if self.my_planes is None:
             self.my_planes = [Plane(manager=self) for _ in range(self.n_uav +1)]
@@ -517,9 +545,9 @@ class Baseclass(Agent):
 
             # register info for the first time!
             for idx, uvas_info in enumerate(obs_side['platforminfos']):
-                self.my_planes[idx].update_info(uvas_info, init=True)
+                self.my_planes[idx].update_info(uvas_info, sim_time, init=True)
             for idx, uvas_info in enumerate(obs_side['trackinfos']):
-                self.op_planes[idx].update_info(uvas_info, init=True)
+                self.op_planes[idx].update_info(uvas_info, sim_time, init=True)
 
             if len(obs_side['platforminfos']) != (self.n_uav + 1):
                 print亮红('Error! 没有从起始状态执行,可能导致一系列错误!')
@@ -549,13 +577,15 @@ class Baseclass(Agent):
             p = self.find_plane_by_id(uvas_info['ID'])
             if p is None:
                 continue
-            p.update_info(uvas_info)
-            everything.append(uvas_info)
+            p.update_info(uvas_info, sim_time)
+            everything.append(uvas_info) # for grand dis matrix calculation
+
 
         # part 2
         missile_infos = obs_side['missileinfos']
         for missile_info in missile_infos:
             ms_active = (missile_info['ID'] != 0 and missile_info['Availability'] > 0.0001)
+            assert ms_active, ('when will ms be in-active?')
             if not ms_active: continue
             missile_info["Z"] = missile_info["Alt"]
             host_id = missile_info['LauncherID']
@@ -573,15 +603,68 @@ class Baseclass(Agent):
                 self.ms.append(MS(missile_info))
                 if host is not None and hasattr(host, 'OpLeftWeapon'):
                     host.OpLeftWeapon -= 1
-
             else:
-                ms.update_info(missile_info)
+                ms.update_info(missile_info, sim_time)
 
             ms = self.find_ms_by_id(missile_info["ID"])
             if host is not None:
                 assert ms is not None
                 host.fired_ms.append(ms)
-            everything.append(missile_info)
+
+            everything.append(missile_info) # for grand dis matrix calculation
+
+
+
+        # reward_related_info = {
+        #     'my_plane_fallen': 0,
+        #     'op_plane_fallen': 0,
+        #     'my_ms_miss_dead': 0,
+        #     'op_ms_miss_dead': 0,
+        #     'my_ms_miss_alive': 0,
+        #     'op_ms_miss_alive': 0,
+        #     'my_ms_hit': 0,
+        #     'op_ms_hit': 0,
+        # }
+        ## something about reward
+        # <1> reward on fallen fighters
+        # if a plane does not update its info, it's down
+        for p in self.my_planes:
+            if (p.latest_update_time != sim_time) and (p.latest_update_time == sim_time-1):
+                # just be destoried
+                reward_related_info["my_plane_fallen"] += 1
+        for op in self.op_planes:
+            if (op.latest_update_time != sim_time) and (op.latest_update_time == sim_time-1):
+                # just be destoried
+                reward_related_info["op_plane_fallen"] += 1
+
+        # <2> reward on escaping ms
+        for ms in self.ms:
+            if (ms.latest_update_time != sim_time) and (ms.latest_update_time == sim_time-1):
+                # ms hit or miss
+                # if ms.target.alive:
+                #     print('missle miss')
+                # else 
+                if (not ms.target.alive) and (ms.target.latest_update_time == sim_time-1):
+                    # nice shoot
+                    if ms.is_op_ms:
+                        reward_related_info['op_ms_hit'] += 1
+                    else:
+                        reward_related_info['my_ms_hit'] += 1
+                elif (not ms.target.alive):
+                    # target is already dealt with by other ms
+                    if ms.is_op_ms:
+                        reward_related_info['op_ms_miss_dead'] += 1
+                    else:
+                        reward_related_info['my_ms_miss_dead'] += 1
+                elif ms.target.alive:
+                    # print('missle miss')
+                    # ms miss!
+                    if ms.is_op_ms:
+                        reward_related_info['op_ms_miss_alive'] += 1
+                    else:
+                        reward_related_info['my_ms_miss_alive'] += 1
+                else:
+                    assert False, "pretty sure there cannot be other possibilities"
 
         # part 3 distance matrix
         everything_pos = np.array([np.array([p['X'], p['Y'], p['Z']]) for p in everything])
@@ -592,30 +675,12 @@ class Baseclass(Agent):
         Plane.dis_mat_id2index = self.id2index
         for m in self.ms:
             if not m.alive: m.end_life()
-        '''
-        if len(list(filter(lambda p: not p.alive, self.my_planes)))>0:
-            ## print('飞机被命中')
-            pass
 
-        self.my_planes = list(filter(lambda p: p.alive, self.my_planes))
-        self.op_planes = list(filter(lambda p: p.alive, self.op_planes))
-        self.ms = list(filter(lambda m: m.alive, self.ms))
-        '''
-        # self.update_mapping()
+        return reward_related_info
 
-        # part 4 calculate in-radar relationship
-        # for p in self.my_planes:
-        #     p.in_radar = self.get_in_radar_op(p)
-
-        # for p in self.my_planes:
-        #     p.in_attack_radar = self.get_in_attack_radar_op(p)
-
-        # for p in self.my_planes:
-        #     p.in_attack_deadzoo = self.get_dead_zoo(p)
-
-        # for op in self.op_planes:
-        #     op.in_target_zoo = self.get_in_target_zoo(op)
-
+    def get_reward(self):
+        # red_destory, blue_destory = 
+        return 0
 
 
     def id2index(self, arr):
@@ -627,8 +692,7 @@ class Baseclass(Agent):
         return self.everything_dis[index1, index2]
 
     def observe(self, sim_time, obs_side, **kwargs) -> List[dict]:
-        self.cmd_list = []
-        self.my_process_observation_and_show(obs_side, sim_time)
+        return self.my_process_observation_and_show(obs_side, sim_time)
 
     def process_decision(self, time, obs_side):
         self.time_of_game = time
@@ -947,3 +1011,5 @@ class Baseclass(Agent):
                 return False, None
         else:
             return False, None
+
+

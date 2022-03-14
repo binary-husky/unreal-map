@@ -645,13 +645,12 @@ class Baseclass(Agent):
 
     def process_decision(self, time, obs_side):
         self.time_of_game = time
-        if time == 3: self.init_pos(self.cmd_list)
+        if time == 0: self.init_pos(self.cmd_list)
         if time >= 4: self.make_decision()
         return
 
 
     def init_pos(self, cmd_list):
-
 
         squad_1_mem = [p for p in self.my_planes if p.squad_name == "U1"]
         squad_2_mem = [p for p in self.my_planes if p.squad_name == "U2"]
@@ -661,13 +660,12 @@ class Baseclass(Agent):
         zc = Special.init_Z
 
         init_dir = 90 if self.name == "red" else (360 - 90)
+        op_init_dir = 90 if self.name == "blue" else (360 - 90)
         interval_distance = 42e3
         in_squad_distance = 20e3
 
         # 50e3 42e3 20e3
         assert (random_max_y + interval_distance + in_squad_distance) < 140e3
-
-
         arrange_order = {
             '红有人机':  0, '蓝有人机':  0,
             '红无人机1': -1, '蓝无人机1': -1,
@@ -676,6 +674,18 @@ class Baseclass(Agent):
             '红无人机3': -1, '蓝无人机3': -1,
             '红无人机4': 1, '蓝无人机4': 1,
         }
+
+
+        reverse_op = {
+            '红有人机' :'蓝有人机',     '蓝有人机' : '红有人机' ,
+            '红无人机1':'蓝无人机1',    '蓝无人机1': '红无人机1',
+            '红无人机2':'蓝无人机2',    '蓝无人机2': '红无人机2',
+    
+            '红无人机3':'蓝无人机3',    '蓝无人机3': '红无人机3',
+            '红无人机4':'蓝无人机4',    '蓝无人机4': '红无人机4',
+        }
+        XMid = Drone.MIN_X/2 +  Drone.MAX_X/2 
+        YMid = Drone.MIN_Y/2 +  Drone.MAX_Y/2 
 
         for p in squad_1_mem:
             in_squad_order = arrange_order[p.Name]
@@ -686,6 +696,13 @@ class Baseclass(Agent):
                 zc,
                 Special.init_speed_drone, init_dir))
 
+            op = self.find_plane_by_name(reverse_op[p.Name])
+            cmd_list.append(CmdEnv.make_entityinitinfo(op.ID,
+                -xc, 
+                -y,
+                zc,
+                Special.init_speed_drone, op_init_dir))
+
         for p in squad_2_mem:
             in_squad_order = arrange_order[p.Name]
             y = yc - (interval_distance - in_squad_order*5000)
@@ -694,6 +711,13 @@ class Baseclass(Agent):
                 y,
                 zc,
                 Special.init_speed_drone, init_dir))
+                
+            op = self.find_plane_by_name(reverse_op[p.Name])
+            cmd_list.append(CmdEnv.make_entityinitinfo(op.ID,
+                -xc, 
+                -y,
+                zc,
+                Special.init_speed_drone, op_init_dir))
         return 
 
     # # 初始化位置

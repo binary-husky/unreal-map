@@ -367,7 +367,7 @@ class SmartPool(object):
             try: shm.close(); shm.unlink()
             except: pass
 
-        N_SEC_WAIT = 5
+        N_SEC_WAIT = 2
         for i in range(N_SEC_WAIT):
             print_red('[shm_pool]: terminate in %d'%(N_SEC_WAIT-i));time.sleep(1)
 

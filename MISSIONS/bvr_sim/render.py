@@ -27,11 +27,10 @@ class RenderBridge():
 
 
 
-
-        if win['done']:
+        if hasattr(self.可视化桥, '刚刚复位') and self.可视化桥.刚刚复位:
+            self.可视化桥.刚刚复位 = False
             if win[self.player_color]: self.可视化桥.上次结果 = ' RL胜利\n'
             else: self.可视化桥.上次结果 = ' RL战败\n'
-        if time==1 or time==4:
             self.可视化桥.发送几何体(
                 'BOX|%d|%s|10'%(-1, 'White'),  # 填入核心参量： “已声明的形状|几何体的唯一ID标识|颜色|整体大小”
                 0, 60, 0,                # 三维位置，3/6dof
@@ -47,7 +46,7 @@ class RenderBridge():
                 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
             self.可视化桥.set_env('clear_everything')
-            # self.可视化桥.set_env('clear_everything')
+
             self.可视化桥.结束关键帧()  
             #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 

@@ -49,17 +49,17 @@ class Attack_Adjust():
         op_vip = [op for op in self.op_planes if op.is_vip][0]
         phi0 = dir2rad(op_vip.pos2d-all_my_plane_center)
 
-        for op in self.op_planes:
-            if op.is_vip: continue
-            v1 = op_vip.pos2d - all_my_plane_center
-            v2 = op.pos2d - all_my_plane_center
-            v1n = np.linalg.norm(v1)
-            v2n = np.linalg.norm(v2)
-            theta = self.get_points_angle_deg(pt1=op_vip.pos2d, 
-                    pt_center=all_my_plane_center, 
-                    pt2=op.pos2d)*np.pi/180
-            alpha = np.arctan((v2n*np.cos(theta)-v1n)/(v2n*np.sin(theta)))
-            print(op.Name, alpha*180/np.pi)
+        # for op in self.op_planes:
+        #     if op.is_vip: continue
+        #     v1 = op_vip.pos2d - all_my_plane_center
+        #     v2 = op.pos2d - all_my_plane_center
+        #     v1n = np.linalg.norm(v1)
+        #     v2n = np.linalg.norm(v2)
+        #     theta = self.get_points_angle_deg(pt1=op_vip.pos2d, 
+        #             pt_center=all_my_plane_center, 
+        #             pt2=op.pos2d)*np.pi/180
+        #     alpha = np.arctan((v2n*np.cos(theta)-v1n)/(v2n*np.sin(theta)))
+        #     print(op.Name, alpha*180/np.pi)
 
         if squad_name == "U1":
             small_first_rank = [self.test_rank(
@@ -130,9 +130,10 @@ class Attack_Adjust():
             self.new_new_init_adjust(squad_name="U1")
             self.new_new_init_adjust(squad_name="U2")
         else:
-            self.new_new_init_adjust(squad_name="U1")
-            self.new_new_init_adjust(squad_name="U2")
-            print('over range')
+            # self.new_new_init_adjust(squad_name="U1")
+            # self.new_new_init_adjust(squad_name="U2")
+            # print('over range')
+            pass
 
         # 根据将敌方的无弹目标放到末优先级
         self.adjust_by_left_ammo()

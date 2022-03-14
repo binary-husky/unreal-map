@@ -44,7 +44,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     # meanning [MinHeight , MaxHeight]  
     # MinHeight + (MaxHeight - MinHeight)*( i/(HeightLevels-1) ), i = [0,1,2,3,4]
 
-    internal_step = 1
+    internal_step = 3
 
     ################ needed by some ALGORITHM ################
     state_provided = False
@@ -115,11 +115,53 @@ class BVR(BaseEnv, RenderBridge, EndGame):
     def bvr_step(self, cmd_list):
         self.raw_obs = self.communication_service.step(cmd_list)
         # an observer keeps track of agent info such as distence
-        self.observer.observe(self.raw_obs["sim_time"], self.raw_obs['red'])
+        reward_related_info = self.observer.observe(self.raw_obs["sim_time"], self.raw_obs['red'])
+        reward_dict = self.get_reward(reward_related_info)
         done, red_win, blue_win = self.get_done(self.raw_obs)
         done = (done>0); 
         win = {'red':(red_win>0), 'blue':(blue_win>0), 'done':done}
-        return self.raw_obs, done, win
+        return self.raw_obs, done, win, reward_dict
+
+    def get_reward(self, reward_related_info):
+        '''
+            my = red
+            op = blue
+            'my_plane_fallen':0
+            'op_plane_fallen':0
+            'my_ms_miss_dead':0
+            'op_ms_miss_dead':0
+            'my_ms_miss_alive':0
+            'op_ms_miss_alive':0
+            'my_ms_hit':0
+            'op_ms_hit':0
+        '''
+        R1_self_plane_fallen = -1
+        R2_enem_plane_fallen = +2
+        R3_self_ms_hit = 0.5
+        R4_enem_ms_hit = -0.5
+        R5_self_ms_alive = -0.1
+        R6_enem_ms_alive = +0.1
+
+        red_reward = (
+            reward_related_info['my_plane_fallen']  * R1_self_plane_fallen + 
+            reward_related_info['op_plane_fallen']  * R2_enem_plane_fallen + 
+            reward_related_info['my_ms_hit']        * R3_self_ms_hit + 
+            reward_related_info['op_ms_hit']        * R4_enem_ms_hit + 
+            reward_related_info['my_ms_miss_alive'] * R5_self_ms_alive + 
+            reward_related_info['op_ms_miss_alive'] * R6_enem_ms_alive
+        )
+
+
+        blue_reward = (
+            reward_related_info['op_plane_fallen']  * R1_self_plane_fallen + 
+            reward_related_info['my_plane_fallen']  * R2_enem_plane_fallen + 
+            reward_related_info['op_ms_hit']        * R3_self_ms_hit + 
+            reward_related_info['my_ms_hit']        * R4_enem_ms_hit + 
+            reward_related_info['op_ms_miss_alive'] * R5_self_ms_alive + 
+            reward_related_info['my_ms_miss_alive'] * R6_enem_ms_alive
+        )
+        # obs[self.player_color], obs[self.opp_color]
+        return {'red': red_reward, 'blue': blue_reward}
 
     def bvr_reset(self):
         self._end_()
@@ -154,13 +196,17 @@ class BVR_PVE(BVR, Converter):
         # convert raw_action Tensor from RL to actions recognized by the game
         player_action = self.parse_raw_action(raw_action)
         
+        reward_accu_internal = 0
         for _ in range(self.internal_step):
             # move the opponents
             opp_action = self.opp_controller.step(self.raw_obs["sim_time"], self.raw_obs[self.opp_color])
 
             # commmit actions to the environment
             cmd_list = player_action + opp_action
-            self.raw_obs, done, win = self.bvr_step(cmd_list)
+            self.raw_obs, done, win, reward_dict = self.bvr_step(cmd_list)
+
+            # accumulate player reward
+            reward_accu_internal += reward_dict[self.player_color]
             
             if done:  break
             player_action = []
@@ -171,10 +217,12 @@ class BVR_PVE(BVR, Converter):
         # system get done
         assert self.raw_obs is not None, ("obs is None")
         converted_obs = self.convert_obs(self.raw_obs)
-        reward = 0
 
         info = {'win':win[self.player_color]}
-        return converted_obs, reward, done, info
+        return converted_obs, reward_accu_internal, done, info
+
+
+
 
     def reset(self):
         # randomly switch sides
@@ -186,7 +234,6 @@ class BVR_PVE(BVR, Converter):
         # controller 1
         self.opp_controller = self.OPP_CONTROLLER_CLASS(self.opp_color, {"side": self.opp_color})
 
-
         # reset signal to base
         self.raw_obs = self.bvr_reset()
 
@@ -194,11 +241,12 @@ class BVR_PVE(BVR, Converter):
         converted_obs = self.convert_obs(self.raw_obs)
         
         info = self.raw_obs[self.player_color]
+        if hasattr(self, '可视化桥'): self.可视化桥.刚刚复位 = True
         return converted_obs, info
 
 
 
-
+'''
 class BVR_EVE(BVR, Converter):
     def __init__(self, rank):
         super().__init__(rank)
@@ -244,5 +292,10 @@ class BVR_EVE(BVR, Converter):
         converted_obs = self.convert_obs(self.raw_obs)
         
         info = self.raw_obs[self.player_color]
+
+        self.可视化桥.刚刚复位 = True
         return converted_obs, info
+
+'''
+
 
