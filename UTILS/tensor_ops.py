@@ -686,6 +686,9 @@ def reg_rad(rad):
 def reg_rad_at(rad, ref):
     return reg_rad(rad-ref) + ref
 
+# the average of two angles (in rad)
+def avg_rad(rad1, rad2):
+    return reg_rad_at(rad1, rad2)/2 + rad2/2
 
 def zeros_like_except_dim(array, except_dim, n):
     shape_ = list(array.shape)

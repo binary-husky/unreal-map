@@ -18,7 +18,7 @@ import logging
 
 logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                     level=logging.INFO,
-                    filename='bvrAI.log',
+                    filename='./RECYCLE/bvrAI.log',
                     filemode='w+', force=True)
 
 # Enable_Evade = True

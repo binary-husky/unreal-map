@@ -111,6 +111,11 @@ class Converter():
 
     def parse_act_case_fire(self, cmd_buffer, p, TT):
         target = self.tran_target(TT)
+        if (self.player_color=='red' and p.LeftWeapon<=1) or (self.player_color=='blue' and p.OpLeftWeapon<=1):
+            print('saving ms, do not fire')
+            return cmd_buffer
+
+
         cmd_buffer.append(CmdEnv.make_attackparam(p.ID, target.ID, 1))
         return cmd_buffer
 
