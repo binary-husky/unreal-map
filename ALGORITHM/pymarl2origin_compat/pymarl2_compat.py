@@ -8,9 +8,11 @@ import subprocess
 # from subprocess import DEVNULL
 from UTILS.colorful import print亮紫
 from UTILS.hidden_print import HiddenPrints
+from config import GlobalConfig
 class AlgorithmConfig():
     load_checkpoint = False
     episode_limit = 400 # int(100e3)
+    batch_size = 2 # Number of episodes to train on
 
 class PymarlFoundation():
     def init_pymarl(self):
@@ -25,7 +27,9 @@ class PymarlFoundation():
             "--config=qmix", 
             "--env-config=HMP_compat",
             "with",
+            "seed=%d"%GlobalConfig.seed,
             "batch_size_run=%d"%self.n_thread,
+            "batch_size=%d"%AlgorithmConfig.batch_size,
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
             # "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
         atexit.register(lambda: self.__del__()) # avoid redis leaking
