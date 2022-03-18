@@ -20,6 +20,7 @@ class collective_assultEnvV1(gym.Env):
         self.world.numAgents = self.world.numGuards + self.world.numAttackers
         self.world.numAliveGuards, self.world.numAliveAttackers, self.world.numAliveAgents = self.world.numGuards, self.world.numAttackers, self.world.numAgents
         self.world.atttacker_reached = False     ## did any attacker succeed to reach the gate?
+        self.world.shared_resorce = {}
         self.attacker_reward_sum = 0
         self.guard_reward_sum = 0
 
@@ -280,6 +281,10 @@ class collective_assultEnvV1(gym.Env):
             self.f2f_dis = self.dis[guards_uid, :][:, guards_uid]
             self.agent_emb = self.obs[guards_uid]
             self.hostile_emb = self.obs[attackers_uid]
+            self.world.shared_resorce['distance_matrix'] = self.dis
+            self.world.shared_resorce['guards_uid'] = np.array(guards_uid)
+            self.world.shared_resorce['attackers_uid'] = np.array(attackers_uid)
+
         A_id = agent.iden
         a2h_dis = self.f2h_dis[A_id]
         a2f_dis = self.f2f_dis[A_id]
