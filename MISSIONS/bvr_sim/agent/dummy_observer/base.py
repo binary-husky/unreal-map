@@ -464,6 +464,7 @@ class Baseclass(Agent):
 
         self.initial_attack_order_adjusted = False
         self.Id2PlaneLookup = {}
+        self.Id2MissleLookup = {}
 
     def find_plane_by_name(self, name):
         for p in self.my_planes + self.op_planes:
@@ -510,15 +511,19 @@ class Baseclass(Agent):
         # otherwise, no match at all
         return None
 
-    # add a ID->plane obj table
-    def find_plane_by_id_old(self, ID):
-        for p in self.my_planes + self.op_planes:
-            if p.ID == ID: return p
-        return None
+
+
 
     def find_ms_by_id(self, ID):
-        for ms in self.ms + self.ms:
-            if ms.ID == ID: return ms
+        if ID in self.Id2MissleLookup:
+            if (self.Id2MissleLookup[ID].ID == ID):
+                return self.Id2MissleLookup[ID]
+
+        for ms in self.ms:
+            if ms.ID == ID: 
+                self.Id2MissleLookup[ID] = ms
+                return ms
+                
         return None
 
     def reset(self, **kwargs):
