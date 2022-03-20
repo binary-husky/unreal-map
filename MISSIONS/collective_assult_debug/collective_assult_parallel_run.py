@@ -210,7 +210,7 @@ class collective_assultGlobalEnv(gym.Env):
         
         ## implement single done reflecting game state
         done, info = self._get_done()
-        info['others'] = info_n
+        # info['others'] = info_n
         reward_n = np.array(reward_n)
         # if done:
         #     print('win', info['win'])

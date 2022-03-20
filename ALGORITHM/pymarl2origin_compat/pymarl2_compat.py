@@ -23,7 +23,7 @@ class PymarlFoundation():
         self.redis = redis.Redis(host='127.0.0.1', port=6379)
         # self.redis.delete()
         subprocess.Popen(["python", 
-            "/home/fuqingxu/pymarl2/pymarl2src/main.py", 
+            "/home/fuqingxu/pymarl2-original/original-pymarl2/main.py", 
             "--config=qmix", 
             "--env-config=HMP_compat",
             "with",

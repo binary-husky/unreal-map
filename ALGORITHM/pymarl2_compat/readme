@@ -1,0 +1,31 @@
+pymarl:
+
+runners/my_parallel_runner.py: get_env_info
+
+
+envs/hmp_compat.py ->
+    def get_env_info(self):
+        env_info = {"state_shape": self.get_state_size(),
+                    "obs_shape": self.get_obs_size(),
+                    "n_actions": self.get_total_actions(),
+                    "n_agents": self.remote_call(cmd="get_n_agents", args=(), uuid=self.parallel_uuid), #self.get_n_agents(), #self.n_agents,
+                    "episode_limit": self.remote_call(cmd="get_episode_limit", args=(), uuid=self.parallel_uuid),}
+        return env_info
+
+envs/hmp_compat.py ->
+    def get_state_size(self):
+        return self.remote_call(cmd="get_state_size", args=(), uuid=self.parallel_uuid)
+
+
+ALGORITHM/pymarl2origin_compat/pymarl2_compat.py ->
+    # @basic_io_call
+    def get_state_size(self):
+        return self.space['obs_space']['state_shape']
+
+    # @basic_io_call
+    def get_obs_size(self):
+        return self.space['obs_space']['obs_shape']
+
+    # @basic_io_call
+    def get_n_agents(self):
+        return self.space['act_space']['n_agents']

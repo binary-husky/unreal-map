@@ -12,8 +12,13 @@ from config import GlobalConfig as cfg
 from UTILS.gpu_share import GpuShareUnit
 
 class TrajPoolSampler():
-    def __init__(self, n_div, traj_pool, flag):
+    def __init__(self, n_div, traj_pool, flag, fix_n_sample=False):
         self.n_pieces_batch_division = n_div
+        self.fix_n_sample = fix_n_sample    
+
+        if self.fix_n_sample:
+            assert self.n_pieces_batch_division==1, ('?')
+
         self.num_batch = None
         self.container = {}
         self.warned = False
@@ -55,13 +60,32 @@ class TrajPoolSampler():
         self.container[advantage_rename] = ( self.container[advantage_rename] - self.container[advantage_rename].mean() ) / (self.container[advantage_rename].std() + 1e-5)
         # size of minibatch for each agent
         self.mini_batch_size = math.ceil(self.big_batch_size / self.n_pieces_batch_division)  
-        
 
     def __len__(self):
         return self.n_pieces_batch_division
 
     def reset_and_get_iter(self):
-        self.sampler = BatchSampler(SubsetRandomSampler(range(self.big_batch_size)), self.mini_batch_size, drop_last=False)
+        if not self.fix_n_sample:
+            self.sampler = BatchSampler(SubsetRandomSampler(range(self.big_batch_size)), self.mini_batch_size, drop_last=False)
+        else:
+            if not hasattr(TrajPoolSampler,'MaxSampleNum'):
+                print('第一次初始化')
+                TrajPoolSampler.MaxSampleNum = [self.big_batch_size, ]
+                max_n_sample = self.big_batch_size
+            elif TrajPoolSampler.MaxSampleNum[-1] > 0:
+                TrajPoolSampler.MaxSampleNum.append(self.big_batch_size)
+                max_n_sample = self.big_batch_size
+            else:
+                assert TrajPoolSampler.MaxSampleNum[-2] > 0
+                max_n_sample = TrajPoolSampler.MaxSampleNum[-2]
+
+            n_sample = min(self.big_batch_size, max_n_sample)
+                    
+            if not hasattr(self,'reminded'):
+                self.reminded = True
+                print('droping %.1f percent samples..'%((self.big_batch_size-n_sample)/self.big_batch_size*100))
+            self.sampler = BatchSampler(SubsetRandomSampler(range(n_sample)), n_sample, drop_last=False)
+
         for indices in self.sampler:
             selected = {}
             for key in self.container:
@@ -114,6 +138,7 @@ class PPO():
         self.entropy_coef = ppo_config.entropy_coef
         self.max_grad_norm = ppo_config.max_grad_norm
         self.add_prob_loss = ppo_config.add_prob_loss
+        self.fix_n_sample = ppo_config.fix_n_sample
         self.lr = ppo_config.lr
         self.extral_train_loop = ppo_config.extral_train_loop
         self.turn_off_threat_est = ppo_config.turn_off_threat_est
@@ -163,14 +188,23 @@ class PPO():
                     self.train_on_traj_(traj_pool, task) 
                 break # 运行到这说明显存充足
             except RuntimeError:
-                self.n_div += 1
-                print亮红('显存不足！ 切分样本, 当前n_div: %d'%self.n_div)
+                if self.fix_n_sample:
+                    if TrajPoolSampler.MaxSampleNum[-1] < 0:
+                        TrajPoolSampler.MaxSampleNum.pop(-1)
+                        
+                    assert TrajPoolSampler.MaxSampleNum[-1]>0
+                    TrajPoolSampler.MaxSampleNum[-1] = -1
+
+                    print亮红('显存不足！ 回溯上次的样本量')
+                else:
+                    self.n_div += 1
+                    print亮红('显存不足！ 切分样本, 当前n_div: %d'%self.n_div)
             torch.cuda.empty_cache()
 
     def train_on_traj_(self, traj_pool, task):
 
         ppo_valid_percent_list = []
-        sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task)
+        sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task, fix_n_sample=self.fix_n_sample)
         assert self.n_div == len(sampler)
         for e in range(self.ppo_epoch):
             # print亮紫('pulse')

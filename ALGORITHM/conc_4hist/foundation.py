@@ -33,6 +33,14 @@ class AlgorithmConfig:  # configuration, open to jsonc modification
     lr = 1e-4
     balance = 0.5
 
+    # sometimes the episode length gets longer, 
+    # resulting in more samples and causing GPU OOM, 
+    # prevent this by fixing the number of samples to initial
+    # by randomly sampling and droping 
+    fix_n_sample = False   
+    gamma_in_reward_forwarding = False
+
+
     # extral
     extral_train_loop = False
     actor_attn_mod = False

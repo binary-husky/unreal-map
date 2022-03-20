@@ -246,7 +246,7 @@ def Args2tensor_Return2numpy(f):
     def _2tensor(x):
         if isinstance(x, torch.Tensor):
             return x.to(cfg.device)
-        elif isinstance(x, np.ndarray):
+        elif isinstance(x, np.ndarray) and x.dtype != 'object':
             if (not cfg.use_float64) and x.dtype == np.float64:
                 x = x.astype(np.float32)
             if cfg.use_float64 and x.dtype == np.float32:
@@ -276,6 +276,8 @@ def Args2tensor_Return2numpy(f):
         for key in kwargs:
             kwargs[key] = _2tensor(kwargs[key])
         ret_tuple = f(*(_2tensor(arg) for arg in args), **kwargs)
+        if not isinstance(ret_tuple, tuple):
+            return _2cpu2numpy(ret_tuple)
         return (_2cpu2numpy(ret) for ret in ret_tuple)
 
     return decorated
@@ -552,7 +554,7 @@ def sample_balance(x, y, n_class, weight=None):
         index = torch.Tensor([[0], [1], [0]])
         src.shape = (3, 2, 3)
         src.shape = (3, 1)
-        res = gather_righthand(src,index)
+        >> res = gather_righthand(src,index)
         res.shape = (3, 1, 3)
         res= tensor([[[ 0.,  1.,  2.]],
                      [[ 9., 10., 11.]],
@@ -560,13 +562,13 @@ def sample_balance(x, y, n_class, weight=None):
     eg.2
         src.shape   = (64, 16, 8, 88, 888)
         index.shape = (64, 5)
-        res = gather_righthand(src,index)
+        >> res = gather_righthand(src,index)
         res.shape   = (64, 5,  8, 88, 888)
 
     eg.3
-        src.shape   = (64, 16, 88, 888)
+        src.shape   = (64,  16,  88, 888)
         index.shape = (64, 777)
-        res = gather_righthand(src,index)
+        >> res = gather_righthand(src,index)
         res.shape   = (64, 777,  88, 888)
 
 """
@@ -610,7 +612,7 @@ def np_gather_righthand(src, index, check=True):
     t_dim = i_dim - 1
     if check:
         assert s_dim >= i_dim
-        assert index.max() <= src.shape[t_dim] - 1
+        assert index.max() <= src.shape[t_dim] - 1, ("\tindex.max()=", index.max(), "\tsrc.shape[t_dim]-1=", src.shape[t_dim] - 1)
         if index.max() != src.shape[t_dim] - 1:
             print(
                 "[gather_righthand] warning, index max value does not match src target dim"
@@ -724,3 +726,81 @@ def objload():
         return
     with open('objdump.tmp', 'rb') as f:
         return pickle.load(f)
+
+def stack_padding(l, padding=np.nan):
+    max_len = max([t.shape[0] for t in l])
+    shape_desired = (len(l), max_len, *(l[0].shape[1:]))
+    target = np.zeros(shape=shape_desired, dtype=float) + padding
+    for i in range(len(l)): target[i, :len(l[i])] = l[i]
+    return target
+
+ENABLE_SYC = False
+if ENABLE_SYC:
+    import pickle, os
+    # mod = 'lead'
+    mod = 'follow'
+
+    sychronize_internal_hashdict = {
+    }
+    sychronize_internal_cnt = {
+    }
+    sychronize_FILE_hashdict = 'RECYCLE/sychronize_file1'
+    sychronize_FILE_cnt = 'RECYCLE/sychronize_file2'
+    follow_cnt = {}
+    if mod == 'follow':
+        with open(sychronize_FILE_hashdict, 'rb') as f:
+            sychronize_internal_hashdict = pickle.load(f)
+        with open(sychronize_FILE_cnt, 'rb') as f:
+            sychronize_internal_cnt = pickle.load(f)
+    else:
+        try:
+            os.remove(sychronize_FILE_hashdict)
+            os.remove(sychronize_FILE_cnt)
+        except: pass
+
+    def dump_sychronize_data():
+        with open(sychronize_FILE_hashdict, 'wb+') as f:
+            pickle.dump(sychronize_internal_hashdict, f)
+        with open(sychronize_FILE_cnt, 'wb+') as f:
+            pickle.dump(sychronize_internal_cnt, f)
+
+    def sychronize_experiment(key, data, reset_when_close=False):
+        if mod == 'lead':
+            hash_code = __hash__(data)
+            if key not in sychronize_internal_hashdict:
+                sychronize_internal_cnt[key] = 0
+                sychronize_internal_hashdict[key] = [
+                    {
+                        'hash_code':hash_code,
+                        'data': data,
+                    }
+                    ,
+                ]
+            else:
+                sychronize_internal_hashdict[key].append({
+                        'hash_code':hash_code,
+                        'data': data,
+                })
+
+            sychronize_internal_cnt[key] += 1
+
+
+
+        if mod == 'follow':
+            hash_code = __hash__(data)
+            if key not in follow_cnt:
+                follow_cnt[key] = 0
+
+            if hash_code != sychronize_internal_hashdict[key][follow_cnt[key]]['hash_code']:
+                if not (torch.isclose(sychronize_internal_hashdict[key][follow_cnt[key]]['data'],data).all()) or (not isinstance(data, torch.Tensor)):
+                    print('%s: error expected hash: %s, get hash %s, data %s'%(key,
+                        sychronize_internal_hashdict[key][follow_cnt[key]]['hash_code'],
+                        hash_code,
+                        str(data)
+                    ))
+                else:
+                    print('%s: error expected hash, but very very close (<1e-5)'%key)
+                    if reset_when_close:
+                        return data
+
+            follow_cnt[key] += 1

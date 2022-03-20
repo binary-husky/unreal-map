@@ -186,7 +186,7 @@ class World(CheatScriptAI):
     def step(self):
 
         # 留给内置AI的后门
-        if len(self.scripted_agents) != 0: self.attackers_policy_1(self.scripted_agents, self.alive_guards)
+        if len(self.scripted_agents) != 0: self.attackers_policy_1(self.scripted_agents, self.guards)
         
         ## -------- apply effects of laser ------------- ##
         self.apply_laser_effect()  
