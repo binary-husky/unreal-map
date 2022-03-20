@@ -58,10 +58,31 @@ class trajectory(TRAJ_BASE):
         return
 
     def reward_push_forward(self, dead_mask):
-        for i in reversed(range(self.time_pointer)):
-            if i==0: continue
-            self.reward[i-1] += self.reward[i]* dead_mask[i].astype(np.int)
-            self.reward[i] = self.reward[i]* (~dead_mask[i]).astype(np.int)
+        # self.new_reward = self.reward.copy()
+        if AlgorithmConfig.gamma_in_reward_forwarding:
+            gamma = AlgorithmConfig.gamma 
+
+            for i in reversed(range(self.time_pointer)):
+                if i==0: continue
+                self.reward[i-1] += np.where(dead_mask[i], self.reward[i]*gamma, 0)      # if dead_mask[i]==True, this frame is invalid, move reward forward, set self.reward[i] to 0
+                self.reward[i]    = np.where(dead_mask[i], 0, self.reward[i])      # if dead_mask[i]==True, this frame is invalid, move reward forward, set self.reward[i] to 0
+
+        else:
+
+            for i in reversed(range(self.time_pointer)):
+                if i==0: continue
+                self.reward[i-1] += np.where(dead_mask[i], self.reward[i], 0)      # if dead_mask[i]==True, this frame is invalid, move reward forward, set self.reward[i] to 0
+                self.reward[i]    = np.where(dead_mask[i], 0, self.reward[i])      # if dead_mask[i]==True, this frame is invalid, move reward forward, set self.reward[i] to 0
+
+        return
+        # # gamma_in_reward_forwarding
+        # for i in reversed(range(self.time_pointer)):
+        #     if i==0: continue
+        #     self.reward[i-1] += self.reward[i]* dead_mask[i].astype(np.int)     # if dead_mask[i]==True, this frame is invalid, move reward forward
+        #     self.reward[i] = self.reward[i]* (~dead_mask[i]).astype(np.int)     # if dead_mask[i]==True, this frame is invalid, move reward forward, set self.reward[i] to 0
+        #     # otherwise,  do nothing
+
+        # assert (self.new_reward==self.reward).all()
 
     # new finalize
     def finalize(self):
