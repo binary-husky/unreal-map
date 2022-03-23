@@ -1,8 +1,8 @@
 from typing import List
 from ..agent import Agent
 from ..env_cmd import CmdEnv
-from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_deg_at, repeat_at
+from UTILS.colorful import *
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_deg_at, repeat_at
 from .maneuver import maneuver_cold_to_ms, maneuver_vertical_to_ms, maneuver_angle_to_ms
 import copy
 import random
@@ -634,12 +634,14 @@ class Baseclass(Agent):
     def step(self, sim_time, obs_side, **kwargs) -> List[dict]:
         logging.info('sim_time:%.2f'%sim_time)
         self.cmd_list = []
-        self.my_process_observation_and_show(obs_side, sim_time)
         try:
+            self.my_process_observation_and_show(obs_side, sim_time)
             self.process_decision(sim_time, obs_side)
         except:
             import traceback
             traceback.print_exc()
+            # self.my_process_observation_and_show(obs_side, sim_time)
+            # self.process_decision(sim_time, obs_side)
             pass
         return copy.deepcopy(self.cmd_list)
 

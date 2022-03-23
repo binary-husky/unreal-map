@@ -178,6 +178,18 @@ def add_obs_container_subject(container_emb, subject_emb, div):
     return container_out_emb, subject_out_emb
 
 
+def MayGoWrong(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except:
+            print('going wrong!')
+            return f(*args, **kwargs)
+
+    return decorated
+
+
 
 """
     Function decorate, 
@@ -655,12 +667,16 @@ def delta_matrix(A):
 def np_normalize_last_dim(mat):
     return mat / np.expand_dims(np.linalg.norm(mat, axis=-1) + 1e-16, axis=-1)
 
-def dir2rad(delta_pos):
+def dir2rad_old(delta_pos):
     result = np.empty(delta_pos.shape[:-1], dtype=complex)
     result.real = delta_pos[..., 0]
     result.imag = delta_pos[..., 1]
     rad_angle = np.angle(result)
+    # assert (dir2rad_new(delta_pos)==rad_angle).all()
     return rad_angle
+
+def dir2rad(delta_pos):
+    return np.arctan2(delta_pos[..., 1], delta_pos[..., 0])
 
 
 def dir3d_rad(delta_pos):
@@ -678,7 +694,6 @@ def reg_deg(deg):
 # make angles comparable
 def reg_deg_at(rad, ref):
     return reg_deg(rad-ref) + ref
-
 
 def reg_rad(rad):
     # it's OK to show "RuntimeWarning: invalid value encountered in remainder"

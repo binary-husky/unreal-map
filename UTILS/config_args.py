@@ -224,6 +224,8 @@ def my_setattr(conf_class, key, new_value, vb):
         replace_item = replace_item
     elif isinstance(original_item, list):
         assert isinstance(replace_item, list)
+    elif isinstance(original_item, dict):
+        assert isinstance(replace_item, dict)
     else:
         assert False, ('not support this type')
     setattr(conf_class, setting_name, replace_item)

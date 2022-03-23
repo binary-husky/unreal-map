@@ -1,12 +1,12 @@
 {
     "config.py->GlobalConfig": {
         // please checkout config.py for information
-        "note": "example bvr experiment 2th",                   // in case you forget the purpose of this trainning session, write a note
+        "note": "example bvr experiment 5th-16 fix reward",                   // in case you forget the purpose of this trainning session, write a note
         "env_name": "bvr",                                  // which environment, see ./MISSIONS/env_router.py
         "env_path": "MISSIONS.bvr_sim",                     // path of environment
         "draw_mode": "Img",                             // activate data plotting (Tensorboard is not used because I do not like it)
-        "num_threads": "1",                            // run N parallel envs, a 'env' is refered to as a 'thread'
-        "report_reward_interval": "1",                 // reporting interval
+        "num_threads": "16",                            // run N parallel envs, a 'env' is refered to as a 'thread'
+        "report_reward_interval": "16",                 // reporting interval
         "test_interval": "2048",                        // test every $test_interval episode
         "fold": "1",                                    // this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
         "seed": 888813,                                   // seed controls pytorch and numpy
@@ -22,14 +22,12 @@
         "reduce_ipc_io": true,
         "TEAM_NAMES": [
             "ALGORITHM.pymarl2_compat.pymarl2_compat->PymarlFoundation"
-            // "ALGORITHM.script_ai.dummy->DummyAlgorithm"
         ]
     },
+
 
     "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig": {
         "load_checkpoint": "False",
         "batch_size": 128,
-    },
-
-
+    }
 }

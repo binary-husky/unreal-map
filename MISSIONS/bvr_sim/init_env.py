@@ -7,7 +7,7 @@ from .agent.env_cmd import CmdEnv
 from .render import RenderBridge
 from .converter import Converter
 from .endgame import EndGame
-
+from UTILS.tensor_ops import MayGoWrong
 class ChainVar(object):
     def __init__(self, chain_func, chained_with):
         self.chain_func = chain_func
@@ -31,9 +31,11 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
 
     ## If the length of obs array == the number of agents, set ObsAsUnity to False
     ## If the length of obs array == the number of teams, set ObsAsUnity to True
-    ObsAsUnity = True
+    ObsAsUnity = False
+    # ObsAsUnity = True
 
     ################ needed by env itself ################
+    logging_enable = False
     render = False
     max_steps_episode = 1000
 
@@ -49,8 +51,21 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     ################ needed by some ALGORITHM ################
     state_provided = False
     avail_act_provided = False
-    n_actions = 4
 
+    '''
+        raw_action= [AT, TT, HT, SP]
+    '''
+    use_simple_action_space = True
+    n_action_dimension = 4
+
+    n_switch_actions = 6
+    n_target_actions = 10
+    n_actions = n_switch_actions +  n_target_actions +  HeightLevels + SpeedLevels
+    # n_target = 10 # 暂时只有5+5，测试中
+    # str_action_description = "[gym.spaces.Discrete(%d), gym.spaces.Discrete(%d), gym.spaces.Discrete(%d), gym.spaces.Discrete(%d)]"%(
+    #     n_actions, n_target, HeightLevels, SpeedLevels)
+
+    reduce_ipc_io = False
 
     obs_vec_length = 6
     return_mat = False
@@ -107,22 +122,30 @@ class BVR(BaseEnv, RenderBridge, EndGame):
         self.n_opp = 5
 
         self.ScenarioConfig = ScenarioConfig
-
+        self.n_actions = ScenarioConfig.n_actions
+        self.n_switch_actions = ScenarioConfig.n_switch_actions
+        self.n_target_actions = ScenarioConfig.n_target_actions
+        self.HeightLevels = ScenarioConfig.HeightLevels
+        self.SpeedLevels = ScenarioConfig.SpeedLevels
         # the id of env among parallel envs, only rank=0 thread is allowed to render
         self.rank = rank
+
+        self.RewardAsUnity = ScenarioConfig.RewardAsUnity
+        self.ObsAsUnity = ScenarioConfig.ObsAsUnity
 
         
     def bvr_step(self, cmd_list):
         self.raw_obs = self.communication_service.step(cmd_list)
         # an observer keeps track of agent info such as distence
         reward_related_info = self.observer.observe(self.raw_obs["sim_time"], self.raw_obs['red'])
-        reward_dict = self.get_reward(reward_related_info)
         done, red_win, blue_win = self.get_done(self.raw_obs)
         done = (done>0); 
         win = {'red':(red_win>0), 'blue':(blue_win>0), 'done':done}
+        reward_dict = self.get_reward(reward_related_info, win)
         return self.raw_obs, done, win, reward_dict
 
-    def get_reward(self, reward_related_info):
+    # @MayGoWrong
+    def get_reward(self, reward_related_info, win):
         '''
             my = red
             op = blue
@@ -136,11 +159,14 @@ class BVR(BaseEnv, RenderBridge, EndGame):
             'op_ms_hit':0
         '''
         R1_self_plane_fallen = -1
-        R2_enem_plane_fallen = +2
+        R2_enem_plane_fallen = +1
         R3_self_ms_hit = 0.5
         R4_enem_ms_hit = -0.5
         R5_self_ms_alive = -0.1
         R6_enem_ms_alive = +0.1
+
+        R7_win = 5
+        R8_lose = -5
 
         red_reward = (
             reward_related_info['my_plane_fallen']  * R1_self_plane_fallen + 
@@ -160,16 +186,32 @@ class BVR(BaseEnv, RenderBridge, EndGame):
             reward_related_info['op_ms_miss_alive'] * R5_self_ms_alive + 
             reward_related_info['my_ms_miss_alive'] * R6_enem_ms_alive
         )
+        if win['done']:
+            red_reward  += R7_win if win['red']  else R8_lose
+            blue_reward += R7_win if win['blue'] else R8_lose
         # obs[self.player_color], obs[self.opp_color]
         return {'red': red_reward, 'blue': blue_reward}
 
     def bvr_reset(self):
-        self._end_()
-        self.communication_service.reset()
-        self.raw_obs = self.communication_service.step([])
-        # observer's first info feedin
-        self.observer = self.OBSERVER_CLASS('red', {"side": 'red'})
-        self.observer.observe(self.raw_obs["sim_time"], self.raw_obs['red'])
+        try:
+            self._end_()
+            self.communication_service.reset()
+            self.raw_obs = self.communication_service.step([])
+            # observer's first info feedin
+            self.observer = self.OBSERVER_CLASS('red', {"side": 'red'})
+            self.observer.observe(self.raw_obs["sim_time"], self.raw_obs['red'])
+        except:
+            self.xsim_manager.__del__()
+            self.xsim_manager = None
+            self.communication_service = None
+            import gc
+            gc.collect()
+            
+            # xsim引擎控制器
+            self.xsim_manager = XSimManager(time_ratio=100)
+            # 与xsim引擎交互通信服务
+            self.communication_service = CommunicationService(self.xsim_manager.address)
+
         return self.raw_obs
 
     def _end_(self):
@@ -198,7 +240,23 @@ class BVR_PVE(BVR, Converter):
         
         reward_accu_internal = 0
         for _ in range(self.internal_step):
-            # move the opponents
+
+
+            # import time, cProfile, pstats
+            # tic = time.time()
+            # def x():
+            #     for i in range(500):
+            #         opp_action = self.opp_controller.step(i, self.raw_obs[self.opp_color])
+            # cProfile.runctx("x()", globals(), locals(), filename="result.prof")
+            # print('time：：：：', time.time()-tic)
+            # raise 'done profile'
+
+
+
+
+
+
+            # # move the opponents
             opp_action = self.opp_controller.step(self.raw_obs["sim_time"], self.raw_obs[self.opp_color])
 
             # commmit actions to the environment
@@ -216,15 +274,38 @@ class BVR_PVE(BVR, Converter):
 
         # system get done
         assert self.raw_obs is not None, ("obs is None")
-        converted_obs = self.convert_obs(self.raw_obs)
 
-        info = {'win':win[self.player_color]}
-        return converted_obs, reward_accu_internal, done, info
+        if self.ObsAsUnity:
+            converted_obs = self.convert_obs_as_unity(self.raw_obs)
+        else:
+            converted_obs = self.convert_obs_individual(self.raw_obs)
+
+        info = {
+            'win':win[self.player_color],
+            'state':self.convert_obs_as_unity(self.raw_obs)
+        }
+        if not ScenarioConfig.reduce_ipc_io:
+            info.update(self.raw_obs[self.player_color])
+
+        if self.RewardAsUnity:
+            return_reward = np.array([reward_accu_internal,])
+        if self.ObsAsUnity:
+            return_obs = np.array([converted_obs, ])
+        else:
+            return_obs = converted_obs
+        return return_obs, return_reward, done, info
 
 
 
 
     def reset(self):
+        # initialize action context if using simple action space
+        if self.ScenarioConfig.use_simple_action_space: 
+            self.action_context = np.zeros(shape=(self.n_agents, ScenarioConfig.n_action_dimension))
+            for i in range(self.n_agents): self.action_context[i,1] = i
+            self.action_context[:,2] = ScenarioConfig.HeightLevels - 1
+            self.action_context[:,3] = ScenarioConfig.SpeedLevels - 1
+
         # randomly switch sides
         randx = np.random.rand() 
         if randx < 0.5: self.player_color, self.opp_color = ("red", "blue")
@@ -238,11 +319,26 @@ class BVR_PVE(BVR, Converter):
         self.raw_obs = self.bvr_reset()
 
         # read obs after reset
-        converted_obs = self.convert_obs(self.raw_obs)
-        
-        info = self.raw_obs[self.player_color]
+        if self.ObsAsUnity:
+            converted_obs = self.convert_obs_as_unity(self.raw_obs)
+        else:
+            converted_obs = self.convert_obs_individual(self.raw_obs)
+
+        # info = {'win':win[self.player_color]}
+        info = {
+            'state':self.convert_obs_as_unity(self.raw_obs)
+        }
+        if not ScenarioConfig.reduce_ipc_io:
+            info.update(self.raw_obs[self.player_color])
+
         if hasattr(self, '可视化桥'): self.可视化桥.刚刚复位 = True
-        return converted_obs, info
+
+
+        if self.ObsAsUnity:
+            return_obs = np.array([converted_obs, ])
+        else:
+            return_obs = converted_obs
+        return return_obs, info
 
 
 

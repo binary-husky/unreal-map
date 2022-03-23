@@ -39,7 +39,7 @@ class AlgorithmConfig:  # configuration, open to jsonc modification
     # by randomly sampling and droping 
     fix_n_sample = False   
     gamma_in_reward_forwarding = False
-
+    gamma_in_reward_forwarding_value = 0.99
 
     # extral
     extral_train_loop = False

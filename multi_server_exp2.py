@@ -151,7 +151,7 @@ exp_json_dir = log_dir+'exp_json'
 if not os.path.exists('PROFILE/%s'%exp_json_dir):
     os.makedirs('PROFILE/%s'%exp_json_dir)
 
-
+conf_list = []
 new_json_paths = []
 for i in range(n_run):
     conf = copy.deepcopy(base_conf)
@@ -162,12 +162,34 @@ for i in range(n_run):
         conf[tree_path][item] = conf_override[key][i]
     with open(new_json_path,'w') as f:
         json.dump(conf, f, indent=4)
-    print(conf)
+    # print(conf)
+    conf_list.append(conf)
     new_json_paths.append(new_json_path)
+
+print红('\n')
+print红('\n')
+print红('\n')
+
+printX = [print亮红,print亮绿,print亮黄,print亮蓝,print亮紫,print亮靛, print红,print绿,print黄,print蓝,print紫,print靛,]
+conf_base_ = conf_list[0]
+for k_ in conf_base_:
+    conf_base = conf_base_[k_]
+    for key in conf_base:
+        different = False
+        for i in range(len(conf_list)):
+            if conf_base[key]!=conf_list[i][k_][key]:
+                different = True
+                break
+        # 
+        if different:
+            for i in range(len(conf_list)):
+                printX[i](key, conf_list[i][k_][key])
+        else:
+            print(key, conf_base[key])
+
 
 
 final_arg_list = []
-printX = [print红,print绿,print黄,print蓝,print紫,print靛,print亮红,print亮绿,print亮黄,print亮蓝,print亮紫,print亮靛]
 
 for ith_run in range(n_run):
     final_arg = copy.deepcopy(arg_base)

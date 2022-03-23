@@ -1,5 +1,6 @@
 pymarl:
 
+/home/fuqingxu/pymarl2/pymarl2src/run/run.py:  env_info = runner.get_env_info()
 runners/my_parallel_runner.py: get_env_info
 
 

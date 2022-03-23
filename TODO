@@ -1,4 +1,6 @@
 TODO:
+现在的动作有内在状态，需要引入新的观测维度
+
 
 optimize find_by_id
 

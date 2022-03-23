@@ -1,6 +1,6 @@
 import numpy as np
 from ..env_cmd import CmdEnv
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, reg_deg_at
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, reg_deg_at
 
 
 def maneuver_cold_to_ms(uav):

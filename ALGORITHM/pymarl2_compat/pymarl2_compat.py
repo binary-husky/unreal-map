@@ -5,14 +5,36 @@ import time
 import random
 import redis, pickle
 import subprocess
+import json
 # from subprocess import DEVNULL
 from UTILS.colorful import print亮紫
 from UTILS.hidden_print import HiddenPrints
 from config import GlobalConfig
+
 class AlgorithmConfig():
     load_checkpoint = False
     episode_limit = 400 # int(100e3)
     batch_size = 2 # Number of episodes to train on
+    pymarl_config_injection = {}
+
+def 加密字符串(s):
+    k = ''.join(['@']*1000)
+    encry_str = ""
+    for i,j in zip(s,k):
+        # i为字符，j为秘钥字符
+        temp = str(ord(i)+ord(j))+'_'
+        encry_str = encry_str + temp
+    return encry_str
+
+def 解密字符串(p):
+    k = ''.join(['@']*1000)
+    dec_str = ""
+    for i,j in zip(p.split("_")[:-1],k):
+        # i 为加密字符，j为秘钥字符
+        temp = chr(int(i) - ord(j))
+        dec_str = dec_str+temp
+    return dec_str
+
 
 class PymarlFoundation():
     def init_pymarl(self):
@@ -24,9 +46,11 @@ class PymarlFoundation():
         # self.redis.delete()
         subprocess.Popen(["python", 
             "/home/fuqingxu/pymarl2/pymarl2src/main.py", 
+            "--force", 
             "--config=qmix", 
             "--env-config=HMP_compat",
             "with",
+            "pymarl_config_injection=%s"%加密字符串(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
             "seed=%d"%GlobalConfig.seed,
             "batch_size_run=%d"%self.n_thread,
             "batch_size=%d"%AlgorithmConfig.batch_size,
@@ -55,6 +79,8 @@ class PymarlFoundation():
         self.previous_action = None
         self.previous_ENV_PAUSE = None
         self.register_step_call = [False for _ in range(self.n_thread)]
+        self.scenario_config = GlobalConfig.scenario_config
+
         self.init_pymarl()
 
         # missing :{'battle_won': False, 'dead_allies': 6, 'dead_enemies': 0}
@@ -94,15 +120,31 @@ class PymarlFoundation():
 
     # @basic_io_call
     def get_state_size(self):
-        return self.space['obs_space']['state_shape']
+        try:
+            return self.space['obs_space']['state_shape']
+        except:
+            info = self.team_intel['Latest-Team-Info'][0]   # the info of environment 0
+            if 'state' not in info:
+                return 0
+            else:
+                return info['state'].shape[-1]
+
 
     # @basic_io_call
     def get_obs_size(self):
-        return self.space['obs_space']['obs_shape']
+        try:
+            return self.space['obs_space']['obs_shape']
+        except:
+            obs = self.team_intel['Latest-Obs'][0]   # the info of environment 0
+            return obs.shape[-1]
 
     # @basic_io_call
     def get_n_agents(self):
-        return self.space['act_space']['n_agents']
+        try:
+            self.n_agent = self.space['act_space']['n_agents']
+            return self.n_agent
+        except:
+            return self.n_agent
 
     # @basic_io_call
     def get_episode_limit(self):
@@ -110,7 +152,13 @@ class PymarlFoundation():
 
     # @basic_io_call
     def get_total_actions(self):
-        return self.space['act_space']['n_actions']
+        try:
+            self.n_actions = self.space['act_space']['n_actions']
+            return self.space['act_space']['n_actions']
+        except:
+            assert self.scenario_config.use_simple_action_space
+            self.n_actions = self.scenario_config.n_actions
+            return self.scenario_config.n_actions # self.scenario_config.str_action_description
 
     # @basic_io_call
     def confirm_reset(self):
@@ -146,7 +194,10 @@ class PymarlFoundation():
     # @basic_io_call
     def get_avail_actions_of(self):
         which_env = self.get_env_with_currentuuid()
-        return self.team_intel['Latest-Team-Info'][which_env]['avail-act']
+        if 'avail-act' in self.team_intel['Latest-Team-Info'][which_env]:
+            return self.team_intel['Latest-Team-Info'][which_env]['avail-act']
+        else:
+            return np.ones((self.n_agent, self.n_actions))
 
     # @basic_io_call
     def get_obs_of(self):

@@ -1,8 +1,8 @@
 from typing import List
 from ..agent import Agent
 from ..env_cmd import CmdEnv
-from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
+from UTILS.colorful import *
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
 from .maneuver import maneuver_angle_to_ms, maneuver_angle_to_ms3d, maneuver_speed_to_ms, maneuver_vip
 import copy
 import random
@@ -76,7 +76,8 @@ class Emergent():
                     flyingtime不同 = (ms1_tmp.flying_time != ms2_tmp.flying_time)
                     导弹initdistance = (ms1_tmp.distance[0] > 45e3) and (ms2_tmp.distance[0] > 45e3)
                     if 距离小于3km and 同一个飞机发射 and flyingtime不同 and (not 导弹initdistance):
-                        print('bk')
+                        # print('bk')
+                        pass
                     if 距离小于3km and 同一个飞机发射 and flyingtime不同 and 导弹initdistance:
                         p.step_state = 'reverse_escape'
 

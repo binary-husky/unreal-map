@@ -1,6 +1,6 @@
 import numpy as np
 from ..env_cmd import CmdEnv
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, reg_deg_at
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, reg_deg_at
 
 
 def maneuver_cold_to_ms(uav):
@@ -46,7 +46,7 @@ def maneuver_vertical_to_ms(uav):
 def check_dis(goto_location, uav):
     d = goto_location[0]
     dis = np.linalg.norm(uav.pos3d - np.array([d['X'], d['Y'], d['Z']]))
-    assert dis > 10e3
+    assert dis > 10e3, ("distance %.2f"%dis, uav.pos3d, goto_location)
 
 
 # def choose_maneuver_side(uav, angle):
@@ -122,7 +122,7 @@ def maneuver_angle_to_op_vip(uav, vip, angle):
             "Z": uav.Z - 1000 # 因为要下高
         }
     ]
-    check_dis(goto_location, uav)
+    # check_dis(goto_location, uav)
     return goto_location
     
 

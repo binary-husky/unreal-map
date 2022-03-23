@@ -1,8 +1,8 @@
 from typing import List
 from ..agent import Agent
 from ..env_cmd import CmdEnv
-from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
+from UTILS.colorful import *
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
 from .maneuver import maneuver_angle_to_ms, maneuver_angle_to_ms3d, maneuver_speed_to_ms, maneuver_vip
 import copy
 import random

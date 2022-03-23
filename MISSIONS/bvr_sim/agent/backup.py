@@ -2,8 +2,8 @@ from typing import List
 from agent.agent import Agent
 from  env.env_cmd import CmdEnv
 from utils.utils_math import TSVector3
-from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax
+from UTILS.colorful import *
+from UTILS.tensor_ops import dir2rad, np_softmax
 
 import copy
 import random

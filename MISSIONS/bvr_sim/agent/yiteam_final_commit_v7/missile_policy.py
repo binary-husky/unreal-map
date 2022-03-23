@@ -1,6 +1,6 @@
 from ..env_cmd import CmdEnv
-from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_deg_at, reg_rad, repeat_at
+from UTILS.colorful import *
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_deg_at, reg_rad, repeat_at
 import numpy as np
 import logging
 from .tools import distance_matrix
@@ -113,8 +113,13 @@ class MS_policy(MS_exe, MS_solo):
 
             敌机 = coop_info['target_to_hit']
 
-            if not 敌机.alive: 
+            if (not 敌机.alive): 
                 coop_info['valid'] = False
+
+            if (敌机.alive) and (not 先发导弹.alive) and (not coop_info['follow_ms_cmd_given']): 
+                coop_info['valid'] = False
+
+
             if (先发导弹 is not None) and (not coop_info['follow_ms_cmd_given']) and (self.find_ms_by_id(先发导弹.ID) is None):
                 # 先发导弹不知为什么在follow ms发射之前就没了
                 coop_info['valid'] = False
@@ -237,6 +242,8 @@ class MS_policy(MS_exe, MS_solo):
     def can_fire_following(self, p, 敌机, ref_ms, 提前距离):
         # 先发导弹 = coop_info['prior_ms']
         先发导弹 = ref_ms
+        if not 先发导弹.alive:
+            return True
         敌方与导弹的距离 = self.get_dis(先发导弹.ID, 敌机.ID)
         自己与敌方的距离 = self.get_dis(p.ID, 敌机.ID)
         deg1 = self.get_points_angle_deg(pt1=p.pos2d, pt_center=敌机.pos2d, pt2=敌机.pos2d_prediction())
@@ -249,7 +256,8 @@ class MS_policy(MS_exe, MS_solo):
         if (敌方与导弹的距离-自己与敌方的距离-提前距离) < 同步发射距离: 
             logging.info('☆☆☆ 主攻导弹发射机会,敌机:%s, 主机:%s, deg后发%.2f, deg先发%.2f, 差距%.2f, 同步发射距离%.2f'%(敌机.Name, p.Name, deg1, deg2, deg1-deg2, 同步发射距离))
             return True
-        else: return False
+        else: 
+            return False
 
 
 
@@ -308,7 +316,7 @@ class MS_policy(MS_exe, MS_solo):
 
 
 
-    
+
     def score副攻_(self, 主攻, 副攻, 打击目标):
         distance = self.get_dis(打击目标.ID, 副攻.ID)
         delta_deg = self.get_angle_deg(p1=副攻, p_center=打击目标, p2=主攻)
@@ -494,7 +502,7 @@ class MS_policy(MS_exe, MS_solo):
         return delta_deg
 
     @staticmethod
-    def get_angle_deg(p1, p_center, p2):
+    def get_angle_deg_old(p1, p_center, p2):
         vec_p2op_01 = p_center.pos2d - p1.pos2d
         vec_p2op_02 = p_center.pos2d - p2.pos2d
         dir_01 = dir2rad(vec_p2op_01)
@@ -503,6 +511,26 @@ class MS_policy(MS_exe, MS_solo):
         delta_rad = np.abs(dir_02-dir_01) # 弧度制的攻击角度差
         delta_deg = delta_rad * 180/np.pi
         return delta_deg
+
+
+    def get_angle_deg(self, p1, p_center, p2):
+        key = ''.join([p_center.Name, p1.Name, p2.Name])
+        if key in self.angle_dict:  
+            return self.angle_dict[key]
+
+        vec_p2op_01 = p_center.pos2d - p1.pos2d
+        vec_p2op_02 = p_center.pos2d - p2.pos2d
+        dir_01 = dir2rad(vec_p2op_01)
+        dir_02 = dir2rad(vec_p2op_02)
+        dir_02 = reg_rad_at(dir_02, ref=dir_01)
+        delta_rad = np.abs(dir_02-dir_01) # 弧度制的攻击角度差
+        delta_deg = delta_rad * 180/np.pi
+
+        key2 = ''.join([p_center.Name, p2.Name, p1.Name])
+        self.angle_dict[key] = delta_deg
+        self.angle_dict[key2] = delta_deg
+        return delta_deg
+
 
     def process_client_one_by_one(self, sorted_op_list):
         for op in sorted_op_list:
@@ -514,6 +542,8 @@ class MS_policy(MS_exe, MS_solo):
 
     # 导弹的运营
     def missile_policy(self):
+        self.angle_dict = {}    # 避免角度的反复计算
+
         # 简单的局部持久变量初始化
         if self.coop_list is None: 
             self.__mspolicy_init__()

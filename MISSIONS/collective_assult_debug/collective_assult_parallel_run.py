@@ -86,6 +86,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     DISALBE_RED_FUNCTION = False
     half_death_reward = True
     REWARD_DEBUG = False
+    REWARD_DEBUG_Value = 1
 
     n_actions = 7
  
@@ -215,7 +216,7 @@ class collective_assultGlobalEnv(gym.Env):
         # if done:
         #     print('win', info['win'])
         if ScenarioConfig.REWARD_DEBUG and done and info['win']:
-            win_extra_reward = 1
+            win_extra_reward = ScenarioConfig.REWARD_DEBUG_Value
             reward_n += win_extra_reward
             pass
 

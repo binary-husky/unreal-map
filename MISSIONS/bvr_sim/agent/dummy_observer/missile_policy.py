@@ -1,6 +1,6 @@
 from ..env_cmd import CmdEnv
-from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_deg_at, reg_rad, repeat_at
+from UTILS.colorful import *
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_deg_at, reg_rad, repeat_at
 import numpy as np
 from .tools import distance_matrix
 import uuid

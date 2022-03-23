@@ -559,7 +559,21 @@ def dir2rad(delta_pos):
     result.real = delta_pos[..., 0]
     result.imag = delta_pos[..., 1]
     rad_angle = np.angle(result)
+    assert (dir2rad_new(delta_pos)==rad_angle).all()
     return rad_angle
+
+def dir2rad_new(delta_pos):
+    return np.arctan2(delta_pos[..., 1], delta_pos[..., 0])
+
+# test  = np.array([
+#     [1,1],
+#     [1,-1],
+#     [-1,1],
+#     [-1,-1],
+# ])
+# test_3d = repeat_at(test, 0, 5)
+# dir2rad(test_3d)
+# dir2rad_new(test_3d)
 
 
 

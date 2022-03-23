@@ -1,7 +1,7 @@
 from ..agent import Agent
 from ..env_cmd import CmdEnv
-from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_deg_at, reg_rad, repeat_at
+from UTILS.colorful import *
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_deg_at, reg_rad, repeat_at
 import numpy as np
 from .tools import distance_matrix
 import uuid
@@ -101,17 +101,20 @@ class MS_exe():
                         'prior_ms':launched_ms
                     })
                 elif ms_todo['type'] == 'follow_ms':
-                    self.coop_list[uuid_].update({
-                        'follow_ms':launched_ms
-                    })
+                    if uuid_ in self.coop_list:
+                        self.coop_list[uuid_].update({
+                            'follow_ms':launched_ms
+                        })
                 elif ms_todo['type'] == 'third_ms':
-                    self.coop_list[uuid_].update({
+                    if uuid_ in self.coop_list:
+                        self.coop_list[uuid_].update({
                         'third_ms':launched_ms
-                    })
+                        })
                 elif ms_todo['type'] == 'solo_ms':
-                    self.solo_list[uuid_].update({
-                        'ms':launched_ms
-                    })
+                    if uuid_ in self.coop_list:
+                        self.solo_list[uuid_].update({
+                            'ms':launched_ms
+                        })
                 else:
                     assert False
                 # 至实际上检测到导弹为止，实际的委托已经完成

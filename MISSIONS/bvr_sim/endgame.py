@@ -17,18 +17,18 @@ class EndGame():
             # 当战损相同时，判断占领中心区域时间
             if len(obs["red"]["platforminfos"]) == len(obs["blue"]["platforminfos"]):
                 if self.red_score > self.blue_score:
-                    print("红方占领中心区域时间更长")
+                    # print("红方占领中心区域时间更长")
                     done[1] = 1
                 elif self.red_score < self.blue_score:
-                    print("蓝方占领中心区域时间更长")
+                    # print("蓝方占领中心区域时间更长")
                     done[2] = 1
             # 当战损不同时，判断战损更少一方胜
             else:
                 if len(obs["red"]["platforminfos"]) > len(obs["blue"]["platforminfos"]):
-                    print("红方战损更少")
+                    # print("红方战损更少")
                     done[1] = 1
                 else:
-                    print("蓝方战损更少")
+                    # print("蓝方战损更少")
                     done[2] = 1
 
             # 重置分数
@@ -54,7 +54,7 @@ class EndGame():
                     # print("Red Score:", red_score)
                 break
         if not has_red_combat:
-            print("红方有人机阵亡")
+            # print("红方有人机阵亡")
             done[0] = 1
             done[2] = 1
 
@@ -77,7 +77,7 @@ class EndGame():
                 break
         # print("get_done has_blue_combat:", has_blue_combat)
         if not has_blue_combat:
-            print("蓝方有人机阵亡")
+            # print("蓝方有人机阵亡")
             done[0] = 1
             done[1] = 1
 
@@ -94,7 +94,7 @@ class EndGame():
                 break
         if not has_red_missile:
             if len(obs["red"]["missileinfos"]) == 0:
-                print("红方无弹")
+                # print("红方无弹")
                 done[0] = 1
                 done[2] = 1
             else:
@@ -104,7 +104,7 @@ class EndGame():
                         flag = False
                         break
                 if flag:
-                    print("红方无弹")
+                    # print("红方无弹")
                     done[0] = 1
                     done[2] = 1
 
@@ -116,7 +116,7 @@ class EndGame():
                 break
         if not has_blue_missile:
             if len(obs["blue"]["missileinfos"]) == 0:
-                print("蓝方无弹")
+                # print("蓝方无弹")
                 done[0] = 1
                 done[1] = 1
             else:
@@ -126,7 +126,7 @@ class EndGame():
                         flag = False
                         break
                 if flag:
-                    print("蓝方无弹")
+                    # print("蓝方无弹")
                     done[0] = 1
                     done[1] = 1
 

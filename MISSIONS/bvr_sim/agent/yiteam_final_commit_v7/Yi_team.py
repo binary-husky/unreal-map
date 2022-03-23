@@ -1,8 +1,8 @@
 from typing import List
 from ..agent import Agent
 from ..env_cmd import CmdEnv
-from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
+from UTILS.colorful import *
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
 from .maneuver import maneuver_angle_to_ms, maneuver_angle_to_ms3d, maneuver_speed_to_ms, maneuver_vip, maneuver_angle_to_op_vip
 import copy
 import random
@@ -15,11 +15,17 @@ from .missile_policy import MS_policy
 from .emergent import Emergent
 from .attack_seq_adjust import Attack_Adjust
 import logging
-
+from ...init_env import ScenarioConfig
 logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                     level=logging.INFO,
                     filename='./RECYCLE/bvrAI.log',
                     filemode='w+', force=True)
+                    
+if not ScenarioConfig.logging_enable:
+    logging.disable(logging.CRITICAL)
+    logging.disable(logging.INFO)
+    logging.disable(logging.DEBUG)
+    logging.disable(logging.WARNING)
 
 # Enable_Evade = True
 
@@ -228,7 +234,7 @@ class Yi_team(Baseclass, MS_policy, Emergent, Attack_Adjust):
 
         # 以距离敌方最远的无人机作为基准
         _distance02 = [self.get_dis(a_mate.ID, uav.current_target.ID) for a_mate in uav_mates if a_mate.is_drone]
-        if uav.is_drone: 
+        if (uav.is_drone) or (len(_distance02)==0): 
             _distance02.append(this_uav_dis)
         base_line_distance = max(_distance02)
         

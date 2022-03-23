@@ -1,8 +1,8 @@
 from typing import List
 from ..agent import Agent
 from ..env_cmd import CmdEnv
-from .UTILS.colorful import *
-from .UTILS.tensor_ops import dir2rad, np_softmax, reg_deg_at, repeat_at
+from UTILS.colorful import *
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_deg_at, repeat_at
 from .maneuver import maneuver_cold_to_ms, maneuver_vertical_to_ms, maneuver_angle_to_ms
 import copy
 import random
@@ -575,9 +575,9 @@ class Baseclass(Agent):
         # part 1
         my_entity_infos = obs_side['platforminfos']
         enemy_entity_infos = obs_side['trackinfos']
-        if len(my_entity_infos) < 1: return
+        if len(my_entity_infos) < 1: return reward_related_info
         for uvas_info in (my_entity_infos + enemy_entity_infos):
-            if not (uvas_info['ID'] != 0 and uvas_info['Availability'] > 0.0001): continue
+            if not (uvas_info['ID'] != 0 and uvas_info['Availability'] > 0.0001): continue 
             uvas_info["Z"] = uvas_info["Alt"]
             p = self.find_plane_by_id(uvas_info['ID'])
             if p is None:

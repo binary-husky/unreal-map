@@ -1,7 +1,7 @@
 from typing import List
 from agent.agent import Agent
 from  env.env_cmd import CmdEnv
-from .UTILS.colorful import *
+from UTILS.colorful import *
 import copy
 import random
 import numpy as np

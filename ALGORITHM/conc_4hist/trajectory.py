@@ -60,15 +60,13 @@ class trajectory(TRAJ_BASE):
     def reward_push_forward(self, dead_mask):
         # self.new_reward = self.reward.copy()
         if AlgorithmConfig.gamma_in_reward_forwarding:
-            gamma = AlgorithmConfig.gamma 
-
+            gamma = AlgorithmConfig.gamma_in_reward_forwarding_value 
             for i in reversed(range(self.time_pointer)):
                 if i==0: continue
                 self.reward[i-1] += np.where(dead_mask[i], self.reward[i]*gamma, 0)      # if dead_mask[i]==True, this frame is invalid, move reward forward, set self.reward[i] to 0
                 self.reward[i]    = np.where(dead_mask[i], 0, self.reward[i])      # if dead_mask[i]==True, this frame is invalid, move reward forward, set self.reward[i] to 0
 
         else:
-
             for i in reversed(range(self.time_pointer)):
                 if i==0: continue
                 self.reward[i-1] += np.where(dead_mask[i], self.reward[i], 0)      # if dead_mask[i]==True, this frame is invalid, move reward forward, set self.reward[i] to 0
