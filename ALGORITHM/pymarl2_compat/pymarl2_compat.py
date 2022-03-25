@@ -6,6 +6,7 @@ import random
 import redis, pickle
 import subprocess
 import json
+import os
 # from subprocess import DEVNULL
 from UTILS.colorful import print亮紫
 from UTILS.hidden_print import HiddenPrints
@@ -38,12 +39,22 @@ def 解密字符串(p):
 
 class PymarlFoundation():
     def init_pymarl(self):
-        fp = open('RECYCLE/unity.log', 'w+')
+        fp = open('%s/pymarl.log'%GlobalConfig.logdir, 'w+')
         import uuid, atexit
         self.remote_uuid = uuid.uuid1().hex   # use uuid to identify threads
         # If code fails here, please install redis-server on ubuntu host (outside the docker container)
         self.redis = redis.Redis(host='127.0.0.1', port=6379)
         # self.redis.delete()
+        # add basic
+        AlgorithmConfig.pymarl_config_injection['config.py->GlobalConfig'] = {
+            'HmpRoot': os.getcwd(),
+            'ExpNote': GlobalConfig.note,
+            'draw_mode': GlobalConfig.draw_mode,
+            'logdir': GlobalConfig.logdir,
+            'seed': GlobalConfig.seed,
+            'activate_logger': GlobalConfig.activate_logger,
+        }
+
         subprocess.Popen(["python", 
             "/home/fuqingxu/pymarl2/pymarl2src/main.py", 
             "--force", 
@@ -51,7 +62,6 @@ class PymarlFoundation():
             "--env-config=HMP_compat",
             "with",
             "pymarl_config_injection=%s"%加密字符串(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
-            "seed=%d"%GlobalConfig.seed,
             "batch_size_run=%d"%self.n_thread,
             "batch_size=%d"%AlgorithmConfig.batch_size,
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)

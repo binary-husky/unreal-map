@@ -212,6 +212,13 @@ class BVR(BaseEnv, RenderBridge, EndGame):
             # 与xsim引擎交互通信服务
             self.communication_service = CommunicationService(self.xsim_manager.address)
 
+            self._end_()
+            self.communication_service.reset()
+            self.raw_obs = self.communication_service.step([])
+            # observer's first info feedin
+            self.observer = self.OBSERVER_CLASS('red', {"side": 'red'})
+            self.observer.observe(self.raw_obs["sim_time"], self.raw_obs['red'])
+            
         return self.raw_obs
 
     def _end_(self):

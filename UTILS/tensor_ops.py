@@ -332,6 +332,9 @@ def _2tensor(x):
         for key in x:
             y[key] = _2tensor(x[key])
         return y
+    elif isinstance(x, torch.nn.Module):
+        x.to(cfg.device)
+        return x
     else:
         return x
 

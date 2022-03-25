@@ -151,8 +151,11 @@ class Runner(object):
                 # print(self.test_info_runner['Thread-Episode-Cnt'])
                 # If the test run reach its end:
                 if (self.test_info_runner['Thread-Episode-Cnt']>=ntimesthread).all():
-                    reward_of_each_ep = np.stack(self.test_info_runner['Recent-Reward-Sum']).squeeze()
-                    reward_avg_itr_agent = reward_of_each_ep[:, self.interested_agents_uid].mean() if not self.RewardAsUnity else np.stack(reward_of_each_ep[:, self.interested_team]).mean()
+                    reward_of_each_ep = np.stack(self.test_info_runner['Recent-Reward-Sum']) #.squeeze()
+                    if self.RewardAsUnity: 
+                        reward_avg_itr_agent = reward_of_each_ep[:, self.interested_team].mean()
+                    else:
+                        reward_avg_itr_agent = reward_of_each_ep[:, self.interested_agents_uid].mean()
                     win_rate = np.array(self.test_info_runner['win']).mean()
                     self.mcv.rec(reward_avg_itr_agent, 'test-reward')
                     self.mcv.rec(win_rate, 'test-win-rate')
@@ -219,31 +222,26 @@ class Runner(object):
         self.top_rewards = None
         return
     def _checkout_interested_agents(self, recent_rewards):
-        if self.n_team <= 1:
-            if self.RewardAsUnity:
-                    mean_reward = np.stack(recent_rewards).mean()   # recent_rewards ($n_)
-            else:
-                mean_reward = np.stack(recent_rewards)[:, self.interested_agents_uid].mean()
-
-            self.mcv.rec(mean_reward, 'reward')
-            if self.top_rewards is None: self.top_rewards = mean_reward
-            if mean_reward > self.top_rewards: self.top_rewards = mean_reward
-            win_rate = np.array(self.info_runner['Recent-Win']).mean()
-            self.mcv.rec(self.top_rewards, 'top reward')
-            self.mcv.rec_show()
-            if self.test_only:
-                with open(cfg.test_logger,'a+') as f:
-                    f.write('mean_reward:%.4f|win_rate:%.4f\n'%(mean_reward, win_rate))
-            print靛('\r[task runner]: (%s) finished episode %d, at frame %d, recent reward %.3f, best reward %.3f'
-                    % (self.note, self.current_n_episode, self.current_n_frame, mean_reward, self.top_rewards))
-            return
+        recent_rewards = np.stack(recent_rewards)
+        if self.RewardAsUnity:
+            mean_reward = recent_rewards[:, self.interested_team].mean()
         else:
-            mean_reward = np.stack(recent_rewards).mean(0)
-            for ti in range(self.n_team):
-                self.mcv.rec(mean_reward[ti], 'Team-%d: reward'%ti)
-            self.mcv.rec_show()
-            print靛('\r[task runner]: (%s) finished episode %d, at frame %d, recent reward %s'
-                    % (self.note, self.current_n_episode, self.current_n_frame, str(mean_reward)))
+            if recent_rewards.shape[-1] != len(self.interested_agents_uid): 
+                print('警告! interested_agents_uid:', self.interested_agents_uid)
+            mean_reward = recent_rewards[:, self.interested_agents_uid].mean()
+
+        self.mcv.rec(mean_reward, 'reward')
+        if self.top_rewards is None: self.top_rewards = mean_reward
+        if mean_reward > self.top_rewards: self.top_rewards = mean_reward
+        win_rate = np.array(self.info_runner['Recent-Win']).mean()
+        self.mcv.rec(self.top_rewards, 'top reward')
+        self.mcv.rec_show()
+        if self.test_only:
+            with open(cfg.test_logger,'a+') as f:  f.write('mean_reward:%.4f|win_rate:%.4f\n'%(mean_reward, win_rate))
+
+        print靛('\r[task runner]: (%s) finished episode %d, at frame %d, recent reward %.3f, best reward %.3f'
+                % (self.note, self.current_n_episode, self.current_n_frame, mean_reward, self.top_rewards))
+        return
 
 
     # -- below is nothing of importance --

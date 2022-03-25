@@ -35,7 +35,7 @@ VISUALIZE/train no aWiseAttn
 VISUALIZE/train-half-death-reward
 ZipResults/Starcraft/
 result
-.vscode/
+# .vscode/
 .vscode/settings.json
 forattack-train/
 full-cargo/
