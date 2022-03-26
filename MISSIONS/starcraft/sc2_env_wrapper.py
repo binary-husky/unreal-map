@@ -4,32 +4,6 @@ class ChainVar(object):
     def __init__(self, chain_func, chained_with):
         self.chain_func = chain_func
         self.chained_with = chained_with
-'''
-    Name            Agents  Enemies Limit  
-    3m              3       3       60     
-    8m              8       8       120    
-    25m             25      25      150    
-    5m_vs_6m        5       6       70     
-    8m_vs_9m        8       9       120    
-    10m_vs_11m      10      11      150    
-    27m_vs_30m      27      30      180    
-    MMM             10      10      150    
-    MMM2            10      12      180    
-    2s3z            5       5       120    
-    3s5z            8       8       150    
-    3s5z_vs_3s6z    8       9       170    
-    3s_vs_3z        3       3       150    
-    3s_vs_4z        3       4       200    
-    3s_vs_5z        3       5       250    
-    1c3s5z          9       9       180    
-    2m_vs_1z        2       1       150    
-    corridor        6       24      400    
-    6h_vs_8z        6       8       150    
-    2s_vs_1sc       2       1       300    
-    so_many_baneling 7       32      100    
-    bane_vs_bane    24      24      200    
-    2c_vs_64zg      2       64      400    
-'''
 
 sc2map_info = {
     "3m":               {"n_agents":3    ,  "n_hostiles":   3    , "ep_limit":  60   },
@@ -61,6 +35,7 @@ from smac.env.starcraft2.maps import smac_maps
 map_param_registry = smac_maps.get_smac_map_registry()
 
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
+    sc_version = '2.4.10'
     map_ = 'corridor'
     step_mul = 8
     difficulty = '7'
@@ -149,7 +124,9 @@ class HiddenPrints:
 class Env_Compat_Wrapper():
     def __init__(self, rank):
         from smac.env import StarCraft2Env
-        self.env = StarCraft2Env(map_name=ScenarioConfig.map_,
+        self.env = StarCraft2Env(
+                            sc_version=ScenarioConfig.sc_version,
+                            map_name=ScenarioConfig.map_,
                             step_mul=ScenarioConfig.step_mul,
                             difficulty=ScenarioConfig.difficulty,
                             game_version=ScenarioConfig.game_version,
@@ -182,6 +159,7 @@ class Env_Compat_Wrapper():
             ob = np.array(self.env.get_obs())
             info['state'] = self.env.get_state()
             info['avail-act'] = self.env.get_avail_actions()
+            if 'battle_won' in info: info['win'] = info['battle_won']
             return (ob, reward, done, info)
 
     def reset(self):
@@ -191,6 +169,7 @@ class Env_Compat_Wrapper():
             info = {}
             info['state'] = self.env.get_state()
             info['avail-act'] = self.env.get_avail_actions()
+            if 'battle_won' in info: info['win'] = info['battle_won']
             return ob, info
 
     def render(self):

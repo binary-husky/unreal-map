@@ -53,6 +53,10 @@ class PymarlFoundation():
             'logdir': GlobalConfig.logdir,
             'seed': GlobalConfig.seed,
             'activate_logger': GlobalConfig.activate_logger,
+            'train_time_testing': GlobalConfig.train_time_testing,
+            'test_interval': GlobalConfig.test_interval,
+            'test_only': GlobalConfig.test_only,
+            'test_epoch': GlobalConfig.test_epoch,
         }
 
         subprocess.Popen(["python", 
@@ -66,6 +70,10 @@ class PymarlFoundation():
             "batch_size=%d"%AlgorithmConfig.batch_size,
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
             # "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
+        
+        from UTILS.network import UnixUdpServer
+        unix_path = 'RECYCLE/Sockets/unix/%s'%self.remote_uuid
+        self.remote_link_server = UnixUdpServer(unix_path, obj='pickle')
         atexit.register(lambda: self.__del__()) # avoid redis leaking
         time.sleep(5)
 
@@ -119,9 +127,13 @@ class PymarlFoundation():
             env_info = self.team_intel['Latest-Team-Info'][which_env].copy()
             for key in ['obs-echo','state-echo','state','avail-act-echo','avail-act']:
                 if key in env_info: env_info.pop(key)
+            env_info['testing'] = self.team_intel['Test-Flag']
             res = (reward, terminated, env_info)
             self.redis.lpush('<<hmp%s'%uuid, pickle.dumps(res))
-    
+
+    def get_current_mode(self):
+        return 'Testing' if self.team_intel['Test-Flag'] else 'Training'
+
     # @basic_io_call
     def step_of(self, act):
         which_env = self.get_env_with_currentuuid()
@@ -239,7 +251,7 @@ class PymarlFoundation():
         # print亮紫(self.team_intel['ENV-PAUSE'])
 
         # finish previous step call
-        self.step_callback_pymarl()
+        self.step_callback_pymarl() 
         # check step_call register
         assert not any(self.register_step_call)
 
