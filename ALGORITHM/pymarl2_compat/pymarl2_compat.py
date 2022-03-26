@@ -77,6 +77,48 @@ class PymarlFoundation():
         atexit.register(lambda: self.__del__()) # avoid redis leaking
         time.sleep(5)
 
+    def deal_with_pymarl(self):
+        # print('deal_with_pymarl')
+        while any([act is None for act in self.current_actions]):
+            dgram = self.remote_link_server.wait_next_dgram()
+            cmd = dgram[0]
+            args = dgram[1:]
+            assert isinstance(cmd, str)
+            res = getattr(self, cmd)(*args)
+            self.remote_link_server.reply_last_client(res)
+
+
+
+    def interact_with_env(self, team_intel):
+        self.team_intel = team_intel
+        # print亮紫(self.team_intel['ENV-PAUSE'])
+
+        # # finish previous step call
+        # self.step_callback_pymarl() 
+        # # check step_call register
+        # assert not any(self.register_step_call)
+
+        # # clear all actions, set 'NaN' action for Paused threads, note that 'NaN' differs from 'None'!
+        # self.clear_actions()
+        self.deal_with_pymarl()
+
+        # info = team_intel['Latest-Team-Info']
+        # done = team_intel['Env-Suffered-Reset']
+        # step_cnt = team_intel['Current-Obs-Step']
+        self.previous_action = np.array(self.current_actions)
+        self.previous_ENV_PAUSE = copy.deepcopy(team_intel['ENV-PAUSE'])
+        ret_action_list = np.swapaxes(np.array(self.current_actions),0,1)
+        # action_list = np.zeros(shape=(self.n_agent, self.n_thread, 1))
+        return ret_action_list, team_intel
+
+    def get_env_info(self):
+        env_info = {"state_shape": self.get_state_size(),
+                    "obs_shape": self.get_obs_size(),
+                    "n_actions": self.get_total_actions(),
+                    "n_agents": self.get_n_agents(), #self.get_n_agents(), #self.n_agents,
+                    "episode_limit": self.get_episode_limit()}
+        return env_info
+
     def __del__(self):
         print('PymarlFoundation end, cleaning redis')
         # self.shared_memory.close()
@@ -116,20 +158,7 @@ class PymarlFoundation():
         else:
             self.redis.lpush('<<hmp%s'%uuid, pickle.dumps(res))
     
-    def step_callback_pymarl(self):
-        for uuid, which_env in self.uuid2threads.items():
-            if uuid == 'thread_cnt': continue
-            if not self.register_step_call[which_env]: continue
-            self.register_step_call[which_env] = False
 
-            reward = self.team_intel['Latest-Reward'][which_env]
-            terminated = self.team_intel['Env-Suffered-Reset'][which_env]
-            env_info = self.team_intel['Latest-Team-Info'][which_env].copy()
-            for key in ['obs-echo','state-echo','state','avail-act-echo','avail-act']:
-                if key in env_info: env_info.pop(key)
-            env_info['testing'] = self.team_intel['Test-Flag']
-            res = (reward, terminated, env_info)
-            self.redis.lpush('<<hmp%s'%uuid, pickle.dumps(res))
 
     def get_current_mode(self):
         return 'Testing' if self.team_intel['Test-Flag'] else 'Training'
@@ -232,11 +261,11 @@ class PymarlFoundation():
         # otherwise, normal situations
         return self.team_intel['Latest-Obs'][which_env]
 
-    def deal_with_pymarl(self):
-        # print('deal_with_pymarl')
-        while any([act is None for act in self.current_actions]):
-            self.basic_io()
-            # print('basic_io fin')
+    # def deal_with_pymarl(self):
+    #     # print('deal_with_pymarl')
+    #     while any([act is None for act in self.current_actions]):
+    #         self.basic_io()
+    #         # print('basic_io fin')
 
     def clear_actions(self):
         self.current_actions = [None for i in range(self.n_thread)]
@@ -246,27 +275,7 @@ class PymarlFoundation():
                 self.current_actions[ith] = self.previous_action[ith]+np.nan
 
 
-    def interact_with_env(self, team_intel):
-        self.team_intel = team_intel
-        # print亮紫(self.team_intel['ENV-PAUSE'])
 
-        # finish previous step call
-        self.step_callback_pymarl() 
-        # check step_call register
-        assert not any(self.register_step_call)
-
-        # clear all actions, set 'NaN' action for Paused threads, note that 'NaN' differs from 'None'!
-        self.clear_actions()
-        self.deal_with_pymarl()
-
-        # info = team_intel['Latest-Team-Info']
-        # done = team_intel['Env-Suffered-Reset']
-        # step_cnt = team_intel['Current-Obs-Step']
-        self.previous_action = np.array(self.current_actions)
-        self.previous_ENV_PAUSE = copy.deepcopy(team_intel['ENV-PAUSE'])
-        ret_action_list = np.swapaxes(np.array(self.current_actions),0,1)
-        # action_list = np.zeros(shape=(self.n_agent, self.n_thread, 1))
-        return ret_action_list, team_intel
 
 
 
