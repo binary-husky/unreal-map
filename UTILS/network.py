@@ -18,7 +18,7 @@ def get_host_ip():
     return ip
 
 
-BUFSIZE = 4096
+BUFSIZE = 10485760
 # ip_port = ('127.0.0.1', 9999)
 DEBUG_NETWORK = False
 class UdpServer:
@@ -110,7 +110,7 @@ class UnixUdpServer:
 
     def wait_next_dgram(self):
         data, self.most_recent_client = self.server.recvfrom(BUFSIZE)
-        print('self.most_recent_client',self.most_recent_client)
+        if DEBUG_NETWORK: print('self.most_recent_client',self.most_recent_client)
         if self.convert_str: data = data.decode('utf8')
         if self.use_pickle: data = pickle.loads(data)
         if DEBUG_NETWORK: print('recv from :', self.most_recent_client, ' data :', data)

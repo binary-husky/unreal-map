@@ -91,6 +91,8 @@ class PymarlFoundation():
 
     def interact_with_env(self, team_intel):
         self.team_intel = team_intel
+        self.current_actions = [None]*self.n_thread 
+
         # print亮紫(self.team_intel['ENV-PAUSE'])
 
         # # finish previous step call
@@ -107,9 +109,77 @@ class PymarlFoundation():
         # step_cnt = team_intel['Current-Obs-Step']
         self.previous_action = np.array(self.current_actions)
         self.previous_ENV_PAUSE = copy.deepcopy(team_intel['ENV-PAUSE'])
-        ret_action_list = np.swapaxes(np.array(self.current_actions),0,1)
+        ret_action_list = np.swapaxes(np.array(self.current_actions), 0, 1)
         # action_list = np.zeros(shape=(self.n_agent, self.n_thread, 1))
         return ret_action_list, team_intel
+
+    def reset_confirm_all(self):
+        assert self.team_intel['Env-Suffered-Reset'].all()
+        res = [{
+                    "state": self.get_state_of(i),
+                    "avail_actions": self.get_avail_actions_of(i),
+                    "obs": self.get_obs_of(i)
+                } for i in range(self.n_thread)]
+        return res
+
+    def step_all(self, action, remote_active_flag):
+        assert (remote_active_flag==~self.team_intel['ENV-PAUSE']).all()
+        for i in range(self.n_thread):
+            if self.team_intel['ENV-PAUSE'][i]: 
+                assert action[i] is None
+                self.current_actions[i] = np.array([np.nan]*self.n_agent)
+            else:
+                assert action[i] is not None
+                self.current_actions[i] = action[i]
+
+        if self.team_intel['Test-Flag']: self.remote_active_flag_T = remote_active_flag
+        else: self.remote_active_flag = remote_active_flag
+        return None # cannot reply here
+
+    def get_step_future(self):
+        res = []
+        if self.team_intel['Test-Flag']: remote_active_flag = self.remote_active_flag_T
+        else: remote_active_flag = self.remote_active_flag
+
+        if remote_active_flag is None: 
+            return 'entering_test_phase'
+ 
+
+        for i, acive in enumerate(remote_active_flag):
+            if not acive: continue
+            env_info = self.team_intel['Latest-Team-Info'][i].copy()
+            for key in ['obs-echo','state-echo','state','avail-act-echo','avail-act']:
+                if key in env_info: env_info.pop(key)
+            env_info['testing'] = self.team_intel['Test-Flag']
+
+            res.append({
+                "state": self.get_state_of(i), 
+                "avail_actions": self.get_avail_actions_of(i),
+                "obs": self.get_obs_of(i),
+                "reward": self.team_intel['Latest-Reward'][i],
+                "terminated": self.team_intel['Env-Suffered-Reset'][i],
+                "info": env_info
+            })
+
+        if self.team_intel['Test-Flag']: self.remote_active_flag_T = None
+        else: self.remote_active_flag_T = None
+
+        return res
+        # for i, in_acive in enumerate(self.team_intel['ENV-PAUSE']) if in_acive]
+
+        # for uuid, which_env in self.uuid2threads.items():
+        #     if uuid == 'thread_cnt': continue
+        #     if not self.register_step_call[which_env]: continue
+        #     self.register_step_call[which_env] = False
+
+        #     reward = self.team_intel['Latest-Reward'][which_env]
+        #     terminated = self.team_intel['Env-Suffered-Reset'][which_env]
+        #     env_info = self.team_intel['Latest-Team-Info'][which_env].copy()
+        #     for key in ['obs-echo','state-echo','state','avail-act-echo','avail-act']:
+        #         if key in env_info: env_info.pop(key)
+        #     env_info['testing'] = self.team_intel['Test-Flag']
+        #     res = (reward, terminated, env_info)
+
 
     def get_env_info(self):
         env_info = {"state_shape": self.get_state_size(),
@@ -138,7 +208,7 @@ class PymarlFoundation():
         self.current_actions = [None for _ in range(self.n_thread)]
         self.previous_action = None
         self.previous_ENV_PAUSE = None
-        self.register_step_call = [False for _ in range(self.n_thread)]
+        # self.register_step_call = [False for _ in range(self.n_thread)]
         self.scenario_config = GlobalConfig.scenario_config
 
         self.init_pymarl()
@@ -163,11 +233,7 @@ class PymarlFoundation():
     def get_current_mode(self):
         return 'Testing' if self.team_intel['Test-Flag'] else 'Training'
 
-    # @basic_io_call
-    def step_of(self, act):
-        which_env = self.get_env_with_currentuuid()
-        self.current_actions[which_env] = act
-        self.register_step_call[which_env] = True
+
 
     # @basic_io_call
     def get_state_size(self):
@@ -230,8 +296,7 @@ class PymarlFoundation():
         return env_info
 
     # @basic_io_call
-    def get_state_of(self):
-        which_env = self.get_env_with_currentuuid()
+    def get_state_of(self, which_env):
         if self.team_intel['Env-Suffered-Reset'][which_env]: 
             if (not self.team_intel['ENV-PAUSE'][which_env]):   # not paused, it is being unfrozen, or everything just init
                 return self.team_intel['Latest-Team-Info'][which_env]['state']  # return newest state
@@ -239,20 +304,16 @@ class PymarlFoundation():
                 return self.team_intel['Latest-Team-Info'][which_env]['state-echo'] # return state echo
         # otherwise, normal situations
         return self.team_intel['Latest-Team-Info'][which_env]['state'] # return newest state
-        # which_env = self.get_env_with_currentuuid()
-        # return self.team_intel['Latest-Team-Info'][which_env]['state']
 
     # @basic_io_call
-    def get_avail_actions_of(self):
-        which_env = self.get_env_with_currentuuid()
+    def get_avail_actions_of(self, which_env):
         if 'avail-act' in self.team_intel['Latest-Team-Info'][which_env]:
             return self.team_intel['Latest-Team-Info'][which_env]['avail-act']
         else:
             return np.ones((self.n_agent, self.n_actions))
 
     # @basic_io_call
-    def get_obs_of(self):
-        which_env = self.get_env_with_currentuuid()
+    def get_obs_of(self, which_env):
         if self.team_intel['Env-Suffered-Reset'][which_env]: 
             if (not self.team_intel['ENV-PAUSE'][which_env]):   # not paused, it is being unfrozen, or everything just init
                 return self.team_intel['Latest-Obs'][which_env]
