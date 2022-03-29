@@ -63,7 +63,6 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     n_actions = n_switch_actions +  n_target_actions +  HeightLevels + SpeedLevels
     # n_target = 10 # 暂时只有5+5，测试中
     # str_action_description = "[gym.spaces.Discrete(%d), gym.spaces.Discrete(%d), gym.spaces.Discrete(%d), gym.spaces.Discrete(%d)]"%(
-    #     n_actions, n_target, HeightLevels, SpeedLevels)
 
     reduce_ipc_io = False
 
@@ -71,7 +70,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     return_mat = False
     block_invalid_action = True # sc2 中，需要始终屏蔽掉不可用的动作
 
-
+    time_ratio = 200
 class BaseEnv(object):
     def __init__(self, rank) -> None:
         self.observation_space = None
@@ -109,7 +108,7 @@ class BVR(BaseEnv, RenderBridge, EndGame):
         # an observer keeps track of agent info such as distence
         self.OBSERVER_CLASS = Baseclass
         # xsim引擎控制器
-        self.xsim_manager = XSimManager(time_ratio=100)
+        self.xsim_manager = XSimManager(time_ratio=ScenarioConfig.time_ratio)
         # 与xsim引擎交互通信服务
         self.communication_service = CommunicationService(self.xsim_manager.address)
 
@@ -208,7 +207,7 @@ class BVR(BaseEnv, RenderBridge, EndGame):
             gc.collect()
             
             # xsim引擎控制器
-            self.xsim_manager = XSimManager(time_ratio=100)
+            self.xsim_manager = XSimManager(time_ratio=ScenarioConfig.time_ratio)
             # 与xsim引擎交互通信服务
             self.communication_service = CommunicationService(self.xsim_manager.address)
 
@@ -247,8 +246,6 @@ class BVR_PVE(BVR, Converter):
         
         reward_accu_internal = 0
         for _ in range(self.internal_step):
-
-
             # import time, cProfile, pstats
             # tic = time.time()
             # def x():
@@ -257,11 +254,6 @@ class BVR_PVE(BVR, Converter):
             # cProfile.runctx("x()", globals(), locals(), filename="result.prof")
             # print('time：：：：', time.time()-tic)
             # raise 'done profile'
-
-
-
-
-
 
             # # move the opponents
             opp_action = self.opp_controller.step(self.raw_obs["sim_time"], self.raw_obs[self.opp_color])

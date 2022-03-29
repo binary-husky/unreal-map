@@ -122,7 +122,7 @@ class Converter():
         target = self.observer.find_plane_by_name(target_name)
         return target
 
-
+    # 获取动作所在的组别，以及在组别内的次序
     def get_action_dim_corr_dict(self):
         if hasattr(self, 'action_dim_corr_dict'):
             return self.action_dim_corr_dict, self.action_sel_corr_dict

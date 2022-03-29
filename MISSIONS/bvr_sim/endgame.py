@@ -6,16 +6,16 @@ class EndGame():
     # 额，为啥这个函数这么啰嗦
     def get_done(self, obs):
 
-        # print(obs)
-        done = [0, 0, 0]  # 终止标识， 红方战胜利， 蓝方胜利
-
+        # 终止标识， 红方战胜利， 蓝方胜利
+        done = [0, 0, 0]
+        蓝方战机剩余数量 = len(obs["blue"]["platforminfos"])
+        红方战机剩余数量 = len(obs["red"]["platforminfos"])
         # 时间超时，终止
         cur_time = obs["sim_time"]
-        # print("get_done cur_time:", cur_time)
         if cur_time >= 20 * 60 - 1:
             done[0] = 1
             # 当战损相同时，判断占领中心区域时间
-            if len(obs["red"]["platforminfos"]) == len(obs["blue"]["platforminfos"]):
+            if 红方战机剩余数量 == 蓝方战机剩余数量:
                 if self.red_score > self.blue_score:
                     # print("红方占领中心区域时间更长")
                     done[1] = 1
@@ -24,7 +24,7 @@ class EndGame():
                     done[2] = 1
             # 当战损不同时，判断战损更少一方胜
             else:
-                if len(obs["red"]["platforminfos"]) > len(obs["blue"]["platforminfos"]):
+                if 红方战机剩余数量 > 蓝方战机剩余数量:
                     # print("红方战损更少")
                     done[1] = 1
                 else:
@@ -35,6 +35,36 @@ class EndGame():
             self.red_score = 0
             self.blue_score = 0
             return done
+
+
+        # FQX：：的额外添加， 如果在半场时，RL方面，飞机数量为劣势，则直接判定失败
+        if cur_time == 15 * 60:
+            # 当战损相同时，判断占领中心区域时间
+            if 红方战机剩余数量 != 蓝方战机剩余数量:
+                红方为RL = (self.player_color == "red")
+                蓝方为RL = (self.player_color == "blue")
+                if 红方战机剩余数量 > 蓝方战机剩余数量 and 蓝方为RL:
+                    print("[半场] 红方战损更少, RL为蓝方, RL直接失败, ", cur_time)
+                    done[0] = 1
+                    done[1] = 1
+                    self.red_score = 0
+                    self.blue_score = 0
+                    return done
+                elif 红方战机剩余数量 < 蓝方战机剩余数量 and 红方为RL:
+                    print("[半场] 蓝方战损更少, RL为红方, RL直接失败, ", cur_time)
+                    done[0] = 1
+                    done[2] = 1
+                    self.red_score = 0
+                    self.blue_score = 0
+                    return done
+                else:
+                    pass
+                    if 红方为RL:
+                        print('[半场] RL方剩余:', 红方战机剩余数量, '敌方剩余:', 蓝方战机剩余数量)
+                    else:
+                        print('[半场] RL方剩余:', 蓝方战机剩余数量, '敌方剩余:', 红方战机剩余数量)
+
+
 
         # 红方有人机全部战损就终止
         red_obs_units = obs["red"]["platforminfos"]

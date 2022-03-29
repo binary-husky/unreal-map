@@ -71,9 +71,9 @@ class PymarlFoundation():
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
             # "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
         
-        from UTILS.network import UnixUdpServer
+        from UTILS.network import UnixTcpServerP2P
         unix_path = 'RECYCLE/Sockets/unix/%s'%self.remote_uuid
-        self.remote_link_server = UnixUdpServer(unix_path, obj='pickle')
+        self.remote_link_server = UnixTcpServerP2P(unix_path, obj='pickle')
         atexit.register(lambda: self.__del__()) # avoid redis leaking
         time.sleep(5)
 
