@@ -1,39 +1,45 @@
 import os,sys
 import numpy as np
-class ChainVar(object):
-    def __init__(self, chain_func, chained_with):
-        self.chain_func = chain_func
-        self.chained_with = chained_with
-
-sc2map_info = {
-    "3m":               {"n_agents":3    ,  "n_hostiles":   3    , "ep_limit":  60   },
-    "8m":               {"n_agents":8    ,  "n_hostiles":   8    , "ep_limit":  120  },
-    "25m":              {"n_agents":25   ,  "n_hostiles":   25   , "ep_limit":  150  },
-    "5m_vs_6m":         {"n_agents":5    ,  "n_hostiles":   6    , "ep_limit":  70   },
-    "8m_vs_9m":         {"n_agents":8    ,  "n_hostiles":   9    , "ep_limit":  120  },
-    "10m_vs_11m":       {"n_agents":10   ,  "n_hostiles":   11   , "ep_limit":  150  },
-    "27m_vs_30m":       {"n_agents":27   ,  "n_hostiles":   30   , "ep_limit":  180  },
-    "MMM":              {"n_agents":10   ,  "n_hostiles":   10   , "ep_limit":  150  },
-    "MMM2":             {"n_agents":10   ,  "n_hostiles":   12   , "ep_limit":  180  },
-    "2s3z":             {"n_agents":5    ,  "n_hostiles":   5    , "ep_limit":  120  },
-    "3s5z":             {"n_agents":8    ,  "n_hostiles":   8    , "ep_limit":  150  },
-    "3s5z_vs_3s6z":     {"n_agents":8    ,  "n_hostiles":   9    , "ep_limit":  170  },
-    "3s_vs_3z":         {"n_agents":3    ,  "n_hostiles":   3    , "ep_limit":  150  },
-    "3s_vs_4z":         {"n_agents":3    ,  "n_hostiles":   4    , "ep_limit":  200  },
-    "3s_vs_5z":         {"n_agents":3    ,  "n_hostiles":   5    , "ep_limit":  250  },
-    "1c3s5z":           {"n_agents":9    ,  "n_hostiles":   9    , "ep_limit":  180  },
-    "2m_vs_1z":         {"n_agents":2    ,  "n_hostiles":   1    , "ep_limit":  150  },
-    "corridor":         {"n_agents":6    ,  "n_hostiles":   24   , "ep_limit":  400  },
-    "6h_vs_8z":         {"n_agents":6    ,  "n_hostiles":   8    , "ep_limit":  150  },
-    "2s_vs_1sc":        {"n_agents":2    ,  "n_hostiles":   1    , "ep_limit":  300  },
-    "so_many_baneling": {"n_agents":7    ,  "n_hostiles":   32   , "ep_limit":  100  },
-    "bane_vs_bane":     {"n_agents":24   ,  "n_hostiles":   24   , "ep_limit":  200  },
-    "2c_vs_64zg":       {"n_agents":2    ,  "n_hostiles":   64   , "ep_limit":  400  },
-}
-
 from smac.env.starcraft2.maps import smac_maps
+from UTILS.config_args import ChainVar
 map_param_registry = smac_maps.get_smac_map_registry()
 
+# sc2map_info = {
+#     "3m":               {"n_agents":3    ,  "n_hostiles":   3    , "ep_limit":  60   },
+#     "8m":               {"n_agents":8    ,  "n_hostiles":   8    , "ep_limit":  120  },
+#     "25m":              {"n_agents":25   ,  "n_hostiles":   25   , "ep_limit":  150  },
+#     "5m_vs_6m":         {"n_agents":5    ,  "n_hostiles":   6    , "ep_limit":  70   },
+#     "8m_vs_9m":         {"n_agents":8    ,  "n_hostiles":   9    , "ep_limit":  120  },
+#     "10m_vs_11m":       {"n_agents":10   ,  "n_hostiles":   11   , "ep_limit":  150  },
+#     "27m_vs_30m":       {"n_agents":27   ,  "n_hostiles":   30   , "ep_limit":  180  },
+#     "MMM":              {"n_agents":10   ,  "n_hostiles":   10   , "ep_limit":  150  },
+#     "MMM2":             {"n_agents":10   ,  "n_hostiles":   12   , "ep_limit":  180  },
+#     "2s3z":             {"n_agents":5    ,  "n_hostiles":   5    , "ep_limit":  120  },
+#     "3s5z":             {"n_agents":8    ,  "n_hostiles":   8    , "ep_limit":  150  },
+#     "3s5z_vs_3s6z":     {"n_agents":8    ,  "n_hostiles":   9    , "ep_limit":  170  },
+#     "3s_vs_3z":         {"n_agents":3    ,  "n_hostiles":   3    , "ep_limit":  150  },
+#     "3s_vs_4z":         {"n_agents":3    ,  "n_hostiles":   4    , "ep_limit":  200  },
+#     "3s_vs_5z":         {"n_agents":3    ,  "n_hostiles":   5    , "ep_limit":  250  },
+#     "1c3s5z":           {"n_agents":9    ,  "n_hostiles":   9    , "ep_limit":  180  },
+#     "2m_vs_1z":         {"n_agents":2    ,  "n_hostiles":   1    , "ep_limit":  150  },
+#     "corridor":         {"n_agents":6    ,  "n_hostiles":   24   , "ep_limit":  400  },
+#     "6h_vs_8z":         {"n_agents":6    ,  "n_hostiles":   8    , "ep_limit":  150  },
+#     "2s_vs_1sc":        {"n_agents":2    ,  "n_hostiles":   1    , "ep_limit":  300  },
+#     "so_many_baneling": {"n_agents":7    ,  "n_hostiles":   32   , "ep_limit":  100  },
+#     "bane_vs_bane":     {"n_agents":24   ,  "n_hostiles":   24   , "ep_limit":  200  },
+#     "2c_vs_64zg":       {"n_agents":2    ,  "n_hostiles":   64   , "ep_limit":  400  },
+# }
+
+
+
+
+
+'''
+    ScenarioConfig: This config class will be 'injected' with new settings from json(c).
+    (E.g., override configs with ```python main.py --cfg example.jsonc```)
+    (As the name indicated, ChainVars will change WITH vars it 'chained_with' during config injection)
+    (please see UTILS.config_args to find out how this advanced trick works out.)
+'''
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
     sc_version = '2.4.10'
     map_ = 'corridor'
@@ -82,6 +88,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
         chained_with=['reward_vec']
     )
 
+
     state_provided = True
     avail_act_provided = True
 
@@ -97,11 +104,18 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
         lambda map_:6 + map_param_registry[map_]['n_enemies'], 
         chained_with=['map_']
     )
-    obs_vec_length = 6
+    obs_vec_length = -1
+    entity_oriented = False
+
+    obs_shape = 'Auto Load'
+    state_shape = 'Auto Load'
+
     return_mat = False
     block_invalid_action = True # sc2 中，需要始终屏蔽掉不可用的动作
     reward_sparse=False
     render = False
+
+    
 
 def make_sc2_env(env_id, rank):
     return Env_Compat_Wrapper(rank)
@@ -175,9 +189,3 @@ class Env_Compat_Wrapper():
     def render(self):
         return
 
-# self.env.close()
-# self.env.reset()
-# state = self.env.get_state()
-# obs = self.env.get_obs()
-# reward, terminated, info = self.env.step(actions)
-# win_tag = True if terminated and 'battle_won' in info and info['battle_won'] else False

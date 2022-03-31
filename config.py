@@ -1,22 +1,54 @@
 import time
 import numpy as np
 from UTILS.colorful import *
+from UTILS.config_args import ChainVar
+
+'''
+    this a chained var process, it deal with hyper-parameters that are bound together, 
+    e.g. number of threads and test episode interval.
+    ChainVars are handled in utils.config_args.py
+'''
 
 
-# this a chained var process, it deal with hyper-parameters that are bound together, e.g. number of threads and test episode interval
-# ChainVars are handled in utils.config_args.py
-class ChainVar(object):
-    def __init__(self, chain_func, chained_with):
-        self.chain_func = chain_func
-        self.chained_with = chained_with
+'''
+    GlobalConfig: This config class will be 'injected' with new settings from JSONC.
+    (E.g., override configs with ```python main.py --cfg example.jsonc```)
+    (As the name indicated, ChainVars will change WITH vars it 'chained_with' during config injection)
+    (please see UTILS.config_args to find out how this advanced trick works out.)
+
+    * Explaining a very important setting option: 
+        - align_episode (True/False):
+            In align mode, all threads begin new episode synchronously,
+            which means a env thread that ends early has to 'wait' for other threads before restarting
+            If set to 'False', threads will not wait for each others, and will 'reset' immediately on 'done'
+
+        - note (str):
+            Name you experiment carefully with note setting.
+            The note defines where the results of a single experiment will go. 
+            for example, if note='conc', everything produced in the experiment will be save in ZHECKPOINT/conc/*,
+            including images, saved pytorch model, 
+        
+        - env_name:
+            Which mission/environment/task to use, 
+            See ./MISSIONS/env_router.py for the dictionary of available envs.
+
+        - env_path:
+            The path of selected mission. In fact, hmp do not need this setting at all,
+            it exists here only to Double Check that you have chosen the correct mission env.
+
+    * Why the Algorithm selection is not here ?!
+        It is the missions (envs) that choose the algorithm(s)! Please go to mission configuration!
+        Important to remember:
+            - hmp selects a mission, 
+            - mission selects algorithm(s).
+        In fact, if you have two teams in env, 
+        you can choose two different algorithms to fight each other in the same env!
+            - Please goto ./MISSIONS/env_router.py to find out where the ScenarioConfig of your env is written,
+            - Please set ```TEAM_NAMES``` to include the path of your favored algorithm(s)
+'''
+
 
 class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
-    '''__  config will be Changed when launched with json __'''
-
-    
-    # In align mode, all threads begin new episode synchronously, 
-    # which means a thread that ends early has to 'wait' for other threads before restarting
-    # If set to 'False', threads will not wait for each others, and will 'reset' immediately on 'done' 
     align_episode = True                                # ! please try to understand this with TOP priority
 
     env_name = 'sr_tasks->cargo'                        # which environment, see ./MISSIONS/env_router.py

@@ -1,6 +1,13 @@
 TODO:
 现在的动作有内在状态，需要引入新的观测维度
+Line1
+Line2
 
+新奖励
+
+攻击cd
+
+延长训练时间，缩减学习率
 
 optimize find_by_id
 
@@ -26,8 +33,8 @@ after2 128 threads
 
 after2 128 threads remove info['other']
 [task runner]: (private-dca-debug-r4-verify) finished episode 128, at frame 15214, recent reward -0.227, best reward -0.227, valid fps 516
-[task runner]: (private-dca-debug-r4-verify) finished episode 128, at frame 15214, recent reward -0.227, best reward -0.227, valid fps 525 
-[task runner]: (private-dca-debug-r4-verify) finished episode 128, at frame 15214, recent reward -0.227, best reward -0.227, valid fps 520 
+[task runner]: (private-dca-debug-r4-verify) finished episode 128, at frame 15214, recent reward -0.227, best reward -0.227, valid fps 525
+[task runner]: (private-dca-debug-r4-verify) finished episode 128, at frame 15214, recent reward -0.227, best reward -0.227, valid fps 520
 
 after mod
 [task runner]: (private-dca-debug-r4-verify) finished episode 128, at frame 15214, recent reward -0.227, best reward -0.227, valid fps 525

@@ -2,7 +2,7 @@ from typing import List
 from ..agent import Agent
 from ..env_cmd import CmdEnv
 from UTILS.colorful import *
-from UTILS.tensor_ops import dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
+from UTILS.tensor_ops import MayGoWrong, dir2rad, np_softmax, reg_rad_at, reg_rad, repeat_at
 from .maneuver import maneuver_angle_to_ms, maneuver_angle_to_ms3d, maneuver_speed_to_ms, maneuver_vip, maneuver_angle_to_op_vip
 import copy
 import random
@@ -266,10 +266,11 @@ class Yi_team(Baseclass, MS_policy, Emergent, Attack_Adjust):
         return goto_location
 
     # 处理“混战追踪”指令，追踪攻击序列中的首位敌机
+    @MayGoWrong
     def follow_cmd(self, uav):
         # filter dead mate
         mates = [self.find_plane_by_name(mate) for mate in uav.formation_mate]
-        mates = [mate for mate in mates if mate is not None]
+        mates =                   [mate for mate in mates if mate is not None]
         uav.formation_mate = [mate.Name for mate in mates if mate is not None]
         uav_and_its_mate = copy.copy(mates)
         uav_and_its_mate.append(uav)

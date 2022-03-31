@@ -44,14 +44,14 @@ class EndGame():
                 红方为RL = (self.player_color == "red")
                 蓝方为RL = (self.player_color == "blue")
                 if 红方战机剩余数量 > 蓝方战机剩余数量 and 蓝方为RL:
-                    print("[半场] 红方战损更少, RL为蓝方, RL直接失败, ", cur_time)
+                    # print("[半场] 红方战损更少, RL为蓝方, RL直接失败, ", cur_time)
                     done[0] = 1
                     done[1] = 1
                     self.red_score = 0
                     self.blue_score = 0
                     return done
                 elif 红方战机剩余数量 < 蓝方战机剩余数量 and 红方为RL:
-                    print("[半场] 蓝方战损更少, RL为红方, RL直接失败, ", cur_time)
+                    # print("[半场] 蓝方战损更少, RL为红方, RL直接失败, ", cur_time)
                     done[0] = 1
                     done[2] = 1
                     self.red_score = 0
@@ -59,10 +59,10 @@ class EndGame():
                     return done
                 else:
                     pass
-                    if 红方为RL:
-                        print('[半场] RL方剩余:', 红方战机剩余数量, '敌方剩余:', 蓝方战机剩余数量)
-                    else:
-                        print('[半场] RL方剩余:', 蓝方战机剩余数量, '敌方剩余:', 红方战机剩余数量)
+                    # if 红方为RL:
+                    #     print('[半场] RL方剩余:', 红方战机剩余数量, '敌方剩余:', 蓝方战机剩余数量)
+                    # else:
+                    #     print('[半场] RL方剩余:', 蓝方战机剩余数量, '敌方剩余:', 红方战机剩余数量)
 
 
 

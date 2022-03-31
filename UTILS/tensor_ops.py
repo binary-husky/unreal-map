@@ -71,13 +71,14 @@ def vis_mat(mat):
             y = repeat_at(x, insert_dim, n_times)
             y.shape = (4, 666, 5, 6, 7)
 """
-def repeat_at(tensor, insert_dim, n_times):
+def repeat_at(tensor, insert_dim, n_times, copy_mem=False):
     if not isinstance(tensor, torch.Tensor):
         return np_repeat_at(tensor, insert_dim, n_times)
     tensor = tensor.unsqueeze(insert_dim)
     shape = list(tensor.shape)
     assert shape[insert_dim] == 1
     shape[insert_dim] = n_times
+    if copy_mem: tensor.repeat(*shape)
     return tensor.expand(*shape)
 
 def np_repeat_at(array, insert_dim, n_times):

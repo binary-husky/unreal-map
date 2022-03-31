@@ -1,6 +1,6 @@
 import numpy as np
 from UTILS.colorful import *
-from UTILS.tensor_ops import my_view, __hash__
+from UTILS.tensor_ops import my_view, __hash__, repeat_at
 from .cython_func import roll_hisory
 DEBUG = True
 
@@ -31,19 +31,24 @@ def reg_angle(rad):
     return (rad + np.pi)%(2*np.pi) -np.pi
 
 class ShellEnvWrapper(object):
-    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, 
-                                          alg_config, scenario_config):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config):
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.space = space
         self.mcv = mcv
         self.RL_functional = RL_functional
-        self.n_basic_dim = scenario_config.obs_vec_length
+        self.scenario_config = scenario_config
+        if self.scenario_config.entity_oriented:
+            self.core_dim = self.scenario_config.obs_vec_length
+        else:
+            self.core_dim = space['obs_space']['obs_shape']
+        self.n_entity_placeholder = alg_config.n_entity_placeholder
+        assert self.n_entity_placeholder >= 4
 
         # whether to use avail_act to block forbiden actions
         self.block_invalid_action = False
-        if hasattr(scenario_config, 'block_invalid_action'):
-            self.block_invalid_action = scenario_config.block_invalid_action 
+        if hasattr(self.scenario_config, 'block_invalid_action'):
+            self.block_invalid_action = self.scenario_config.block_invalid_action 
 
         # whether to load previously saved checkpoint
         self.load_checkpoint = alg_config.load_checkpoint
@@ -61,36 +66,36 @@ class ShellEnvWrapper(object):
         return arr
 
     def interact_with_env(self, State_Recall):
-        act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
-        # read internal coop graph info
         obs = State_Recall['Latest-Obs']
+        if not self.scenario_config.entity_oriented:    # 如果环境观测非entity_oriented，可以额外创生一个维度，具体细节需要斟酌
+            obs = repeat_at(obs, insert_dim=-2, n_times=self.n_entity_placeholder//2, copy_mem=True)
+            obs[:,:,2:] = np.nan    # 0 is self; 1 is repeated self; 2,3,... is NaN
+        P = State_Recall['ENV-PAUSE']
 
-        # previous_obs = State_Recall['_Previous_Obs_'] if '_Previous_Obs_' in State_Recall else np.zeros_like(obs)
+        act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         his_pool_obs = State_Recall['_Histpool_Obs_'] if '_Histpool_Obs_' in State_Recall \
-            else my_view(np.zeros_like(obs),[0, 0, -1, self.n_basic_dim])
-            # else my_view(np.zeros_like(np.concatenate((obs,obs), -1)),[0, 0, -1, self.n_basic_dim])
+            else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])
 
-        ENV_PAUSE = State_Recall['ENV-PAUSE']
-        obs_feed = obs[~ENV_PAUSE]
-        his_pool_obs_feed = his_pool_obs[~ENV_PAUSE]
-
+        obs_feed = obs[~P]
+        his_pool_obs_feed = his_pool_obs[~P]
         obs_feed_in, his_pool_next = self.solve_duplicate(obs_feed.copy(), his_pool_obs_feed.copy())
-        his_pool_obs[~ENV_PAUSE] = his_pool_next
-        his_pool_obs[ENV_PAUSE] = 0
+        his_pool_obs[~P] = his_pool_next
+        his_pool_obs[P] = 0
 
         I_State_Recall = {'obs':obs_feed_in, 
             'Test-Flag':State_Recall['Test-Flag'], 
-            'threads_active_flag':~ENV_PAUSE, 
-            'Latest-Team-Info':State_Recall['Latest-Team-Info'][~ENV_PAUSE],
+            'threads_active_flag':~P, 
+            'Latest-Team-Info':State_Recall['Latest-Team-Info'][~P],
             }
         if self.block_invalid_action:
-            avail_act = np.array([info['avail-act'] for info in np.array(State_Recall['Latest-Team-Info'][~ENV_PAUSE], dtype=object)])
+            avail_act = np.array([info['avail-act'] for info in np.array(State_Recall['Latest-Team-Info'][~P], dtype=object)])
             I_State_Recall.update({'avail_act':avail_act})
 
         act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_State_Recall)
 
-        act[~ENV_PAUSE] = act_active
+        act[~P] = act_active
         actions_list = np.swapaxes(act, 0, 1) # swap thread(batch) axis and agent axis
+
 
         # return necessary handles to main platform
         if self.cold_start: self.cold_start = False
@@ -106,8 +111,8 @@ class ShellEnvWrapper(object):
     def solve_duplicate(self, obs_feed_new, prev_his_pool):
         #  input might be (n_thread, n_agent, n_entity, basic_dim), or (n_thread, n_agent, n_entity*basic_dim)
         # both can be converted to (n_thread, n_agent, n_entity, basic_dim)
-        obs_feed_new = my_view(obs_feed_new,[0, 0, -1, self.n_basic_dim])
-        prev_obs_feed = my_view(prev_his_pool,[0, 0, -1, self.n_basic_dim])
+        obs_feed_new = my_view(obs_feed_new,[0, 0, -1, self.core_dim])
+        prev_obs_feed = my_view(prev_his_pool,[0, 0, -1, self.core_dim])
 
         # turn history into more entities
         obs_feed = np.concatenate((obs_feed_new, prev_obs_feed), axis=-2)
@@ -116,17 +121,21 @@ class ShellEnvWrapper(object):
         obs_feed[(obs_feed==0).all(-1)] = np.nan
         obs_feed_new[(obs_feed_new==0).all(-1)] = np.nan
         valid_mask = ~np.isnan(obs_feed_new).any(-1)    #
-        next_his_pool = np.zeros_like(prev_obs_feed) # twice size  (64 threads, 50 agents, 12 subjects)
 
         # set self as not valid to avoid buffering self obs! valid_mask
         valid_mask[:,:,0] = False
-        N_valid = valid_mask.sum(-1)
-        next_his_pool = roll_hisory(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool)
 
+        # N valid: how many subjects (entities) needs to be buffered
+        N_valid = valid_mask.sum(-1)
+
+        # alloc mem for next_his_pool
+        next_his_pool = np.zeros_like(prev_obs_feed) # twice size  ( threads,  agents,  subjects)
+        # fill next_his_pool
+        next_his_pool = roll_hisory(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool)
         # a very important assumption: if an agent observe itself as NaN *When and Only When* it is dead
         alive_mask = ~np.isnan(obs_feed_new[:,:,0]).any(-1) 
-        if (~alive_mask).any():
-            obs_feed[~alive_mask] = np.nan
+        if (~alive_mask).any(): obs_feed[~alive_mask] = np.nan
+
         return obs_feed, next_his_pool
 
 

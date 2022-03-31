@@ -7,7 +7,7 @@ from .agent.env_cmd import CmdEnv
 from .render import RenderBridge
 from .converter import Converter
 from .endgame import EndGame
-from UTILS.tensor_ops import MayGoWrong
+from UTILS.tensor_ops import MayGoWrong, repeat_at
 class ChainVar(object):
     def __init__(self, chain_func, chained_with):
         self.chain_func = chain_func
@@ -39,28 +39,30 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     render = False
     max_steps_episode = 1000
 
-    SpeedLevels = 5 # the speed is divided as 5 discrete speed
+    # SpeedLevels = 5 # the speed is divided as 5 discrete speed
     # meanning [MinSpeed, , MaxSpeed]  
     # MinSpeed + (MaxSpeed - MinSpeed)*( i/(SpeedLevels-1) ), i = [0,1,2,3,4]
-    HeightLevels = 5 # the speed is divided as 5 discrete speed
+    # HeightLevels = 5 # the speed is divided as 5 discrete speed
     # meanning [MinHeight , MaxHeight]  
     # MinHeight + (MaxHeight - MinHeight)*( i/(HeightLevels-1) ), i = [0,1,2,3,4]
 
     internal_step = 3
 
     ################ needed by some ALGORITHM ################
-    state_provided = False
-    avail_act_provided = False
+    state_provided = True
+    avail_act_provided = True
+    entity_oriented = False
 
+    put_availact_into_obs = True
     '''
         raw_action= [AT, TT, HT, SP]
     '''
     use_simple_action_space = True
-    n_action_dimension = 4
+    n_action_dimension = 2
 
-    n_switch_actions = 6
+    n_switch_actions = 7
     n_target_actions = 10
-    n_actions = n_switch_actions +  n_target_actions +  HeightLevels + SpeedLevels
+    n_actions = n_switch_actions +  n_target_actions
     # n_target = 10 # 暂时只有5+5，测试中
     # str_action_description = "[gym.spaces.Discrete(%d), gym.spaces.Discrete(%d), gym.spaces.Discrete(%d), gym.spaces.Discrete(%d)]"%(
 
@@ -71,6 +73,18 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     block_invalid_action = True # sc2 中，需要始终屏蔽掉不可用的动作
 
     time_ratio = 200
+
+    Disable_AT0 = False     # idle
+    Disable_AT1 = False     # fly to target
+    Disable_AT2 = True      # fly away from target
+    Disable_AT3 = True      # fly 3 clock from target
+    Disable_AT4 = True      # fly 9 clock from target
+    Disable_AT5 = False     # fire to target
+    Disable_AT6 = True      # change speed
+
+    Oppo_Bits_Mask = np.array([False]*n_switch_actions+[True]*5+[False]*5)
+    Ally_Bits_Mask = np.array([False]*n_switch_actions+[False]*5+[True]*5)
+
 class BaseEnv(object):
     def __init__(self, rank) -> None:
         self.observation_space = None
@@ -124,15 +138,25 @@ class BVR(BaseEnv, RenderBridge, EndGame):
         self.n_actions = ScenarioConfig.n_actions
         self.n_switch_actions = ScenarioConfig.n_switch_actions
         self.n_target_actions = ScenarioConfig.n_target_actions
-        self.HeightLevels = ScenarioConfig.HeightLevels
-        self.SpeedLevels = ScenarioConfig.SpeedLevels
+        # self.HeightLevels = ScenarioConfig.HeightLevels
+        # self.SpeedLevels = ScenarioConfig.SpeedLevels
         # the id of env among parallel envs, only rank=0 thread is allowed to render
         self.rank = rank
 
         self.RewardAsUnity = ScenarioConfig.RewardAsUnity
         self.ObsAsUnity = ScenarioConfig.ObsAsUnity
 
-        
+        self.AT_SEL = 0
+        self.TT_SEL = 1
+
+        self.n_action_dimension = ScenarioConfig.n_action_dimension
+
+        self.observation_space = {'state_shape': self.convert_obs_as_unity(obs=None, get_size=True), 
+                                  'obs_shape':   self.convert_obs_individual(obs=None, get_size=True)}
+
+        self.action_space =  {'n_actions': ScenarioConfig.n_actions,
+                              'n_agents':  self.n_agents}
+
     def bvr_step(self, cmd_list):
         self.raw_obs = self.communication_service.step(cmd_list)
         # an observer keeps track of agent info such as distence
@@ -233,16 +257,15 @@ class BVR_PVE(BVR, Converter):
         # opponent AI
         from .agent.yiteam_final_commit_v7.Yi_team import Yi_team
         self.OPP_CONTROLLER_CLASS = Yi_team
-
         self.player_color = "red"
         self.opp_color = "blue"
         self.internal_step = self.ScenarioConfig.internal_step
-
-
+        self.check_avail_act = None
 
     def step(self, raw_action):
         # convert raw_action Tensor from RL to actions recognized by the game
-        player_action = self.parse_raw_action(raw_action)
+        player_action, next_avail_act = self.parse_raw_action(raw_action)
+        self.check_avail_act = next_avail_act.copy()
         
         reward_accu_internal = 0
         for _ in range(self.internal_step):
@@ -277,15 +300,15 @@ class BVR_PVE(BVR, Converter):
         if self.ObsAsUnity:
             converted_obs = self.convert_obs_as_unity(self.raw_obs)
         else:
-            converted_obs = self.convert_obs_individual(self.raw_obs)
+            converted_obs = self.convert_obs_individual(self.raw_obs, next_avail_act=next_avail_act)
 
         info = {
             'win':win[self.player_color],
-            'state':self.convert_obs_as_unity(self.raw_obs)
+            'state':self.convert_obs_as_unity(self.raw_obs),
+            'avail-act': next_avail_act
         }
         if not ScenarioConfig.reduce_ipc_io:
             info.update(self.raw_obs[self.player_color])
-
         if self.RewardAsUnity:
             return_reward = np.array([reward_accu_internal,])
         if self.ObsAsUnity:
@@ -300,10 +323,9 @@ class BVR_PVE(BVR, Converter):
     def reset(self):
         # initialize action context if using simple action space
         if self.ScenarioConfig.use_simple_action_space: 
-            self.action_context = np.zeros(shape=(self.n_agents, ScenarioConfig.n_action_dimension))
-            for i in range(self.n_agents): self.action_context[i,1] = i
-            self.action_context[:,2] = ScenarioConfig.HeightLevels - 1
-            self.action_context[:,3] = ScenarioConfig.SpeedLevels - 1
+            self.action_context = np.zeros(shape=(self.n_agents, self.n_action_dimension))
+            for i in range(self.n_agents): self.action_context[i, self.AT_SEL] = 0
+            for i in range(self.n_agents): self.action_context[i, self.TT_SEL] = i
 
         # randomly switch sides
         randx = np.random.rand() 
@@ -311,27 +333,31 @@ class BVR_PVE(BVR, Converter):
         else: self.player_color, self.opp_color = ("blue", "red")
 
         # initialize controllers
-        # controller 1
         self.opp_controller = self.OPP_CONTROLLER_CLASS(self.opp_color, {"side": self.opp_color})
 
         # reset signal to base
         self.raw_obs = self.bvr_reset()
 
+        # info = {'win':win[self.player_color]}info['avail-act']
+        action_dim_corr_dict, _ = self.get_action_dim_corr_dict()
+        next_avail_act = repeat_at(1-action_dim_corr_dict, 0, n_times=self.n_agents)
+        self.check_avail_act = next_avail_act.copy()
+
         # read obs after reset
         if self.ObsAsUnity:
             converted_obs = self.convert_obs_as_unity(self.raw_obs)
         else:
-            converted_obs = self.convert_obs_individual(self.raw_obs)
+            converted_obs = self.convert_obs_individual(self.raw_obs, next_avail_act=next_avail_act)
 
-        # info = {'win':win[self.player_color]}
         info = {
-            'state':self.convert_obs_as_unity(self.raw_obs)
+            'state':self.convert_obs_as_unity(self.raw_obs),
+            # first action is limited in AT
+            'avail-act': next_avail_act
         }
         if not ScenarioConfig.reduce_ipc_io:
             info.update(self.raw_obs[self.player_color])
 
         if hasattr(self, '可视化桥'): self.可视化桥.刚刚复位 = True
-
 
         if self.ObsAsUnity:
             return_obs = np.array([converted_obs, ])

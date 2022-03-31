@@ -79,6 +79,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     avail_act_provided = False
     RewardAsUnity = False
     ObsAsUnity = False   # 减少IPC负担
+    entity_oriented = True
 
     # 调试
     MCOM_DEBUG = False

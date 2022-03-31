@@ -130,6 +130,7 @@ class Plane(object):
         # self.hanging_attack_by = []
         self.attacked_by_ms = []
         self.previous_ms_list = []
+        self.KIA = False
 
     def update_info(self, data, init=False):
         self.alive = (data['Availability'] != 0)
@@ -316,6 +317,7 @@ class MS(object):
 
         self.debug_estimate_next_pos = None
         self.debug_estimate_uav_next_pos = None
+        self.KIA = False
 
     def estimate_terminal_dis(self):
         p_dis = self.distance[-1]
@@ -437,8 +439,6 @@ class MS(object):
         self.debug_estimate_uav_next_pos[1] += self.target.Speed * np.cos(self.target.Pitch) * np.sin(
             self.target.h_angle * np.pi / 180)
 
-        d_angle = reg_deg_at(self.target.h_angle, ref=self.h_angle + 180) - (self.h_angle + 180)
-        # 处于转向阶段的飞机 不适用
 
         self.previous_speed = self.Speed
         self.previous_pos3d = self.pos3d
@@ -450,7 +450,7 @@ class MS(object):
 
     def end_life(self):
         if self.target is None: return  # 对应的敌方（我方）目标已经死了
-        import sys, logging
+        # import sys, logging
         # ## print亮靛('alive:',self.target.alive)
         # if (not hasattr(self.target,'OpLeftWeapon')) and self.tracking_target: # 我方是目标
         #     with open('./log/%s'%str(self.ID), 'a+') as f:
@@ -492,23 +492,62 @@ class Baseclass(Agent):
         # self.vip_prepare_escape_distance = 75e3
 
         self.initial_attack_order_adjusted = False
+        self.Id2PlaneLookup = {}
+        self.Id2MissleLookup = {}
+
+        self.Name2PlaneLookup = {}
 
     def find_plane_by_name(self, name):
-        for p in self.my_planes + self.op_planes:
-            if p.Name == name: return p
-        return None
+        if name in self.Name2PlaneLookup:
+            if (self.Name2PlaneLookup[name].Name == name):
+                if self.Name2PlaneLookup[name].KIA:
+                    return None
+                else:
+                    return self.Name2PlaneLookup[name]
 
+        # otherwise, no match, or dictionary with no record
+        for p in self.my_planes + self.op_planes:
+            if p.Name == name: 
+                self.Name2PlaneLookup[name] = p # register
+                return p
+
+        # otherwise, no match at all
+        return None
+        
     def find_planes_by_squad(self, squad_name):
         return [p for p in self.my_planes  if p.squad_name == squad_name]
 
+    # add a ID->plane obj table
     def find_plane_by_id(self, ID):
+        if ID in self.Id2PlaneLookup:
+            if (self.Id2PlaneLookup[ID].ID == ID):
+                if self.Id2PlaneLookup[ID].KIA:
+                    return None
+                else:
+                    return self.Id2PlaneLookup[ID]
+        # otherwise, no match, or dictionary with no record
         for p in self.my_planes + self.op_planes:
-            if p.ID == ID: return p
+            if p.ID == ID: 
+                self.Id2PlaneLookup[ID] = p # register
+                return p
+
+        # otherwise, no match at all
         return None
 
+
     def find_ms_by_id(self, ID):
-        for ms in self.ms + self.ms:
-            if ms.ID == ID: return ms
+        if ID in self.Id2MissleLookup:
+            if (self.Id2MissleLookup[ID].ID == ID):
+                if self.Id2MissleLookup[ID].KIA:
+                    return None
+                else:
+                    return self.Id2MissleLookup[ID]
+
+        for ms in self.ms:
+            if ms.ID == ID: 
+                self.Id2MissleLookup[ID] = ms
+                return ms
+                
         return None
 
     def reset(self, **kwargs):
@@ -598,14 +637,19 @@ class Baseclass(Agent):
         Plane.dis_mat = self.everything_dis
         Plane.dis_mat_id2index = self.id2index
         for m in self.ms:
-            if not m.alive: m.end_life()
+            if not m.alive: 
+                m.KIA = True
+                m.end_life()
         if len(list(filter(lambda p: not p.alive, self.my_planes)))>0:
             ## print('飞机被命中')
             pass
 
+        for p in (self.my_planes+self.op_planes):
+            if not p.alive: p.KIA = True
+            
         self.my_planes = list(filter(lambda p: p.alive, self.my_planes))
         self.op_planes = list(filter(lambda p: p.alive, self.op_planes))
-        self.ms = list(filter(lambda m: m.alive, self.ms))
+        self.ms        = list(filter(lambda m: m.alive, self.ms))
         # self.update_mapping()
 
         # part 4 calculate in-radar relationship

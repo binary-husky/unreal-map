@@ -131,11 +131,9 @@ class Plane(object):
             for key in Ability.__dict__:
                 if '__' in key: continue
                 setattr(self, key, getattr(Ability, key))
-
-
         self.pos3d = np.array([self.X, self.Y, self.Alt], dtype=float)
         self.pos2d = np.array([self.X, self.Y], dtype=float)
-        self.h_angle = 90-self.Heading*180/np.pi    # np.pi/2 - self.heading
+        self.h_angle = 90-self.Heading*180/np.pi
 
         if init and ('LeftWeapon' not in data):
             self.OpLeftWeapon = 4 if self.is_vip else 2
@@ -227,50 +225,7 @@ class MS(object):
         self.ms_speed = []
         self.flying_time = 0
         self.previous_change_taking_effect = 0
-        self.D_list = [-842.194, -940.260, -1038.325, -1136.391, -1234.457, -1298.654, -1299.993, -1299.993, -1299.993,
-                       -1299.993, -1299.992, -1299.992, -1299.992, -1299.992, -1299.991, -1299.991, -1299.991,
-                       -1299.991, -1299.991, -1299.991, -1299.991, -1299.991, -1299.990, -1299.990, -1299.990,
-                       -1299.990, -1299.990, -1299.990, -1299.990, -1294.523, -1284.720, -1275.109, -1265.683,
-                       -1256.438, -1247.368, -1238.469, -1229.735, -1221.163, -1212.747, -1204.484, -1196.369,
-                       -1188.398, -1180.568, -1172.875, -1165.315, -1157.884, -1150.579,
-                       -1139.507, -1132.512, -1125.633, -1118.867, -1112.21, -1105.661, -1099.217, -1092.875, -1086.633,
-                       -1080.489, -1074.44, -1068.484, -1062.6190000000001, -1056.8429999999998, -1051.153, -1045.549,
-                       -1040.027, -1034.587, -1029.2269999999999, -1023.944, -1018.737, -1013.604, -1008.544, -1003.556,
-                       -998.637, -993.786, -989.003, -984.285, -979.631, -975.04, -970.511, -966.042, -961.632,
-                       -957.281, -952.986, -948.747, -944.563, -940.432, -936.354, -932.328, -928.352, -924.426,
-                       -920.549, -916.719, -912.937, -909.2, -905.509, -901.863, -898.26, -894.7, -891.182, -887.706,
-                       -884.27, -880.874, -877.518, -874.199, -870.919, -867.677, -864.47, -861.3, -858.165, -855.066,
-                       -852.0, -848.968, -845.969, -843.003, -840.069, -837.166, -834.294, -831.453, -828.642, -825.861]
-        self.speed_list = [596.133, 694.199, 792.266, 890.332, 988.399, 1000.000, 1000.000, 1000.000, 1000.000,
-                           1000.000, 1000.000, 1000.000, 1000.000, 1000.000, 1000.000, 1000.000, 1000.000, 1000.000,
-                           1000.000, 1000.000, 1000.000, 1000.000, 1000.000, 1000.000, 1000.000, 1000.000, 1000.000,
-                           1000.000, 999.000, 989.109, 979.412, 969.903, 960.578, 951.430, 942.454, 933.647, 925.003,
-                           916.517, 908.186, 900.005, 891.970, 884.077, 876.323, 868.703, 861.216, 853.856, 846.621,
-                           839.507, 832.512, 825.633, 818.867, 812.210, 805.661, 799.217, 792.875, 786.633, 780.489,
-                           774.440, 768.484, 762.619, 756.843, 751.153, 745.549, 740.027, 734.587, 729.227, 723.944,
-                           718.737, 713.604, 708.544, 703.556, 698.637, 693.786, 689.003, 684.285, 679.631, 675.040,
-                           670.511, 666.042, 661.632, 657.281, 652.986, 648.747, 644.563, 640.432, 636.354, 632.328,
-                           628.352, 624.426, 620.549, 616.719, 612.937, 609.200, 605.509, 601.863, 598.260, 594.700,
-                           591.182, 587.706, 584.270, 580.874, 577.518, 574.199, 570.919, 567.677, 564.470, 561.300,
-                           558.165, 555.066, 552.000, 548.968, 545.969, 543.003, 540.069, 537.166, 534.294, 531.453,
-                           528.642, 525.861]
-        self.speed2ddis = [  # [x,y]
-            [296.13, -640.26],
-            [346.13, -690.26],
-            [394.20, -738.33],
-            [444.20, -788.32],
-            [471.13, -815.25],
-            [496.13, -840.26],
-            [594.20, -938.33],
-            [692.27, -1036.39],
-            [790.33, -1134.46],
-            [888.40, -1232.53],
-            [915.91, -1259.62],
-            [938.40, -1277.47],
-            [961.47, -1290.46],
-            [986.47, -1298.27],
-            [1000.00, -1299.993]
-        ]
+
         self.speed_peak = False
         if data is not None: self.update_info(data, 0)
         self.flying_dis = 0
@@ -297,7 +252,7 @@ class MS(object):
     @staticmethod
     def interpolant(x, list):
         len_list = len(list)
-        left = -1;
+        left = -1
         right = len_list
         for i in range(len_list):
             if x > list[i][0]:
@@ -312,11 +267,11 @@ class MS(object):
         # ## print(list[left], list[right])
         if left == -1:
             assert right == 0
-            left += 1;
+            left += 1
             right += 1
         if right == len_list:
             assert left == len_list - 1
-            left -= 1;
+            left -= 1
             right -= 1
         assert list[right][0] != list[left][0]
         return (x - list[left][0]) / (list[right][0] - list[left][0]) * (list[right][1] - list[left][1]) + list[left][1]
@@ -371,9 +326,9 @@ class MS(object):
         self.h_angle = 90 - self.Heading * 180 / np.pi
         if self.Speed >= 1000:
             self.speed_peak = True
-        if self.flying_time == 0:
-            self.init_speed_list(self.Speed)
-            self.init_d_list()
+        # if self.flying_time == 0:
+            # self.init_speed_list(self.Speed)
+            # self.init_d_list()
         starget_dir = dir2rad(self.target.pos2d - self.pos2d) * 180 / np.pi
         starget_dir = reg_deg_at(starget_dir, ref=self.h_angle)
 
@@ -381,35 +336,26 @@ class MS(object):
             self.time.append(self.flying_time)
             self.delta_dis.append(self.distance[-1] - self.distance[-2])
             self.ms_speed.append(self.Speed)
-        self.ter_dis_est, self.ter_ms_speed = self.estimate_terminal_dis()
+        # self.ter_dis_est, self.ter_ms_speed = self.estimate_terminal_dis()
 
         ### print亮红('ID', self.ID, 'impact dst warning! ', self.ter_dis_est)
         # if (not hasattr(self.target,'OpLeftWeapon')) and self.tracking_target: # 我方是目标
         #     with open('./log/%s'%str(self.ID), 'a+') as f:
         #         f.write('导弹速度 %.2f, 目标距离 %.2f, T估计 %.2f, %s \n'%(self.Speed, self.distance[-1], self.ter_dis_est, str(self.dis_arr)))
-        self.impact_eta = len(self.dis_arr) - 1
+        # self.impact_eta = len(self.dis_arr) - 1
 
-        self.debug_estimate_next_pos = self.pos3d.copy()
-        self.debug_estimate_next_pos[2] += self.Speed * np.sin(self.Pitch)
-        self.debug_estimate_next_pos[0] += self.Speed * np.cos(self.Pitch) * np.cos(self.h_angle * np.pi / 180)
-        self.debug_estimate_next_pos[1] += self.Speed * np.cos(self.Pitch) * np.sin(self.h_angle * np.pi / 180)
+        # self.debug_estimate_next_pos = self.pos3d.copy()
+        # self.debug_estimate_next_pos[2] += self.Speed * np.sin(self.Pitch)
+        # self.debug_estimate_next_pos[0] += self.Speed * np.cos(self.Pitch) * np.cos(self.h_angle * np.pi / 180)
+        # self.debug_estimate_next_pos[1] += self.Speed * np.cos(self.Pitch) * np.sin(self.h_angle * np.pi / 180)
 
-        self.debug_estimate_uav_next_pos = self.target.pos3d.copy()
-        self.debug_estimate_uav_next_pos[2] += self.target.Speed * np.sin(self.target.Pitch)
-        self.debug_estimate_uav_next_pos[0] += self.target.Speed * np.cos(self.target.Pitch) * np.cos(
-            self.target.h_angle * np.pi / 180)
-        self.debug_estimate_uav_next_pos[1] += self.target.Speed * np.cos(self.target.Pitch) * np.sin(
-            self.target.h_angle * np.pi / 180)
+        # self.debug_estimate_uav_next_pos = self.target.pos3d.copy()
+        # self.debug_estimate_uav_next_pos[2] += self.target.Speed * np.sin(self.target.Pitch)
+        # self.debug_estimate_uav_next_pos[0] += self.target.Speed * np.cos(self.target.Pitch) * np.cos(
+        #     self.target.h_angle * np.pi / 180)
+        # self.debug_estimate_uav_next_pos[1] += self.target.Speed * np.cos(self.target.Pitch) * np.sin(
+        #     self.target.h_angle * np.pi / 180)
 
-        # d_angle = reg_deg_at(self.target.h_angle, ref=self.h_angle + 180) - (self.h_angle + 180)
-        # 处于转向阶段的飞机 不适用
-        # if np.abs(d_angle) < 1:
-        #     if self.flying_time == 2:
-        #         with open('./log/ft1.txt', 'a+') as f:
-        #             f.write('speed %.2f, delta %.2f \n'%(self.previous_speed, self.distance[-1]-self.distance[-2]))
-        #     elif self.flying_time>2:
-        #         with open('./log/ft2.txt', 'a+') as f:
-        #             f.write('speed %.2f, delta %.2f \n'%(self.previous_speed, self.distance[-1]-self.distance[-2]))
 
         self.previous_speed = self.Speed
         self.previous_pos3d = self.pos3d
@@ -466,36 +412,28 @@ class Baseclass(Agent):
         self.Id2PlaneLookup = {}
         self.Id2MissleLookup = {}
 
+        self.Name2PlaneLookup = {}
+
+
     def find_plane_by_name(self, name):
+        if name in self.Name2PlaneLookup:
+            if (self.Name2PlaneLookup[name].Name == name):
+                return self.Name2PlaneLookup[name]
+
+        # otherwise, no match, or dictionary with no record
         for p in self.my_planes + self.op_planes:
-            if p.Name == name: return p
+            if p.Name == name: 
+                self.Name2PlaneLookup[name] = p # register
+                return p
+
+        # otherwise, no match at all
         return None
+        
 
     def find_planes_by_squad(self, squad_name):
         return [p for p in self.my_planes  if p.squad_name == squad_name]
 
 
-    '''
-    var dictionary_id2index = {}
-    function find_obj_by_id(my_id){
-        let string_id = my_id.toString()
-        if (dictionary_id2index[string_id]!=null){
-            let i = dictionary_id2index[string_id];
-            if (window.glb.core_Obj[i]!=null && window.glb.core_Obj[i].my_id == my_id) {
-                return window.glb.core_Obj[i];
-            }
-        }
-
-        // the usual way
-        for (let i = 0; i < window.glb.core_Obj.length; i++) {
-            if (window.glb.core_Obj[i].my_id == my_id) {
-                dictionary_id2index[string_id] = i;
-                return window.glb.core_Obj[i];
-            }
-        }
-        return null
-    }
-    '''
     # add a ID->plane obj table
     def find_plane_by_id(self, ID):
         if ID in self.Id2PlaneLookup:

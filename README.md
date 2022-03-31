@@ -40,7 +40,7 @@ git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
 ```
 
 # Dependency
-We use docker to solve dependency: [SetupDocker](./SetupDocker.md)
+We use docker to solve dependency: [SetupDocker](./setup_docker.md)
 
 
 # Introducing the structure of HMP

@@ -18,7 +18,7 @@ class Runner(object):
     def __init__(self, process_pool):
         self.process_pool = process_pool
         self.envs = make_parallel_envs(process_pool)          # parallel environments start
-        self.mcv = self.get_a_logger(cfg.note)             # MATLAB silent logging bridge active
+        self.mcv = self.get_a_logger(cfg.note)                # MATLAB silent logging bridge active
         self.platform_controller = MMPlatform(self.mcv, self.envs)  # block infomation access between teams
         self.info_runner = {}                                       # dict of realtime obs, reward, reward, info et.al.
         self.n_agent  =  sum(cfg.scenario_config.N_AGENT_EACH_TEAM)

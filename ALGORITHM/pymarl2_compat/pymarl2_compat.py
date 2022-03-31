@@ -1,14 +1,12 @@
-from scipy.optimize import linear_sum_assignment
 import numpy as np
 import copy
 import time
 import random
-import redis, pickle
+import pickle
 import subprocess
 import json
 import os
 # from subprocess import DEVNULL
-from UTILS.colorful import print亮紫
 from UTILS.hidden_print import HiddenPrints
 from config import GlobalConfig
 
@@ -18,33 +16,27 @@ class AlgorithmConfig():
     batch_size = 2 # Number of episodes to train on
     pymarl_config_injection = {}
 
-def 加密字符串(s):
+def 加密字符串(s):  # encrpt string
     k = ''.join(['@']*1000)
     encry_str = ""
     for i,j in zip(s,k):
-        # i为字符，j为秘钥字符
         temp = str(ord(i)+ord(j))+'_'
         encry_str = encry_str + temp
     return encry_str
 
-def 解密字符串(p):
+def 解密字符串(p): # decrpt string
     k = ''.join(['@']*1000)
     dec_str = ""
     for i,j in zip(p.split("_")[:-1],k):
-        # i 为加密字符，j为秘钥字符
         temp = chr(int(i) - ord(j))
         dec_str = dec_str+temp
     return dec_str
-
 
 class PymarlFoundation():
     def init_pymarl(self):
         fp = open('%s/pymarl.log'%GlobalConfig.logdir, 'w+')
         import uuid, atexit
         self.remote_uuid = uuid.uuid1().hex   # use uuid to identify threads
-        # If code fails here, please install redis-server on ubuntu host (outside the docker container)
-        self.redis = redis.Redis(host='127.0.0.1', port=6379)
-        # self.redis.delete()
         # add basic
         AlgorithmConfig.pymarl_config_injection['config.py->GlobalConfig'] = {
             'HmpRoot': os.getcwd(),
@@ -69,16 +61,14 @@ class PymarlFoundation():
             "batch_size_run=%d"%self.n_thread,
             "batch_size=%d"%AlgorithmConfig.batch_size,
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
-            # "env_args.env_uuid=%s"%self.remote_uuid]) #, stdout=fp, stderr=fp)
         
         from UTILS.network import UnixTcpServerP2P
         unix_path = 'RECYCLE/Sockets/unix/%s'%self.remote_uuid
         self.remote_link_server = UnixTcpServerP2P(unix_path, obj='pickle')
-        atexit.register(lambda: self.__del__()) # avoid redis leaking
+        atexit.register(lambda: self.__del__()) 
         time.sleep(5)
 
     def deal_with_pymarl(self):
-        # print('deal_with_pymarl')
         while any([act is None for act in self.current_actions]):
             dgram = self.remote_link_server.wait_next_dgram()
             cmd = dgram[0]
@@ -93,24 +83,11 @@ class PymarlFoundation():
         self.team_intel = team_intel
         self.current_actions = [None]*self.n_thread 
 
-        # print亮紫(self.team_intel['ENV-PAUSE'])
-
-        # # finish previous step call
-        # self.step_callback_pymarl() 
-        # # check step_call register
-        # assert not any(self.register_step_call)
-
-        # # clear all actions, set 'NaN' action for Paused threads, note that 'NaN' differs from 'None'!
-        # self.clear_actions()
         self.deal_with_pymarl()
 
-        # info = team_intel['Latest-Team-Info']
-        # done = team_intel['Env-Suffered-Reset']
-        # step_cnt = team_intel['Current-Obs-Step']
         self.previous_action = np.array(self.current_actions)
         self.previous_ENV_PAUSE = copy.deepcopy(team_intel['ENV-PAUSE'])
         ret_action_list = np.swapaxes(np.array(self.current_actions), 0, 1)
-        # action_list = np.zeros(shape=(self.n_agent, self.n_thread, 1))
         return ret_action_list, team_intel
 
     def reset_confirm_all(self):
@@ -144,7 +121,6 @@ class PymarlFoundation():
         if remote_active_flag is None: 
             return 'entering_test_phase'
  
-
         for i, acive in enumerate(remote_active_flag):
             if not acive: continue
             env_info = self.team_intel['Latest-Team-Info'][i].copy()
@@ -163,23 +139,7 @@ class PymarlFoundation():
 
         if self.team_intel['Test-Flag']: self.remote_active_flag_T = None
         else: self.remote_active_flag_T = None
-
         return res
-        # for i, in_acive in enumerate(self.team_intel['ENV-PAUSE']) if in_acive]
-
-        # for uuid, which_env in self.uuid2threads.items():
-        #     if uuid == 'thread_cnt': continue
-        #     if not self.register_step_call[which_env]: continue
-        #     self.register_step_call[which_env] = False
-
-        #     reward = self.team_intel['Latest-Reward'][which_env]
-        #     terminated = self.team_intel['Env-Suffered-Reset'][which_env]
-        #     env_info = self.team_intel['Latest-Team-Info'][which_env].copy()
-        #     for key in ['obs-echo','state-echo','state','avail-act-echo','avail-act']:
-        #         if key in env_info: env_info.pop(key)
-        #     env_info['testing'] = self.team_intel['Test-Flag']
-        #     res = (reward, terminated, env_info)
-
 
     def get_env_info(self):
         env_info = {"state_shape": self.get_state_size(),
@@ -190,11 +150,8 @@ class PymarlFoundation():
         return env_info
 
     def __del__(self):
-        print('PymarlFoundation end, cleaning redis')
-        # self.shared_memory.close()
-        self.redis.delete('>>hmp%s'%self.remote_uuid)
-        for uuid, which_env in self.uuid2threads.items():
-            self.redis.delete('<<hmp%s'%uuid)
+        print('PymarlFoundation end, cleaning')
+        self.remote_link_server.__del__()
 
     def __init__(self, n_agent, n_thread, space, mcv):
         self.n_thread = n_thread
@@ -208,32 +165,12 @@ class PymarlFoundation():
         self.current_actions = [None for _ in range(self.n_thread)]
         self.previous_action = None
         self.previous_ENV_PAUSE = None
-        # self.register_step_call = [False for _ in range(self.n_thread)]
         self.scenario_config = GlobalConfig.scenario_config
-
         self.init_pymarl()
-
-        # missing :{'battle_won': False, 'dead_allies': 6, 'dead_enemies': 0}
-
-    def basic_io(self):
-        _, buf = self.redis.brpop('>>hmp%s'%self.remote_uuid)
-        cmd_arg = pickle.loads(buf)
-        cmd, args, uuid = cmd_arg
-        self.current_uuid = uuid
-        res = getattr(self, cmd)(*args)
-        if cmd=='step_of': # only step function need a delay
-            pass
-        elif cmd=='close':
-            raise ReferenceError
-        else:
-            self.redis.lpush('<<hmp%s'%uuid, pickle.dumps(res))
-    
 
 
     def get_current_mode(self):
         return 'Testing' if self.team_intel['Test-Flag'] else 'Training'
-
-
 
     # @basic_io_call
     def get_state_size(self):
@@ -322,23 +259,12 @@ class PymarlFoundation():
         # otherwise, normal situations
         return self.team_intel['Latest-Obs'][which_env]
 
-    # def deal_with_pymarl(self):
-    #     # print('deal_with_pymarl')
-    #     while any([act is None for act in self.current_actions]):
-    #         self.basic_io()
-    #         # print('basic_io fin')
-
     def clear_actions(self):
         self.current_actions = [None for i in range(self.n_thread)]
         for ith, paused in enumerate(self.team_intel['ENV-PAUSE']):
             if paused: 
                 assert self.previous_action[ith] is not None
                 self.current_actions[ith] = self.previous_action[ith]+np.nan
-
-
-
-
-
 
     def get_env_with_currentuuid(self):
         # mapping uuid to which_env

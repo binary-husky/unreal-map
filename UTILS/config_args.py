@@ -2,6 +2,11 @@ import argparse, os, time, func_timeout
 from shutil import copyfile, copytree, ignore_patterns
 from .colorful import *
 
+class ChainVar(object):
+    def __init__(self, chain_func, chained_with):
+        self.chain_func = chain_func
+        self.chained_with = chained_with
+
 def secure_chained_vars(default_cfg, new_cfg, vb):
     default_cfg_dict = default_cfg.__dict__
     altered_cv = []
