@@ -106,7 +106,7 @@ class World(object):
         self.contact_margin = 1e-3
         # number of steps that have been taken
         self.steps = 0
-        self.max_steps_episode = 50
+        self.MaxEpisodeStep = 50
 
     # return all entities in the world
     @property

@@ -17,6 +17,7 @@ import uuid
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
 from UTILS.network import find_free_port
+from config import GlobalConfig
 
 class XSimManager(object):
     def __init__(self, time_ratio: int, image_name: str = 'fuqingxu/bvrsim:trim'):
@@ -28,7 +29,8 @@ class XSimManager(object):
         # logging.info('当前引擎地址：{}'.format(self.address))
         self.domain_group = self.port
         self.xsim_run_num = self.port   # xsim环境运行编号(run_num)
-        self.docker_name = 'xsim_' + str(self.xsim_run_num)  # 启动的容器名称
+        self.docker_name = 'xsim_%s_%s'%(GlobalConfig.machine_info['ExpUUID'][:8], str(self.xsim_run_num))  # 启动的容器名称
+        self.stop_docker_group = 'xsim_%s'%(GlobalConfig.machine_info['ExpUUID'][:8])  # 启动的容器名称
         self.solo_uuid = ''
         self.__start_env()
         atexit.register(self.__del__)
@@ -66,7 +68,8 @@ class XSimManager(object):
         # 1、如果没用hmp的docker，请设置好 YOUR_ROOT_PASSWORD，不止这一处，请全局搜索"YOUR_ROOT_PASSWORD"替换所有
         # 2、用docker的sock挂载到容器中，方法在SetupDocker.md中
         YOUR_ROOT_PASSWORD = 'clara'
-        docker_stop = 'docker stop -t 0 ' + self.docker_name
+        docker_stop = "docker stop -t 0 $(sudo docker ps | grep %s | awk \'{print $ 1}\')"%self.stop_docker_group
+        # docker_stop = 'docker stop -t 0 ' + self.stop_docker_group
         cmd = 'echo %s|sudo -S %s' % (YOUR_ROOT_PASSWORD, docker_stop)
         print亮红('[xsim_manager.py] os.system(%s)'%cmd)
         os.system(cmd)

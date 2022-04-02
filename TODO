@@ -9,6 +9,9 @@ Line2
 
 延长训练时间，缩减学习率
 
+spark:
+预测avail act， 可否辅助提取更多特征？
+
 optimize find_by_id
 
 reward:

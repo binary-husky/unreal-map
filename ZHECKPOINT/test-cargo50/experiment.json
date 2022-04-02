@@ -21,7 +21,7 @@
 
 
     "MISSIONS.sr_tasks.multiagent.scenarios.cargo.py->ScenarioConfig": {
-        "max_steps_episode": 150,
+        "MaxEpisodeStep": 150,
         "n_worker": 50,
         "weight_percent": 0.8,
         "n_cargo": 4,

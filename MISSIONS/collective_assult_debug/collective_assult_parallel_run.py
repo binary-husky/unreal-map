@@ -36,8 +36,8 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     introduce_terrain = False
     terrain_parameters = [0, 0]
 
-    max_steps_episode = 180
-    max_steps_episode_cv = ChainVar(lambda num_steps:num_steps, chained_with=['num_steps'])
+    MaxEpisodeStep = 180
+    MaxEpisodeStep_cv = ChainVar(lambda num_steps:num_steps, chained_with=['num_steps'])
 
     init_distance = 4  # 5-2,5+2
     render = False
@@ -75,11 +75,11 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
         }, chained_with=['num_guards','num_attackers']) 
 
     dec_dictionary = {'alive':0, 'pos':range(1,3), 'ang':3, 'vel':range(4,6), 'id':6}
-    state_provided = False
-    avail_act_provided = False
+    StateProvided = False
+    AvailActProvided = False
     RewardAsUnity = False
     ObsAsUnity = False   # 减少IPC负担
-    entity_oriented = True
+    EntityOriented = True
 
     # 调试
     MCOM_DEBUG = False

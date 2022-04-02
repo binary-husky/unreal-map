@@ -25,7 +25,7 @@ def convert_to_pole2D(vec):
 
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
     discrete_action = True
-    max_steps_episode = 200
+    MaxEpisodeStep = 200
 
     reach_distance = 0.07
 
@@ -417,7 +417,7 @@ class Scenario(BaseScenario):
         return reward
 
     def done(self, agent, world):
-        condition1 = world.steps >= world.max_steps_episode
+        condition1 = world.steps >= world.MaxEpisodeStep
         condition_success = self.cargo_all_delivered
         return condition1 or condition_success
 
@@ -448,7 +448,7 @@ class Scenario(BaseScenario):
         self.cargo = None
         self.cargo_drop_off = None
         self.reset_world(world)
-        world.max_steps_episode = ScenarioConfig.max_steps_episode
+        world.MaxEpisodeStep = ScenarioConfig.MaxEpisodeStep
         return world
 
     @staticmethod

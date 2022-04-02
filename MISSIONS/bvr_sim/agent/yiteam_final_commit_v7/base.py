@@ -421,10 +421,6 @@ class MS(object):
             self.ms_speed.append(self.Speed)
         self.ter_dis_est, self.ter_ms_speed = self.estimate_terminal_dis()
 
-        ### print亮红('ID', self.ID, 'impact dst warning! ', self.ter_dis_est)
-        # if (not hasattr(self.target,'OpLeftWeapon')) and self.tracking_target: # 我方是目标
-        #     with open('./log/%s'%str(self.ID), 'a+') as f:
-        #         f.write('导弹速度 %.2f, 目标距离 %.2f, T估计 %.2f, %s \n'%(self.Speed, self.distance[-1], self.ter_dis_est, str(self.dis_arr)))
         self.impact_eta = len(self.dis_arr) - 1
 
         self.debug_estimate_next_pos = self.pos3d.copy()
@@ -438,7 +434,6 @@ class MS(object):
             self.target.h_angle * np.pi / 180)
         self.debug_estimate_uav_next_pos[1] += self.target.Speed * np.cos(self.target.Pitch) * np.sin(
             self.target.h_angle * np.pi / 180)
-
 
         self.previous_speed = self.Speed
         self.previous_pos3d = self.pos3d
@@ -705,7 +700,7 @@ class Baseclass(Agent):
         yc = (2*np.random.rand() - 1)*random_max_y
         zc = Special.init_Z
 
-        init_dir = 90 if self.name == "red" else (360 - 90)
+        init_dir =    90 if self.name == "red"  else (360 - 90)
         op_init_dir = 90 if self.name == "blue" else (360 - 90)
         interval_distance = 42e3
         in_squad_distance = 20e3
@@ -740,14 +735,17 @@ class Baseclass(Agent):
                 xc, 
                 y,
                 zc,
-                Special.init_speed_drone, init_dir))
+                Special.init_speed_vip if p.is_vip else Special.init_speed_drone, 
+                init_dir))
 
             op = self.find_plane_by_name(reverse_op[p.Name])
+            yop = YMid + (interval_distance + in_squad_order*5000)
             cmd_list.append(CmdEnv.make_entityinitinfo(op.ID,
                 -xc, 
-                -y,
+                yop,
                 zc,
-                Special.init_speed_drone, op_init_dir))
+                Special.init_speed_drone, 
+                op_init_dir))
 
         for p in squad_2_mem:
             in_squad_order = arrange_order[p.Name]
@@ -756,14 +754,17 @@ class Baseclass(Agent):
                 xc, 
                 y,
                 zc,
-                Special.init_speed_drone, init_dir))
+                Special.init_speed_vip if p.is_vip else Special.init_speed_drone, 
+                init_dir))
                 
             op = self.find_plane_by_name(reverse_op[p.Name])
+            yop = YMid - (interval_distance - in_squad_order*5000)
             cmd_list.append(CmdEnv.make_entityinitinfo(op.ID,
                 -xc, 
-                -y,
+                yop,
                 zc,
-                Special.init_speed_drone, op_init_dir))
+                Special.init_speed_drone, 
+                op_init_dir))
         return 
 
     # # 初始化位置

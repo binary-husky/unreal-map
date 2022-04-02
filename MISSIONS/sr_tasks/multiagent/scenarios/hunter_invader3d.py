@@ -53,7 +53,7 @@ class ScenarioConfig(object):
     }
 
     discrete_action = True
-    max_steps_episode = 200
+    MaxEpisodeStep = 200
     arena_size = Unit(m=140)
     num_MPE_agent = hunter_num + invader_num
     nest_center_pos = np.array([Unit(m=0), Unit(m=0), Unit(m=0)])
@@ -428,7 +428,7 @@ class Scenario(BaseScenario):
         return distance, distance_landmark
 
     def done(self, agent, world):
-        condition1 = world.steps >= world.max_steps_episode
+        condition1 = world.steps >= world.MaxEpisodeStep
         # if self.show_off and condition1:
         #     print('time up reset')
         self.is_success = False if self.hunter_failed else True
@@ -501,7 +501,7 @@ class Scenario(BaseScenario):
             landmark.boundary = False
         # make initial conditions
         self.reset_world(world)
-        world.max_steps_episode = ScenarioConfig.max_steps_episode
+        world.MaxEpisodeStep = ScenarioConfig.MaxEpisodeStep
         self.hunters = [agent for agent in world.agents if not agent.IsInvader]
         self.invaders = [agent for agent in world.agents if agent.IsInvader]
         self.landmarks = world.landmarks

@@ -53,7 +53,7 @@ class ScenarioConfig(object):
     }
 
     discrete_action = True
-    max_steps_episode = 140
+    MaxEpisodeStep = 140
     arena_size = Unit(m=140)
     num_MPE_agent = hunter_num + invader_num
     nest_center_pos = np.array([Unit(m=0), Unit(m=0), Unit(m=0)])
@@ -209,7 +209,7 @@ class Scenario(BaseScenario):
             2.5,
             -1.6,
             ro_x=0, ro_y=0, ro_z=0,  # Euler Angle y-x-z
-            label='Time %d/%d'%(self.step, ScenarioConfig.max_steps_episode), 
+            label='Time %d/%d'%(self.step, ScenarioConfig.MaxEpisodeStep), 
             label_color='BlueViolet', 
             opacity=0
         )
@@ -312,7 +312,7 @@ class Scenario(BaseScenario):
         # 初始化奖励列表
         hunter_reward = np.array([0.] * self.num_hunters)
         invader_reward = np.array([0.] * self.num_invaders)
-        win_cond1 = world.steps >= world.max_steps_episode
+        win_cond1 = world.steps >= world.MaxEpisodeStep
         win_cond2 = self.threat_clear
         win_cond = win_cond1 or win_cond2
         loss_cond = self.hunter_failed
@@ -454,7 +454,7 @@ class Scenario(BaseScenario):
         return distance, distance_landmark
 
     def done(self, agent, world):
-        win_cond1 = world.steps >= world.max_steps_episode
+        win_cond1 = world.steps >= world.MaxEpisodeStep
         win_cond2 = self.threat_clear
         win_cond = win_cond1 or win_cond2
         self.is_success = win_cond
@@ -531,7 +531,7 @@ class Scenario(BaseScenario):
             landmark.boundary = False
         # make initial conditions
         # self.reset_world(world)
-        world.max_steps_episode = ScenarioConfig.max_steps_episode
+        world.MaxEpisodeStep = ScenarioConfig.MaxEpisodeStep
         self.hunters = [agent for agent in world.agents if not agent.IsInvader]
         self.invaders = [agent for agent in world.agents if agent.IsInvader]
         self.landmarks = world.landmarks

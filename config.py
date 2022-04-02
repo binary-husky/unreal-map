@@ -3,11 +3,7 @@ import numpy as np
 from UTILS.colorful import *
 from UTILS.config_args import ChainVar
 
-'''
-    this a chained var process, it deal with hyper-parameters that are bound together, 
-    e.g. number of threads and test episode interval.
-    ChainVars are handled in utils.config_args.py
-'''
+
 
 
 '''

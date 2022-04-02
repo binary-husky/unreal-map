@@ -18,5 +18,5 @@ Generally, you can safely ignore them and only pay attention to fields below.
 | TEAM_NAMES    | ```list (of string)``` | use which ALGORITHM to control each team, fill the path of chosen algorithm and its main class name, e.g.```"ALGORITHM.conc.foundation->ReinforceAlgorithmFoundation"``` | 选择每支队伍的控制算法，填写控制算法主模块的路径和类名|
 | RewardAsUnity    | ```bool``` | Shared reward, or each agent has individual reward signal | 每个队伍的智能体共享集体奖励（True），或者每个队伍的智能体都独享个体奖励（False）  |
 | ObsAsUnity    | ```bool``` | Agents do not has individual observation, only shared collective observation | 没有个体观测值，整个群体的观测值获取方式如同单智能体问题一样  |
-| state_provided    | ```bool``` | Whether the global state is provided in training. If True, the Algorithm can access both ```obs``` and ```state``` during training  | 是否在训练过程中提供全局state  |
+| StateProvided    | ```bool``` | Whether the global state is provided in training. If True, the Algorithm can access both ```obs``` and ```state``` during training  | 是否在训练过程中提供全局state  |
 

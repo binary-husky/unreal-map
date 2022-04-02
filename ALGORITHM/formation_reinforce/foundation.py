@@ -63,7 +63,7 @@ class ReinforceAlgorithmFoundation(object):
         # self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         # from .trajectory import BatchTrajManager
         # self.batch_traj_manager = BatchTrajManager(n_env=n_thread,
-        #                                            traj_limit=int(scenario_config.max_steps_episode), 
+        #                                            traj_limit=int(scenario_config.MaxEpisodeStep), 
         #                                            trainer_hook=self.trainer.train_on_traj,
         #                                            mcv=mcv)
         # self.load_checkpoint = AlgorithmConfig.load_checkpoint

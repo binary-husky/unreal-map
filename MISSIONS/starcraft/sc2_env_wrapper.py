@@ -89,12 +89,12 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     )
 
 
-    state_provided = True
-    avail_act_provided = True
+    StateProvided = True
+    AvailActProvided = True
 
 
-    max_steps_episode = map_param_registry[map_]['limit']
-    max_steps_episode_cv = ChainVar(
+    MaxEpisodeStep = map_param_registry[map_]['limit']
+    MaxEpisodeStep_cv = ChainVar(
         lambda map_: map_param_registry[map_]['limit'], 
         chained_with=['map_']
     )
@@ -105,13 +105,13 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
         chained_with=['map_']
     )
     obs_vec_length = -1
-    entity_oriented = False
+    EntityOriented = False
 
     obs_shape = 'Auto Load'
     state_shape = 'Auto Load'
 
     return_mat = False
-    block_invalid_action = True # sc2 中，需要始终屏蔽掉不可用的动作
+    AvailActProvided = True # sc2 中，需要始终屏蔽掉不可用的动作
     reward_sparse=False
     render = False
 

@@ -83,7 +83,7 @@ class ReinforceAlgorithmFoundation(object):
         self.policy = GNet(num_agents=self.n_agent, num_entities=self.n_entity, basic_vec_len=self.n_basic_dim).to(self.device)
         self.trainer = PPO(self.policy, mcv=mcv)
 
-        self.batch_traj_manager = BatchTrajManager(n_env=n_thread, traj_limit=scenario_config.max_steps_episode*3, trainer_hook=self.trainer.train_on_traj)
+        self.batch_traj_manager = BatchTrajManager(n_env=n_thread, traj_limit=scenario_config.MaxEpisodeStep*3, trainer_hook=self.trainer.train_on_traj)
 
         self._division_obsR_init = None
         self._division_obsL_init = None

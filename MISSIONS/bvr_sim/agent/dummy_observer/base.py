@@ -2,7 +2,7 @@ from typing import List
 from ..agent import Agent
 from ..env_cmd import CmdEnv
 from UTILS.colorful import *
-from UTILS.tensor_ops import dir2rad, np_softmax, reg_deg_at, repeat_at
+from UTILS.tensor_ops import dir2rad, np_softmax, reg_deg_at, repeat_at, reg_rad
 from .maneuver import maneuver_cold_to_ms, maneuver_vertical_to_ms, maneuver_angle_to_ms
 import copy
 import random
@@ -46,9 +46,16 @@ class Drone():
     MaxAcc = 2
     MaxOverload = 12
 
+    # 无人机雷达
+    #     1) 探测方位范围： [-30 度, 30 度]
+    #     2) 探测俯仰范围： [-10 度, 10 度]
+    #     3) 探测距离范围： 60 公里
+
     RadarHorizon = 30
-    RadarVertical = 10
-    RadarDis = 39e3
+    RadarVertical = 30
+    RadarDis = 60e3
+
+
 
     AttackRadarHorizon = 20
     AttackRadarVertical = 10
@@ -80,9 +87,16 @@ class Vip():
     MinHeight = 2000
     MaxAcc = 1
     MaxOverload = 6
+
+    # 有人机雷达
+    #     1) 探测方位范围： [-60 度, 60 度]
+    #     2) 探测俯仰范围： [-60 度, 60 度]
+    #     3) 探测距离范围： 80 公里
+
+
     RadarHorizon = 60
     RadarVertical = 60
-    RadarDis = 58e3
+    RadarDis = 80e3
 
     AttackRadarHorizon = 50
     AttackRadarVertical = 50
@@ -113,6 +127,7 @@ class Plane(object):
         self.attacked_by_ms = []
         self.previous_ms_list = []
         self.latest_update_time = 0
+        self.KIA = False
 
     def update_info(self, data, sim_time, init=False):
         self.latest_update_time = sim_time
@@ -233,6 +248,7 @@ class MS(object):
         self.debug_estimate_next_pos = None
         self.debug_estimate_uav_next_pos = None
         self.latest_update_time = 0
+        self.KIA = False
 
     def estimate_terminal_dis(self):
         p_dis = self.distance[-1]
@@ -418,7 +434,10 @@ class Baseclass(Agent):
     def find_plane_by_name(self, name):
         if name in self.Name2PlaneLookup:
             if (self.Name2PlaneLookup[name].Name == name):
-                return self.Name2PlaneLookup[name]
+                if self.Name2PlaneLookup[name].KIA:
+                    return None
+                else:
+                    return self.Name2PlaneLookup[name]
 
         # otherwise, no match, or dictionary with no record
         for p in self.my_planes + self.op_planes:
@@ -438,7 +457,10 @@ class Baseclass(Agent):
     def find_plane_by_id(self, ID):
         if ID in self.Id2PlaneLookup:
             if (self.Id2PlaneLookup[ID].ID == ID):
-                return self.Id2PlaneLookup[ID]
+                if self.Id2PlaneLookup[ID].KIA:
+                    return None
+                else:
+                    return self.Id2PlaneLookup[ID]
 
         # otherwise, no match, or dictionary with no record
         for p in self.my_planes + self.op_planes:
@@ -455,8 +477,10 @@ class Baseclass(Agent):
     def find_ms_by_id(self, ID):
         if ID in self.Id2MissleLookup:
             if (self.Id2MissleLookup[ID].ID == ID):
-                return self.Id2MissleLookup[ID]
-
+                if self.Id2MissleLookup[ID].KIA:
+                    return None
+                else:
+                    return self.Id2MissleLookup[ID]
         for ms in self.ms:
             if ms.ID == ID: 
                 self.Id2MissleLookup[ID] = ms
@@ -470,16 +494,6 @@ class Baseclass(Agent):
 
     # 加载观测量
     def my_process_observation_and_show(self, obs_side, sim_time):
-        reward_related_info = {
-            'my_plane_fallen': 0,
-            'op_plane_fallen': 0,
-            'my_ms_miss_dead': 0,
-            'op_ms_miss_dead': 0,
-            'my_ms_miss_alive': 0,
-            'op_ms_miss_alive': 0,
-            'my_ms_hit': 0,
-            'op_ms_hit': 0,
-        }
 
         # need init?
         if self.my_planes is None:
@@ -513,7 +527,17 @@ class Baseclass(Agent):
         # part 1
         my_entity_infos = obs_side['platforminfos']
         enemy_entity_infos = obs_side['trackinfos']
-        if len(my_entity_infos) < 1: return reward_related_info
+        if len(my_entity_infos) < 1:
+            return {
+                'my_plane_fallen': 0,
+                'op_plane_fallen': 0,
+                'my_ms_miss_dead': 0,
+                'op_ms_miss_dead': 0,
+                'my_ms_miss_alive': 0,
+                'op_ms_miss_alive': 0,
+                'my_ms_hit': 0,
+                'op_ms_hit': 0,
+            }
         for uvas_info in (my_entity_infos + enemy_entity_infos):
             if not (uvas_info['ID'] != 0 and uvas_info['Availability'] > 0.0001): continue 
             uvas_info["Z"] = uvas_info["Alt"]
@@ -541,8 +565,8 @@ class Baseclass(Agent):
                 target.attacked_by_ms.append(missile_info)
             # if host_id in target.hanging_attack_by: target.hanging_attack_by.remove(host_id)    # hanging_attack_by
             ms = self.find_ms_by_id(missile_info["ID"])
-            missile_info.update({ 'host':host, 'target':target })
             if ms is None:
+                missile_info.update({ 'host':host, 'target':target })
                 self.ms.append(MS(missile_info))
                 if host is not None and hasattr(host, 'OpLeftWeapon'):
                     host.OpLeftWeapon -= 1
@@ -556,44 +580,72 @@ class Baseclass(Agent):
 
             everything.append(missile_info) # for grand dis matrix calculation
 
+        # part 3 distance matrix
+        everything_pos = np.array([np.array([p['X'], p['Y'], p['Z']]) for p in everything])
+        self.id2index = {p['ID']: i for i, p in enumerate(everything)}
+        self.active_index = self.id2index
+        self.everything_dis = distance_matrix(everything_pos)
+        Plane.dis_mat = self.everything_dis
+        Plane.dis_mat_id2index = self.id2index
+
+        for m in self.ms:
+            if not m.alive: 
+                m.KIA = True
+                m.end_life()
+
+        for p in (self.my_planes+self.op_planes):
+            if not p.alive: p.KIA = True
+
+        for p in self.my_planes:
+            p.in_radar = self.get_in_radar_op(p)
+
+        for op in self.op_planes:
+            op.in_radar = self.get_in_radar_me(op)
+
+        
+        return self.reward_related_info(sim_time)
 
 
-        # reward_related_info = {
-        #     'my_plane_fallen': 0,
-        #     'op_plane_fallen': 0,
-        #     'my_ms_miss_dead': 0,
-        #     'op_ms_miss_dead': 0,
-        #     'my_ms_miss_alive': 0,
-        #     'op_ms_miss_alive': 0,
-        #     'my_ms_hit': 0,
-        #     'op_ms_hit': 0,
-        # }
-        ## something about reward
+
+
+
+    def reward_related_info(self, sim_time):
+        reward_related_info = {
+            'my_plane_fallen': 0,
+            'op_plane_fallen': 0,
+            'my_ms_miss_dead': 0,
+            'op_ms_miss_dead': 0,
+            'my_ms_miss_alive': 0,
+            'op_ms_miss_alive': 0,
+            'my_ms_hit': 0,
+            'op_ms_hit': 0,
+        }
         # <1> reward on fallen fighters
         # if a plane does not update its info, it's down
         for p in self.my_planes:
-            if (p.latest_update_time != sim_time) and (p.latest_update_time == sim_time-1):
+            if (p.latest_update_time == sim_time-1):
                 # just be destoried
                 reward_related_info["my_plane_fallen"] += 1
         for op in self.op_planes:
-            if (op.latest_update_time != sim_time) and (op.latest_update_time == sim_time-1):
+            if (op.latest_update_time == sim_time-1):
                 # just be destoried
                 reward_related_info["op_plane_fallen"] += 1
 
         # <2> reward on escaping ms
         for ms in self.ms:
-            if (ms.latest_update_time != sim_time) and (ms.latest_update_time == sim_time-1):
+            if (ms.latest_update_time == sim_time-1):
                 # ms hit or miss
                 # if ms.target.alive:
                 #     print('missle miss')
                 # else 
-                if (not ms.target.alive) and (ms.target.latest_update_time == sim_time-1):
+                target_dead = (not ms.target.alive)
+                if target_dead and (ms.target.latest_update_time == sim_time-1):
                     # nice shoot
                     if ms.is_op_ms:
                         reward_related_info['op_ms_hit'] += 1
                     else:
                         reward_related_info['my_ms_hit'] += 1
-                elif (not ms.target.alive):
+                elif target_dead:
                     # target is already dealt with by other ms
                     if ms.is_op_ms:
                         reward_related_info['op_ms_miss_dead'] += 1
@@ -609,21 +661,46 @@ class Baseclass(Agent):
                 else:
                     assert False, "pretty sure there cannot be other possibilities"
 
-        # part 3 distance matrix
-        everything_pos = np.array([np.array([p['X'], p['Y'], p['Z']]) for p in everything])
-        self.id2index = {p['ID']: i for i, p in enumerate(everything)}
-        self.active_index = self.id2index
-        self.everything_dis = distance_matrix(everything_pos)
-        Plane.dis_mat = self.everything_dis
-        Plane.dis_mat_id2index = self.id2index
-        for m in self.ms:
-            if not m.alive: m.end_life()
-
         return reward_related_info
 
-    def get_reward(self):
-        # red_destory, blue_destory = 
-        return 0
+    def get_in_radar_me(self, op): #
+        in_radar = [] #
+        if op.KIA: return in_radar
+        for p in self.my_planes: # 
+            if p.KIA: continue
+            dis = self.get_dis(p.ID, op.ID) #
+            if dis > op.RadarDis: #
+                continue
+            # 检查角度是否满足
+            delta = p.pos2d - op.pos2d  #
+            theta = 90 - op.Heading * 180 / np.pi   #
+            theta = reg_rad(theta*np.pi/180)
+            delta2 = np.matmul(np.array([[np.cos(theta), np.sin(theta)],
+                                         [-np.sin(theta), np.cos(theta)]]), delta.T)
+            deg = dir2rad(delta2) * 180 / np.pi
+            if deg >= -op.RadarHorizon and deg <= op.RadarHorizon:
+                in_radar.append(p)
+        return in_radar
+
+    # 获取进入飞机雷达范围内的敌机
+    def get_in_radar_op(self, p):
+        in_radar = []
+        if p.KIA: return in_radar
+        for op in self.op_planes:
+            if op.KIA: continue
+            dis = self.get_dis(op.ID, p.ID)
+            if dis > p.RadarDis:
+                continue
+            # 检查角度是否满足
+            delta = op.pos2d - p.pos2d
+            theta = 90 - p.Heading * 180 / np.pi
+            theta = reg_rad(theta*np.pi/180)
+            delta2 = np.matmul(np.array([[np.cos(theta), np.sin(theta)],
+                                         [-np.sin(theta), np.cos(theta)]]), delta.T)
+            deg = dir2rad(delta2) * 180 / np.pi
+            if deg >= -p.RadarHorizon and deg <= p.RadarHorizon:
+                in_radar.append(op)
+        return in_radar
 
 
     def id2index(self, arr):
@@ -956,3 +1033,125 @@ class Baseclass(Agent):
             return False, None
 
 
+
+
+
+'''
+有人机平台
+    1) 最大速度： 400 米/秒
+    2) 最小速度： 150 米/秒
+    3) 最高飞行高度： 15000 米
+    4) 最低飞行高度： 2000 米
+    5) 最大加速度： 1G（G = 9.8 米/平方秒）
+    6) 最大法向过载： 6G
+    7) 挂载武器： 4 枚中距空空导弹
+
+有人机雷达
+    1) 探测方位范围： [-60 度, 60 度]
+    2) 探测俯仰范围： [-60 度, 60 度]
+    3) 探测距离范围： 80 公里
+
+无人机平台
+    1) 最大速度： 300 米/秒
+    2) 最小速度： 100 米/秒
+    3) 最高飞行高度： 10000 米
+    4) 最低飞行高度： 2000 米
+    5) 最大加速度： 2G（G = 9.8 米/平方秒）
+    6) 最大法向过载： 12G
+    7) 挂载武器： 2 枚中距空空导弹
+
+无人机雷达
+    1) 探测方位范围： [-30 度, 30 度]
+    2) 探测俯仰范围： [-10 度, 10 度]
+    3) 探测距离范围： 60 公里
+
+空空导弹
+    1) 最大速度： 1000 米/秒
+    2) 最小速度： 400 米/秒
+    3) 最高飞行高度： 30000 米
+    4) 最低飞行高度： 2000 米
+    5） 最大加速度： 10G（G = 9.8 米/平方秒）
+    5) 最大法向过载： 20G
+    6) 最大飞行时间： 120 秒
+    7) 最大飞行距离： 100 公里
+    8) 导引头截获距离： 20 公里
+    9) 杀伤半径： 100 米
+    10) 发动机工作时间： 30 秒（发动机停止工作后，导弹减速）
+
+
+指令说明 make_entityinitinfo
+功能说明 初始化实体的位置姿态信息
+参数含义
+receiver 执行指令的飞机编号（整型，举例： 11）
+x 目标点 x 轴坐标（浮点型，单位：米）
+y 目标点 y 轴坐标（浮点型，单位：米）
+z 目标点 z 轴坐标（浮点型，单位：米）
+init_speed 初始速度(浮点型， 单位：米/秒)
+init_heading 初始朝向(浮点型， 单位：度， [0,360]，与正北方向的夹角)
+调用和构建指令示例
+Cmd = EnvCmd.make_entityinitinfo(11, 150000, -100000, 3000, 200, 30)
+
+指令说明 make_linepatrolparam
+功能说明 航线巡逻
+参数含义
+receiver 执行指令的飞机编号（整型，举例： 11）
+coord_list
+航路点列表
+（每个列表元素为一个包含浮点型 x,y,z 的路径点，单位：米）
+cmd_speed 巡逻速度(浮点型， 单位：米/秒)
+cmd_accmag 指令加速度(浮点型， 单位：米/平方秒)
+cmd_g 指令过载(浮点型，单位： G)
+调用和构建指令示例
+#航路点列表
+coord_list = [{"x": 500, "y": 400, "z": 2000},{"x": 900, "y": 300, "z": 3000}];
+#构建指令
+Cmd = EnvCmd.make_linepatrolparam(11, coord_list, 250, 1.0, 3)
+
+指令说明 make_areapatrolparam
+功能说明 区域巡逻
+参数含义
+receiver 执行指令的飞机编号（整型，举例： 11）
+x 区域中心 x 轴坐标（浮点型，单位：米）
+y 区域中心 y 轴坐标（浮点型，单位：米）
+z 区域中心 z 轴坐标（浮点型，单位：米）
+area_length 区域长度（浮点型，单位：米）
+area_width 区域宽度（浮点型，单位：米）
+cmd_speed 巡逻速度（浮点型，单位：米/秒）
+cmd_accmag 指令加速度(浮点型， 单位：米/平方秒)
+cmd_g 指令过载(浮点型，单位： G)
+调用和构建指令示例
+
+指令说明 make_areapatrolparam
+功能说明 区域巡逻
+参数含义
+receiver 执行指令的飞机编号（整型，举例： 11）
+x 区域中心 x 轴坐标（浮点型，单位：米）
+y 区域中心 y 轴坐标（浮点型，单位：米）
+z 区域中心 z 轴坐标（浮点型，单位：米）
+area_length 区域长度（浮点型，单位：米）
+area_width 区域宽度（浮点型，单位：米）
+cmd_speed 巡逻速度（浮点型，单位：米/秒）
+cmd_accmag 指令加速度(浮点型， 单位：米/平方秒)
+cmd_g 指令过载(浮点型，单位： G)
+调用和构建指令示例
+
+指令说明 make_followparam
+功能说明 跟随机动
+参数含义
+receiver 执行指令的飞机编号（整型，举例： 11）
+tgt_id 目标飞机编号（整型， 友方敌方飞机均可，举例： 3）
+cmd_speed 指令速度（浮点型，单位：米/秒）
+cmd_accmag 指令加速度(浮点型， 单位：米/平方秒)
+cmd_g 指令过载(浮点型，单位： G)
+调用和构建指令示例
+Cmd = EnvCmd. make_followparam(11, 3, 200, 1.0, 4.0)
+
+指令说明 make_attackparam
+功能说明 打击目标
+参数含义
+receiver 执行指令的飞机编号（整型，举例： 11）
+tgt_id 敌方飞机编号（整型，举例： 2）
+fire_range 开火范围（浮点型，最大探测范围的比例， [0,1]）
+调用和构建指令示例
+Cmd = EnvCmd. make_attackparam(11, 2, 0.6)
+'''

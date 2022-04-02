@@ -106,7 +106,7 @@ class Scenario(BaseScenario):
         return default_obs
 
     def done(self, agent, world):
-        condition1 = world.steps >= world.max_steps_episode
+        condition1 = world.steps >= world.MaxEpisodeStep
         self.is_success = np.all(self.delta_dists < self.dist_thres)
         return condition1 or self.is_success
 

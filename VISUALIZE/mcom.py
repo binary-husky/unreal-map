@@ -436,7 +436,8 @@ class DrawProcessThreejs(Process):
         if self.allow_backup:
             if os.path.exists(self.backup_file):
                 print亮红('[mcom.py]: warning, purge previous 3D visual data!')
-                os.remove(self.backup_file)
+                try: os.remove(self.backup_file)
+                except: pass
         self.client_tokens = {}
 
     def init_threejs(self):

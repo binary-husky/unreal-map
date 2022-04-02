@@ -25,7 +25,7 @@ def convert_to_pole2D(vec):
 
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
     discrete_action = True
-    max_steps_episode = 150
+    MaxEpisodeStep = 150
 
     reach_distance = 0.07
 
@@ -195,8 +195,8 @@ class Scenario(BaseScenario):
             'ball|%d|%s|%.2f'%(2000, color, 0.2),
             0, 2, 
             1,  ro_x=0, ro_y=-0, ro_z=0,
-            label='Exposure ETA %d'%(ScenarioConfig.max_steps_episode-world.steps), 
-            label_color='Blue' if (ScenarioConfig.max_steps_episode-world.steps)>25 else 'Red',
+            label='Exposure ETA %d'%(ScenarioConfig.MaxEpisodeStep-world.steps), 
+            label_color='Blue' if (ScenarioConfig.MaxEpisodeStep-world.steps)>25 else 'Red',
             opacity=0,
         )
         self.threejs_bridge.v2d_show()
@@ -224,7 +224,7 @@ class Scenario(BaseScenario):
                     np.concatenate(
                         (entity.state.p_pos,[0], # pos3d
                          entity.state.p_vel,[0], # vel3d
-                         [1, entity.dragging, -1, -1, -1, world.steps/ScenarioConfig.max_steps_episode])      
+                         [1, entity.dragging, -1, -1, -1, world.steps/ScenarioConfig.MaxEpisodeStep])      
                          # self-weight, // dragging-who, dispose-for-who, target-weight, weight-rem, env_step
                     )
                     for entity in world.agents]
@@ -237,7 +237,7 @@ class Scenario(BaseScenario):
                     np.concatenate(
                         (cargo_pos,[0],
                          [0, 0, 0],    # 空着也是空着，加点其他的信息
-                         [weight, -1, -1, -1, weight-len(dragged_by_L), world.steps/ScenarioConfig.max_steps_episode]
+                         [weight, -1, -1, -1, weight-len(dragged_by_L), world.steps/ScenarioConfig.MaxEpisodeStep]
                          # self-weight, // dragging-who, dispose-for-who, target-weight, weight-rem, env_step
                         )
                     )
@@ -251,7 +251,7 @@ class Scenario(BaseScenario):
                     np.concatenate(
                         (drop_off_pos,[0],
                          [0, 0, 0],
-                         [-1, -1, corrisponding_cargo, -1, -1, world.steps/ScenarioConfig.max_steps_episode])
+                         [-1, -1, corrisponding_cargo, -1, -1, world.steps/ScenarioConfig.MaxEpisodeStep])
                          # self-weight, // dragging-who, dispose-for-who, target-weight, weight-rem, env_step
                     )
                     for corrisponding_cargo, drop_off_pos in enumerate(self.cargo_drop_off)]
@@ -492,7 +492,7 @@ class Scenario(BaseScenario):
 
     def done(self, agent, world):
         # DEBUG!!
-        condition1 = world.steps >= world.max_steps_episode
+        condition1 = world.steps >= world.MaxEpisodeStep
         # print(world.steps, q)
         condition_success = self.cargo_all_delivered
         return condition1 or condition_success
@@ -524,7 +524,7 @@ class Scenario(BaseScenario):
         self.cargo = None
         self.cargo_drop_off = None
         self.reset_world(world)
-        world.max_steps_episode = ScenarioConfig.max_steps_episode
+        world.MaxEpisodeStep = ScenarioConfig.MaxEpisodeStep
         return world
 
     @staticmethod

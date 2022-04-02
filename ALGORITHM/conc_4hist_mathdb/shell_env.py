@@ -71,10 +71,12 @@ class ShellEnvWrapper(object):
             obs = repeat_at(obs, insert_dim=-2, n_times=self.n_entity_placeholder//2, copy_mem=True)
             obs[:,:,2:] = np.nan    # 0 is self; 1 is repeated self; 2,3,... is NaN
         P = State_Recall['ENV-PAUSE']
+        RST = State_Recall['Env-Suffered-Reset']
 
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         his_pool_obs = State_Recall['_Histpool_Obs_'] if '_Histpool_Obs_' in State_Recall \
             else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])
+        his_pool_obs[RST] = 0
 
         obs_feed = obs[~P]
         his_pool_obs_feed = his_pool_obs[~P]

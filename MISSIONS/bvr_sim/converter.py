@@ -199,7 +199,126 @@ class Converter:
 
         return self.action_dim_corr_dict, self.action_sel_corr_dict
 
+
+    # self.raw_obs["sim_time"]
+
+    def get_actions(self, p, AT, TT, cmd_buffer):
+        # switch case for AT
+        if AT==0:   # Do nothing
+            pass
+        elif AT==1: # parse_act_case_track
+            # if '有人机' in p.Name: print(p.Name, 'Track命令', 'AT', AT, 'TT', TT)
+            cmd_buffer = self.parse_act_case_track(cmd_buffer, p, TT, rad=0)
+        elif AT==2: # parse_act_case_reverseTrack
+            # if '有人机' in p.Name: print(p.Name, 'Track命令(pi)', 'AT', AT, 'TT', TT)
+            cmd_buffer = self.parse_act_case_track(cmd_buffer, p, TT, rad=np.pi)
+        elif AT==3: # parse_act_case_3clockTrack
+            # if '有人机' in p.Name: print(p.Name, 'Track命令(pi/2)', 'AT', AT, 'TT', TT)
+            cmd_buffer = self.parse_act_case_track(cmd_buffer, p, TT, rad=-np.pi/2)
+        elif AT==4: # parse_act_case_9clockTrack
+            # if '有人机' in p.Name: print(p.Name, 'Track命令(-pi/2)', 'AT', AT, 'TT', TT)
+            cmd_buffer = self.parse_act_case_track(cmd_buffer, p, TT, rad=+np.pi/2)
+        elif AT==5:
+            # if '有人机' in p.Name: print(p.Name, 'Fire命令', 'AT', AT, 'TT', TT)
+            cmd_buffer = self.parse_act_case_fire(cmd_buffer, p, TT)
+        elif AT==6:
+            # if '有人机' in p.Name: print(p.Name, 'Speed命令', 'AT', AT, 'TT', TT)
+            cmd_buffer = self.parse_act_final_SP(cmd_buffer, p, TT)
+        else:
+            assert False
+        return cmd_buffer
+
+
     def parse_raw_action(self, raw_action):
+        # print('-----')
+        raw_action = raw_action.astype(np.int)
+        # check 
+        assert all([self.check_avail_act[i,a]==1 for i, a in enumerate(raw_action)])
+        self.check_avail_act = None
+
+        # using simple action space
+        assert self.ScenarioConfig.use_simple_action_space
+        # the agent number
+        assert raw_action.shape[0] == self.n_agents
+        # the dimension of raw_action must be 1 dim
+        assert len(raw_action.shape) == 1
+
+        # print('raw_actions:', raw_action)
+        # the append
+        cmd_buffer = []
+
+        # get the plane of players
+        if self.player_color=='red':
+            player_planes, opp_planes = (self.observer.my_planes, self.observer.op_planes)
+        else:
+            player_planes, opp_planes = (self.observer.op_planes, self.observer.my_planes)
+
+        # prepare next avail act, alloc memory
+        next_avail_act = np.zeros(shape=(self.n_agents, self.n_actions)); next_avail_act[:, 0] = 1
+
+        # In action_dim_corr_dict, [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1 ], AT actions are 0s, TT actions are 1s
+        # In action_sel_corr_dict. [0,1,2,3,4,5,6,0,1,2,3,4,5,6,7,8,9,10]
+        action_dim_corr_dict, action_sel_corr_dict = self.get_action_dim_corr_dict()
+
+        dim_Alist = action_dim_corr_dict[raw_action]
+        AtStep = (dim_Alist==0)
+        for index, p in enumerate(player_planes):
+            if p.KIA: continue
+            # if '有人机' in p.Name: print('raw_action', raw_action[index], 'identify as AtStep?:', AtStep[index], '\taction_context(before)',self.action_context[index])
+            raw_act_p = raw_action[index]
+            if AtStep[index]:  # if at atstep
+                # next time disable AT options
+                next_avail_act[index] = action_dim_corr_dict
+                # find out which AT action is selected
+                AT = action_sel_corr_dict[raw_act_p]
+                self.action_context[index, self.AT_SEL] = AT
+                if AT == 5:  
+                    # do not shoot ally !
+                    next_avail_act[index, self.ScenarioConfig.Ally_Bits_Mask] = 0
+                    # do not shoot out-of-range hostile !
+                    offset = self.ScenarioConfig.n_switch_actions
+                    if len(p.in_radar)==0:
+                        # next time disable TT options
+                        next_avail_act[index] = (1 - action_dim_corr_dict)
+                        # next_avail_act[index, AT] = 0   # do not choose fire option again!
+                    else:
+                        next_avail_act[index, self.ScenarioConfig.Oppo_Bits_Mask] = 0
+                        OpInts = np.array([self.planeId2IntList[op.Name]+offset for op in p.in_radar])
+                        next_avail_act[index, OpInts] = 1
+
+                if AT >=1 and AT<=4: 
+                    next_avail_act[index, self.ScenarioConfig.Ally_Bits_Mask] = 0 # do not follow ally !
+
+                # if '有人机' in p.Name: print('raw_action', raw_action[index], 'identify as AtStep?:', AtStep[index], '\taction_context(after)',self.action_context[index])
+
+            else:
+                # next time disable TT options
+                next_avail_act[index] = (1 - action_dim_corr_dict)
+                TT = action_sel_corr_dict[raw_act_p]
+                self.action_context[index, self.TT_SEL] = TT
+                AT = int(self.action_context[index, self.AT_SEL])
+                next_avail_act[index, AT] = 0
+                if len(p.in_radar)==0:  # no in range hostile, cannot fire
+                    next_avail_act[index, 5] = 0
+                else:
+                    next_avail_act[index, 5] = 1
+                # if '有人机' in p.Name: print('raw_action', raw_action[index], 'action_context(after)',self.action_context[index])
+
+                cmd_buffer = self.get_actions(p, AT, TT, cmd_buffer)
+
+        if self.ScenarioConfig.Disable_AT0: next_avail_act[:, 0] = 0
+        if self.ScenarioConfig.Disable_AT1: next_avail_act[:, 1] = 0
+        if self.ScenarioConfig.Disable_AT2: next_avail_act[:, 2] = 0
+        if self.ScenarioConfig.Disable_AT3: next_avail_act[:, 3] = 0
+        if self.ScenarioConfig.Disable_AT4: next_avail_act[:, 4] = 0
+        if self.ScenarioConfig.Disable_AT5: next_avail_act[:, 5] = 0
+        if self.ScenarioConfig.Disable_AT6: next_avail_act[:, 6] = 0
+        # for index, p in enumerate(player_planes): if '有人机' in p.Name: print('next_avail_act', next_avail_act[index])
+        if (next_avail_act.sum(axis=-1)==0).any():
+            print('wtf?')
+        return cmd_buffer, next_avail_act
+
+    def parse_raw_action_old(self, raw_action):
         raw_action = raw_action.astype(np.int)
         # check 
         assert all([self.check_avail_act[i,a]==1 for i, a in enumerate(raw_action)])
@@ -229,7 +348,8 @@ class Converter:
         # In action_sel_corr_dict. [0,1,2,3,4,5,6,0,1,2,3,4,5,6,7,8,9,10]
         action_dim_corr_dict, action_sel_corr_dict = self.get_action_dim_corr_dict()
 
-        AtStep = (action_dim_corr_dict[raw_action[0]]==0) # dim=0, AT; dim=1, TT; raw_action[0] is the raw action of agent 0
+        # raw_action[0] is the raw action of agent 0
+        AtStep = (action_dim_corr_dict[raw_action[0]]==0) 
         if AtStep:
             # update AT of all agents, do not send command
             dim_Alist = action_dim_corr_dict[raw_action]
@@ -246,41 +366,32 @@ class Converter:
             next_avail_act[:] = 1 - action_dim_corr_dict
 
         if AtStep:
+            # for each loop: change next_avail_act
             for index, p in enumerate(player_planes):
                 AT = sel_Alist[index]
-                if AT == 5:
-                    next_avail_act[index, self.ScenarioConfig.Ally_Bits_Mask] = 0 # do not shoot ally !
-                if AT >=1 and AT<=4:
-                    next_avail_act[index, self.ScenarioConfig.Ally_Bits_Mask] = 0 # do not follow ally !
+                if AT == 5:  
+                    # do not shoot ally !
+                    next_avail_act[index, self.ScenarioConfig.Ally_Bits_Mask] = 0 
+                    # do not shoot out-of-range hostile !
+                    offset = self.ScenarioConfig.n_switch_actions
+                    if len(p.in_radar)==0:
+                        # no available action, force next moment action to be idle
+                        next_avail_act[index, :] = 0; next_avail_act[index, 0] = 1
+                    OpInts = np.array([self.planeId2IntList[op.Name]+offset for op in p.in_radar])
+                    next_avail_act[index,OpInts] = 0
 
-
-            # print('next_avail_act:', next_avail_act)
+                if AT >=1 and AT<=4: next_avail_act[index, self.ScenarioConfig.Ally_Bits_Mask] = 0 # do not follow ally !
             return cmd_buffer, next_avail_act
         else:
-
+            # chosing TT this moment, avoid TT chosing next time
+            # for each loop: change next_avail_act, get cmd_buffer
             for index, p in enumerate(player_planes):
                 AT = int(self.action_context[index, self.AT_SEL])
                 TT = int(self.action_context[index, self.TT_SEL])
-                # chosing TT this moment, avoid TT chosing next time
                 next_avail_act[index] = 1 - action_dim_corr_dict
                 next_avail_act[index, AT] = 0
-                # switch case for AT
-                if AT==0:   # Do nothing
-                    pass
-                elif AT==1: # parse_act_case_track
-                    cmd_buffer = self.parse_act_case_track(cmd_buffer, p, TT, rad=0)
-                elif AT==2: # parse_act_case_reverseTrack
-                    cmd_buffer = self.parse_act_case_track(cmd_buffer, p, TT, rad=np.pi)
-                elif AT==3: # parse_act_case_3clockTrack
-                    cmd_buffer = self.parse_act_case_track(cmd_buffer, p, TT, rad=-np.pi/2)
-                elif AT==4: # parse_act_case_9clockTrack
-                    cmd_buffer = self.parse_act_case_track(cmd_buffer, p, TT, rad=+np.pi/2)
-                elif AT==5:
-                    cmd_buffer = self.parse_act_case_fire(cmd_buffer, p, TT)
-                elif AT==6:
-                    cmd_buffer = self.parse_act_final_SP(cmd_buffer, p, TT)
-                else:
-                    assert False
+                cmd_buffer = self.get_actions(p, AT, TT, cmd_buffer)
+
             if self.ScenarioConfig.Disable_AT0: next_avail_act[:, 0] = 0
             if self.ScenarioConfig.Disable_AT1: next_avail_act[:, 1] = 0
             if self.ScenarioConfig.Disable_AT2: next_avail_act[:, 2] = 0
@@ -296,49 +407,92 @@ class Converter:
 
     def parse_act_case_fire(self, cmd_buffer, p, TT):
         target = self.tran_target(TT)
-        # if (self.player_color=='red' and p.LeftWeapon<=1) or (self.player_color=='blue' and p.OpLeftWeapon<=1):
-        #     print('saving ms, do not fire')
-        #     return cmd_buffer
-
-
+        if target is None: return cmd_buffer
+        self.setcontext(p, 'cmd_firetargetid', target.ID)
         cmd_buffer.append(CmdEnv.make_attackparam(p.ID, target.ID, 1))
         return cmd_buffer
 
-
     def parse_act_final_HT(self, cmd_buffer, p, HT):
-        p.PlayerHeightSetting = p.MinHeight + (p.MaxHeight - p.MinHeight)*( HT/(self.ScenarioConfig.HeightLevels-1) )
+        height = p.MinHeight + (p.MaxHeight - p.MinHeight)*( HT/(self.ScenarioConfig.HeightLevels-1) )
+        self.setcontext(p, 'cmd_height', height)
+        goto_location = [{
+            "X": self.getcontext(p, 'cmd_xdst'),
+            "Y": self.getcontext(p, 'cmd_ydst'),
+            "Z": height,
+        }]
+        cmd_buffer.append(self.observer.check_and_make_linepatrolparam(
+            p.ID,
+            goto_location,
+            self.getcontext(p, 'cmd_speed'),       # np.clip(p.Speed, a_min=p.MinSpeed, a_max=p.MaxSpeed),
+            self.getcontext(p, 'cmd_acc'),         # p.MaxAcc,
+            self.getcontext(p, 'cmd_overload'),    # p.MaxOverload
+        ))
         return cmd_buffer
 
     def parse_act_final_SP(self, cmd_buffer, p, SP):
-        cmd_speed = p.MinSpeed + (p.MaxSpeed - p.MinSpeed)*( SP/(self.ScenarioConfig.n_target_actions-1) ) # , i = [0,1,2,3,4]
+        MaxSpeedOverride = 300 # p.MaxSpeed
+        cmd_speed = p.MinSpeed + (MaxSpeedOverride - p.MinSpeed)*( SP/(self.ScenarioConfig.n_target_actions-1) ) # , i = [0,1,2,3,4]
         cmd_speed = np.clip(cmd_speed, a_min=p.MinSpeed, a_max=p.MaxSpeed)
         # 指令速度:1 / 指令加速度:2 / 指令速度和加速度:3 / 指令过载:4 / 指令速度和过载:5 / 指令加速度和过载:6 / 指令速度和加速度和过载:7
         cmd_buffer.append(CmdEnv.make_motioncmdparam(p.ID, 1, cmd_speed, p.MaxAcc, p.MaxOverload))
+        self.setcontext(p, 'cmd_speed', cmd_speed)
         return cmd_buffer
 
     def parse_act_case_track(self, cmd_buffer, p, TT, rad):
         target = self.tran_target(TT)
+        if target is None: return cmd_buffer
         delta_to_TT =  target.pos2d - p.pos2d # 向量的方向指向目标
         unit_delta = np.matmul(
             delta_to_TT,
             np.array([[np.cos(rad), np.sin(rad)],
                      [-np.sin(rad), np.cos(rad)]])
         )
-        
         H2 = unit_delta[:2] + p.pos2d
+        self.setcontext(p, 'cmd_xdst', H2[0])
+        self.setcontext(p, 'cmd_ydst', H2[1])
         goto_location = [{
             "X": H2[0],
             "Y": H2[1],
-            "Z": target.Z   # p.PlayerHeightSetting
+            "Z": self.getcontext(p, 'cmd_height'),   # p.PlayerHeightSetting
         }]
         cmd_buffer.append(self.observer.check_and_make_linepatrolparam(
             p.ID,
             goto_location,
-            np.clip(p.Speed, a_min=p.MinSpeed, a_max=p.MaxSpeed),
-            p.MaxAcc,
-            p.MaxOverload
+            self.getcontext(p, 'cmd_speed'),     # np.clip(p.Speed, a_min=p.MinSpeed, a_max=p.MaxSpeed),
+            self.getcontext(p, 'cmd_acc'), # p.MaxAcc,
+            self.getcontext(p, 'cmd_overload'), # p.MaxOverload
         ))
         return cmd_buffer
+
+    def getcontext(self, p, item):
+        name = p.Name
+        if name not in self.advanced_action_context:
+            # create new context
+            self.advanced_action_context[name] = {
+                'cmd_xdst': 0,
+                'cmd_ydst': 0,
+                'cmd_height': 9999,
+                'cmd_speed': 300,
+                'cmd_acc': p.MaxAcc,
+                'cmd_overload': p.MaxOverload, 
+                'cmd_firetargetid': None
+            }
+        return self.advanced_action_context[name][item]
+
+    def setcontext(self, p, item, value):
+        name = p.Name
+        if name not in self.advanced_action_context:
+            # create new context
+            self.advanced_action_context[name] = {
+                'cmd_xdst': 0,
+                'cmd_ydst': 0,
+                'cmd_height': 9999,
+                'cmd_speed': 300,
+                'cmd_acc': p.MaxAcc,
+                'cmd_overload': p.MaxOverload, 
+                'cmd_firetargetid': None
+            }
+        self.advanced_action_context[name][item] = value
 
     '''
     

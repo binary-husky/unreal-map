@@ -8,10 +8,7 @@ from .render import RenderBridge
 from .converter import Converter
 from .endgame import EndGame
 from UTILS.tensor_ops import MayGoWrong, repeat_at
-class ChainVar(object):
-    def __init__(self, chain_func, chained_with):
-        self.chain_func = chain_func
-        self.chained_with = chained_with
+from UTILS.config_args import ChainVar
 
 class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
 
@@ -37,7 +34,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     ################ needed by env itself ################
     logging_enable = False
     render = False
-    max_steps_episode = 1000
+    MaxEpisodeStep = 1000
 
     # SpeedLevels = 5 # the speed is divided as 5 discrete speed
     # meanning [MinSpeed, , MaxSpeed]  
@@ -49,9 +46,9 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     internal_step = 3
 
     ################ needed by some ALGORITHM ################
-    state_provided = True
-    avail_act_provided = True
-    entity_oriented = False
+    StateProvided = True
+    AvailActProvided = True
+    EntityOriented = False
 
     put_availact_into_obs = True
     '''
@@ -70,7 +67,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
 
     obs_vec_length = 6
     return_mat = False
-    block_invalid_action = True # sc2 中，需要始终屏蔽掉不可用的动作
+    AvailActProvided = True # sc2 中，需要始终屏蔽掉不可用的动作
 
     time_ratio = 200
 
@@ -80,7 +77,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     Disable_AT3 = True      # fly 3 clock from target
     Disable_AT4 = True      # fly 9 clock from target
     Disable_AT5 = False     # fire to target
-    Disable_AT6 = True      # change speed
+    Disable_AT6 = False      # change speed
 
     Oppo_Bits_Mask = np.array([False]*n_switch_actions+[True]*5+[False]*5)
     Ally_Bits_Mask = np.array([False]*n_switch_actions+[False]*5+[True]*5)
@@ -181,12 +178,12 @@ class BVR(BaseEnv, RenderBridge, EndGame):
             'my_ms_hit':0
             'op_ms_hit':0
         '''
-        R1_self_plane_fallen = -1
+        R1_self_plane_fallen = -0.1
         R2_enem_plane_fallen = +1
-        R3_self_ms_hit = 0.5
-        R4_enem_ms_hit = -0.5
-        R5_self_ms_alive = -0.1
-        R6_enem_ms_alive = +0.1
+        R3_self_ms_hit = 0
+        R4_enem_ms_hit = -0.1
+        R5_self_ms_miss_alive = -0.1
+        R6_enem_ms_miss_alive = 0
 
         R7_win = 5
         R8_lose = -5
@@ -196,8 +193,8 @@ class BVR(BaseEnv, RenderBridge, EndGame):
             reward_related_info['op_plane_fallen']  * R2_enem_plane_fallen + 
             reward_related_info['my_ms_hit']        * R3_self_ms_hit + 
             reward_related_info['op_ms_hit']        * R4_enem_ms_hit + 
-            reward_related_info['my_ms_miss_alive'] * R5_self_ms_alive + 
-            reward_related_info['op_ms_miss_alive'] * R6_enem_ms_alive
+            reward_related_info['my_ms_miss_alive'] * R5_self_ms_miss_alive + 
+            reward_related_info['op_ms_miss_alive'] * R6_enem_ms_miss_alive
         )
 
 
@@ -206,8 +203,8 @@ class BVR(BaseEnv, RenderBridge, EndGame):
             reward_related_info['my_plane_fallen']  * R2_enem_plane_fallen + 
             reward_related_info['op_ms_hit']        * R3_self_ms_hit + 
             reward_related_info['my_ms_hit']        * R4_enem_ms_hit + 
-            reward_related_info['op_ms_miss_alive'] * R5_self_ms_alive + 
-            reward_related_info['my_ms_miss_alive'] * R6_enem_ms_alive
+            reward_related_info['op_ms_miss_alive'] * R5_self_ms_miss_alive + 
+            reward_related_info['my_ms_miss_alive'] * R6_enem_ms_miss_alive
         )
         if win['done']:
             red_reward  += R7_win if win['red']  else R8_lose
@@ -261,6 +258,7 @@ class BVR_PVE(BVR, Converter):
         self.opp_color = "blue"
         self.internal_step = self.ScenarioConfig.internal_step
         self.check_avail_act = None
+        self.advanced_action_context = {}
 
     def step(self, raw_action):
         # convert raw_action Tensor from RL to actions recognized by the game
@@ -292,7 +290,8 @@ class BVR_PVE(BVR, Converter):
             player_action = []
 
         # use observer's info to render
-        if self.ScenarioConfig.render and self.rank==0: self.advanced_render(self.raw_obs["sim_time"], win, self.observer)
+        # if self.ScenarioConfig.render and self.rank==0: self.advanced_render(self.raw_obs["sim_time"], win, self.observer)
+        if self.ScenarioConfig.render: self.advanced_render(self.raw_obs["sim_time"], win, self.observer)
 
         # system get done
         assert self.raw_obs is not None, ("obs is None")
@@ -321,11 +320,12 @@ class BVR_PVE(BVR, Converter):
 
 
     def reset(self):
+        
         # initialize action context if using simple action space
-        if self.ScenarioConfig.use_simple_action_space: 
-            self.action_context = np.zeros(shape=(self.n_agents, self.n_action_dimension))
-            for i in range(self.n_agents): self.action_context[i, self.AT_SEL] = 0
-            for i in range(self.n_agents): self.action_context[i, self.TT_SEL] = i
+        self.action_context = np.zeros(shape=(self.n_agents, self.n_action_dimension))
+        for i in range(self.n_agents): self.action_context[i, self.AT_SEL] = 0
+        for i in range(self.n_agents): self.action_context[i, self.TT_SEL] = i
+        self.advanced_action_context = {}
 
         # randomly switch sides
         randx = np.random.rand() 

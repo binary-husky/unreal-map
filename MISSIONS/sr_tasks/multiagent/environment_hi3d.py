@@ -86,7 +86,7 @@ class MultiAgentEnv(gym.Env):
         self.agent_uid = ScenarioConfig.uid_dictionary['agent_uid']
     @property
     def episode_limit(self):
-        return self.world.max_steps_episode
+        return self.world.MaxEpisodeStep
 
     def step(self, action_n):
         obs_n = []

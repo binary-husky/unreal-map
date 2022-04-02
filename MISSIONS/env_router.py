@@ -12,6 +12,7 @@ import_path_ref = {
     "sr_tasks->hunter_invader3d": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d",   'ScenarioConfig'),
     "sr_tasks->hunter_invader3d_v2": ("MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d_v2",'ScenarioConfig'),
     "bvr": ("MISSIONS.bvr_sim.init_env",                                                        'ScenarioConfig'),
+    "mathgame": ("MISSIONS.math_game.env",                                                      'ScenarioConfig'),
 }
 
 env_init_function_ref = {
@@ -25,6 +26,7 @@ env_init_function_ref = {
     "unity_game": ("MISSIONS.unity_game.unity_game_wrapper",                                    'make_env'),
     "sr_tasks": ("MISSIONS.sr_tasks.multiagent.scenario",                                       'sr_tasks_env'),
     "bvr": ("MISSIONS.bvr_sim.init_env",                                                        'make_bvr_env'),
+    "mathgame": ("MISSIONS.math_game.env",                                                      'make_math_env'),
 }
 
 ##################################################################################################################################

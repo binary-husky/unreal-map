@@ -2,6 +2,11 @@ import argparse, os, time, func_timeout
 from shutil import copyfile, copytree, ignore_patterns
 from .colorful import *
 
+'''
+    This a chained var class, it deal with hyper-parameters that are bound together, 
+    e.g. number of threads and test episode interval.
+    ChainVars are handled in utils.config_args.py
+'''
 class ChainVar(object):
     def __init__(self, chain_func, chained_with):
         self.chain_func = chain_func

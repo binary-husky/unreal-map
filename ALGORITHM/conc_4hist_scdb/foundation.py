@@ -70,7 +70,7 @@ class ReinforceAlgorithmFoundation(object):
             
         from .net import Net
         self.device = GlobalConfig.device
-        if self.scenario_config.entity_oriented :
+        if self.scenario_config.EntityOriented :
             rawob_dim = self.scenario_config.obs_vec_length
         else:
             rawob_dim = space['obs_space']['obs_shape']
@@ -82,7 +82,7 @@ class ReinforceAlgorithmFoundation(object):
         from .trajectory import BatchTrajManager
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         self.batch_traj_manager = BatchTrajManager(
-            n_env=n_thread, traj_limit=int(self.scenario_config.max_steps_episode),
+            n_env=n_thread, traj_limit=int(self.scenario_config.MaxEpisodeStep),
             trainer_hook=self.trainer.train_on_traj)
                     
         # confirm that reward method is correct

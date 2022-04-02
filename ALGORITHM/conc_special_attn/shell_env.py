@@ -45,9 +45,9 @@ class ShellEnvWrapper(object):
         self.n_basic_dim = scenario_config.obs_vec_length
 
         # whether to use avail_act to block forbiden actions
-        self.block_invalid_action = False
-        if hasattr(scenario_config, 'block_invalid_action'):
-            self.block_invalid_action = scenario_config.block_invalid_action 
+        self.AvailActProvided = False
+        if hasattr(scenario_config, 'AvailActProvided'):
+            self.AvailActProvided = scenario_config.AvailActProvided 
 
         # whether to load previously saved checkpoint
         self.load_checkpoint = alg_config.load_checkpoint
@@ -83,7 +83,7 @@ class ShellEnvWrapper(object):
             'threads_active_flag':~ENV_PAUSE, 
             'Latest-Team-Info':State_Recall['Latest-Team-Info'][~ENV_PAUSE],
             }
-        if self.block_invalid_action:
+        if self.AvailActProvided:
             avail_act = np.array([info['avail-act'] for info in np.array(State_Recall['Latest-Team-Info'][~ENV_PAUSE], dtype=object)])
             I_State_Recall.update({'avail_act':avail_act})
 

@@ -159,6 +159,16 @@ def add_onehot_id_at_last_dim(x):
 
 """
     numpy corresponding to torch.nn.functional.one_hot
+    x is array, e.g. x = [4,2,3,1]
+    n is int, e.g. n=5
+    >> np_one_hot( np.array([4,2,3,1]), n=5)
+    np.array([
+        [0,0,0,0,1],
+        [0,0,1,0,0],
+        [0,0,0,1,0],
+        [0,1,0,0,0],
+    ])
+
 """
 def np_one_hot(x, n):
     return np.eye(n)[x]
