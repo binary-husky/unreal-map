@@ -163,6 +163,7 @@ class Net(nn.Module):
         self.skip_connect = True
         self.n_action = n_action
         self.alternative_critic = AlgorithmConfig.alternative_critic
+        self.exp_external_actdim = AlgorithmConfig.exp_external_actdim
         
         # observation normalization
         if self.use_normalization:
@@ -187,7 +188,15 @@ class Net(nn.Module):
                             skip_connect=self.skip_connect, 
                             skip_connect_dim=rawob_dim, 
                             adopt_selfattn=self.actor_attn_mod)
- 
+
+        if self.exp_external_actdim:
+            self.AT_hyper_act_net = nn.Sequential(
+                Linear(9, 16),
+                nn.ReLU(inplace=True),
+                Linear(16, 16),
+                nn.ReLU(inplace=True),
+                Linear(16, 2)
+            )
         tmp_dim = h_dim if not self.dual_conc else h_dim*2
         self.CT_get_value = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
         self.CT_get_threat = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
@@ -272,7 +281,12 @@ class Net(nn.Module):
         threat = self.CT_get_threat(v_M_fuse)
 
         assert not self.alternative_critic
-        act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
+        if self.exp_external_actdim:
+            act, actLogProbs, distEntropy, probs = self.logit2act_exp(logits, zs=zs, eval_mode=eval_mode, 
+                                                    test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
+
+        else:
+            act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
                                                                 test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 
         def re_scale(t):
@@ -284,3 +298,56 @@ class Net(nn.Module):
         if not eval_mode: return act, value, actLogProbs
         else:             return value, actLogProbs, distEntropy, probs, others
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @staticmethod
+    def _get_act_log_probs(distribution, action):
+        return distribution.log_prob(action.squeeze(-1)).unsqueeze(-1)
+
+    # two ways to support avail_act, but which one is better?
+    def logit2act_exp(self, logits_agent_cluster, zs, eval_mode, test_mode, eval_actions=None, avail_act=None):
+        logits_agent_detach = logits_agent_cluster.detach()
+        zs_detach = zs.detach()
+        zs_detach = zs_detach.squeeze(-2)
+        hyper_obs = torch.cat((logits_agent_detach, zs_detach), axis=-1)
+        hyper_act_logits = self.AT_hyper_act_net(hyper_obs)
+
+        # logits to acts, 
+        # input: hyper_act_logits
+        # output: h_act
+        h_dist = Categorical(logits = hyper_act_logits)
+        if not test_mode:  h_act = h_dist.sample() if not eval_mode else eval_actions
+        else:              h_act = torch.argmax(h_dist.probs, axis=2)
+        hActLogProbs = self._get_act_log_probs(h_dist, h_act)
+
+        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
+
+
+        act_dist = Categorical(logits = logits_agent_cluster)
+        act_sample = act_dist.sample() if not eval_mode else eval_actions
+        act_argmax = torch.argmax(act_dist.probs, axis=2)
+
+        act = torch.where(h_act==1, act_sample, act_argmax)
+        # if not test_mode:  act = act_sample
+        # else:              act = act_argmax     
+
+
+        actLogProbs01 = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
+
+
+        actLogProbs = hActLogProbs + actLogProbs01
+
+        # sum up the log prob of all agents
+        distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
+        return act, actLogProbs, distEntropy, act_dist.probs

@@ -55,6 +55,8 @@ class AlgorithmConfig:
     # net
     net_hdim = 32
 
+    exp_external_actdim = False
+
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
         self.n_thread = n_thread

@@ -602,7 +602,10 @@ class DrawProcess(Process):
             # self.tcp_connection.set_handler(self.run_handler)
             self.tcp_connection.wait_connection() # after this, the queue begin to work
             while True:
-                try: self.run_handler(queue.get(timeout=0.1))
+                try: 
+                    buff_list = []
+                    for _ in range(queue.qsize()): buff_list.extend(queue.get(timeout=0.1))
+                    self.run_handler(buff_list)
                 except Empty: self.gui_reflesh()
 
         except KeyboardInterrupt:
@@ -610,9 +613,22 @@ class DrawProcess(Process):
         self.__del__()
 
     def run_handler(self, buff_list):
-        for buff in buff_list:
+        while True:
+            if len(buff_list) == 0: break
+            buff = buff_list.pop(0)
+            if (buff=='>>rec_show\n') and ('>>rec_show\n' in buff_list): continue # skip
             self.process_cmd(buff)
-            # print('成功处理指令:', buff)
+
+        # if '>>rec_show\n' in buff_list:
+
+
+        # # remove extral rec_show
+        # if '>>rec_show\n' in buff_list:
+        #     buff_list = filter()
+
+        # for buff in buff_list:
+        #     self.process_cmd(buff)
+        #     # print('成功处理指令:', buff)
 
     def __del__(self):
         self.tcp_connection.close()
