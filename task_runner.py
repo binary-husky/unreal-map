@@ -259,7 +259,7 @@ class Runner(object):
                         rapid_flush=True,
                         draw_mode=cfg.draw_mode,
                         tag='[task_runner.py]')
-        mcv.rec_init()
+        mcv.rec_init(color='b')
         return mcv
 
     def heartbeat(self):

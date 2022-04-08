@@ -338,7 +338,7 @@ class Net(nn.Module):
         act_sample = act_dist.sample() if not eval_mode else eval_actions
         act_argmax = torch.argmax(act_dist.probs, axis=2)
 
-        act = torch.where(h_act==1, act_sample, act_argmax)
+        act = torch.where(h_act==1, act_sample, act_argmax) # h_act: shape=($n_thread, $n_agent)
         # if not test_mode:  act = act_sample
         # else:              act = act_argmax     
 
@@ -346,7 +346,7 @@ class Net(nn.Module):
         actLogProbs01 = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
 
 
-        actLogProbs = hActLogProbs + actLogProbs01
+        actLogProbs = actLogProbs01 + hActLogProbs
 
         # sum up the log prob of all agents
         distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
