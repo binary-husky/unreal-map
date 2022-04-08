@@ -22,12 +22,29 @@ function getTextBackground(text_object, parsed_obj_info){
 
 }
 
+function detach_dispose(remove_what, from_where){
+    from_where.remove(remove_what);
+    mesh_dispose(remove_what)
+    return
+}
+
+
+function mesh_dispose(mesh){
+    if (mesh.material.constructor === Array){ for (i=0;i<mesh.material.length;i++){
+        mesh.material[i].dispose();}
+    }else{
+        mesh.material.dispose();
+    }
+    mesh.geometry.dispose();
+}
+
 // assign or replace
 function AoR(obj, new_obj){
     if(!obj){
         return new_obj;
     }
     else{
+        mesh_dispose(obj)
         obj.material = new_obj.material;
         obj.geometry = new_obj.geometry;
         new_obj = null;
@@ -224,6 +241,32 @@ function makeClearText(object, text, parsed_obj_info){
 
 }
 
+
+function purge_core_obj(i){
+    let core_obj = window.glb.core_Obj[i]
+    // 清除text
+    if (core_obj.text_object){
+        if (core_obj.text_object.background){
+            detach_dispose(core_obj.text_object.background, from_where=core_obj.text_object)
+            core_obj.text_object.background = null
+        }
+        detach_dispose(core_obj.text_object, from_where=core_obj);
+        core_obj.text_object = null;
+    }
+    // 清除历史轨迹
+    if (core_obj.track_init){
+        detach_dispose(core_obj.track_his.mesh, from_where=window.glb.scene);
+        core_obj.track_his.mesh = null;
+        core_obj.track_his = null;
+        core_obj.track_init = false;
+    }
+
+    detach_dispose(core_obj, from_where=window.glb.scene);
+    core_obj = null
+    window.glb.core_Obj[i] = null;
+
+    window.glb.core_Obj.splice(i,1); // remove ith object
+}
 
 //修改颜色
 function changeCoreObjColor(object, color_str){

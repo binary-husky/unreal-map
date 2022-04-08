@@ -43,7 +43,6 @@ window.glb.controls=null;
 window.glb.controls2=null;
 // var window.glb.scene;
 window.glb.core_L = [];
-window.glb.parsed_core_L = []
 window.glb.core_Obj = [];
 window.glb.line_Obj = [];
 // window.glb.text_Obj = [];
@@ -143,16 +142,12 @@ var coreReadFunc = function (auto_next=true) {
                 }else{
                     need_fps_change = false;
                 }
-
                 if (window.glb.panelSettings['play fps']>144){window.glb.panelSettings['play fps']=144;}
                 if (window.glb.panelSettings['play fps']<0.1){window.glb.panelSettings['play fps']=0.1;}
                 if (need_fps_change) {change_fps(window.glb.panelSettings['play fps']);}
                 if (need_fps_change) {console.log('change_fps:'+window.glb.panelSettings['play fps']);}
             }
-
-
         }
-
         transfer_ongoing = false;
     };
     request.send(client_uuid);
@@ -257,87 +252,18 @@ window.glb.panelSettings['ppt step'] = function (){
 ////////////////////////////////////////////////////////////
 
 
-function removeEntity(object) {
-    var selectedObject = window.glb.scene.getObjectByName(object.name);
-    window.glb.scene.remove(selectedObject);
-}
-
-
 
 
 
 
 
 function parse_time_step(pp){
-    // if(window.glb.parsed_core_L[pp]) {
-    //     buf_str = window.glb.core_L[pp]
-    //     parse_update_env(buf_str)
-    //     parse_update_without_re(pp)
-    //     parse_update_flash(buf_str)
-    // }else{
-        // first time parse
     buf_str = window.glb.core_L[pp];
     parse_init(buf_str);
     parse_update_env(buf_str);
     parse_update_core(buf_str, pp);
     parse_update_flash(buf_str);
-    // }
-    // tmp_object_manager()
 }
-
-
-
-
-
-function tmp_object_manager(){
-    for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
-        let object = window.glb.core_Obj[i]
-        if (object.fade_level){
-            if (object.fade_level<0){
-                
-                object.fade_level = null;
-                if (object.track_init){
-                    window.glb.scene.remove(object.track_his.mesh);
-                    object.track_his = null;
-                    object.track_init = false;
-                }
-                window.glb.scene.remove(object);
-                window.glb.core_Obj.splice(i,1); // remove ith object
-
-            }else if (object.fade_level>=1){
-
-                object.fade_level = 1 - 1 / object.fade_step;
-            }else{
-
-                // a fading object, change opacity
-                object.material.transparent = true
-                object.prev_opacity = object.next_opacity; 
-                object.next_opacity -= 1 / object.fade_step;
-                if (object.next_opacity<0){object.next_opacity=0;}
-                
-                // text_object opacity
-                if (object.text_object){
-                    object.text_object.material.transparent = true;
-                    object.text_object.material.opacity -= 1 / object.fade_step;
-                    if (object.text_object.material.opacity<0){object.text_object.material.opacity=0;}
-                }
-                if (object.track_init){
-                    object.track_his.mesh.material.transparent = true;
-                    object.track_his.mesh.material.opacity -= 1 / object.fade_step;
-                    if (object.track_his.mesh.material.opacity<0){object.track_his.mesh.material.opacity=0;}
-                }
-
-                // fade more
-                object.fade_level -= 1 / object.fade_step;
-            }
-        }
-        else{
-            continue;
-        }
-    }
-}
-
-
 
 
 
@@ -350,9 +276,10 @@ function check_flash_life_cyc(delta_time){
     for (let i = window.glb.flash_Obj.length-1; i>=0; i--) {
         let nowTime = new Date();
         let dTime = nowTime - window.glb.flash_Obj[i]['create_time']   // 相差的毫秒数
-        if (dTime>=window.glb.flash_Obj[i]['dur']*1000){
+        if (dTime>=window.glb.flash_Obj[i]['dur']*1000 && window.glb.flash_Obj[i]['valid']){
+            detach_dispose(window.glb.flash_Obj[i]['mesh'], window.glb.scene);
+            window.glb.flash_Obj[i]['mesh'] = null;
             window.glb.flash_Obj[i]['valid'] = false;
-            window.glb.scene.remove(window.glb.flash_Obj[i]['mesh']);
         }
     }
     window.glb.flash_Obj = window.glb.flash_Obj.filter(function (s) {return s['valid'];});
@@ -610,9 +537,9 @@ function show_cam_orbit(){
         });
         cam_orbit_deleted = false
     }else if(!cam_orbit_deleted){
-        let cam_x = find_lineobj_by_id('cam_x'); if (cam_x){window.glb.scene.remove(cam_x.mesh);window.glb.line_Obj.remove(cam_x);}
-        let cam_y = find_lineobj_by_id('cam_y'); if (cam_y){window.glb.scene.remove(cam_y.mesh);window.glb.line_Obj.remove(cam_y);}
-        let cam_z = find_lineobj_by_id('cam_z'); if (cam_z){window.glb.scene.remove(cam_z.mesh);window.glb.line_Obj.remove(cam_z);}
+        let cam_x = find_lineobj_by_id('cam_x'); if (cam_x){window.glb.scene.remove(cam_x.mesh); window.glb.line_Obj.remove(cam_x);}
+        let cam_y = find_lineobj_by_id('cam_y'); if (cam_y){window.glb.scene.remove(cam_y.mesh); window.glb.line_Obj.remove(cam_y);}
+        let cam_z = find_lineobj_by_id('cam_z'); if (cam_z){window.glb.scene.remove(cam_z.mesh); window.glb.line_Obj.remove(cam_z);}
         cam_orbit_deleted=true;
     }
 }

@@ -98,7 +98,6 @@ class ShellEnvWrapper(object):
         act[~P] = act_active
         actions_list = np.swapaxes(act, 0, 1) # swap thread(batch) axis and agent axis
 
-
         # return necessary handles to main platform
         if self.cold_start: self.cold_start = False
 

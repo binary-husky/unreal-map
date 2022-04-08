@@ -91,11 +91,32 @@ function parse_init(buf_str) {
     }
 }
 
-function parse_update_without_re(pp){
-    let parsed_frame = window.glb.parsed_core_L[pp]
-    for (let i = 0; i < parsed_frame.length; i++) {
-        apply_update(parsed_frame[i])
+function clear_everything(){
+    // remove terrain surface
+    // if (init_terrain){
+    //     init_terrain = false;
+    //     detach_dispose(window.glb.terrain_mesh, from_where=window.glb.scene);
+    //     window.glb.scene.remove(window.glb.terrain_mesh);
+    // }
+
+    // remove all objects
+    for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
+        purge_core_obj(i) // will be removed from window.glb.core_Obj
     }
+
+    // clear flash
+    for (let i = window.glb.flash_Obj.length-1; i>=0; i--) {
+        detach_dispose(window.glb.flash_Obj[i]['mesh'], from_where=window.glb.scene);
+        window.glb.flash_Obj[i]['mesh'] = null;
+        window.glb.flash_Obj[i]['valid'] = false;
+    }
+    // line 3d
+    for (let i = window.glb.line_Obj.length-1; i>=0; i--) {
+        detach_dispose(window.glb.line_Obj[i]['mesh'], from_where=window.glb.scene);
+        window.glb.line_Obj[i]['mesh'] = null;
+        window.glb.line_Obj[i]['valid'] = false;
+    }
+
 }
 
 
@@ -115,7 +136,6 @@ function parse_env(str){
         let terrain_A   = match_karg(str, 'terrain_A',   'float', null)  
         let terrain_B   = match_karg(str, 'terrain_B',   'float', null)  
         let show_lambda = match_karg(str, 'show_lambda', 'float', null)        
-        // match_karg(str, 'color', 'str', null)
         let theta = parseFloat(get_theta_res[1])
         
         // 投射阴影
@@ -126,9 +146,9 @@ function parse_env(str){
     
         ////////////////////// add terrain /////////////////////
         let width = 30; let height = 30;
-        let Segments = 200;
+        let Segments = 200; let need_remove_old = false;
         if (!init_terrain){
-            init_terrain=true;
+            init_terrain=true; need_remove_old = false;
             if(!TerrainMaterialKargs['map']){
                 let texture = THREE.ImageUtils.loadTexture('/wget/dirt2.jpg');
                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -143,18 +163,14 @@ function parse_env(str){
             light.position.set(0,50,7);
             window.glb.scene.add(light);
             window.glb.camera.children[0].visible = false;
+            window.glb.terrain_material = new THREE.MeshPhongMaterial(TerrainMaterialKargs);
 
         }else{
-            window.glb.scene.remove(window.glb.terrain_mesh);
+            need_remove_old = true;
+
         }
         let geometry = new THREE.PlaneBufferGeometry(width, height, Segments - 1, Segments - 1); //(width, height,widthSegments,heightSegments)
         geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-    
-    
-    
-        window.glb.terrain_mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial(TerrainMaterialKargs));
-        window.glb.terrain_mesh.receiveShadow = true;
-        window.glb.scene.add(window.glb.terrain_mesh);
         let array = geometry.attributes.position.array;
         for (let i = 0; i < Segments * Segments; i++) {
             let x = array[i * 3 + 0];
@@ -175,46 +191,26 @@ function parse_env(str){
         }
         geometry.computeBoundingSphere(); 
         geometry.computeVertexNormals();
+        if (need_remove_old){
+            window.glb.scene.remove(window.glb.terrain_mesh);
+            window.glb.terrain_mesh.geometry.dispose();
+        }
+        window.glb.terrain_mesh = new THREE.Mesh(geometry, window.glb.terrain_material);
+        window.glb.terrain_mesh.receiveShadow = true;
+        window.glb.scene.add(window.glb.terrain_mesh);
+
         console.log('update terrain')
     }
     if(style=="terrain_rm"){
         if (!init_terrain){
         }else{
-            window.glb.scene.remove(window.glb.terrain_mesh);
+            detach_dispose(window.glb.terrain_mesh, from_where=window.glb.scene);
+            window.glb.terrain_mesh = null;
         }
         
     }
     if(style=="clear_everything"){
-        // remove terrain surface
-        if (init_terrain){
-            window.glb.scene.remove(window.glb.terrain_mesh);
-        }
-
-        // remove all objects
-        for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
-            // 清除历史轨迹
-            if (window.glb.core_Obj[i].track_init){
-                window.glb.scene.remove(window.glb.core_Obj[i].track_his.mesh);
-                window.glb.core_Obj[i].track_his = null;
-                window.glb.core_Obj[i].track_init = false;
-            }
-            // if (window.glb.core_Obj[i].fade_level){continue;}
-            window.glb.scene.remove(window.glb.core_Obj[i]);
-            window.glb.core_Obj.splice(i,1); // remove ith object
-        }
-
-        // clear flash
-        for (let i = window.glb.flash_Obj.length-1; i>=0; i--) {
-            window.glb.flash_Obj[i]['valid'] = false;
-            window.glb.scene.remove(window.glb.flash_Obj[i]['mesh']);
-        }
-        // line 3d
-        for (let i = window.glb.line_Obj.length-1; i>=0; i--) {
-            window.glb.line_Obj[i]['valid'] = false;
-            window.glb.scene.remove(window.glb.line_Obj[i]['mesh']);
-        }
-
-
+        clear_everything();
     }
     if(style=="clear_track"){
         for (let i = window.glb.core_Obj.length-1; i>=0 ; i--) {
@@ -228,8 +224,9 @@ function parse_env(str){
     }
     if(style=="clear_flash"){
         for (let i = window.glb.flash_Obj.length-1; i>=0; i--) {
+            detach_dispose(window.glb.flash_Obj[i]['mesh'], from_where=window.glb.scene);
+            window.glb.flash_Obj[i]['mesh'] = null;
             window.glb.flash_Obj[i]['valid'] = false;
-            window.glb.scene.remove(window.glb.flash_Obj[i]['mesh']);
         }
     }
 }
@@ -595,15 +592,13 @@ function parse_geometry(str){
 }
 function parse_update_core(buf_str, pp) {
     let each_line = buf_str.split('\n')
-    let parsed_frame = []
     for (let i = 0; i < each_line.length; i++) {
         var str = each_line[i]
         if (str.search(">>v2dx") != -1) {
             // name, xpos, ypos, zpos, dir=0, **kargs
-            parse_core_obj(str, parsed_frame)
+            parse_core_obj(str)
         }
     }
-    window.glb.parsed_core_L[pp] = parsed_frame
 }
 
 function parse_update_flash(buf_str) {
@@ -988,7 +983,7 @@ function make_flash(type, src, dst, dur, size, color){
         })
     }
 }
-function parse_core_obj(str, parsed_frame){
+function parse_core_obj(str){
     const pattern = get_reg_exp(">>v2dx\\('(.*?)',([^,]*),([^,]*),([^,]*),(.*)\\)")
     let match_res = str.match(pattern)
     let name = match_res[1]
@@ -1047,6 +1042,5 @@ function parse_core_obj(str, parsed_frame){
     if (parsed_obj_info['fade_step'] && parsed_obj_info['fade_step']<=0){ alert('fade_step must >=1 !') }
     
     apply_update(parsed_obj_info)
-    parsed_frame.push(parsed_obj_info)
 }
 

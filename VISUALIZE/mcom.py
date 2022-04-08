@@ -1,6 +1,6 @@
-import os, copy, atexit, time
+import os, copy, atexit, time, gzip, threading
 import numpy as np
-from colorama import init; init()
+from colorama import init
 from multiprocessing import Process
 from UTILS.colorful import *
 from UTILS.network import get_host_ip, find_free_port
@@ -41,12 +41,13 @@ class mcom():
                 'draw_mode': draw_mode,
                 'draw_udp_port': self.draw_tcp_port,
                 'port': self.draw_tcp_port,
-                'backup_file': self.path + '/backup.dp'
+                'backup_file': self.path + '/backup.dp.gz'
             }
             DP = DrawProcess if draw_mode != 'Threejs' else DrawProcessThreejs
             self.draw_proc = DP(**kargs)
             self.draw_proc.start()
-            self.draw_tcp_client = tcp_client('localhost:%d'%port)
+            from UTILS.network import QueueOnTcpClient
+            self.draw_tcp_client = QueueOnTcpClient('localhost:%d'%port)
         else:
             print亮红('[mcom.py]: Draw process off! No plot will be done')
             self.draw_process = False
@@ -62,7 +63,7 @@ class mcom():
         print蓝('[mcom.py]: log file at:' + self.starting_file)
 
         if not self.draw_mode=='Threejs':
-            self.current_file_handle = open(self.starting_file, 'wb+')
+            self.current_file_handle = open(self.starting_file, 'w+', encoding = "utf-8")
         atexit.register(lambda: self.__del__())
 
 
@@ -73,7 +74,7 @@ class mcom():
 
         print红('[mcom.py]: mcom exiting! tag: %s'%self.tag)
         if hasattr(self, 'current_file_handle') and self.current_file_handle is not None:
-            end_file_flag = (b'><EndTaskFlag\n')
+            end_file_flag = ('><EndTaskFlag\n')
             self.current_file_handle.write(end_file_flag)
             self.current_file_handle.close()
         if hasattr(self, 'port') and self.port is not None:
@@ -100,13 +101,13 @@ class mcom():
             if 'rec_show' in str(l, encoding='utf8'): 
                 r = copy.deepcopy(l)
                 continue
-            self.draw_tcp_client.send_bytes(l)
+            self.draw_tcp_client.send_str(l)
         if r is not None:
-            self.draw_tcp_client.send_bytes(r)
+            self.draw_tcp_client.send_str(r)
         return None
 
     '''
-        mcom core function: send out/write raw bytes
+        mcom core function: send out/write str
     '''
     def send(self, data):
         if not self.draw_mode=='Threejs':
@@ -119,7 +120,7 @@ class mcom():
                 self.flow_cnt = 0
             # step 2: check whether the file is too large, if so move on to next file.
             if self.file_lines_cnt > self.file_max_lines:
-                end_file_flag = (b'><EndFileFlag\n')
+                end_file_flag = ('><EndFileFlag\n')
                 self.current_file_handle.write(end_file_flag)
                 self.current_file_handle.close()
                 self.current_buffer_index += 1
@@ -129,29 +130,26 @@ class mcom():
         # # step 3: send directive to draw process
         if self.draw_process: 
             # self.draw_udp_client.sendto(data, self.draw_udp_port)
-            self.draw_tcp_client.send_bytes(data)
+            self.draw_tcp_client.send_str(data)
 
     def rec_init(self, color='k'):
         str_tmp = '>>rec_init(\'%s\')\n' % color
-        b_tmp = bytes(str_tmp, encoding='utf8')
-        self.send(b_tmp)
+        self.send(str_tmp)
 
     def rec_show(self):
-        b_tmp = b'>>rec_show\n'
-        self.send(b_tmp)
+        self.send('>>rec_show\n')
 
     def rec_end(self):
-        self.send(b'>>rec_end\n')
+        self.send('>>rec_end\n')
 
     def rec_save(self):
-        self.send(b'>>rec_save\n')
+        self.send('>>rec_save\n')
 
     def rec_end_hold(self):
-        self.send(b'>>rec_end_hold\n')
+        self.send('>>rec_end_hold\n')
 
     def rec_clear(self, name):
         str_tmp = '>>rec_clear("%s")\n' % (name)
-        str_tmp = bytes(str_tmp, encoding='utf8')
         self.send(str_tmp)
 
     def rec(self, value, name):
@@ -162,8 +160,6 @@ class mcom():
             str_tmp = '>>rec(%.8e,"%s")\n' % (value, name)
         elif self.digit == 4:
             str_tmp = '>>rec(%.4e,"%s")\n' % (value, name)
-
-        str_tmp = bytes(str_tmp, encoding='utf8')
         self.send(str_tmp)
 
     def 发送虚幻4数据流(self, x, y, z, pitch, yaw, roll):
@@ -174,7 +170,6 @@ class mcom():
         yaw = float(yaw)
         roll = float(roll)
         str_tmp = 'UE4>>(\"agent#1\",%.6e,%.6e,%.6e,%.6e,%.6e,%.6e)\n' % (x, y, z, pitch, yaw, roll)
-        str_tmp = bytes(str_tmp, encoding='utf8')
         self.send(str_tmp)
 
     def 发送虚幻4数据流_多智能体(self, x_, y_, z_, pitch_, yaw_, roll_):
@@ -192,7 +187,7 @@ class mcom():
         str_list.append('\n')
 
         cmd = ''.join(str_list)
-        self.send(bytes(cmd, encoding='utf8'))
+        self.send(cmd)
 
     def other_cmd(self, func_name, *args, **kargs):
         # func_name = traceback.extract_stack()[-2][2]
@@ -212,7 +207,7 @@ class mcom():
 
         if strlist[len(strlist) - 1] == "(": strlist.append(")\n")
         else: strlist[len(strlist) - 1] = ")\n" # 把逗号换成后括号
-        self.send(bytes(''.join(strlist), encoding='utf8'))
+        self.send(''.join(strlist))
 
     def _process_scalar(self, arg, strlist,key=None):
         if key is not None: strlist += '%s='%key
@@ -250,9 +245,9 @@ class mcom():
             strlist += sub_list
             strlist.append(",")
         elif args.ndim == 2:
-            print红('mcom：输入数组的维度大于1维，目前处理不了。')
+            print红('[mcom]: 输入数组的维度大于1维, 目前处理不了。')
         else:
-            print红('mcom：输入数组的维度大于2维，目前处理不了。')
+            print红('[mcom]: 输入数组的维度大于2维, 目前处理不了。')
         return strlist
 
     for fn_name in mcom_fn_list_define:
@@ -279,126 +274,6 @@ def find_free_index(path):
 
     prev_start, prev_end, new = find_previous_start_end()
     return prev_start, prev_end, new
-
-class tcp_client():
-    def __init__(self, ip):
-        import socket
-        TCP_IP, TCP_PORT = ip.split(':')
-        TCP_PORT = int(TCP_PORT)
-        BUFFER_SIZE = 10240
-        self.socketx = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socketx.connect((TCP_IP, TCP_PORT))
-
-        self.fixed_end = bytes('@end@', encoding='utf8') 
-
-    def send(self, str_msg):
-        msg = str_msg + '@end@'
-        self.socketx.send(bytes(msg, encoding='utf8'))
-
-    def send_bytes(self, b_msg):
-        msg = b_msg + self.fixed_end
-        self.socketx.send(msg)
-
-    def close(self):
-        self.socketx.close()
-
-    def __del__(self):
-        self.socketx.close()
-
-class tcp_server():
-    def __init__(self, ip_port):
-        import socket
-        self.draw_cmd_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.draw_cmd_socket.bind(ip_port)
-        self.draw_cmd_socket.listen()
-        self.handler = None
-        self.queue = None
-        self.buff = ['']
-        self.recv_buf_max = 10240
- 
-    def wait_connection(self):
-        import threading
-        self.sock, _ = self.draw_cmd_socket.accept()
-        t = threading.Thread(target=self.listening_thread)
-        t.daemon = True
-        t.start()
-
-    def listening_thread(self):
-
-        def handle_flag_breakdown():
-            split_ = self.buff[-1].split('@end@')
-            assert len(split_)==2
-            self.buff[-1] = split_[0]
-            self.buff.append('')
-            self.buff[-1] = split_[1]
-            return
-
-        assert (self.handler is None)     or (self.queue is None)
-        assert (self.handler is not None) or (self.queue is not None)
-
-        while True:
-            recvData = self.sock.recv(self.recv_buf_max)
-
-            # 防止中文字符被拆解~
-            if len(recvData)==self.recv_buf_max:
-                while True:
-                    tmp = self.sock.recv(1)
-                    recvData = recvData+tmp
-                    if tmp==b'@': break
-
-            recvData = str(recvData, encoding = "utf-8")
-            ends_with_mark = recvData.endswith('@end@')
-            split_res = recvData.split('@end@')
-            assert len(split_res) != 0
-            if len(split_res) == 1:
-                # 说明没有终止符，直接将结果贴到buf最后一项
-                self.buff[-1] = self.buff[-1] + split_res[0]
-                if '@end@' in self.buff[-1]: 
-                    handle_flag_breakdown()
-            else:
-                n_split = len(split_res)
-                for i, r in enumerate(split_res):
-                    self.buff[-1] = self.buff[-1] + r
-                    if i == 0 and '@end@' in self.buff[-1]:
-                        handle_flag_breakdown()
-                    if i != n_split-1:
-                        self.buff.append('')
-                    else: # 最后一个
-                        if r == '': continue
-            buff_list = self.buff[:-1]
-            self.buff = self.buff[-1:]
-            if self.handler is not None: 
-                self.handler(buff_list)
-            if self.queue is not None: 
-                self.queue.put(buff_list)
-        return
-
-    def set_handler(self, handler):
-        self.handler = handler
-
-    def get_queue(self):
-        import queue
-        self.queue = queue.Queue()
-        return self.queue
-
-    def recv(self):
-        return
-
-    # def send(self, str_msg):
-    #     msg = '@start@' + str_msg + '@end@'
-    #     self.sock.send(bytes(msg, encoding='utf8'))
-
-    def send_bytes(self, b_msg):
-        msg = self.fixed_L + b_msg + self.fixed_R
-        self.sock.send(msg)
-
-    def close(self):
-        if hasattr(self, 'sock'): self.sock.close()
-        if hasattr(self, 'draw_cmd_socket'): self.draw_cmd_socket.close()        
-
-    def __del__(self):
-        self.close()
-
 
 
 
@@ -427,9 +302,10 @@ class MyHttp(Process):
 class DrawProcessThreejs(Process):
     def __init__(self, draw_udp_port, draw_mode, **kargs):
         super(DrawProcessThreejs, self).__init__()
+        from UTILS.network import QueueOnTcpServer
         self.draw_mode = draw_mode
         self.draw_udp_port = draw_udp_port
-        self.tcp_connection = tcp_server(self.draw_udp_port)
+        self.tcp_connection = QueueOnTcpServer(self.draw_udp_port)
         self.buffer_list = []
         self.backup_file = kargs['backup_file']
         self.allow_backup = False if self.backup_file is None else True
@@ -438,13 +314,27 @@ class DrawProcessThreejs(Process):
                 print亮红('[mcom.py]: warning, purge previous 3D visual data!')
                 try: os.remove(self.backup_file)
                 except: pass
+            self.tflush_buffer = []
         self.client_tokens = {}
 
+    def flush_backup(self):
+        while True:
+            time.sleep(20)
+            # print('Flush backup')
+            with gzip.open(self.backup_file, 'at') as f:
+                f.writelines(self.tflush_buffer)
+            self.tflush_buffer = []
+            # print('Flush backup done')
+
     def init_threejs(self):
-        import threading
         t = threading.Thread(target=self.run_flask, args=(find_free_port(),))
         t.daemon = True
         t.start()
+
+        if self.allow_backup:
+            self.tflush = threading.Thread(target=self.flush_backup)
+            self.tflush.daemon = True
+            self.tflush.start()
 
     def run(self):
         self.init_threejs()
@@ -453,7 +343,9 @@ class DrawProcessThreejs(Process):
             queue = self.tcp_connection.get_queue()
             self.tcp_connection.wait_connection() # after this, the queue begin to work
             while True:
-                self.run_handler(queue.get(timeout=600))
+                buff_list = []
+                for _ in range(queue.qsize()): buff_list.extend(queue.get(timeout=600))
+                self.run_handler(buff_list)
         except KeyboardInterrupt:
             self.__del__()
         self.__del__()
@@ -463,8 +355,8 @@ class DrawProcessThreejs(Process):
         
     def run_handler(self, new_buff_list):
         self.buffer_list.extend(new_buff_list)
-        if self.allow_backup:
-            with open(self.backup_file, 'a+') as f: f.writelines(new_buff_list)
+        self.tflush_buffer.extend(new_buff_list)
+
         # too many, delete with fifo
         if len(self.buffer_list) > 1e9: # 当存储的指令超过十亿后，开始删除旧的
             del self.buffer_list[:len(new_buff_list)]
@@ -550,10 +442,11 @@ class DrawProcessThreejs(Process):
 
 class DrawProcess(Process):
     def __init__(self, draw_udp_port, draw_mode, **kargs):
+        from UTILS.network import QueueOnTcpServer
         super(DrawProcess, self).__init__()
         self.draw_mode = draw_mode
         self.draw_udp_port = draw_udp_port
-        self.tcp_connection = tcp_server(self.draw_udp_port)
+        self.tcp_connection = QueueOnTcpServer(self.draw_udp_port)
 
         return
 
@@ -619,15 +512,6 @@ class DrawProcess(Process):
             if (buff=='>>rec_show\n') and ('>>rec_show\n' in buff_list): continue # skip
             self.process_cmd(buff)
 
-        # if '>>rec_show\n' in buff_list:
-
-
-        # # remove extral rec_show
-        # if '>>rec_show\n' in buff_list:
-        #     buff_list = filter()
-
-        # for buff in buff_list:
-        #     self.process_cmd(buff)
         #     # print('成功处理指令:', buff)
 
     def __del__(self):

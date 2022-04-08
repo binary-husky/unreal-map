@@ -1,10 +1,10 @@
 # import os
 # print(os.getcwd())
-import os, sys
+import os, sys, gzip
 import argparse
 from VISUALIZE.mcom import *
 
-
+# DEBUG_OOM = True
 
 class RecallProcessThreejs(Process):
     def __init__(self, file_path, port):
@@ -20,13 +20,43 @@ class RecallProcessThreejs(Process):
         t.daemon = True
         t.start()
 
+    def __del__(self):
+        pass
+    
     def run(self):
         self.init_threejs()
         try:
-            with open(self.file_path, 'r') as f:
-                new_buff_list = f.readlines()
+            new_buff_list = []
+            with gzip.open(self.file_path, 'rt') as zip:
+                try:
+                    for line in zip:
+                        new_buff_list.append(line)
+                        if len(new_buff_list) > 1e2:
+                            self.run_handler(new_buff_list)
+                            new_buff_list = []
+                except:
+                    print('File has bad ending! EOFError: Compressed file ended before the end-of-stream marker was reached!')
+                    print('存档的末尾是破碎的, 少量数据可能丢失了. 完整的部分已经读取完成.')
             self.run_handler(new_buff_list)
-            while True: time.sleep(1000)
+            new_buff_list = []
+            # if DEBUG_OOM:
+            #     for i in range(100):
+            #         print(i)
+            #         with gzip.open(self.file_path, 'rt') as zip:
+            #             try:
+            #                 for line in zip:
+            #                     if 'v2d_init' in line: continue
+            #                     new_buff_list.append(line)
+            #                     if len(new_buff_list) > 1e2:
+            #                         self.run_handler(new_buff_list)
+            #                         new_buff_list = []
+            #             except:
+            #                 print('File has bad ending! EOFError: Compressed file ended before the end-of-stream marker was reached!')
+            #                 print('存档的末尾是破碎的, 少量数据可能丢失了. 完整的部分已经读取完成.')
+            #         self.run_handler(new_buff_list)
+            #         new_buff_list = []
+            while True: 
+                time.sleep(1000)
         except KeyboardInterrupt:
             self.__del__()
 

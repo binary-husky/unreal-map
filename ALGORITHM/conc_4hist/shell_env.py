@@ -1,6 +1,6 @@
 import numpy as np
 from UTILS.colorful import *
-from UTILS.tensor_ops import my_view, __hash__
+from UTILS.tensor_ops import my_view, __hash__, repeat_at
 from .cython_func import roll_hisory
 DEBUG = True
 
@@ -31,8 +31,7 @@ def reg_angle(rad):
     return (rad + np.pi)%(2*np.pi) -np.pi
 
 class ShellEnvWrapper(object):
-    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, 
-                                          alg_config, scenario_config):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config):
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.space = space
@@ -65,12 +64,13 @@ class ShellEnvWrapper(object):
         # read internal coop graph info
         obs = State_Recall['Latest-Obs']
 
+        ENV_PAUSE = State_Recall['ENV-PAUSE']
+        RST = State_Recall['Env-Suffered-Reset']
         # previous_obs = State_Recall['_Previous_Obs_'] if '_Previous_Obs_' in State_Recall else np.zeros_like(obs)
         his_pool_obs = State_Recall['_Histpool_Obs_'] if '_Histpool_Obs_' in State_Recall \
             else my_view(np.zeros_like(obs),[0, 0, -1, self.n_basic_dim])
-            # else my_view(np.zeros_like(np.concatenate((obs,obs), -1)),[0, 0, -1, self.n_basic_dim])
+        his_pool_obs[RST] = 0
 
-        ENV_PAUSE = State_Recall['ENV-PAUSE']
         obs_feed = obs[~ENV_PAUSE]
         his_pool_obs_feed = his_pool_obs[~ENV_PAUSE]
 

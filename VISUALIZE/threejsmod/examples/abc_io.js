@@ -41,16 +41,19 @@ function core_update(buf) {
     }
     if (eofx_i>=0){
         alert('new session detected')
-        window.glb.core_L = []
-        window.glb.parsed_core_L = []
-        for (let i = window.glb.core_Obj.length-1; i>=0; i--) {
-            window.glb.scene.remove(window.glb.core_Obj[i]);
-        }
-        window.glb.core_Obj = []
+        window.glb.core_L = [];
+        clear_everything();
+        window.glb.core_Obj = [];
         tmp.splice(0, eofx_i);
     }
     //
     window.glb.core_L = window.glb.core_L.concat(tmp);
+    // check memory remaining
+    console.log(parseInt((performance.memory.jsHeapSizeLimit-performance.memory.usedJSHeapSize)/1024/1024),'MB');
+    // ; // will give you the JS heap size
+    // performance.memory.usedJSHeapSize; // how much you're currently using
+
+    //
     if (window.glb.core_L.length > window.glb.buffer_size){
         window.glb.core_L.splice(0, tmp.length);
         window.glb.play_pointer = window.glb.play_pointer - tmp.length;
