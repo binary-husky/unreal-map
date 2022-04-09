@@ -1,0 +1,54 @@
+{
+    "config.py->GlobalConfig": {
+        "note": "50vs50-dca-gamma-win-0d95-fixrun",
+        "env_name": "collective_assult_debug",
+        "env_path": "MISSIONS.collective_assult_debug",
+        "draw_mode": "Img",
+        "num_threads": "64",
+        "report_reward_interval": "64",
+        "test_interval": "2048",
+        "test_epoch": "256",
+        "interested_agent_num": 60,
+        "device": "cuda:6",
+        "gpu_party": "off",
+        "fold": "1",
+        "n_parallel_frame": 50000000.0,
+        "max_n_episode": 1000000.0,
+        "seed": 101111,
+        "backup_files": [
+            "ALGORITHM/conc_4hist",
+            "MISSIONS/collective_assult"
+        ]
+    },
+    "MISSIONS.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig": {
+        "size": "5",
+        "random_jam_prob": 0.05,
+        "num_guards": 60,
+        "num_attackers": 60,
+        "introduce_terrain": "True",
+        "terrain_parameters": [
+            0.15,
+            0.2
+        ],
+        "num_steps": "180",
+        "render": "True",
+        "REWARD_DEBUG": "True",
+        "REWARD_DEBUG_Value": 3,
+        "half_death_reward": "True",
+        "TEAM_NAMES": [
+            "ALGORITHM.conc_4hist.foundation->ReinforceAlgorithmFoundation"
+        ]
+    },
+    "ALGORITHM.conc_4hist.foundation.py->AlgorithmConfig": {
+        "train_traj_needed": "64",
+        "fix_n_sample": "True",
+        "n_focus_on": 4,
+        "actor_attn_mod": "False",
+        "lr": 0.0005,
+        "ppo_epoch": 24,
+        "gamma_in_reward_forwarding": "True",
+        "gamma_in_reward_forwarding_value": 0.95,
+        "gamma": 0.99,
+        "load_checkpoint": "False"
+    }
+}
