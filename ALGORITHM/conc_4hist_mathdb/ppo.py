@@ -189,7 +189,7 @@ class PPO():
                 with self.gpu_share_unit:
                     self.train_on_traj_(traj_pool, task) 
                 break # 运行到这说明显存充足
-            except RuntimeError:
+            except RuntimeError as err:
                 if self.fix_n_sample:
                     if TrajPoolSampler.MaxSampleNum[-1] < 0:
                         TrajPoolSampler.MaxSampleNum.pop(-1)

@@ -88,6 +88,53 @@ window.glb.panelSettings = {
 
 var pre_rec_time = -1
 var incoming_per_sec = -1
+var recent_incoming_steam = []
+
+function auto_fps_experimental(recent_incoming_steam){
+    if (window.glb.panelSettings['auto fps']){
+        let N=0; let dt=0;
+        for (let i=0; i<recent_incoming_steam.length; i++){
+            dt += recent_incoming_steam[i]['time'];
+            N += recent_incoming_steam[i]['n_data'];
+        }
+        let incoming_per_sec = N/dt
+
+
+        // automatically change fps
+        let need_fps_change = false;
+        let nframe_to_play = window.glb.core_L.length - window.glb.play_pointer;
+
+        let max_speed_nframe = 1250;
+        let max_speed = incoming_per_sec*5;
+
+        let min_speed_nframe = 250;
+        let min_speed = incoming_per_sec*0.5;
+        let control_fps = min_speed + (nframe_to_play - min_speed_nframe) * (max_speed-min_speed) / (max_speed_nframe-min_speed_nframe)
+        if (nframe_to_play<min_speed_nframe){
+            control_fps = min_speed;
+        }
+        console.log('pre_rec_time:'+incoming_per_sec+'\tnframe_to_play:'+nframe_to_play+'\tcontrol_fps:'+control_fps)
+
+        if(Math.abs(window.glb.panelSettings['play fps'] - control_fps)>=1){
+            need_fps_change = true;
+            window.glb.panelSettings['play fps'] = control_fps;
+        }
+        // if ((window.glb.core_L.length - window.glb.play_pointer)> window.glb.buffer_size*0.3){ // 20% buffer size
+        //     window.glb.panelSettings['play fps'] = incoming_per_sec*5;
+        // }else if ((window.glb.core_L.length - window.glb.play_pointer)< window.glb.buffer_size*0.05){ // 20% buffer size
+        //     window.glb.panelSettings['play fps'] = incoming_per_sec*0.5;
+        // }else if((Math.abs(window.glb.panelSettings['play fps'] - incoming_per_sec)>=1) ){ // 10% ~ 30% buffer size
+        //     window.glb.panelSettings['play fps'] = incoming_per_sec;
+        // }else{
+        //     need_fps_change = false;
+        // }
+
+        if (window.glb.panelSettings['play fps']>144){window.glb.panelSettings['play fps']=144;}
+        if (window.glb.panelSettings['play fps']<0.1){window.glb.panelSettings['play fps']=0.1;}
+        if (need_fps_change) {change_fps(window.glb.panelSettings['play fps']);}
+        if (need_fps_change) {console.log('change_fps:'+window.glb.panelSettings['play fps']);}
+    }
+}
 
 //////////////////////main read function//////////////////////////
 var coreReadFunc = function (auto_next=true) {
@@ -124,29 +171,16 @@ var coreReadFunc = function (auto_next=true) {
         let time_now = new Date().getTime() / 1000;
         if (pre_rec_time<0){pre_rec_time = time_now;}
         else{
-            let data_receive_per_sec = n_new_data/(time_now-pre_rec_time)
-            if (incoming_per_sec<0){incoming_per_sec = 5;}
-            else{incoming_per_sec = incoming_per_sec*0.98 + data_receive_per_sec*0.02;}
-
-            console.log('pre_rec_time:'+incoming_per_sec+'\tdata_receive_per_sec:'+data_receive_per_sec)
-            pre_rec_time = time_now; // first run
-            if (window.glb.panelSettings['auto fps']){
-                // automatically change fps
-                let need_fps_change = true;
-                if ((window.glb.core_L.length - window.glb.play_pointer)> window.glb.buffer_size*0.3){ // 20% buffer size
-                    window.glb.panelSettings['play fps'] = incoming_per_sec*5;
-                }else if ((window.glb.core_L.length - window.glb.play_pointer)< window.glb.buffer_size*0.05){ // 20% buffer size
-                    window.glb.panelSettings['play fps'] = incoming_per_sec*0.5;
-                }else if((Math.abs(window.glb.panelSettings['play fps'] - incoming_per_sec)>=1) ){ // 10% ~ 30% buffer size
-                    window.glb.panelSettings['play fps'] = incoming_per_sec;
-                }else{
-                    need_fps_change = false;
-                }
-                if (window.glb.panelSettings['play fps']>144){window.glb.panelSettings['play fps']=144;}
-                if (window.glb.panelSettings['play fps']<0.1){window.glb.panelSettings['play fps']=0.1;}
-                if (need_fps_change) {change_fps(window.glb.panelSettings['play fps']);}
-                if (need_fps_change) {console.log('change_fps:'+window.glb.panelSettings['play fps']);}
+            recent_incoming_steam.push({
+                'time': (time_now-pre_rec_time),
+                'n_data': n_new_data,
+            })
+            if (recent_incoming_steam.length > 100){
+                recent_incoming_steam.splice(0, 1); // remove early time-ndata pair
             }
+
+            pre_rec_time = time_now; // first run
+            auto_fps_experimental(recent_incoming_steam)
         }
         transfer_ongoing = false;
     };

@@ -259,6 +259,7 @@ class Runner(object):
                         rapid_flush=True,
                         draw_mode=cfg.draw_mode,
                         tag='[task_runner.py]')
+            cfg.data_logger = mcv
         mcv.rec_init(color='b')
         return mcv
 

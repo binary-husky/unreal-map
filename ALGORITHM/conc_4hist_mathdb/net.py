@@ -315,38 +315,53 @@ class Net(nn.Module):
     def _get_act_log_probs(distribution, action):
         return distribution.log_prob(action.squeeze(-1)).unsqueeze(-1)
 
-    # two ways to support avail_act, but which one is better?
+
     def logit2act_exp(self, logits_agent_cluster, zs, eval_mode, test_mode, eval_actions=None, avail_act=None):
+        '''
         logits_agent_detach = logits_agent_cluster.detach()
         zs_detach = zs.detach()
         zs_detach = zs_detach.squeeze(-2)
         hyper_obs = torch.cat((logits_agent_detach, zs_detach), axis=-1)
         hyper_act_logits = self.AT_hyper_act_net(hyper_obs)
-
+        hyper_act_logits[..., 0] = 0
+        hyper_act_logits[..., 1] = 10
+        hyper_act_logits = hyper_act_logits.detach()
         # logits to acts, 
         # input: hyper_act_logits
         # output: h_act
         h_dist = Categorical(logits = hyper_act_logits)
         if not test_mode:  h_act = h_dist.sample() if not eval_mode else eval_actions
         else:              h_act = torch.argmax(h_dist.probs, axis=2)
-        hActLogProbs = self._get_act_log_probs(h_dist, h_act)
-
+        # h_act[:] = 1
+        SampleLogProb = self._get_act_log_probs(h_dist, torch.ones_like(h_act))
+        hActLogProbsRef = self._get_act_log_probs(h_dist, h_act)
+        # hActLogProbs = self._get_act_log_probs(h_dist, h_act)
         if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
-
+        '''
+        torch.nn.functional.gumbel_softmax()
 
         act_dist = Categorical(logits = logits_agent_cluster)
         act_sample = act_dist.sample() if not eval_mode else eval_actions
         act_argmax = torch.argmax(act_dist.probs, axis=2)
-
-        act = torch.where(h_act==1, act_sample, act_argmax) # h_act: shape=($n_thread, $n_agent)
-        # if not test_mode:  act = act_sample
-        # else:              act = act_argmax     
-
+        # 1 是采样， 0 是贪婪
+        act = act_sample # h_act: shape=($n_thread, $n_agent)
+        # act = torch.where(h_act==1, act_sample, act_argmax) # h_act: shape=($n_thread, $n_agent)
+        # sel_argmax = (act_argmax==act).unsqueeze(-1)
 
         actLogProbs01 = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
+        # if not eval_mode:
+        #     which_step = zs[0,0,0,0].item()
+        #     n_thread = h_act.shape[0]
+        #     sel_hact1 = (h_act==1).sum().item()/n_thread
+        #     sel_hact0 = (h_act==0).sum().item()/n_thread
+        #     from config import GlobalConfig
+        #     GlobalConfig.data_logger.rec(sel_hact0, '%d-hact0'%round(which_step))
+        #     GlobalConfig.data_logger.rec(sel_hact1, '%d-hact1'%round(which_step))
 
 
-        actLogProbs = actLogProbs01 + hActLogProbs
+        actLogProbs_notargmax = actLogProbs01 + 1
+        #actLogProbs_argmax = torch.log( torch.exp(actLogProbs01 + SampleLogProb) + (1-torch.exp(SampleLogProb))  )
+        actLogProbs = actLogProbs_notargmax # torch.where(sel_argmax, actLogProbs_argmax, actLogProbs_notargmax)
 
         # sum up the log prob of all agents
         distEntropy = act_dist.entropy().mean(-1) if eval_mode else None

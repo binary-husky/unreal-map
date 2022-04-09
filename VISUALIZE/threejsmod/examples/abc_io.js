@@ -49,7 +49,7 @@ function core_update(buf) {
     //
     window.glb.core_L = window.glb.core_L.concat(tmp);
     // check memory remaining
-    console.log(parseInt((performance.memory.jsHeapSizeLimit-performance.memory.usedJSHeapSize)/1024/1024),'MB');
+    // console.log(parseInt((performance.memory.jsHeapSizeLimit-performance.memory.usedJSHeapSize)/1024/1024),'MB');
     // ; // will give you the JS heap size
     // performance.memory.usedJSHeapSize; // how much you're currently using
 

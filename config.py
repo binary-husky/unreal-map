@@ -51,6 +51,7 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     env_path = 'MISSIONS.sr_tasks.multiagent.cargo'     # path of environment
     draw_mode = 'OFF'                                   # 'Web','Native','Img','Threejs' 
     activate_logger = True                              # activate data plotting (Tensorboard is not used because I do not like it)
+    data_logger = 'auto load, do not change this var!'  # activate data plotting (Tensorboard is not used because I do not like it)
     
     seed = np.random.randint(0, 100000)                 # seed for numpy and pytorch
 
