@@ -65,6 +65,11 @@ def make_parallel_envs(process_pool, marker=''):
             raise "Error checking docker in docker, can not control host docker interface!"
         pass
 
+    if GlobalConfig.env_name == 'collective_assult_debug':
+        # This particular env has a cython file that needs to be compiled in main process
+        # that must be loaded in main process
+        from MISSIONS.collective_assult_debug.cython_func import laser_hit_improve3
+
     if GlobalConfig.num_threads > 1:
         envs = SuperpoolEnv(process_pool, env_args_dict_list)
     else:
