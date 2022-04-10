@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "42RL-45opp",   // 实验存储路径
+        "note": "45RL-47opp",   // 实验存储路径
         "env_name": "collective_assult_debug",  // 环境（任务名称）
         "env_path": "MISSIONS.collective_assult_debug", 
         "draw_mode": "Img",
@@ -23,8 +23,8 @@
     "MISSIONS.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig": {
         "size": "5",
         "random_jam_prob": 0.05,
-        "num_guards": 42,   // 强化学习方（蓝色）智能体数量
-        "num_attackers": 45,    // 脚本敌方（红色）智能体数量
+        "num_guards": 45,   // 强化学习方（蓝色）智能体数量
+        "num_attackers": 47,    // 脚本敌方（红色）智能体数量
         "introduce_terrain": "True",
         "terrain_parameters": [
             0.15,
