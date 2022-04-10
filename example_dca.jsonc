@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "45RL-47opp",   // 实验存储路径
+        "note": "40RL-40opp",   // 实验存储路径
         "env_name": "collective_assult_debug",  // 环境（任务名称）
         "env_path": "MISSIONS.collective_assult_debug", 
         "draw_mode": "Img",
@@ -8,8 +8,8 @@
         "report_reward_interval": "64",
         "test_interval": "2048",
         "test_epoch": "256",
-        "interested_agent_num": 42,
-        "device": "cuda:6", // 使用哪张显卡
+        "interested_agent_num": 40,
+        "device": "cuda:5", // 使用哪张显卡
         "gpu_party": "off", // 是否允许多进程共享显存，这里不需要
         "fold": "1",        // 使用的进程数量 = 环境并行数量/fold
         "n_parallel_frame": 50000000.0,
@@ -23,8 +23,8 @@
     "MISSIONS.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig": {
         "size": "5",
         "random_jam_prob": 0.05,
-        "num_guards": 45,   // 强化学习方（蓝色）智能体数量
-        "num_attackers": 47,    // 脚本敌方（红色）智能体数量
+        "num_guards": 40,   // 强化学习方（蓝色）智能体数量
+        "num_attackers": 40,    // 脚本敌方（红色）智能体数量
         "introduce_terrain": "True",
         "terrain_parameters": [
             0.15,
@@ -49,6 +49,7 @@
         "gamma_in_reward_forwarding": "True",
         "gamma_in_reward_forwarding_value": 0.95,
         "gamma": 0.99,
+        "ignore_test_mode": true,
         "load_checkpoint": "False"
     }
 }
