@@ -49,7 +49,7 @@ class AlgorithmConfig:
     dual_conc = True
     use_my_attn = True
     alternative_critic = False
-
+    ignore_test_mode = False
 
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
@@ -118,7 +118,8 @@ class ReinforceAlgorithmFoundation(object):
         avail_act = State_Recall['avail_act'] if 'avail_act' in State_Recall else None
 
         with torch.no_grad():
-            action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act)
+            policy_test_mode = False if AlgorithmConfig.ignore_test_mode else test_mode
+            action, value, action_log_prob = self.policy.act(obs, test_mode=policy_test_mode, avail_act=avail_act)
 
         # Warning! vars named like _x_ are aligned, others are not!
         traj_frag = {
