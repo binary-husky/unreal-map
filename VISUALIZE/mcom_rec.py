@@ -85,7 +85,7 @@ class rec_family(object):
         
         if image_num >= 3:
             rows = 2 #大与3张图，则放两行
-        if image_num >= 8:
+        if image_num > 8:
             rows = 3 #大与3张图，则放两行
         if image_num > 12:
             rows = 4 #大与3张图，则放两行
