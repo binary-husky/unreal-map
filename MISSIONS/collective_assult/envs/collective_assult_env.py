@@ -59,8 +59,7 @@ class collective_assultEnvV1(gym.Env):
         if ScenarioConfig.MCOM_DEBUG:
             from VISUALIZE.mcom import mcom
             from config import GlobalConfig as cfg
-            self.mcv = mcom(ip='127.0.0.1',
-                        port=12084,
+            self.mcv = mcom(
                         path='%s/v2d_logger/'%cfg.logdir,
                         digit=16, rapid_flush=True, draw_mode='OFF')
             self.mcv.v2d_init()

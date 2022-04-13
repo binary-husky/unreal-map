@@ -328,9 +328,7 @@ class Net(nn.Module):
 
         if cfg.matlab_logger is None:
             from VISUALIZE.mcom import mcom
-            mcv = mcom(ip='127.0.0.1',
-                        port=12084,
-                        path='%s/v2d_logger/'%cfg.logdir,
+            mcv = mcom(path='%s/v2d_logger/'%cfg.logdir,
                         digit=16, rapid_flush=True, draw_mode='Native')
             mcv.v2d_init()
             cfg.matlab_logger = mcv

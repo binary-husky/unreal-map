@@ -53,6 +53,8 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
 
     n_actions = 2
 
+    #
+    show_details = False
 
     # MathGame Setting
     one_hot_id = True
@@ -98,11 +100,29 @@ class MathEnv(BaseEnv):
             'n_actions': ScenarioConfig.n_actions,
             'n_agents':  self.n_agents}
         
+        if ScenarioConfig.StateProvided:
+            self.observation_space['state_shape'] = 1
+        
+        self.show_details = (ScenarioConfig.show_details and rank==0)
+        if self.show_details:
+            from VISUALIZE.mcom import mcom
+            from config import GlobalConfig as cfg
+            logdir = cfg.logdir
+            self.mcv = mcom(
+                        path='%s/logger_mathgame/'%logdir,
+                        digit=16,
+                        rapid_flush=True,
+                        draw_mode=cfg.draw_mode,
+                        tag='[mathgame/env.py]',
+                        image_path='%s/rec_mathgame.jpg'%logdir)
+            self.mcv.rec_init('g')
 
     def reset(self):
         self.TS = 0
         ob = self.get_obs(TS=0)
         info = {}
+        if ScenarioConfig.StateProvided:
+            info['state'] = np.array([self.TS])
         return ob, info
 
     def get_obs(self, TS, get_size=False):
@@ -118,38 +138,50 @@ class MathEnv(BaseEnv):
 
     def step(self, act):
         nLevel = 3
+        info = {}
+        if self.show_details:
 
-        n_chosen_act0 = sum(act==0)
-        n_chosen_act1 = sum(act==1)
+            for i in range(ScenarioConfig.n_actions):
+                self.mcv.rec(sum(act==i), 'Ts=%d, Act=%d'%(self.TS, i))
+            self.mcv.rec_show()
+
         if self.TS==0:  # Level 1
             # we expect all but one agents choose act1, only one agent choose act0
             # reward: 
             #   - Any agent choose act0: Team Reward +1
             #   - No agent choose act0: Team Reward +0
+            n_chosen_act0 = sum(act==0)
             reward = n_chosen_act0/self.n_agents
 
             self.TS = 1
             ob = self.get_obs(TS=1)
-
+            if ScenarioConfig.StateProvided:
+                info['state'] = np.array([1])
         elif self.TS==1:  # Level 2
             # 尽可能多的智能体选择act1
             # 但如果没有智能体选择act0，奖励-1
+            n_chosen_act1 = sum(act==1)
             reward = n_chosen_act1/self.n_agents
-            if n_chosen_act0==0:
-                reward = -1
+            # if (self.n_agents-n_chosen_act1)==0:
+            #     reward = -1
 
             self.TS = 2
             ob = self.get_obs(TS=2)
+            if ScenarioConfig.StateProvided:
+                info['state'] = np.array([2])
 
         elif self.TS==2:  # Level 3
             # 尽可能多的智能体选择act0
             # 但如果没有智能体选择act1，奖励-1
+            n_chosen_act0 = sum(act==0)
             reward = n_chosen_act0/self.n_agents
-            if n_chosen_act1==0:
-                reward = -1
+            # if (self.n_agents-n_chosen_act0)==0:
+            #     reward = -1
                 
             self.TS = 3
             ob = self.get_obs(TS=3) # Terminal obs, won't be accepted
+            if ScenarioConfig.StateProvided:
+                info['state'] = np.array([2])
         else:
             assert False, 'Should not be here !'
 
@@ -159,7 +191,7 @@ class MathEnv(BaseEnv):
         else: 
             done = False
         # 
-        info = {'win':False}
+        info.update({'win':False})
         reward_allteam = np.array([reward])
         return (ob, reward_allteam, done, info)
     

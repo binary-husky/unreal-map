@@ -27,22 +27,25 @@ mcom_fn_list_define = [
 
 # The Design Principle: Under No Circumstance should this program Interrupt the main program!
 class mcom():
-    def __init__(self, ip=None, port=None, path=None, digit=8, rapid_flush=True, draw_mode=False, tag='default'):
-        # digit 默认8，可选4,16，越小程序负担越轻 (all is float, set valid digit number)
+    def __init__(self, path=None, digit=8, rapid_flush=True, draw_mode=False, tag='default', **kargs):
+        # digit 默认8，可选4,16，越小程序负担越轻 (All data is float, you do not need anything else)
         # rapid_flush 当数据流不大时，及时倾倒文件缓存内容 (set 'False' if you'd like your SSD to survive longer)
         self.draw_mode = draw_mode
         self.path = path
+        self.tag = tag
+        if kargs is None: kargs = {}
 
         if draw_mode in ['Web', 'Native', 'Img', 'Threejs']:
-            self.draw_process = True; print亮红('[mcom.py]: draw process active!')
+            self.draw_process = True
             port = find_free_port()
+            print亮红('[mcom.py]: draw process active!')
             self.draw_tcp_port = ('localhost', port)
-            kargs = {
+            kargs.update({
                 'draw_mode': draw_mode,
                 'draw_udp_port': self.draw_tcp_port,
                 'port': self.draw_tcp_port,
                 'backup_file': self.path + '/backup.dp.gz'
-            }
+            })
             DP = DrawProcess if draw_mode != 'Threejs' else DrawProcessThreejs
             self.draw_proc = DP(**kargs)
             self.draw_proc.start()
@@ -52,18 +55,18 @@ class mcom():
             print亮红('[mcom.py]: Draw process off! No plot will be done')
             self.draw_process = False
 
-        prev_start, prev_end, self.current_buffer_index = find_free_index(self.path)
-        self.starting_file = self.path + '/mcom_buffer_%d____starting_session.txt' % (self.current_buffer_index)
-        self.file_lines_cnt = 0
-        self.file_max_lines = 300000  # limit file lines to avoid a very large file
-        self.digit = digit
-        self.rapid_flush = rapid_flush
-        self.flow_cnt = 0
-        self.tag = tag
-        print蓝('[mcom.py]: log file at:' + self.starting_file)
 
         if not self.draw_mode=='Threejs':
+            _, _, self.current_buffer_index = find_where_to_log(self.path)
+            self.starting_file = self.path + '/mcom_buffer_%d____starting_session.txt' % (self.current_buffer_index)
+            self.file_lines_cnt = 0
+            self.file_max_lines = 5e8  # limit file lines to avoid a very large file
+            self.digit = digit
+            self.rapid_flush = rapid_flush
+            self.flow_cnt = 0
+            print蓝('[mcom.py]: log file at:' + self.starting_file)
             self.current_file_handle = open(self.starting_file, 'w+', encoding = "utf-8")
+
         atexit.register(lambda: self.__del__())
 
 
@@ -110,27 +113,33 @@ class mcom():
         mcom core function: send out/write str
     '''
     def send(self, data):
-        if not self.draw_mode=='Threejs':
-            # step 1: add to file
-            self.file_lines_cnt += 1
-            self.current_file_handle.write(data)
-            if self.rapid_flush: self.current_file_handle.flush()
-            elif self.flow_cnt>500:
-                self.current_file_handle.flush()
-                self.flow_cnt = 0
-            # step 2: check whether the file is too large, if so move on to next file.
-            if self.file_lines_cnt > self.file_max_lines:
-                end_file_flag = ('><EndFileFlag\n')
-                self.current_file_handle.write(end_file_flag)
-                self.current_file_handle.close()
-                self.current_buffer_index += 1
-                self.current_file_handle = open((self.path + '/mcom_buffer_%d.txt' % self.current_buffer_index), 'wb+')
-                self.file_lines_cnt = 0
-
-        # # step 3: send directive to draw process
+        # # step 1: send directive to draw process
         if self.draw_process: 
             # self.draw_udp_client.sendto(data, self.draw_udp_port)
             self.draw_tcp_client.send_str(data)
+
+        # ! vhmap has its own backup method
+        if self.draw_mode=='Threejs': return
+
+        # step 2: add to file
+        self.file_lines_cnt += 1
+        self.current_file_handle.write(data)
+        if self.rapid_flush: 
+            self.current_file_handle.flush()
+        elif self.flow_cnt>500:
+            self.current_file_handle.flush()
+            self.flow_cnt = 0
+
+        # step 3: check whether the file is too large, if so, move on to next file.
+        if self.file_lines_cnt > self.file_max_lines:
+            end_file_flag = ('><EndFileFlag\n')
+            self.current_file_handle.write(end_file_flag)
+            self.current_file_handle.close()
+            self.current_buffer_index += 1
+            self.current_file_handle = open((self.path + '/mcom_buffer_%d.txt' % self.current_buffer_index), 'wb+')
+            self.file_lines_cnt = 0
+        return
+
 
     def rec_init(self, color='k'):
         str_tmp = '>>rec_init(\'%s\')\n' % color
@@ -258,7 +267,13 @@ class mcom():
         build_exec_cmd = '%s = %s\n'%(别名, fn_name)
         exec(build_exec_cmd)
 
-def find_free_index(path):
+
+
+
+
+
+
+def find_where_to_log(path):
     if not os.path.exists(path): os.makedirs(path)
 
     def find_previous_start_end():
@@ -277,25 +292,6 @@ def find_free_index(path):
 
 
 
-
-class MyHttp(Process):
-    def __init__(self, path_to_html, avail_port):
-        super(MyHttp, self).__init__()
-        self.path_to_html = path_to_html
-        self.avail_port = avail_port
-
-    def run(self):
-        from flask import Flask
-        app = Flask(__name__)
-        @app.route("/")
-        def hello():
-            try:
-                with open(self.path_to_html,'r') as f:
-                    html = f.read()
-            except:
-                html = "no plot yet please wait"
-            return html
-        app.run(port=self.avail_port)
 
 
 
@@ -358,11 +354,12 @@ class DrawProcessThreejs(Process):
         self.tflush_buffer.extend(new_buff_list)
 
         # too many, delete with fifo
-        if len(self.buffer_list) > 1e9: # 当存储的指令超过十亿后，开始删除旧的
+        if len(self.buffer_list) > 1e9: 
+            # 当存储的指令超过十亿后，开始删除旧的
             del self.buffer_list[:len(new_buff_list)]
 
     def run_flask(self, port):
-        from flask import Flask, url_for, jsonify, request, send_from_directory, redirect
+        from flask import Flask, request, send_from_directory
         from waitress import serve
         from mimetypes import add_type
         add_type('application/javascript', '.js')
@@ -384,7 +381,7 @@ class DrawProcessThreejs(Process):
             return
             
         @app.route("/up", methods=["POST"])
-        def upvote():
+        def up():
 
             # 本次正常情况下，需要发送的数据
             # dont send too much in one POST, might overload the network traffic
@@ -447,6 +444,7 @@ class DrawProcess(Process):
         self.draw_mode = draw_mode
         self.draw_udp_port = draw_udp_port
         self.tcp_connection = QueueOnTcpServer(self.draw_udp_port)
+        self.image_path = kargs['image_path'] if 'image_path' in kargs else None
 
         return
 
@@ -461,7 +459,7 @@ class DrawProcess(Process):
             # matplotlib.use('Agg') # set the backend before importing pyplot
             matplotlib.use('Qt5Agg')
             import matplotlib.pyplot as plt
-            self.gui_reflesh = lambda: plt.pause(0.2) #canvas.start_event_loop(0.1) # plt.pause(0.2) #time.sleep(0.2) #
+            self.gui_reflesh = lambda: plt.pause(0.2)
         elif self.draw_mode == 'Threejs':
             assert False
         else:
@@ -542,9 +540,30 @@ class DrawProcess(Process):
 
     def rec_init_fn(self):
         from VISUALIZE.mcom_rec import rec_family
-        self.rec = rec_family('r', self.draw_mode)
+        self.rec = rec_family('r', self.draw_mode, self.image_path)
 
     def v2d_init_fn(self):
         from VISUALIZE.mcom_v2d import v2d_family
         self.v2d = v2d_family(self.draw_mode)
 
+
+
+
+class MyHttp(Process):
+    def __init__(self, path_to_html, avail_port):
+        super(MyHttp, self).__init__()
+        self.path_to_html = path_to_html
+        self.avail_port = avail_port
+
+    def run(self):
+        from flask import Flask
+        app = Flask(__name__)
+        @app.route("/")
+        def hello():
+            try:
+                with open(self.path_to_html,'r') as f:
+                    html = f.read()
+            except:
+                html = "no plot yet please wait"
+            return html
+        app.run(port=self.avail_port)

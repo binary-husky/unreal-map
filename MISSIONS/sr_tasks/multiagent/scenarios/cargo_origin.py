@@ -88,8 +88,6 @@ class Scenario(BaseScenario):
         self.mcv = None
         if GlobalConfig.show_game:
             self.mcv = mcom(offline=(not GlobalConfig.show_game),
-                            ip='127.0.0.1',
-                            port=12084,
                             path='./checkpoint/gamelogger/%s/'%self.note,
                             digit=4,
                             rapid_flush=True)

@@ -252,9 +252,7 @@ class Runner(object):
         from VISUALIZE.mcom import mcom
         logdir = cfg.logdir
         if cfg.activate_logger:
-            mcv = mcom(ip='127.0.0.1',
-                        port=12084,
-                        path='%s/logger/'%logdir,
+            mcv = mcom( path='%s/logger/'%logdir,
                         digit=16,
                         rapid_flush=True,
                         draw_mode=cfg.draw_mode,

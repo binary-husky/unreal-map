@@ -282,7 +282,8 @@ class UnixTcpServerP2P(StreamingPackageSep):
 
     def __del__(self):
         self.server.close()
-        os.remove(self.unix_path)
+        try: os.remove(self.unix_path)
+        except: pass
         return
 
 

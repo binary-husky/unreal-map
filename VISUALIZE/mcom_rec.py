@@ -10,7 +10,7 @@ StandardPlotFig = 1
 ComparePlotFig = 2
 # from pylab import *
 class rec_family(object):
-    def __init__(self, colorC=None, draw_mode='Native'):
+    def __init__(self, colorC=None, draw_mode='Native', image_path=None):
         self.name_list = []
         self.line_list = []
         self.line_plot_handle = []
@@ -42,6 +42,8 @@ class rec_family(object):
             import matplotlib.pyplot as plt
             self.plt = plt
             self.img_to_write = '%s/rec.jpg'%logdir
+            if image_path is not None:
+                self.img_to_write = image_path
         else:
             assert False
 

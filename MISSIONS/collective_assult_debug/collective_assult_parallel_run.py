@@ -376,7 +376,7 @@ class collective_assultGlobalEnv(gym.Env):
         from UTILS.tensor_ops import dir2rad
         if not hasattr(self, 'threejs_bridge'):
             from VISUALIZE.mcom import mcom
-            self.threejs_bridge = mcom(ip='127.0.0.1', port=12084, path='RECYCLE/v2d_logger/', digit=8, rapid_flush=False, draw_mode='Threejs')
+            self.threejs_bridge = mcom(path='RECYCLE/v2d_logger/', digit=8, rapid_flush=False, draw_mode='Threejs')
             self.threejs_bridge.v2d_init()
             # self.threejs_bridge.set_style('star')
             # self.threejs_bridge.set_style('grid')
