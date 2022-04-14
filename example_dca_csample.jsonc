@@ -16,7 +16,7 @@
         "max_n_episode": 1000000.0,
         "seed": 548113, // 随机数种子
         "backup_files": [
-            "ALGORITHM/conc_4hist_divtree",
+            "ALGORITHM/conc_4hist_divtree2",
             "MISSIONS/collective_assult"
         ]
     },
@@ -36,10 +36,10 @@
         "REWARD_DEBUG_Value": 3,
         "half_death_reward": "True",
         "TEAM_NAMES": [
-            "ALGORITHM.conc_4hist_divtree.foundation->ReinforceAlgorithmFoundation"
+            "ALGORITHM.conc_4hist_divtree2.foundation->ReinforceAlgorithmFoundation"
         ]
     },
-    "ALGORITHM.conc_4hist_divtree.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.conc_4hist_divtree2.foundation.py->AlgorithmConfig": {
         "train_traj_needed": "64",
         "fix_n_sample": "True",
         "n_focus_on": 3,

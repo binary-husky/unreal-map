@@ -2,7 +2,7 @@ import math
 import torch,time,random
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions.categorical import Categorical
+from .ccategorical import CCategorical
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.nn.modules.linear import Linear
 from ..commom.attention import MultiHeadAttention
@@ -211,10 +211,11 @@ class Net(nn.Module):
 
         self.is_recurrent = False
         self.apply(weights_init)
+        self.ccategorical = CCategorical()
         return
 
     # two ways to support avail_act, but which one is better?
-    def logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+    def logit2act_old(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
         if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
         act_dist = Categorical(logits = logits_agent_cluster)
         if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions
@@ -313,6 +314,19 @@ class Net(nn.Module):
 
 
 
+    def logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
+
+        act_dist = self.ccategorical.feed_logits(logits_agent_cluster)
+        if not test_mode:  
+            act = self.ccategorical.sample(act_dist) if not eval_mode else eval_actions
+        else:              
+            act = torch.argmax(act_dist.probs, axis=2)
+
+        actLogProbs = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
+        # sum up the log prob of all agents
+        distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
+        return act, actLogProbs, distEntropy, act_dist.probs
 
 
 

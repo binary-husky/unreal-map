@@ -92,13 +92,6 @@ class Concentration(nn.Module):
         v_C_final = self.AT_forward_mlp(v_C_flat)
         return v_C_final, v_M_final
 
-    # @staticmethod
-    # def mask_1d_to_2d(ve_dead_C):
-    #     vs_alive = torch.zeros_like(ve_dead_C[...,(0,)]).bool()
-    #     v_dead_stack = torch.cat((vs_alive, ve_dead_C), dim=-1)
-    #     v_dead_stack = repeat_at(v_dead_stack,insert_dim=-1,n_times=v_dead_stack.shape[-1])
-    #     v_dead_stack = v_dead_stack | v_dead_stack.transpose(2,3)
-    #     return v_dead_stack
 
 class SimpleAttention(nn.Module):
     def __init__(self, h_dim):
@@ -195,7 +188,7 @@ class Net(nn.Module):
                             skip_connect=self.skip_connect, 
                             skip_connect_dim=rawob_dim, 
                             adopt_selfattn=actor_attn_mod)
- 
+
         tmp_dim = h_dim if not self.dual_conc else h_dim*2
         self.CT_get_value = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
         self.CT_get_threat = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
@@ -242,7 +235,7 @@ class Net(nn.Module):
     def div_entity(self, mat, type=[(0,), # self
                                     (1, 2, 3, 4, 5, 6,  7, 8, 9, 10,11),     # current
                                     (12,13,14,15,16,17, 18,19,20,21,22,23),  # history
-                                    ],   
+                                    ],
                                     n=24
                                     ):
         if mat.shape[-2]==n:
