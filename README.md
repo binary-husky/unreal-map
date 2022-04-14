@@ -25,7 +25,7 @@ http://linux.ipv4.fuqingxu.top:11601/     (temporary ipv4)
 ```
 ## Anti-Invasion Interception
 ```
-git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip
+git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip 
 ```
 
 ## Hazardous Cargo Transport
