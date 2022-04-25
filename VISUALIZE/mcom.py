@@ -316,6 +316,8 @@ class DrawProcessThreejs(Process):
     def flush_backup(self):
         while True:
             time.sleep(20)
+            if not os.path.exists(os.path.dirname(self.backup_file)):
+                os.makedirs(os.path.dirname(self.backup_file))
             # print('Flush backup')
             with gzip.open(self.backup_file, 'at') as f:
                 f.writelines(self.tflush_buffer)
