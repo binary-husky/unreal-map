@@ -104,7 +104,7 @@ Interface functions, operation introduction.
 - previous frame: pause and switch the previous frame
 - loop to start: play all data, go back to the first frame
 - ppt step: play a frame at a very slow speed, easy to record the screen, will be stuck for a few seconds after pressing
-- use orthcam: switch the perspective view (object near large and far small)/projection view (have you learned engineering drawing?)
+- use orthcam: switch the perspective view (object near large and far small)/projection view (similar to what you would use in engineering drawing)
 - P.S. The first time you switch to the projection view, you need to use the mouse wheel to enlarge the screen
 
 
@@ -132,8 +132,8 @@ git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
 When the testing starts, open revealed url for monitoring. The front end is done by JavaScript and ThreeJS.
 ```
 --------------------------------
-JS visualizer online: http://172.18.116.150:????
-JS visualizer online (localhost): http://localhost:????
+JS visualizer online: http://172.18.116.150:aRandomPort
+JS visualizer online (localhost): http://localhost:aRandomPort
 --------------------------------
 ```
 ## 2. all default: training
