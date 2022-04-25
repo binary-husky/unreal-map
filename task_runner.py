@@ -113,7 +113,6 @@ class Runner(object):
             self.info_runner['Thread-Episode-Cnt'][i] += 1
             # hault finished threads to wait unfinished ones
             if self.align_episode: self.info_runner['ENV-PAUSE'][i] = True
-            # if self.align_episode: self.info_runner['ENV-PAUSE'][i] = True
             # leave a backdoor here to monitor rewards for some specific agents
             if self.current_n_episode % self.report_interval == 0: 
                 self._checkout_interested_agents(self.info_runner['Recent-Reward-Sum'])
