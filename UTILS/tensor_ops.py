@@ -152,9 +152,19 @@ def my_view_test(x, shape):
 
 
 def add_onehot_id_at_last_dim(x):
+    if isinstance(x, np.ndarray):
+        return np_add_onehot_id_at_last_dim(x)
+    _hot_dim = x.shape[-2]
+    _identity = torch.tile(torch.eye(_hot_dim, device=x.device), (*x.shape[:-2], 1, 1))
+    return torch.cat((x, _identity), -1)
+
+def np_add_onehot_id_at_last_dim(x):
     _hot_dim = x.shape[-2]
     _identity = np.tile(np.eye(_hot_dim), (*x.shape[:-2], 1, 1))
     return np.concatenate((x, _identity), -1)
+
+
+
 
 
 """
@@ -614,7 +624,7 @@ def gather_righthand(src, index, check=True):
             )
         assert (
             src.shape[t_dim] != index.shape[t_dim]
-        ), "you really want to select %d item out of %d?" % (
+        ), "Do you really want to select %d item out of %d?? If so, please set check=False." % (
             index.shape[t_dim],
             src.shape[t_dim],
         )
@@ -628,6 +638,9 @@ def gather_righthand(src, index, check=True):
     return torch.gather(
         src, dim=t_dim, index=index_expand
     )  # only this two line matters
+
+
+
 
 
 def np_gather_righthand(src, index, check=True):
@@ -660,6 +673,21 @@ def np_gather_righthand(src, index, check=True):
     )  # index.expand(index_new_shape)            # only this two line matters
     return np.take_along_axis(arr=src, indices=index_expand, axis=t_dim)
     # return torch.gather(src, dim=t_dim, index=index_expand) # only this two line matters
+
+
+def scatter_righthand(scatter_into, src, index, check=True):
+    index = index.long()
+    i_dim = index.dim()
+    s_dim = src.dim()
+    t_dim = i_dim - 1
+    index_new_shape = list(src.shape)
+    index_new_shape[t_dim] = index.shape[t_dim]
+    for _ in range(i_dim, s_dim):
+        index = index.unsqueeze(-1)
+    index_expand = index.expand(index_new_shape)  # only this two line matters
+    return scatter_into.scatter(t_dim, index_expand, src)
+
+
 
 
 def distance_matrix(A):
@@ -762,6 +790,12 @@ def stack_padding(l, padding=np.nan):
     target = np.zeros(shape=shape_desired, dtype=float) + padding
     for i in range(len(l)): target[i, :len(l[i])] = l[i]
     return target
+
+def n_item(tensor):
+    n = 1
+    for d in tensor.shape:
+        n = n*d
+    return n
 
 ENABLE_SYC = False
 if ENABLE_SYC:

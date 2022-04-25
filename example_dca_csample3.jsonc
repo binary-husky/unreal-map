@@ -1,15 +1,15 @@
 {
-    "config.py->GlobalConfig": { // rm ZHECKPOINT/50RL-55opp-divtree-R3/model.pt && cp ZHECKPOINT/50RL-55opp/model_trained.pt ZHECKPOINT/50RL-55opp-divtree-R3/model.pt
-        "note": "50RL-55opp-divtree-R3",   // 实验存储路径
+    "config.py->GlobalConfig": { 
+        "note": "50RL-55opp-divtree-R6",   // 实验存储路径
         "env_name": "collective_assult_debug",  // 环境（任务名称）
         "env_path": "MISSIONS.collective_assult_debug", 
         "draw_mode": "Img",
         "num_threads": "64",    // 环境并行数量
         "report_reward_interval": "64",
-        "test_interval": "128",
+        "test_interval": "256",
         "test_epoch": "64",
         "interested_agent_num": 50,
-        "device": "cuda:3", // 使用哪张显卡
+        "device": "cuda:4", // 使用哪张显卡
         "gpu_party": "off", // 是否允许多进程共享显存，这里不需要
         "fold": "1",        // 使用的进程数量 = 环境并行数量/fold
         "n_parallel_frame": 50000000.0,
@@ -49,10 +49,10 @@
         "gamma_in_reward_forwarding": "True",
         "gamma_in_reward_forwarding_value": 0.95,
         "gamma": 0.99,
-        "yita": 0.3,
-        "load_specific_checkpoint":"../50RL-55opp/model_trained.pt",
+        "yita": 0.15,
+        "load_specific_checkpoint":"../50RL-55opp-divtree-R5/model_bk.pt",
         // "ignore_test_mode": false,
-        "only_train_div_tree": true,
+        "only_train_div_tree_and_ct": true,
         "load_checkpoint": true,
     }
 }

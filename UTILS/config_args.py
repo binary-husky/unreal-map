@@ -229,6 +229,7 @@ def my_setattr(conf_class, key, new_value, vb):
         else:
             assert False, ('enter True or False, but have:', replace_item)
     elif isinstance(original_item, int):
+        assert int(replace_item) == float(replace_item), ("warning, this var **%s** has an int default, but given a float override!"%key)
         replace_item = int(replace_item)
     elif isinstance(original_item, str):
         replace_item = replace_item

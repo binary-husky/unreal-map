@@ -10,7 +10,7 @@ from UTILS.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
 from UTILS.tensor_ops import my_view, scatter_with_nan, sample_balance
 from config import GlobalConfig as cfg
 from UTILS.gpu_share import GpuShareUnit
-
+import traceback
 class TrajPoolSampler():
     def __init__(self, n_div, traj_pool, flag, fix_n_sample=False):
         self.n_pieces_batch_division = n_div
@@ -141,10 +141,12 @@ class PPO():
         self.max_grad_norm = ppo_config.max_grad_norm
         self.add_prob_loss = ppo_config.add_prob_loss
         self.fix_n_sample = ppo_config.fix_n_sample
-        self.only_train_div_tree = ppo_config.only_train_div_tree
+        self.aw_add_kld_loss = ppo_config.aw_add_kld_loss
+        self.only_train_div_tree_and_ct = ppo_config.only_train_div_tree_and_ct
         self.lr = ppo_config.lr
         self.extral_train_loop = ppo_config.extral_train_loop
         self.turn_off_threat_est = ppo_config.turn_off_threat_est
+        self.kld_coef = ppo_config.kld_coef
         self.all_parameter = list(policy_and_critic.named_parameters())
         self.at_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'AT_' in p_name]
         self.ct_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'CT_' in p_name]
@@ -160,8 +162,9 @@ class PPO():
 
         self.cross_parameter = [(p_name, p) for p_name, p in self.all_parameter if ('CT_' in p_name) and ('AT_' in p_name)]
         assert len(self.cross_parameter)==0,('a parameter must belong to either CriTic or AcTor, not both')
-        
-        if not self.only_train_div_tree:
+
+
+        if not self.only_train_div_tree_and_ct:
             self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_' in p_name]
             self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
 
@@ -170,7 +173,8 @@ class PPO():
         else:
             self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_div_tree' in p_name]
             self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
-        
+            self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
+            self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
 
 
         self.g_update_delayer = 0
@@ -195,6 +199,7 @@ class PPO():
                     self.train_on_traj_(traj_pool, task) 
                 break # 运行到这说明显存充足
             except RuntimeError as err:
+                print(traceback.format_exc())
                 if self.fix_n_sample:
                     if TrajPoolSampler.MaxSampleNum[-1] < 0:
                         TrajPoolSampler.MaxSampleNum.pop(-1)
@@ -217,7 +222,7 @@ class PPO():
             # print亮紫('pulse')
             sample_iter = sampler.reset_and_get_iter()
             self.at_optimizer.zero_grad()
-            if not self.only_train_div_tree: self.ct_optimizer.zero_grad()
+            self.ct_optimizer.zero_grad()
             for i in range(self.n_div):
                 # ! get traj fragment
                 sample = next(sample_iter)
@@ -233,7 +238,7 @@ class PPO():
                 self.log_trivial(dictionary=others); others = None
             nn.utils.clip_grad_norm_(self.at_parameter, self.max_grad_norm)
             self.at_optimizer.step()
-            if not self.only_train_div_tree: self.ct_optimizer.step()
+            self.ct_optimizer.step()
             if ppo_valid_percent_list[-1] < 0.70: 
                 print亮黄('policy change too much, epoch terminate early'); break
         pass # finish all epoch update
@@ -287,6 +292,9 @@ class PPO():
         SAFE_LIMIT = 11
         filter = (real_threat<SAFE_LIMIT) & (real_threat>=0)
         threat_loss = F.mse_loss(others['threat'][filter], real_threat[filter])
+
+
+
         if self.turn_off_threat_est: 
             # print('清空threat_loss')
             threat_loss = 0
@@ -313,7 +321,13 @@ class PPO():
         if 'motivation value' in others:
             value_loss += 0.5 * F.mse_loss(real_value, others['motivation value'])
 
-        AT_net_loss = policy_loss -entropy_loss*self.entropy_coef # + probs_loss*20
+
+        if self.aw_add_kld_loss:
+            aw_kld_loss = others['aw_kld']
+        else:
+            aw_kld_loss = 0
+
+        AT_net_loss = policy_loss - entropy_loss*self.entropy_coef - aw_kld_loss*self.kld_coef # + probs_loss*20
         CT_net_loss = value_loss * 1.0 + threat_loss * 0.1 # + friend_threat_loss*0.01
         # AE_new_loss = ae_loss * 1.0
 
@@ -333,6 +347,7 @@ class PPO():
             # 'Auto encoder loss':        ae_loss,
             'CT_net_loss':              CT_net_loss,
             'AT_net_loss':              AT_net_loss,
+            'AW_kld_loss':              aw_kld_loss,
             # 'AE_new_loss':              AE_new_loss,
         }
         # print('ae_loss',ae_loss)

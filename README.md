@@ -53,6 +53,9 @@ Unfinished doc
 
 ## ALGORITHM
 Unfinished doc
+### The time sequence of hmp-2g
+<img src="UTILS/hmp2g_timeline.svg" width="700" >
+
 
 ## MISSIONS
 Unfinished doc

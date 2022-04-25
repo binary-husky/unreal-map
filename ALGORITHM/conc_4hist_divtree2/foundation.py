@@ -1,8 +1,8 @@
-import os, time, torch
+import os, time, torch, traceback
 import numpy as np
 from UTILS.colorful import *
 from config import GlobalConfig
-from UTILS.tensor_ops import __hash__, repeat_at
+from UTILS.tensor_ops import __hash__, repeat_at, __hashn__
 
 class AlgorithmConfig:  
     '''
@@ -57,8 +57,14 @@ class AlgorithmConfig:
     net_hdim = 48
     n_agent = 'auto load, do not change'
     exp_external_actdim = False
-    only_train_div_tree = False
-    yita = 0.3
+    only_train_div_tree_and_ct = False
+    yita = 0.15
+    aw_add_kld_loss = False
+
+    kld_coef = 0.1
+    div_tree_init_level = 0
+    MAX_KLD = 1.0
+    yita_min_prob = 0.2
 
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
@@ -105,14 +111,20 @@ class ReinforceAlgorithmFoundation(object):
         # makedirs if not exists
         if not os.path.exists('%s/history_cpt/' % logdir):
             os.makedirs('%s/history_cpt/' % logdir)
+
+        self.input_file_dir = '%s/cmd_io.txt' % logdir
+        if not os.path.exists(self.input_file_dir):
+            with open(self.input_file_dir, 'w+', encoding='utf8') as f: f.writelines(["# Write cmd at next line: ", ""])
+
         if self.load_checkpoint:
             manual_dir = AlgorithmConfig.load_specific_checkpoint
             ckpt_dir = '%s/model.pt' % logdir if manual_dir == '' else '%s/%s' % (logdir, manual_dir)
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
-            strict = not AlgorithmConfig.only_train_div_tree
+            strict = not AlgorithmConfig.only_train_div_tree_and_ct
             self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n), strict=strict)
             print黄('loaded checkpoint:', ckpt_dir)
 
+        self.policy.AT_div_tree.set_to_init_level()
         # data integraty check
         self._unfi_frag_ = None
         # Skip currupt data integraty check after this patience is exhausted
@@ -171,7 +183,46 @@ class ReinforceAlgorithmFoundation(object):
         if self.batch_traj_manager.can_exec_training():
             # time to start a training routine
             self.batch_traj_manager.train_and_clear_traj_pool()
-            self.policy.AT_div_tree.handle_update(self.batch_traj_manager.update_cnt)
+            self._process_input()
+            self._update_yita(self.batch_traj_manager.update_cnt)
+            # self.policy.AT_div_tree.handle_update(self.batch_traj_manager.update_cnt)
+
+    def _update_yita(self, update_cnt):
+        max_yita = 0.75
+        _yita_inc_per_update = max_yita/1000
+        AlgorithmConfig.yita += _yita_inc_per_update
+        if AlgorithmConfig.yita > 0.75:
+            AlgorithmConfig.yita = 0.75
+        print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)
+
+    def _process_input(self):
+        if not os.path.exists(self.input_file_dir): return
+
+        with open(self.input_file_dir, 'r', encoding='utf8') as f:
+            cmdlines = f.readlines()
+
+        cmdlines_writeback = []
+
+        for cmdline in cmdlines:
+            # print(cmdline)
+            if cmdline.startswith('#') or cmdline=="\n" or cmdline==" \n":
+                cmdlines_writeback.append(cmdline)
+            else:
+                try:
+                    print亮绿('[foundation.py] ------- executing: %s ------'%cmdline)
+                    exec(cmdline)
+                    cmdlines_writeback.append('# [execute successfully]\t'+cmdline)
+                except:
+                    print(traceback.format_exc())
+                    cmdlines_writeback.append('# [execute failed]\t'+cmdline)
+
+        
+        # print("cmdlines_writeback:", cmdlines_writeback)
+
+        with open(self.input_file_dir, 'w+', encoding='utf8') as f:
+            f.writelines(cmdlines_writeback)
+
+
     '''
         Get event from hmp task runner, save model now!
     '''

@@ -3,6 +3,7 @@ import torch,time,random
 import torch.nn as nn
 import torch.nn.functional as F
 from .ccategorical import CCategorical
+from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.nn.modules.linear import Linear
 from ..commom.attention import MultiHeadAttention
@@ -10,7 +11,8 @@ from ..commom.norm import DynamicNorm
 from ..commom.mlp import LinearFinal, SimpleMLP, ResLinear
 from UTILS.colorful import print亮紫
 from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, __hashn__, pad_at_dim
-from UTILS.tensor_ops import _2cpu2numpy, one_hot_with_nan, gather_righthand, pt_inf
+from UTILS.tensor_ops import repeat_at, one_hot_with_nan, gather_righthand, pt_inf, n_item
+from torch.distributions import kl_divergence
 
 
 def weights_init(m):
@@ -159,7 +161,9 @@ class Net(nn.Module):
         self.actor_attn_mod = AlgorithmConfig.actor_attn_mod
         self.dual_conc = AlgorithmConfig.dual_conc
         self.n_entity_placeholder = AlgorithmConfig.n_entity_placeholder
+        self.aw_add_kld_loss = AlgorithmConfig.aw_add_kld_loss
         h_dim = AlgorithmConfig.net_hdim
+        self.MAX_KLD = AlgorithmConfig.MAX_KLD
 
         self.skip_connect = True
         self.n_action = n_action
@@ -287,13 +291,13 @@ class Net(nn.Module):
         # fuse forward path
         v_C_fuse = torch.cat((vf_C, vh_C), dim=-1)  # (vs + vs + check_n + check_n)
         pre_logits = self.AT_get_logit_db(v_C_fuse)  
-        logits = self.AT_div_tree(pre_logits)  
+        logits, confact_info = self.AT_div_tree(pre_logits, req_confact_info=(self.aw_add_kld_loss and eval_mode))   # ($thread, $agent, $coredim)
 
         # motivation encoding fusion
         v_M_fuse = torch.cat((vf_M, vh_M), dim=-1)
         # motivation objectives
         value = self.CT_get_value(v_M_fuse)
-        threat = self.CT_get_threat(v_M_fuse)
+        if eval_mode: threat = self.CT_get_threat(v_M_fuse)
 
         assert not self.alternative_critic
 
@@ -301,12 +305,35 @@ class Net(nn.Module):
         act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
                                                                 test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 
+        
         def re_scale(t):
             SAFE_LIMIT = 11
             r = 1. /2. * SAFE_LIMIT
             return (torch.tanh_(t/r) + 1.) * r
 
-        others['threat'] = re_scale(threat)
+        if eval_mode: others['threat'] = re_scale(threat)
+
+
+        if self.aw_add_kld_loss and eval_mode: 
+            logits_orig = confact_info['orig_out']
+            logits_confact = confact_info['confact_out']
+            perm_index = confact_info['perm_index']
+            blood_distance = self.AT_div_tree.get_blood_distance()
+            perm_blood_distance = gather_righthand(repeat_at(blood_distance, insert_dim=0, n_times=perm_index.shape[0]), perm_index.unsqueeze(-1)).squeeze(-1)
+            
+            cat1 = Categorical(logits=logits_orig)
+            cat2 = Categorical(logits=logits_confact)
+            divergence = kl_divergence(cat1, cat2)
+
+            divergence = torch.clamp(divergence, max=self.MAX_KLD)
+            print('divergence upper limit trigger @%.2f', ((divergence >= self.MAX_KLD).sum()/n_item(divergence)).item())
+            others['aw_kld'] = (divergence*perm_blood_distance/self.AT_div_tree.max_level).mean()
+            assert torch.isfinite(others['aw_kld']).all()
+
+
+
+
+
         if not eval_mode: return act, value, actLogProbs
         else:             return value, actLogProbs, distEntropy, probs, others
 
@@ -318,6 +345,9 @@ class Net(nn.Module):
         if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
 
         act_dist = self.ccategorical.feed_logits(logits_agent_cluster)
+
+
+
         if not test_mode:  
             act = self.ccategorical.sample(act_dist) if not eval_mode else eval_actions
         else:              
@@ -326,8 +356,8 @@ class Net(nn.Module):
         actLogProbs = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
         # sum up the log prob of all agents
         distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
+        
         return act, actLogProbs, distEntropy, act_dist.probs
-
 
 
 

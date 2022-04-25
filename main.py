@@ -35,6 +35,7 @@ def pytorch_gpu_init(cfg):
     torch.set_num_threads(int(os.environ['NUM_THREADS']))
     seed = cfg.seed; device = cfg.device
     torch.manual_seed(seed)
+    torch.set_printoptions(precision=4, sci_mode=False)
     # e.g. device='cpu
     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
     if not 'cuda' in device: return
