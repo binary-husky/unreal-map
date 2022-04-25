@@ -25,7 +25,7 @@ bin-release/
 # pytorch model
 *.pt
 core
-
+TODO
 __pycache__/
 ./build/
 ALGORITHM/Starcraft/result/
