@@ -70,6 +70,7 @@ ZHECKPOINT/test-50+50/*
 !ZHECKPOINT/test-50+50/model.pt
 !ZHECKPOINT/test-50+50/experiment.json
 !ZHECKPOINT/test-50+50/test-50+50.jsonc
+!ZHECKPOINT/test-50+50/test50.gif
 
 !ZHECKPOINT/test-100+100
 ZHECKPOINT/test-100+100/*

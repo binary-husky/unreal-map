@@ -19,10 +19,13 @@ The root rep url is ```https://gitee.com/hh505030475/hmp-2g.git```,
 we also have a github rep which is a mirror of this gitee rep. 
 # Demo
 ## Web Demo
+
 ```
-http://home.fuqingxu.top:11601/     (ipv6 network only, can't afford a stable ipv4 address)
-http://linux.ipv4.fuqingxu.top:11601/     (temporary ipv4)
+http://cloud.fuqingxu.top:11601/
 ```
+<img src="ZHECKPOINT/test-50+50/test50.gif" width="300" >
+
+
 ## Anti-Invasion Interception
 ```
 git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip 
