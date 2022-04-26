@@ -79,6 +79,7 @@ class ShellEnvWrapper(object):
         his_pool_obs[ENV_PAUSE] = 0
 
         I_State_Recall = {'obs':obs_feed_in, 
+            'Current-Obs-Step': State_Recall['Current-Obs-Step'],
             'Test-Flag':State_Recall['Test-Flag'], 
             'threads_active_flag':~ENV_PAUSE, 
             'Latest-Team-Info':State_Recall['Latest-Team-Info'][~ENV_PAUSE],

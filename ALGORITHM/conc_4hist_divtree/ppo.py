@@ -141,6 +141,7 @@ class PPO():
         self.max_grad_norm = ppo_config.max_grad_norm
         self.add_prob_loss = ppo_config.add_prob_loss
         self.fix_n_sample = ppo_config.fix_n_sample
+        self.only_train_div_tree = ppo_config.only_train_div_tree
         self.lr = ppo_config.lr
         self.extral_train_loop = ppo_config.extral_train_loop
         self.turn_off_threat_est = ppo_config.turn_off_threat_est
@@ -159,14 +160,19 @@ class PPO():
 
         self.cross_parameter = [(p_name, p) for p_name, p in self.all_parameter if ('CT_' in p_name) and ('AT_' in p_name)]
         assert len(self.cross_parameter)==0,('a parameter must belong to either CriTic or AcTor, not both')
-        # 不再需要参数名
-        self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_' in p_name]
-        self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
+        
+        if not self.only_train_div_tree:
+            self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_' in p_name]
+            self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
 
-        self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
-        self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
-        # self.ae_parameter = [p for p_name, p in self.all_parameter if 'AE_' in p_name]
-        # self.ae_optimizer = optim.Adam(self.ae_parameter, lr=self.lr*100.0) #(self.lr)
+            self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
+            self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
+        else:
+            self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_div_tree' in p_name]
+            self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
+        
+
+
         self.g_update_delayer = 0
         self.g_initial_value_loss = 0
         # 轮流训练式
@@ -183,7 +189,6 @@ class PPO():
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
     def train_on_traj(self, traj_pool, task):
-        ratio = 1.0
         while True:
             try:
                 with self.gpu_share_unit:
@@ -211,7 +216,8 @@ class PPO():
         for e in range(self.ppo_epoch):
             # print亮紫('pulse')
             sample_iter = sampler.reset_and_get_iter()
-            self.at_optimizer.zero_grad(); self.ct_optimizer.zero_grad()
+            self.at_optimizer.zero_grad()
+            if not self.only_train_div_tree: self.ct_optimizer.zero_grad()
             for i in range(self.n_div):
                 # ! get traj fragment
                 sample = next(sample_iter)
@@ -226,7 +232,8 @@ class PPO():
                 ppo_valid_percent_list.append(others.pop('PPO valid percent').item())
                 self.log_trivial(dictionary=others); others = None
             nn.utils.clip_grad_norm_(self.at_parameter, self.max_grad_norm)
-            self.at_optimizer.step(); self.ct_optimizer.step()
+            self.at_optimizer.step()
+            if not self.only_train_div_tree: self.ct_optimizer.step()
             if ppo_valid_percent_list[-1] < 0.70: 
                 print亮黄('policy change too much, epoch terminate early'); break
         pass # finish all epoch update
@@ -332,60 +339,5 @@ class PPO():
 
 
         return loss_final, others
-
-
-
-    def debug_pytorch_graph(self, flag, sample, n):
-
-
-        def mybuild_loss(flag, sample, n):
-            obs = _2tensor(sample['obs'])
-            advantage = _2tensor(sample['advantage'])
-            action = _2tensor(sample['action'])
-            oldPi_actionLogProb = _2tensor(sample['actionLogProb'])
-            real_value = _2tensor(sample['return'])
-            real_threat = _2tensor(sample['threat'])
-            batchsize = advantage.shape[0]
-            batch_agent_size = advantage.shape[0]*advantage.shape[1]
-            assert flag == 'train'
-            newPi_value, newPi_actionLogProb, entropy, probs, others = self.policy_and_critic.evaluate_actions(obs, action=action, test_mode=False)
-            entropy_loss = entropy.mean()
-            # threat approximation
-            SAFE_LIMIT = 11
-            filter = (real_threat<SAFE_LIMIT) & (real_threat>=0)
-            threat_loss = F.mse_loss(others['threat'][filter], real_threat[filter])
-            if n%20 == 0: est_check(x=others['threat'][filter], y=real_threat[filter])
-            value_loss = 0.5 * F.mse_loss(real_value, newPi_value)
-            nz_mask = real_value!=0
-            value_loss_abs = (real_value[nz_mask] - newPi_value[nz_mask]).abs().mean()
-
-            CT_net_loss = threat_loss * 0.1 + value_loss * 1.0
-            loss_final = CT_net_loss # + AT_net_loss + AE_new_loss # + 
-            others = {
-                'Value loss Abs':           value_loss_abs,
-                'threat loss':              threat_loss,
-                'CT_net_loss':              CT_net_loss,
-            }
-            return loss_final, others
-
-        def step(loss_final, step):
-            self.at_optimizer.zero_grad()
-            self.ct_optimizer.zero_grad()
-            # self.ae_optimizer.zero_grad()
-            loss_final.backward()
-            self.at_optimizer.step()
-            self.ct_optimizer.step()
-            # self.ae_optimizer.step()
-
-        for t in range(16):
-            self.trivial_dict = {}
-            loss_final, others = mybuild_loss(flag, sample, t)
-            self.log_trivial(dictionary=others)
-            others = None
-            
-            step(loss_final, t)
-            self.log_trivial_finalize(print=False)
-
-
 
 

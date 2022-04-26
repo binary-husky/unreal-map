@@ -25,7 +25,7 @@ bin-release/
 # pytorch model
 *.pt
 core
-
+TODO
 __pycache__/
 ./build/
 ALGORITHM/Starcraft/result/
@@ -70,6 +70,7 @@ ZHECKPOINT/test-50+50/*
 !ZHECKPOINT/test-50+50/model.pt
 !ZHECKPOINT/test-50+50/experiment.json
 !ZHECKPOINT/test-50+50/test-50+50.jsonc
+!ZHECKPOINT/test-50+50/test50.gif
 
 !ZHECKPOINT/test-100+100
 ZHECKPOINT/test-100+100/*
@@ -102,3 +103,6 @@ ZHECKPOINT/test-aii515/history_cpt/*
 !ZHECKPOINT/test-aii515/history_cpt/init.pkl
 
 z_*
+ALGORITHM/conc_4hist_divtree3
+ALGORITHM/conc_4hist_divtree2
+example_dca_cs*

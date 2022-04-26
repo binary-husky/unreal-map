@@ -19,13 +19,16 @@ The root rep url is ```https://gitee.com/hh505030475/hmp-2g.git```,
 we also have a github rep which is a mirror of this gitee rep. 
 # Demo
 ## Web Demo
+
 ```
-http://home.fuqingxu.top:11601/     (ipv6 network only, can't afford a stable ipv4 address)
-http://linux.ipv4.fuqingxu.top:11601/     (temporary ipv4)
+http://cloud.fuqingxu.top:11601/
 ```
+<img src="ZHECKPOINT/test-50+50/test50.gif" width="300" >
+
+
 ## Anti-Invasion Interception
 ```
-git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip
+git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip 
 ```
 
 ## Hazardous Cargo Transport
@@ -53,6 +56,9 @@ Unfinished doc
 
 ## ALGORITHM
 Unfinished doc
+### The time sequence of hmp-2g
+<img src="UTILS/hmp2g_timeline.svg" width="700" >
+
 
 ## MISSIONS
 Unfinished doc
@@ -98,7 +104,7 @@ Interface functions, operation introduction.
 - previous frame: pause and switch the previous frame
 - loop to start: play all data, go back to the first frame
 - ppt step: play a frame at a very slow speed, easy to record the screen, will be stuck for a few seconds after pressing
-- use orthcam: switch the perspective view (object near large and far small)/projection view (have you learned engineering drawing?)
+- use orthcam: switch the perspective view (object near large and far small)/projection view (similar to what you would use in engineering drawing)
 - P.S. The first time you switch to the projection view, you need to use the mouse wheel to enlarge the screen
 
 
@@ -126,8 +132,8 @@ git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
 When the testing starts, open revealed url for monitoring. The front end is done by JavaScript and ThreeJS.
 ```
 --------------------------------
-JS visualizer online: http://172.18.116.150:????
-JS visualizer online (localhost): http://localhost:????
+JS visualizer online: http://172.18.116.150:aRandomPort
+JS visualizer online (localhost): http://localhost:aRandomPort
 --------------------------------
 ```
 ## 2. all default: training

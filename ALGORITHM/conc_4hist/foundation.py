@@ -1,13 +1,16 @@
-import os, torch, json, time
+import os, time, torch
 import numpy as np
-from numba import njit, jit
 from UTILS.colorful import *
 from .net import Net
 from config import GlobalConfig
-from UTILS.tensor_ops import __hash__
-DEBUG = True
+from UTILS.tensor_ops import __hash__, repeat_at
 
 class AlgorithmConfig:  
+    '''
+        AlgorithmConfig: This config class will be 'injected' with new settings from json.
+        (E.g., override configs with ```python main.py --cfg example.jsonc```)
+        (please see UTILS.config_args to find out how this advanced trick works out.)
+    '''
     # configuration, open to jsonc modification
     gamma = 0.99
     tau = 0.95
@@ -34,11 +37,11 @@ class AlgorithmConfig:
     lr = 1e-4
     balance = 0.5
 
-    # sometimes the episode length gets longer, 
-    # resulting in more samples and causing GPU OOM, 
+    # sometimes the episode length gets longer,
+    # resulting in more samples and causing GPU OOM,
     # prevent this by fixing the number of samples to initial
-    # by randomly sampling and droping 
-    fix_n_sample = False   
+    # by randomly sampling and droping
+    fix_n_sample = False
     gamma_in_reward_forwarding = False
     gamma_in_reward_forwarding_value = 0.99
 
@@ -113,12 +116,15 @@ class ReinforceAlgorithmFoundation(object):
     def action_making(self, State_Recall, test_mode):
         assert State_Recall['obs'] is not None, ('Make sure obs is ok')
 
+        current_step = State_Recall['Current-Obs-Step'][0]
         obs, threads_active_flag = State_Recall['obs'], State_Recall['threads_active_flag']
         assert len(obs) == sum(threads_active_flag), ('Make sure the right batch of obs!')
         avail_act = State_Recall['avail_act'] if 'avail_act' in State_Recall else None
 
         with torch.no_grad():
-            policy_test_mode = False if AlgorithmConfig.ignore_test_mode else test_mode
+            # policy_test_mode = False if AlgorithmConfig.ignore_test_mode else test_mode
+            argmax_prob = 0.75
+            policy_test_mode = True if np.random.rand()<argmax_prob else False # if AlgorithmConfig.ignore_test_mode else test_mode
             action, value, action_log_prob = self.policy.act(obs, test_mode=policy_test_mode, avail_act=avail_act)
 
         # Warning! vars named like _x_ are aligned, others are not!

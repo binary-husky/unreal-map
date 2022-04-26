@@ -32,6 +32,7 @@ class mcom():
         # rapid_flush 当数据流不大时，及时倾倒文件缓存内容 (set 'False' if you'd like your SSD to survive longer)
         self.draw_mode = draw_mode
         self.path = path
+        self.digit = digit
         self.tag = tag
         if kargs is None: kargs = {}
 
@@ -61,7 +62,6 @@ class mcom():
             self.starting_file = self.path + '/mcom_buffer_%d____starting_session.txt' % (self.current_buffer_index)
             self.file_lines_cnt = 0
             self.file_max_lines = 5e8  # limit file lines to avoid a very large file
-            self.digit = digit
             self.rapid_flush = rapid_flush
             self.flow_cnt = 0
             print蓝('[mcom.py]: log file at:' + self.starting_file)
@@ -316,6 +316,8 @@ class DrawProcessThreejs(Process):
     def flush_backup(self):
         while True:
             time.sleep(20)
+            if not os.path.exists(os.path.dirname(self.backup_file)):
+                os.makedirs(os.path.dirname(self.backup_file))
             # print('Flush backup')
             with gzip.open(self.backup_file, 'at') as f:
                 f.writelines(self.tflush_buffer)

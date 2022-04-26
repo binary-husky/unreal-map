@@ -12,10 +12,8 @@ class DivTree(nn.Module): # merge by MLP version
         self.n_agent = AlgorithmConfig.n_agent
         self.current_level = 0
         self.div_tree = get_division_tree(self.n_agent)
-        self.shared_net = nn.Sequential(
-            nn.Linear(input_dim, h_dim), 
-            nn.ReLU(inplace=True)
-        )
+        self.max_level = len(self.div_tree)
+
 
         get_net = lambda: nn.Sequential(
             nn.Linear(h_dim, h_dim), 
@@ -28,6 +26,11 @@ class DivTree(nn.Module): # merge by MLP version
             get_net() for i in range(self.n_agent)  
         ])
 
+    def handle_update(self, update_cnt):
+        expected_level = min(self.max_level, update_cnt // 100)
+        if expected_level == self.current_level: return
+        self.change_div_tree_level(expected_level, auto_transfer=True)
+        print('[div_tree]: update_cnt:%d', update_cnt)
 
     def change_div_tree_level(self, level, auto_transfer=True):
         print('performing div tree level change (%d -> %d), div tree:\n'%(self.current_level, level), self.div_tree)
@@ -45,17 +48,16 @@ class DivTree(nn.Module): # merge by MLP version
         for transfer in transfer_list:
             from_which_net = transfer[0]
             to_which_net = transfer[1]
-
             self.nets[to_which_net].load_state_dict(self.nets[from_which_net].state_dict())
             print('transfering model parameters from %d-th net to %d-th net'%(from_which_net, to_which_net))
         return 
 
     def forward(self, x0):  # x0: shape = (?,...,?, n_agent, core_dim)
-        x1 = self.shared_net(x0)
+        # x1 = self.shared_net(x0)
         res = []
         for i in range(self.n_agent):
             use_which_net = self.div_tree[self.current_level, i]
-            res.append(self.nets[use_which_net](x1[..., i, :]))
+            res.append(self.nets[use_which_net](x0[..., i, :]))
         x2 = torch.stack(res, -2)
         # x22 = self.nets[0](x1)
         return x2
@@ -92,6 +94,36 @@ class DivTree(nn.Module): # merge by MLP version
 
 
 
+def _2div(arr):
+    arr_res = arr.copy()
+    arr_pieces = []
+    pa = 0
+    st = 0
+    needdivcnt = 0
+    for i, a in enumerate(arr):
+        if a!=pa:
+            arr_pieces.append([st, i])
+            if (i-st)!=1: needdivcnt+=1
+            pa = a
+            st = i
+
+    arr_pieces.append([st, len(arr)])
+    if (len(arr)-st)!=1: needdivcnt+=1
+
+    offset = range(len(arr_pieces), len(arr_pieces)+needdivcnt)
+    p=0
+    for arr_p in arr_pieces:
+        length = arr_p[1] - arr_p[0]
+        if length == 1: continue
+        half_len = int(np.ceil(length / 2))
+        for j in range(arr_p[0]+half_len, arr_p[1]):
+            try:
+                arr_res[j] = offset[p]
+            except:
+                print('wtf')
+        p+=1
+    return arr_res
+
 def get_division_tree(n_agents):
     agent2divitreeindex = np.arange(n_agents)
     np.random.shuffle(agent2divitreeindex)
@@ -100,11 +132,8 @@ def get_division_tree(n_agents):
     tree_of_agent = []*(max_div+1)
     for ith, level in enumerate(levels):
         if ith == 0: continue
-        levels[ith,:]  = levels[ith-1,:]
-        for j in range(n_agents):
-            seg = j // ( n_agents /2**ith)
-            if seg%2==1:
-                levels[ith,j] += 2**(ith-1)
+        res = _2div(levels[ith-1,:])
+        levels[ith,:] = res
     res_levels = levels.copy()
     for i, div_tree_index in enumerate(agent2divitreeindex):
         res_levels[:, i] = levels[:, div_tree_index]
