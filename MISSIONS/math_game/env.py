@@ -140,50 +140,43 @@ class MathEnv(BaseEnv):
         nLevel = 3
         info = {}
         if self.show_details:
-
             for i in range(ScenarioConfig.n_actions):
                 self.mcv.rec(sum(act==i), 'Ts=%d, Act=%d'%(self.TS, i))
             self.mcv.rec_show()
 
         if self.TS==0:  # Level 1
-            # we expect all but one agents choose act1, only one agent choose act0
-            # reward: 
-            #   - Any agent choose act0: Team Reward +1
-            #   - No agent choose act0: Team Reward +0
             n_chosen_act0 = sum(act==0)
             reward = n_chosen_act0/self.n_agents
+        elif self.TS==1:  # Level 2
+            n_chosen_act1 = sum(act==1)
+            reward = n_chosen_act1/(self.n_agents-1)
+            if (self.n_agents-n_chosen_act1)==0:
+                reward = -1
+        elif self.TS==2:  # Level 3
+            n_chosen_act0 = sum(act==0)
+            reward = n_chosen_act0/(self.n_agents-1)
+            if (self.n_agents-n_chosen_act0)==0:
+                reward = -1
+        else:
+            assert False, 'Should not be here !'
 
+
+
+        if self.TS==0:  # Level 1
             self.TS = 1
             ob = self.get_obs(TS=1)
             if ScenarioConfig.StateProvided:
                 info['state'] = np.array([1])
         elif self.TS==1:  # Level 2
-            # 尽可能多的智能体选择act1
-            # 但如果没有智能体选择act0，奖励-1
-            n_chosen_act1 = sum(act==1)
-            reward = n_chosen_act1/self.n_agents
-            # if (self.n_agents-n_chosen_act1)==0:
-            #     reward = -1
-
             self.TS = 2
             ob = self.get_obs(TS=2)
             if ScenarioConfig.StateProvided:
                 info['state'] = np.array([2])
-
         elif self.TS==2:  # Level 3
-            # 尽可能多的智能体选择act0
-            # 但如果没有智能体选择act1，奖励-1
-            n_chosen_act0 = sum(act==0)
-            reward = n_chosen_act0/self.n_agents
-            # if (self.n_agents-n_chosen_act0)==0:
-            #     reward = -1
-                
             self.TS = 3
             ob = self.get_obs(TS=3) # Terminal obs, won't be accepted
             if ScenarioConfig.StateProvided:
                 info['state'] = np.array([2])
-        else:
-            assert False, 'Should not be here !'
 
         # obs: a Tensor with shape (n_agent, ...)
         if self.TS >= nLevel: 
