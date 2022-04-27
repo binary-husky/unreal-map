@@ -5,9 +5,8 @@
         "env_path": "MISSIONS.collective_assult_debug", 
         "draw_mode": "Img",
         "num_threads": "1",    // 环境并行数量
-        "report_reward_interval": "8",
+        "report_reward_interval": "1",
         "test_interval": "2048",
-        "test_epoch": "128",
         "test_only": "True",    // 仅测试
         "interested_agent_num": 50,
         "device": "cuda:6", // 使用哪张显卡
