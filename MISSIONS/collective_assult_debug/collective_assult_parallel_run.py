@@ -12,6 +12,7 @@ import json
 from config import ChainVar
 from UTILS.colorful import print亮绿
 import cProfile, pstats
+from UTILS.tensor_ops import dir2rad
 
 def distance_matrix_AB(A, B):
     assert A.shape[-1] == 2 # assert 2D situation
@@ -373,7 +374,6 @@ class collective_assultGlobalEnv(gym.Env):
 
     def render(self):
 
-        from UTILS.tensor_ops import dir2rad
         if not hasattr(self, 'threejs_bridge'):
             from VISUALIZE.mcom import mcom
             self.threejs_bridge = mcom(path='RECYCLE/v2d_logger/', digit=8, rapid_flush=False, draw_mode='Threejs')

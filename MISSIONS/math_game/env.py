@@ -99,10 +99,10 @@ class MathEnv(BaseEnv):
         self.action_space = {
             'n_actions': ScenarioConfig.n_actions,
             'n_agents':  self.n_agents}
-        
+
         if ScenarioConfig.StateProvided:
             self.observation_space['state_shape'] = 1
-        
+
         self.show_details = (ScenarioConfig.show_details and rank==0)
         if self.show_details:
             from VISUALIZE.mcom import mcom
@@ -137,6 +137,150 @@ class MathEnv(BaseEnv):
         return ob
 
     def step(self, act):
+        nLevel = 5
+        info = {}
+        if self.show_details:
+            rec_n_act = min(3, ScenarioConfig.n_actions)
+            for i in range(rec_n_act):
+                self.mcv.rec(sum(act==i), 'Ts=%d, Act=%d'%(self.TS, i))
+            self.mcv.rec_show()
+
+        n_chosen_act0 = sum(act==0)
+        n_chosen_act1 = sum(act==1)
+        n_chosen_act2 = sum(act==1)
+
+        if self.TS==0:  # Level 1
+            n_chosen_act0 = sum(act==0)
+            reward = n_chosen_act0/self.n_agents
+
+        elif self.TS==1:  # Level 2
+            t = np.random.rand()
+            if 0.00 <= t <= 0.55:
+                reward = n_chosen_act0/(self.n_agents) #   55%: reward_canidate0 used
+            elif 0.55 < t <= 0.90:
+                reward = n_chosen_act1/(self.n_agents) #   35%: reward_canidate1 used
+            elif 0.90 < t <= 1.00:
+                reward = n_chosen_act2/(self.n_agents) #   10%: reward_canidate2 used
+
+        elif self.TS==2:  # Level 3
+            t = np.random.rand()
+            if 0.00 <= t <= 0.55:
+                reward = n_chosen_act1/(self.n_agents) #   55%: reward_canidate1 used
+            elif 0.55 < t <= 0.90:
+                reward = n_chosen_act0/(self.n_agents) #   35%: reward_canidate0 used
+            elif 0.9 < t <= 1.00:
+                reward = n_chosen_act2/(self.n_agents) #   10%: reward_canidate2 used
+
+        elif self.TS==3:  # Level 4
+            n_chosen_act1 = sum(act==1)
+            reward = n_chosen_act1/(self.n_agents-1)
+            if (self.n_agents-n_chosen_act1)==0:
+                reward = -1
+
+        elif self.TS==4:  # Level 5
+            n_chosen_act0 = sum(act==0)
+            reward = n_chosen_act0/(self.n_agents-1)
+            if (self.n_agents-n_chosen_act0)==0:
+                reward = -1
+
+        else:
+            assert False, 'Should not be here !'
+        # 1+0.55+0.55=2.1
+
+
+        # update TS
+        self.TS = self.TS + 1
+        ob = self.get_obs(TS=self.TS)
+        if ScenarioConfig.StateProvided:
+            info['state'] = np.array([self.TS])
+
+        # obs: a Tensor with shape (n_agent, ...)
+        if self.TS >= nLevel: 
+            done = True
+        else: 
+            done = False
+        # 
+        info.update({'win':False})
+        reward_allteam = np.array([reward])
+        return (ob, reward_allteam, done, info)
+    
+    def step_problem_1(self, act):
+        nLevel = 3
+        info = {}
+        if self.show_details:
+            rec_n_act = min(3, ScenarioConfig.n_actions)
+            for i in range(rec_n_act):
+                self.mcv.rec(sum(act==i), 'Ts=%d, Act=%d'%(self.TS, i))
+            self.mcv.rec_show()
+
+        n_chosen_act0 = sum(act==0)
+        n_chosen_act1 = sum(act==1)
+        n_chosen_act2 = sum(act==1)
+        if self.TS==0:  # Level 1
+            n_chosen_act0 = sum(act==0)
+            reward = n_chosen_act0/self.n_agents
+        elif self.TS==1:  # Level 2
+            # random reward: 
+            #   55%: reward_canidate0 used
+            #   35%: reward_canidate1 used
+            #   10%: reward_canidate2 used
+            t = np.random.rand()
+            if 0.00 <= t <= 0.55:
+                reward = n_chosen_act0/(self.n_agents)
+            elif 0.55 < t <= 0.90:
+                reward = n_chosen_act1/(self.n_agents)
+            elif 0.90 < t <= 1.00:
+                reward = n_chosen_act2/(self.n_agents)
+
+        elif self.TS==2:  # Level 3
+            # random reward: 
+            #   55%: reward_canidate1 used
+            #   35%: reward_canidate0 used
+            #   10%: reward_canidate2 used
+            t = np.random.rand()
+            if 0.00 <= t <= 0.55:
+                reward = n_chosen_act1/(self.n_agents)
+            elif 0.55 < t <= 0.90:
+                reward = n_chosen_act0/(self.n_agents)
+            elif 0.9 < t <= 1.00:
+                reward = n_chosen_act2/(self.n_agents)
+
+            # reward_canidate0 = n_chosen_act0/(self.n_agents-1)
+            # reward_canidate1 = n_chosen_act1/(self.n_agents-1)
+            # reward_canidate2 = n_chosen_act2/(self.n_agents-1)
+        else:
+            assert False, 'Should not be here !'
+        # 1+0.55+0.55=2.1
+
+
+        if self.TS==0:  # Level 1
+            self.TS = 1
+            ob = self.get_obs(TS=1)
+            if ScenarioConfig.StateProvided:
+                info['state'] = np.array([1])
+        elif self.TS==1:  # Level 2
+            self.TS = 2
+            ob = self.get_obs(TS=2)
+            if ScenarioConfig.StateProvided:
+                info['state'] = np.array([2])
+        elif self.TS==2:  # Level 3
+            self.TS = 3
+            ob = self.get_obs(TS=3) # Terminal obs, won't be accepted
+            if ScenarioConfig.StateProvided:
+                info['state'] = np.array([3])
+
+        # obs: a Tensor with shape (n_agent, ...)
+        if self.TS >= nLevel: 
+            done = True
+        else: 
+            done = False
+        # 
+        info.update({'win':False})
+        reward_allteam = np.array([reward])
+        return (ob, reward_allteam, done, info)
+    
+
+    def step_problem_0(self, act):
         nLevel = 3
         info = {}
         if self.show_details:
@@ -176,7 +320,7 @@ class MathEnv(BaseEnv):
             self.TS = 3
             ob = self.get_obs(TS=3) # Terminal obs, won't be accepted
             if ScenarioConfig.StateProvided:
-                info['state'] = np.array([2])
+                info['state'] = np.array([3])
 
         # obs: a Tensor with shape (n_agent, ...)
         if self.TS >= nLevel: 
@@ -188,7 +332,6 @@ class MathEnv(BaseEnv):
         reward_allteam = np.array([reward])
         return (ob, reward_allteam, done, info)
     
-
 def make_math_env(env_id, rank):
     return MathEnv(rank)
 

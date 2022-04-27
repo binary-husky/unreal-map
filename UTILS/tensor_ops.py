@@ -4,8 +4,8 @@ try:
     import torch
     import torch.nn.functional as F
 except:
-    print('warning! pytorch not installed')
-    print('警告! 没有安装pytorch，所有pytorch相关函数不可用!')
+    print('warning, pytorch not installed!')
+    print('警告, 没有安装pytorch, 所有pytorch相关函数不可用!')
     class torch():
         Tensor = Exception
 from functools import wraps
@@ -317,7 +317,7 @@ def Args2tensor_Return2numpy(f):
 
 
 """
-    Turning numpy array to torch.Tensor, then put it on the right GPU / CPU,
+    Turning torch.Tensor to numpy array, put it on CPU,
 """
 
 
@@ -334,7 +334,8 @@ def _2cpu2numpy(x):
 
 
 """
-    convert torch.Tensor to numpy array
+    Convert torch.Tensor to numpy array.
+    Turning numpy array to torch.Tensor, then put it on the right GPU / CPU.
 """
 
 
@@ -359,6 +360,9 @@ def _2tensor(x):
     else:
         return x
 
+"""
+    Stack an array whose elements with different len, pad empty place with with NaN
+"""
 
 def pad_vec_array(arr_list, max_len):
     # init to NaNs
@@ -393,7 +397,9 @@ def scatter_with_nan(tensr, num_classes, out_type="binary"):
         res = res != 0
     return res
 
-
+"""
+    Not used anymore
+"""
 def process_space(space):
     # starcraft 环境无须特殊处理
     if not ("Box" in space["obs_space"] or "Discrete" in space["act_space"]):
@@ -418,7 +424,9 @@ def process_space(space):
     space_["act_space"] = str(space_["act_space"])
     return space_
 
-
+"""
+    Not used anymore
+"""
 class Policy_shift_observer(object):
     def __init__(self, act_range, act_num):
         self.act_range = act_range  # 15
@@ -642,7 +650,9 @@ def gather_righthand(src, index, check=True):
 
 
 
-
+"""
+    numpy version of 'gather_righthand'
+"""
 def np_gather_righthand(src, index, check=True):
     index = index.astype(np.long)
     dim = lambda x: len(x.shape)
@@ -674,7 +684,9 @@ def np_gather_righthand(src, index, check=True):
     return np.take_along_axis(arr=src, indices=index_expand, axis=t_dim)
     # return torch.gather(src, dim=t_dim, index=index_expand) # only this two line matters
 
-
+"""
+    reverse operation of 'gather_righthand'
+"""
 def scatter_righthand(scatter_into, src, index, check=True):
     index = index.long()
     i_dim = index.dim()
@@ -689,7 +701,9 @@ def scatter_righthand(scatter_into, src, index, check=True):
 
 
 
-
+"""
+    calculate distance matrix for a position vector array A
+"""
 def distance_matrix(A):
     # assert A.shape[-1] == 3  # assert 2D situation
     n_subject = A.shape[-2]  # is 2
@@ -699,6 +713,9 @@ def distance_matrix(A):
     dis = np.linalg.norm(dis, axis=-1)
     return dis
 
+"""
+    calculate delta matrix for a position vector array A
+"""
 def delta_matrix(A):
     n_subject = A.shape[-2]  # is 2
     A = np.repeat(np.expand_dims(A, -2), n_subject, axis=-2)  # =>(64, 100, 100, 2)
@@ -717,6 +734,9 @@ def dir2rad_old(delta_pos):
     # assert (dir2rad_new(delta_pos)==rad_angle).all()
     return rad_angle
 
+"""
+    arctan2, but support any batch
+"""
 def dir2rad(delta_pos):
     return np.arctan2(delta_pos[..., 1], delta_pos[..., 0])
 
