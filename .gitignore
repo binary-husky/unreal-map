@@ -88,6 +88,7 @@ ZHECKPOINT/test-cargo50/*
 !ZHECKPOINT/test-cargo50/model.pt
 !ZHECKPOINT/test-cargo50/experiment.json
 !ZHECKPOINT/test-cargo50/test-cargo50.jsonc
+!ZHECKPOINT/test-cargo50/cargo50.jpg
 
 !ZHECKPOINT/test-cargo50/history_cpt
 ZHECKPOINT/test-cargo50/history_cpt/*
