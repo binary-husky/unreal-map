@@ -223,3 +223,15 @@ import_path_ref = {
 
 <2> Qingxu, F. A Cooperation Graph Approach for Multiagent Sparse Reward Reinforcement Learning. IJCNN
 ```
+
+
+# (Written to myself) Steps to mirror to github
+
+```
+rm -rf ~/ATempDir
+mkdir ~/ATempDir
+cp -r ../hmp-2g ~/ATempDir
+cd ~/ATempDir/hmp-2g
+git remote add github git@github.com:binary-husky/hmp2g.git
+git push github master
+```
