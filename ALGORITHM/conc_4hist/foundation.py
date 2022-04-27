@@ -116,15 +116,12 @@ class ReinforceAlgorithmFoundation(object):
     def action_making(self, State_Recall, test_mode):
         assert State_Recall['obs'] is not None, ('Make sure obs is ok')
 
-        current_step = State_Recall['Current-Obs-Step'][0]
         obs, threads_active_flag = State_Recall['obs'], State_Recall['threads_active_flag']
         assert len(obs) == sum(threads_active_flag), ('Make sure the right batch of obs!')
         avail_act = State_Recall['avail_act'] if 'avail_act' in State_Recall else None
 
         with torch.no_grad():
-            # policy_test_mode = False if AlgorithmConfig.ignore_test_mode else test_mode
-            argmax_prob = 0.75
-            policy_test_mode = True if np.random.rand()<argmax_prob else False # if AlgorithmConfig.ignore_test_mode else test_mode
+            policy_test_mode = False if AlgorithmConfig.ignore_test_mode else test_mode
             action, value, action_log_prob = self.policy.act(obs, test_mode=policy_test_mode, avail_act=avail_act)
 
         # Warning! vars named like _x_ are aligned, others are not!
