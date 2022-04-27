@@ -28,10 +28,11 @@ http://cloud.fuqingxu.top:11601/
 ```
 <img src="ZHECKPOINT/test-50+50/test50.gif" width="300" >
 
-## Decentralized Collective Assult (Improved Version)
+## Decentralized Collective Assult (Improved Version, more difficult than AAAI paper version)
 
 ```
 git pull && python main.py -c ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
+(Trained in https://www.bilibili.com/video/BV1vF411M7N9/)
 ```
 
 ## Anti-Invasion Interception
