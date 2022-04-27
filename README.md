@@ -18,15 +18,22 @@ runs pymarl2 in a subprocess. This work is ongoing and has not been finished yet
 The root rep url is ```https://gitee.com/hh505030475/hmp-2g.git```,
 we also have a github rep which is a mirror of this gitee rep. 
 # Demo
-## Web Demo
+## Web Demo of DCA (AAAI paper version)
 
 ```
 http://cloud.fuqingxu.top:11601/
 ```
 <img src="ZHECKPOINT/test-50+50/test50.gif" width="300" >
 
+## Decentralized Collective Assult (Improved Version)
+
+```
+git pull && python main.py -c ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
+```
 
 ## Anti-Invasion Interception
+<img src="ZHECKPOINT/test-aii515/aii.jpg" width="300" >
+
 ```
 git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip 
 ```
@@ -36,7 +43,7 @@ git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-cargo50/test-cargo50.jsonc --skip
 ```
 
-## Decentralized Collective Assult
+## Decentralized Collective Assult (AAAI paper version)
 ```
 git pull && python main.py -c ZHECKPOINT/test-50+50/test-50+50.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
