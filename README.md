@@ -149,6 +149,7 @@ JS visualizer online (localhost): http://localhost:aRandomPort
 
 ```
 git pull && python main.py -c example.jsonc
+git pull && python main.py -c example_dca.jsonc
 ```
 
 
