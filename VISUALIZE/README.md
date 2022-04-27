@@ -97,7 +97,7 @@ VHMAP在接收到数据后，会自动地在 RECYCLE/v2d_logger/ 路径下生成
 
 警告：数据文件会在下一次运行时被新的日志文件覆盖，必要时请手动备份！
 ```
-python -m VISUALIZE.threejs_replay -f RECYCLE/v2d_logger/backup.dp -p 8085
+python -m VISUALIZE.threejs_replay -f RECYCLE/v2d_logger/backup.dp.gz -p 8085
 ```
 其中-f后面的是回放文件的路径，-p接端口号例如8085，之后打开 http://localhost:8085 即可。
 
