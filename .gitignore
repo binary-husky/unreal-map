@@ -82,7 +82,6 @@ ZHECKPOINT/test-100+100/*
 ZHECKPOINT/50RL-55opp/*
 !ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
 !ZHECKPOINT/50RL-55opp/model.pt
-!ZHECKPOINT/50RL-55opp/experiment.json
 
 !ZHECKPOINT/test-cargo50
 ZHECKPOINT/test-cargo50/*

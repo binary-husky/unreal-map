@@ -51,6 +51,6 @@
         "gamma": 0.99,
         "ignore_test_mode": true,
         "load_checkpoint": true,
-        "load_specific_checkpoint": "model_trained.pt"
+        "load_specific_checkpoint": "model.pt"
     }
 }
