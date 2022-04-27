@@ -15,8 +15,10 @@ The entire HMP can disguise as an RL environment in pymarl2.
 We make it happen by building a particular ALGORITHM module, which
 runs pymarl2 in a subprocess. This work is ongoing and has not been finished yet.
 
-The root rep url is ```https://gitee.com/hh505030475/hmp-2g.git```,
-we also have a github rep which is a mirror of this gitee rep. 
+The root rep url is ```https://gitee.com/hh505030475/hmp-2g```.
+We also have a github rep which is a mirror of this gitee rep, which is 
+used to archive code used in our papers:
+```https://github.com/binary-husky/hmp2g/tree/aaai-conc```.
 
 # Demo
 ## Web Demo of DCA (AAAI paper version)
