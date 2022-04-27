@@ -18,14 +18,6 @@ runs pymarl2 in a subprocess. This work is ongoing and has not been finished yet
 The root rep url is ```https://gitee.com/hh505030475/hmp-2g.git```,
 we also have a github rep which is a mirror of this gitee rep. 
 
-
-Hybrid Multi-Agent Platform（HMAP）是面向强化学习科研活动的多智能体学习框架。HMAP区别于现有其他框架的特点包括：
-- 支持多算法对抗训练；
-- 算法模块即插即用，框架本身与各算法模块完全隔离；
-- 基于共享内存提高并行仿真效率；
-- 依赖少，附带Docker+Xrdp虚拟桌面实验环境
-- ……
-
 # Demo
 ## Web Demo of DCA (AAAI paper version)
 
