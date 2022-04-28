@@ -128,64 +128,124 @@ class MathEnv(BaseEnv):
     def get_obs(self, TS, get_size=False):
         core_dim = self.n_agents + 1
         if get_size: return core_dim
-
         ob = ob_part1 = np.zeros((self.n_agents, 1), dtype=np.float32) + TS
         if ScenarioConfig.one_hot_id:
             ob_part2 = np.eye(self.n_agents, dtype=np.float32)
             ob = np.concatenate((ob, ob_part2), -1)
-
         return ob
 
+
+    def _give_reward_(self, act, reward_which_act, must_has_outlier):
+        n_chosen_this_act = sum(act==reward_which_act)
+        scale = (self.n_agents-1) if must_has_outlier else self.n_agents
+
+        reward = n_chosen_this_act/scale
+        if must_has_outlier:
+            if (self.n_agents-n_chosen_this_act)==0:
+                reward = 0
+
+        return reward
+
+
+    def _schochestic_reward_(self, act, seed, probs_list, reward_which_act_list, ratio):
+        s = 0
+        for i in range(len(probs_list)):
+            s += probs_list[i]
+            if seed <= s:
+                reward_which_act = reward_which_act_list[i]
+                break
+            
+        return sum(act==reward_which_act)/(self.n_agents)*ratio
+
     def step(self, act):
+        info = {}
+        if self.show_details:
+            rec_n_act = min(3, ScenarioConfig.n_actions)
+            for i in range(rec_n_act): self.mcv.rec(sum(act==i), 'Ts=%d, Act=%d'%(self.TS, i))
+            self.mcv.rec_show()
+
+        _rand_ = np.random.rand()
+
+        reward_lambda_list = [
+            lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=False),    # 1.00, 1.00    TypeA
+            lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[5,6,7], ratio=2),     # 1, 1 TypeB
+            lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[6,7,8], ratio=2),     # 1, 1 TypeB
+            lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[7,8,9], ratio=2),     # 1, 1 TypeB
+            lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[8,9,5], ratio=2),     # 1, 1 TypeB
+            lambda: self._give_reward_(act, reward_which_act=1, must_has_outlier=True),   # 1.00, 0.00 TypeC
+            lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=True),   # 1.00, 0.00 TypeC
+        ]                                                                                 # 
+        nLevel = len(reward_lambda_list)            # train reward 由于熵约束，无法达到5.2, test reward由于DoR问题，只能达到3.2
+
+        reward = reward_lambda_list[self.TS]()
+
+
+        # (1+0.55+0.55) + (1+1) = 2.1+2 = 4.1
+        # (1+0.55+0.55) = 2.1
+
+
+        # update TS
+        self.TS = self.TS + 1
+        ob = self.get_obs(TS=self.TS)
+        if ScenarioConfig.StateProvided:
+            info['state'] = np.array([self.TS])
+
+        # obs: a Tensor with shape (n_agent, ...)
+        if self.TS >= nLevel: 
+            done = True
+        else: 
+            done = False
+        # 
+        info.update({'win':False})
+        reward_allteam = np.array([reward])
+        return (ob, reward_allteam, done, info)
+    
+    def step_problem_xx(self, act):
         nLevel = 5
         info = {}
         if self.show_details:
             rec_n_act = min(3, ScenarioConfig.n_actions)
-            for i in range(rec_n_act):
-                self.mcv.rec(sum(act==i), 'Ts=%d, Act=%d'%(self.TS, i))
+            for i in range(rec_n_act): self.mcv.rec(sum(act==i), 'Ts=%d, Act=%d'%(self.TS, i))
             self.mcv.rec_show()
 
         n_chosen_act0 = sum(act==0)
         n_chosen_act1 = sum(act==1)
-        n_chosen_act2 = sum(act==1)
+        n_chosen_act2 = sum(act==2)
+        _rand_ = np.random.rand()
+        ratio = 2
+        if self.TS==0:  # Level 1  # 所有智能体选择 act0, 最优奖励期望1.0，现有方法奖励期望1.0
+            reward = n_chosen_act0/self.n_agents    
 
-        if self.TS==0:  # Level 1
-            n_chosen_act0 = sum(act==0)
-            reward = n_chosen_act0/self.n_agents
+        elif self.TS==1:  # Level 2  # 所有智能体选择 act0, 最优奖励期望0.55，现有方法奖励期望0.55
+            if 0.00 <= _rand_ <= 0.55:
+                reward = n_chosen_act0/(self.n_agents)*ratio #   55%: reward_canidate0 used
+            elif 0.55 < _rand_ <= 0.90:
+                reward = n_chosen_act1/(self.n_agents)*ratio #   35%: reward_canidate1 used
+            elif 0.90 < _rand_ <= 1.00:
+                reward = n_chosen_act2/(self.n_agents)*ratio #   10%: reward_canidate2 used
 
-        elif self.TS==1:  # Level 2
-            t = np.random.rand()
-            if 0.00 <= t <= 0.55:
-                reward = n_chosen_act0/(self.n_agents) #   55%: reward_canidate0 used
-            elif 0.55 < t <= 0.90:
-                reward = n_chosen_act1/(self.n_agents) #   35%: reward_canidate1 used
-            elif 0.90 < t <= 1.00:
-                reward = n_chosen_act2/(self.n_agents) #   10%: reward_canidate2 used
+        elif self.TS==2:  # Level 3  # 所有智能体选择 act1, 最优奖励期望0.55，现有方法奖励期望0.55
+            if 0.00 <= _rand_ <= 0.55:
+                reward = n_chosen_act1/(self.n_agents)*ratio #   55%: reward_canidate1 used
+            elif 0.55 < _rand_ <= 0.90:
+                reward = n_chosen_act0/(self.n_agents)*ratio #   35%: reward_canidate0 used
+            elif 0.9 < _rand_ <= 1.00:
+                reward = n_chosen_act2/(self.n_agents)*ratio #   10%: reward_canidate2 used
 
-        elif self.TS==2:  # Level 3
-            t = np.random.rand()
-            if 0.00 <= t <= 0.55:
-                reward = n_chosen_act1/(self.n_agents) #   55%: reward_canidate1 used
-            elif 0.55 < t <= 0.90:
-                reward = n_chosen_act0/(self.n_agents) #   35%: reward_canidate0 used
-            elif 0.9 < t <= 1.00:
-                reward = n_chosen_act2/(self.n_agents) #   10%: reward_canidate2 used
-
-        elif self.TS==3:  # Level 4
-            n_chosen_act1 = sum(act==1)
+        elif self.TS==3:  # Level 4  # 多数智能体选择 act1, 少数智能体选择其他 act, 最优奖励期望1，现有方法奖励期望0
             reward = n_chosen_act1/(self.n_agents-1)
             if (self.n_agents-n_chosen_act1)==0:
-                reward = -1
+                reward = 0
 
-        elif self.TS==4:  # Level 5
-            n_chosen_act0 = sum(act==0)
+        elif self.TS==4:  # Level 5  # 多数智能体选择 act0, 少数智能体选择其他 act, 最优奖励期望1，现有方法奖励期望0
             reward = n_chosen_act0/(self.n_agents-1)
             if (self.n_agents-n_chosen_act0)==0:
-                reward = -1
+                reward = 0
 
         else:
             assert False, 'Should not be here !'
-        # 1+0.55+0.55=2.1
+        # (1+0.55+0.55) + (1+1) = 2.1+2 = 4.1
+        # (1+0.55+0.55) = 2.1
 
 
         # update TS
@@ -215,7 +275,7 @@ class MathEnv(BaseEnv):
 
         n_chosen_act0 = sum(act==0)
         n_chosen_act1 = sum(act==1)
-        n_chosen_act2 = sum(act==1)
+        n_chosen_act2 = sum(act==2)
         if self.TS==0:  # Level 1
             n_chosen_act0 = sum(act==0)
             reward = n_chosen_act0/self.n_agents

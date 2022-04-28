@@ -2,6 +2,7 @@ import math
 import torch,time,random
 import torch.nn as nn
 import torch.nn.functional as F
+from .ccategorical import CCategorical
 from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.nn.modules.linear import Linear
@@ -10,7 +11,8 @@ from ..commom.norm import DynamicNorm
 from ..commom.mlp import LinearFinal, SimpleMLP, ResLinear
 from UTILS.colorful import print亮紫
 from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, __hashn__, pad_at_dim
-from UTILS.tensor_ops import _2cpu2numpy, one_hot_with_nan, gather_righthand, pt_inf
+from UTILS.tensor_ops import repeat_at, one_hot_with_nan, gather_righthand, pt_inf, n_item
+from torch.distributions import kl_divergence
 
 
 def weights_init(m):
@@ -26,7 +28,8 @@ def weights_init(m):
         'SimpleMLP':None,'Extraction_Module':None,'SelfAttention_Module':None,
         'ReLU':None,'Softmax':None,'DynamicNorm':None,'EXTRACT':None,
         'LinearFinal':lambda m:init_Linear(m, final_layer=True),
-        'Linear':init_Linear, 'ResLinear':None, 'LeakyReLU':None,'SimpleAttention':None
+        'Linear':init_Linear, 'ResLinear':None, 'LeakyReLU':None,'SimpleAttention':None,
+        'DivTree':None,
     }
 
     classname = m.__class__.__name__
@@ -163,8 +166,8 @@ class Net(nn.Module):
         self.skip_connect = True
         self.n_action = n_action
         self.alternative_critic = AlgorithmConfig.alternative_critic
-        self.exp_external_actdim = AlgorithmConfig.exp_external_actdim
-        
+        self.FixDoR  = AlgorithmConfig.FixDoR
+        self.UseDivTree = AlgorithmConfig.UseDivTree
         # observation normalization
         if self.use_normalization:
             self._batch_norm = DynamicNorm(rawob_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
@@ -189,14 +192,6 @@ class Net(nn.Module):
                             skip_connect_dim=rawob_dim, 
                             adopt_selfattn=self.actor_attn_mod)
 
-        if self.exp_external_actdim:
-            self.AT_hyper_act_net = nn.Sequential(
-                Linear(9, 16),
-                nn.ReLU(inplace=True),
-                Linear(16, 16),
-                nn.ReLU(inplace=True),
-                Linear(16, 2)
-            )
         tmp_dim = h_dim if not self.dual_conc else h_dim*2
         self.CT_get_value = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
         self.CT_get_threat = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
@@ -204,26 +199,34 @@ class Net(nn.Module):
         if self.alternative_critic:
             self.CT_get_value_alternative_critic = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
 
-        # part
-        self.check_n = self.n_focus_on*2
-        self.AT_get_logit_db = nn.Sequential(  
-            nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),
-            nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
-            LinearFinal(h_dim//2, self.n_action))
+
+        if self.UseDivTree:
+            self.AT_get_logit_db = nn.Sequential(
+                nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),
+                nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
+                nn.Linear(h_dim//2, self.n_action))
+            from .div_tree import DivTree
+            self.AT_div_tree = DivTree(input_dim=self.n_action, h_dim=self.n_action, n_action=self.n_action)
+        else:
+            self.AT_get_logit_db = nn.Sequential(
+                nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),
+                nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
+                LinearFinal(h_dim//2, self.n_action))
+
+        if self.FixDoR:
+            self.ccategorical = CCategorical()
 
         self.is_recurrent = False
         self.apply(weights_init)
         return
 
     # two ways to support avail_act, but which one is better?
-    def logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+    def logit2act_old(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
         if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
         act_dist = Categorical(logits = logits_agent_cluster)
         if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions
         else:              act = torch.argmax(act_dist.probs, axis=2)
-        def _get_act_log_probs(distribution, action):
-            return distribution.log_prob(action.squeeze(-1)).unsqueeze(-1)
-        actLogProbs = _get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
+        actLogProbs = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
         # sum up the log prob of all agents
         distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
         return act, actLogProbs, distEntropy, act_dist.probs
@@ -247,15 +250,16 @@ class Net(nn.Module):
         assert n == self.n_entity_placeholder
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
+            assert mat.shape[-1]!=n
         elif mat.shape[-1]==n:
             tmp = (mat[..., t] for t in type)
+            assert mat.shape[-2]!=n
         return tmp
 
     def _act(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None):
         eval_act = eval_actions if eval_mode else None
         others = {}
         if self.use_normalization:
-            # print(obs[0,0,0]) # 0 thread, 0 agent, 0 entity
             obs = self._batch_norm(obs)
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
@@ -271,30 +275,32 @@ class Net(nn.Module):
 
         # fuse forward path
         v_C_fuse = torch.cat((vf_C, vh_C), dim=-1)  # (vs + vs + check_n + check_n)
-        logits = self.AT_get_logit_db(v_C_fuse) # diverge here
-
+        if self.UseDivTree:
+            pre_logits = self.AT_get_logit_db(v_C_fuse)
+            logits, confact_info = self.AT_div_tree(pre_logits, req_confact_info=False)   # ($thread, $agent, $coredim)
+        else:
+            logits = self.AT_get_logit_db(v_C_fuse) # diverge here
 
         # motivation encoding fusion
         v_M_fuse = torch.cat((vf_M, vh_M), dim=-1)
         # motivation objectives
         value = self.CT_get_value(v_M_fuse)
-        threat = self.CT_get_threat(v_M_fuse)
+        if eval_mode: threat = self.CT_get_threat(v_M_fuse)
 
         assert not self.alternative_critic
-        if self.exp_external_actdim:
-            act, actLogProbs, distEntropy, probs = self.logit2act_exp(logits, zs=zs, eval_mode=eval_mode, 
-                                                    test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 
-        else:
-            act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
-                                                                test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
+        logit2act = self.logit2act if self.FixDoR else self.logit2act_old
+        act, actLogProbs, distEntropy, probs = logit2act(logits, eval_mode=eval_mode, 
+                                                            test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 
         def re_scale(t):
             SAFE_LIMIT = 11
             r = 1. /2. * SAFE_LIMIT
             return (torch.tanh_(t/r) + 1.) * r
 
-        others['threat'] = re_scale(threat)
+        if eval_mode: others['threat'] = re_scale(threat)
+
+
         if not eval_mode: return act, value, actLogProbs
         else:             return value, actLogProbs, distEntropy, probs, others
 
@@ -302,7 +308,21 @@ class Net(nn.Module):
 
 
 
+    def logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
 
+        act_dist = self.ccategorical.feed_logits(logits_agent_cluster)
+
+        if not test_mode:  
+            act = self.ccategorical.sample(act_dist) if not eval_mode else eval_actions
+        else:              
+            act = torch.argmax(act_dist.probs, axis=2)
+
+        actLogProbs = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
+        # sum up the log prob of all agents
+        distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
+        
+        return act, actLogProbs, distEntropy, act_dist.probs
 
 
 
@@ -314,55 +334,3 @@ class Net(nn.Module):
     @staticmethod
     def _get_act_log_probs(distribution, action):
         return distribution.log_prob(action.squeeze(-1)).unsqueeze(-1)
-
-
-    def logit2act_exp(self, logits_agent_cluster, zs, eval_mode, test_mode, eval_actions=None, avail_act=None):
-        '''
-        logits_agent_detach = logits_agent_cluster.detach()
-        zs_detach = zs.detach()
-        zs_detach = zs_detach.squeeze(-2)
-        hyper_obs = torch.cat((logits_agent_detach, zs_detach), axis=-1)
-        hyper_act_logits = self.AT_hyper_act_net(hyper_obs)
-        hyper_act_logits[..., 0] = 0
-        hyper_act_logits[..., 1] = 10
-        hyper_act_logits = hyper_act_logits.detach()
-        # logits to acts, 
-        # input: hyper_act_logits
-        # output: h_act
-        h_dist = Categorical(logits = hyper_act_logits)
-        if not test_mode:  h_act = h_dist.sample() if not eval_mode else eval_actions
-        else:              h_act = torch.argmax(h_dist.probs, axis=2)
-        # h_act[:] = 1
-        SampleLogProb = self._get_act_log_probs(h_dist, torch.ones_like(h_act))
-        hActLogProbsRef = self._get_act_log_probs(h_dist, h_act)
-        # hActLogProbs = self._get_act_log_probs(h_dist, h_act)
-        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
-        '''
-        torch.nn.functional.gumbel_softmax()
-
-        act_dist = Categorical(logits = logits_agent_cluster)
-        act_sample = act_dist.sample() if not eval_mode else eval_actions
-        act_argmax = torch.argmax(act_dist.probs, axis=2)
-        # 1 是采样， 0 是贪婪
-        act = act_sample # h_act: shape=($n_thread, $n_agent)
-        # act = torch.where(h_act==1, act_sample, act_argmax) # h_act: shape=($n_thread, $n_agent)
-        # sel_argmax = (act_argmax==act).unsqueeze(-1)
-
-        actLogProbs01 = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
-        # if not eval_mode:
-        #     which_step = zs[0,0,0,0].item()
-        #     n_thread = h_act.shape[0]
-        #     sel_hact1 = (h_act==1).sum().item()/n_thread
-        #     sel_hact0 = (h_act==0).sum().item()/n_thread
-        #     from config import GlobalConfig
-        #     GlobalConfig.data_logger.rec(sel_hact0, '%d-hact0'%round(which_step))
-        #     GlobalConfig.data_logger.rec(sel_hact1, '%d-hact1'%round(which_step))
-
-
-        actLogProbs_notargmax = actLogProbs01 + 1
-        #actLogProbs_argmax = torch.log( torch.exp(actLogProbs01 + SampleLogProb) + (1-torch.exp(SampleLogProb))  )
-        actLogProbs = actLogProbs_notargmax # torch.where(sel_argmax, actLogProbs_argmax, actLogProbs_notargmax)
-
-        # sum up the log prob of all agents
-        distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
-        return act, actLogProbs, distEntropy, act_dist.probs

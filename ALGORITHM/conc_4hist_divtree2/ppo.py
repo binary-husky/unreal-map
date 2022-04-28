@@ -1,4 +1,4 @@
-import torch, math  # v
+import torch, math, traceback  # v
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -10,7 +10,7 @@ from UTILS.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
 from UTILS.tensor_ops import my_view, scatter_with_nan, sample_balance
 from config import GlobalConfig as cfg
 from UTILS.gpu_share import GpuShareUnit
-import traceback
+
 class TrajPoolSampler():
     def __init__(self, n_div, traj_pool, flag, fix_n_sample=False):
         self.n_pieces_batch_division = n_div
