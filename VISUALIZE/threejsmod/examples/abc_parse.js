@@ -503,6 +503,33 @@ function parse_advanced_geometry(str){
             window.glb.base_geometry[name] = object.children[0].geometry;
             window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
         });
+    }else if(build_cmd.includes('gltf=')){
+        // let each_part = build_cmd.split('=')
+        // let path_of_gltf_file = each_part[1]
+
+        // async function loadGLTFLoader(src) {
+        //     window.glb.base_geometry[name] = 'loading'
+        //     let Mod = await import(src);
+        //     const loader = new Mod.GLTFLoader();
+        //     loader.load( path_of_gltf_file, function ( gltf ) {
+        //         let gltf_group = gltf.scene; //
+        //         let obj_list = []
+        //         gltf.scene.traverse(function (child) {
+        //             if (child.geometry){
+        //                 child.updateMatrix();
+        //                 obj_list.push(child)
+        //             }
+        //         });
+
+        //         let geo = mergeBufferGeometry(obj_list)
+
+        //         window.glb.base_geometry[name] = geo;
+        //         window.glb.base_geometry[name] = geo_transform(window.glb.base_geometry[name], ro_x, ro_y, ro_z, scale_x, scale_y, scale_z, trans_x, trans_y, trans_z);
+        //     }, undefined, function ( e ) {
+        //         console.error( e );
+        //     } );
+        // }
+        // loadGLTFLoader(`/examples/jsm/loaders/GLTFLoader.js`)
     }else{
         // very basic shapes
         window.glb.base_geometry[name] = eval('new THREE.'+build_cmd)

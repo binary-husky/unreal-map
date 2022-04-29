@@ -1,4 +1,4 @@
-import os, copy, atexit, time, gzip, threading
+import os, copy, atexit, time, gzip, threading, zlib, asyncio
 import numpy as np
 from colorama import init
 from multiprocessing import Process
@@ -342,6 +342,7 @@ class DrawProcessThreejs(Process):
             self.tcp_connection.wait_connection() # after this, the queue begin to work
             while True:
                 buff_list = []
+                buff_list.extend(queue.get(timeout=600))
                 for _ in range(queue.qsize()): buff_list.extend(queue.get(timeout=600))
                 self.run_handler(buff_list)
         except KeyboardInterrupt:
@@ -497,6 +498,7 @@ class DrawProcess(Process):
             while True:
                 try: 
                     buff_list = []
+                    buff_list.extend(queue.get(timeout=0.1))
                     for _ in range(queue.qsize()): buff_list.extend(queue.get(timeout=0.1))
                     self.run_handler(buff_list)
                 except Empty: self.gui_reflesh()
