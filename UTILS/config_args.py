@@ -162,7 +162,7 @@ def check_experiment_log_path(logdir):
         if os.path.exists(logdir+'test_stage'): return None
         print亮红('Current log path:', logdir)
         print亮红('Warning! you will overwrite old logs if continue!')
-        print亮红("Pause for 60 seconds before continue (or enter NEW note name!)")
+        print亮红("Pause for 60 seconds before continue (or press Enter to confirm!)")
         try:
             res = askChoice()
             if res == '': res = None
