@@ -109,6 +109,7 @@ After getting ```inside``` the HMP container:
 (hmp-container)$ git pull && python main.py -c ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
 
 ```
+<img src="ZHECKPOINT/test-50+50/butterfly.webp" width="300" >
 
 # Docker in Docker (If need to run air combat env)
 
