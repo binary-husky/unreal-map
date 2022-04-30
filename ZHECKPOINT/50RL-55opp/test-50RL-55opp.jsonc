@@ -9,7 +9,7 @@
         "test_interval": "2048",
         "test_only": "True",    // 仅测试
         "interested_agent_num": 50,
-        "device": "cuda:6", // 使用哪张显卡
+        "device": "cuda:0", // 使用哪张显卡
         "gpu_party": "off", // 是否允许多进程共享显存，这里不需要
         "fold": "1",        // 使用的进程数量 = 环境并行数量/fold
         "n_parallel_frame": 50000000.0,
