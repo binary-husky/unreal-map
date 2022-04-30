@@ -15,7 +15,7 @@
             "ALGORITHM/conc",
             "MISSIONS/sr_tasks/multiagent"
         ],
-        "device": "cuda:3",
+        "device": "cuda:0",
         "gpu_party": "off"
     },
 
