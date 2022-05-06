@@ -1,133 +1,135 @@
 
 # ubuntu command to kill process: kill -9 $(ps -ef | grep python | grep fuqingxu | grep -v grep | awk '{print $ 2}')
 
-n_run = 6
+n_run = 24
 n_run_mode = [
     {
-        "addr": "exe_here=>localhost:2266",
+        "addr": "localhost:2266",
         "usr": "fuqingxu",
         "pwd": "clara"
     },
-    {
-        "addr": "exe_here=>localhost:2266",
-        "usr": "fuqingxu",
-        "pwd": "clara"
-    },    
-    {
-        "addr": "exe_here=>localhost:2266",
-        "usr": "fuqingxu",
-        "pwd": "clara"
-    },    
-    {
-        "addr": "exe_here=>localhost:2266",
-        "usr": "fuqingxu",
-        "pwd": "clara"
-    },
-    {
-        "addr": "exe_here=>localhost:2266",
-        "usr": "fuqingxu",
-        "pwd": "clara"
-    },
-    {
-        "addr": "exe_here=>localhost:2266",
-        "usr": "fuqingxu",
-        "pwd": "clara"
-    },
-]
+]*24
 assert len(n_run_mode)==n_run
 
 conf_override = {
     "config.py->GlobalConfig-->note":       
-                [
-                    "pymarl-starcraft-5m-sim-original-r1",
-                    "pymarl-starcraft-5m-sim-original-r2",
-                    "pymarl-starcraft-5m-sim-original-r3",
+        [
+            "basic-ma-10-Run1",
+            "basic-ma-15-Run1",
+            "basic-ma-20-Run1",
+            "basic-ma-25-Run1",
+            "basic-ma-30-Run1",
+            "basic-ma-40-Run1",
 
-                    "pymarl-starcraft-5m-sim-AddBn-r1",
-                    "pymarl-starcraft-5m-sim-AddBn-r2",
-                    "pymarl-starcraft-5m-sim-AddBn-r3",
-                ],
+            "basic-ma-10-Run2",
+            "basic-ma-15-Run2",
+            "basic-ma-20-Run2",
+            "basic-ma-25-Run2",
+            "basic-ma-30-Run2",
+            "basic-ma-40-Run2",
 
-    "config.py->GlobalConfig-->seed":       
-                [
-                    1111+6,
-                    1112+6,
-                    1113+6,
+            "basic-ma-10-Run3",
+            "basic-ma-15-Run3",
+            "basic-ma-20-Run3",
+            "basic-ma-25-Run3",
+            "basic-ma-30-Run3",
+            "basic-ma-40-Run3",
 
-                    1111+6,
-                    1112+6,
-                    1113+6,
-                ],
+            "basic-ma-10-Run4",
+            "basic-ma-15-Run4",
+            "basic-ma-20-Run4",
+            "basic-ma-25-Run4",
+            "basic-ma-30-Run4",
+            "basic-ma-40-Run4",
+        ],
+    "MISSIONS.math_game.env.py->ScenarioConfig-->n_team1agent":
+        [
+            10,
+            15,
+            20,
+            25,
+            30,
+            40,
 
-    "config.py->GlobalConfig-->device":       
-                [
-                    "cuda:5",
-                    "cuda:5",
-                    "cuda:5",
-                    "cuda:6",
-                    "cuda:6",
-                    "cuda:6",
-                ],
+            10,
+            15,
+            20,
+            25,
+            30,
+            40,
 
-    "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig-->pymarl_config_injection": [
-            {"controllers.my_n_controller.py->PymarlAlgorithmConfig":{"use_normalization": "False","use_vae": "False"}}, 
-            {"controllers.my_n_controller.py->PymarlAlgorithmConfig":{"use_normalization": "False","use_vae": "False"}}, 
-            {"controllers.my_n_controller.py->PymarlAlgorithmConfig":{"use_normalization": "False","use_vae": "False"}}, 
+            10,
+            15,
+            20,
+            25,
+            30,
+            40,
 
-            {"controllers.my_n_controller.py->PymarlAlgorithmConfig":{"use_normalization": "True","use_vae": "False"}}, 
-            {"controllers.my_n_controller.py->PymarlAlgorithmConfig":{"use_normalization": "True","use_vae": "False"}}, 
-            {"controllers.my_n_controller.py->PymarlAlgorithmConfig":{"use_normalization": "True","use_vae": "False"}}, 
-    ]
+            10,
+            15,
+            20,
+            25,
+            30,
+            40,
+        ]
+
+
+
 }
 
 
 
 
 base_conf = {
+    # 第1阶段， div_tree_init_level是0
     "config.py->GlobalConfig": {
-        "note": "pymarl-starcraft-sim-original-r3",                            #  experiment note, also means the log saving directory
-        "heartbeat_on":"False",                             #  just some fancy visual effect
-        "env_name":"sc2",                                   #  starcraft 2
-        "env_path":"MISSIONS.starcraft.sc2_env_wrapper",    #  starcraft 2
-        "draw_mode": "Img",                                 #  plot curlves as image
-        "num_threads": "8",                                 #  number of parallel envs
-        "report_reward_interval": "8",                      #  report the reward averaging x episodes
-        "test_interval": "128",                            #  begin a test run every x episodes, test run is managed by pymarl side
-        "test_epoch": "64",                            #  begin a test run every x episodes, test run is managed by pymarl side
-        "device": "cuda:6",
-        "max_n_episode": 20000*5*3,
-        "n_parallel_frame": 5e7,
-        #  "gpu_party": "CUDA0_P1",
-        "fold": "1",                                        #  each linux process handle x parallel envs
-        "seed": 1113,                                       #  seed 9995-->9996
+        "note": "z_mathgame_X_Conc_Trim_phase1",               # experiment note, also means the log saving directory
+        # "train_time_testing": "False",                     # do not manage train time testing, pymarl env manage the testing itself
+        # "heartbeat_on":"True",                             # just some fancy visual effect
+        "env_name":"mathgame",                                   # starcraft 2
+        "env_path":"MISSIONS.math_game",    # starcraft 2
+        # "interested_agent_num":100,                         # only for reward logging, **not needed because sc2 use uniform team reward
+        "draw_mode": "Img",                                 # plot curlves as image
+        # "test_only": "False",                                 # number of parallel envs
+        "num_threads": "64",                                 # number of parallel envs
+        "report_reward_interval": "64",                      # report the reward averaging x episodes
+        "test_interval": "1024",                             # begin a test run every x episodes, test run is managed by pymarl side
+        "test_epoch": "192",                                 # begin a test run every x episodes, test run is managed by pymarl side
+        "device": "cuda",
+        "max_n_episode": 524288, # 1.706
+        # "gpu_party": "CUDA0_P1",
+        "fold": "4",                                        # each linux process handle x parallel envs
         "backup_files":[
+            "MISSIONS/math_game",
+            "ALGORITHM/ppo_ma_mathdb"
         ]
     },
 
-    "MISSIONS.starcraft.sc2_env_wrapper.py->ScenarioConfig": {
-        "map_": "5m_vs_6m",
-        "sc_version": "2.4.10",
-        #  "SINGLE_TEAM_N_AGENT": 5,
-        #  "episode_limit": 60,
-        #  "reward_vec": true,
+    "MISSIONS.math_game.env.py->ScenarioConfig": {
+        "n_team1agent": 9,
+        "n_actions": 10,
+        "show_details": False,
+        "StateProvided": False,
         "TEAM_NAMES": [
-            "ALGORITHM.pymarl2_compat.pymarl2_compat->PymarlFoundation"
+            "ALGORITHM.ppo_ma_mathdb.foundation->ReinforceAlgorithmFoundation"
         ]
     },
 
-    "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig": {
-        "load_checkpoint": "False",
-        "batch_size": 128,
-        "pymarl_config_injection":{
-            "controllers.my_n_controller.py->PymarlAlgorithmConfig":{
-                #  "kld_loss_weight": 0,
-                #  "recons_loss_weight": 1,
-                "use_normalization": "True",
-                #  "vae_lr_ratio": 5,
-                "use_vae": "False"
-            }
-        }
+    "ALGORITHM.ppo_ma_mathdb.foundation.py->AlgorithmConfig": {
+        "load_checkpoint": False,
+        # "load_specific_checkpoint": "../z_mathgame_X_Conc/model_bk.pt",
+        "only_train_div_tree_and_ct": False,
+        "train_traj_needed": "512",
+        "div_tree_init_level":0,
+        "UseDivTree": True,
+        "ppo_epoch": 24,
+        "FixDoR": False,
+        "gamma": 0.99,
+        # "yita": 0.05,
+        "lr": 0.0005,
+        "RecProbs": False,
     }
+
 }
 
 
@@ -171,7 +173,18 @@ print红('\n')
 print红('\n')
 print红('\n')
 
-printX = [print亮红,print亮绿,print亮黄,print亮蓝,print亮紫,print亮靛, print红,print绿,print黄,print蓝,print紫,print靛,]
+printX = [
+    print亮红, print亮绿, print亮黄, print亮蓝, print亮紫, print亮靛, 
+    print红,   print绿,   print黄,   print蓝,   print紫,   print靛,
+    print亮红, print亮绿, print亮黄, print亮蓝, print亮紫, print亮靛, 
+    print红,   print绿,   print黄,   print蓝,   print紫,   print靛,
+    print亮红, print亮绿, print亮黄, print亮蓝, print亮紫, print亮靛, 
+    print红,   print绿,   print黄,   print蓝,   print紫,   print靛,
+    print亮红, print亮绿, print亮黄, print亮蓝, print亮紫, print亮靛, 
+    print红,   print绿,   print黄,   print蓝,   print紫,   print靛,
+    print亮红, print亮绿, print亮黄, print亮蓝, print亮紫, print亮靛, 
+    print红,   print绿,   print黄,   print蓝,   print紫,   print靛,
+]
 conf_base_ = conf_list[0]
 for k_ in conf_base_:
     conf_base = conf_base_[k_]
@@ -217,21 +230,21 @@ def remote_worker(ith_run):
         ssh, sftp = get_ssh_sftp(addr, usr, pwd)
         src_path = os.getcwd()
     else:
-        assert False
-        # usr = n_run_mode[ith_run]['usr']
-        # pwd = n_run_mode[ith_run]['pwd']
-        # ssh, sftp = get_ssh_sftp(addr, usr, pwd)
-        # sftp.mkdir('/home/%s/MultiServerMission'%(usr), ignore_existing=True)
-        # sftp.mkdir('/home/%s/MultiServerMission/%s'%(usr, time_mark), ignore_existing=True)
-        # src_path = '/home/%s/MultiServerMission/%s/src'%(usr, time_mark)
-        # try:
-        #     sftp.mkdir(src_path, ignore_existing=False)
-        #     sftp.put_dir('./', src_path, ignore_list=['.vscode', '__pycache__','RECYCLE','ZHECKPOINT'])
-        #     sftp.close()
-        #     print紫('upload complete')
-        # except:
-        #     sftp.close()
-        #     print紫('do not need upload')
+        # assert False
+        usr = n_run_mode[ith_run]['usr']
+        pwd = n_run_mode[ith_run]['pwd']
+        ssh, sftp = get_ssh_sftp(addr, usr, pwd)
+        sftp.mkdir('/home/%s/MultiServerMission'%(usr), ignore_existing=True)
+        sftp.mkdir('/home/%s/MultiServerMission/%s'%(usr, time_mark), ignore_existing=True)
+        src_path = '/home/%s/MultiServerMission/%s/src'%(usr, time_mark)
+        try:
+            sftp.mkdir(src_path, ignore_existing=False)
+            sftp.put_dir('./', src_path, ignore_list=['.vscode', '__pycache__','RECYCLE','ZHECKPOINT'])
+            sftp.close()
+            print紫('upload complete')
+        except:
+            sftp.close()
+            print紫('do not need upload')
 
     time_mark_ = time_mark.replace(':','-')
     print('byobu attach -t %s'%time_mark_)

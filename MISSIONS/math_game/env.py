@@ -59,6 +59,7 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     # MathGame Setting
     one_hot_id = True
 
+    levels = "1A-4B-2C"
 
 class BaseEnv(object):
     def __init__(self, rank) -> None:
@@ -166,15 +167,83 @@ class MathEnv(BaseEnv):
 
         _rand_ = np.random.rand()
 
-        reward_lambda_list = [
-            lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=False),    # 1.00, 1.00    TypeA
-            lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[5,6,7], ratio=2),     # 1, 1 TypeB
-            lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[6,7,8], ratio=2),     # 1, 1 TypeB
-            lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[7,8,9], ratio=2),     # 1, 1 TypeB
-            lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[8,9,5], ratio=2),     # 1, 1 TypeB
-            lambda: self._give_reward_(act, reward_which_act=1, must_has_outlier=True),   # 1.00, 0.00 TypeC
-            lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=True),   # 1.00, 0.00 TypeC
-        ]                                                                                 # 
+
+        if ScenarioConfig.levels == "1A-6B-0C":
+            reward_lambda_list = [
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=False),    # 1.00, 1.00    TypeA
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[4,5,6], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[5,6,7], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[6,7,8], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[7,8,9], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[8,9,0], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[9,0,1], ratio=2),     # 1, 1 TypeB
+            ]
+        elif ScenarioConfig.levels == "1A-5B-1C":
+            reward_lambda_list = [
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=False),    # 1.00, 1.00    TypeA
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[4,5,6], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[5,6,7], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[6,7,8], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[7,8,9], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[8,9,5], ratio=2),     # 1, 1 TypeB
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=True),   # 1.00, 0.00 TypeC
+            ]
+        elif ScenarioConfig.levels == "1A-4B-2C":
+            reward_lambda_list = [
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=False),    # 1.00, 1.00    TypeA
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[5,6,7], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[6,7,8], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[7,8,9], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[8,9,5], ratio=2),     # 1, 1 TypeB
+                lambda: self._give_reward_(act, reward_which_act=1, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=True),   # 1.00, 0.00 TypeC
+            ]
+        elif ScenarioConfig.levels == "1A-3B-3C":
+            reward_lambda_list = [
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=False),    # 1.00, 1.00    TypeA
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[5,6,7], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[6,7,8], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[7,8,9], ratio=2),     # 1, 1 TypeB
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=1, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=2, must_has_outlier=True),   # 1.00, 0.00 TypeC
+            ]
+        elif ScenarioConfig.levels == "1A-2B-4C":
+            reward_lambda_list = [
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=False),    # 1.00, 1.00    TypeA
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[5,6,7], ratio=2),     # 1, 1 TypeB
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[6,7,8], ratio=2),     # 1, 1 TypeB
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=1, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=2, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=3, must_has_outlier=True),   # 1.00, 0.00 TypeC
+            ]
+        elif ScenarioConfig.levels == "1A-1B-5C":
+            reward_lambda_list = [
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=False),    # 1.00, 1.00    TypeA
+                lambda: self._schochestic_reward_(act=act, seed=_rand_, probs_list=[0.5, 0.4, 0.1], reward_which_act_list=[5,6,7], ratio=2),     # 1, 1 TypeB
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=1, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=2, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=3, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=4, must_has_outlier=True),   # 1.00, 0.00 TypeC
+            ]
+        elif ScenarioConfig.levels == "1A-0B-6C":
+            reward_lambda_list = [
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=False),    # 1.00, 1.00    TypeA
+                lambda: self._give_reward_(act, reward_which_act=0, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=1, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=2, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=3, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=4, must_has_outlier=True),   # 1.00, 0.00 TypeC
+                lambda: self._give_reward_(act, reward_which_act=5, must_has_outlier=True),   # 1.00, 0.00 TypeC
+            ]
+        else:
+            assert False, ('not written')
+
+
+
+
         nLevel = len(reward_lambda_list)            # train reward 由于熵约束，无法达到5.2, test reward由于DoR问题，只能达到3.2
 
         reward = reward_lambda_list[self.TS]()
