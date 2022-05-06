@@ -13,6 +13,7 @@ from UTILS.colorful import print亮紫
 from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, __hashn__, pad_at_dim
 from UTILS.tensor_ops import repeat_at, one_hot_with_nan, gather_righthand, pt_inf, n_item
 from torch.distributions import kl_divergence
+from .foundation import AlgorithmConfig
 
 
 def weights_init(m):
@@ -154,7 +155,6 @@ class Net(nn.Module):
                 n_action):
         super().__init__()
 
-        from .foundation import AlgorithmConfig
 
         self.use_normalization = AlgorithmConfig.use_normalization
         # self.n_focus_on = AlgorithmConfig.n_focus_on
@@ -166,7 +166,6 @@ class Net(nn.Module):
         self.skip_connect = True
         self.n_action = n_action
         self.alternative_critic = AlgorithmConfig.alternative_critic
-        self.FixDoR  = AlgorithmConfig.FixDoR
         self.UseDivTree = AlgorithmConfig.UseDivTree
         # observation normalization
         if self.use_normalization:
@@ -195,8 +194,8 @@ class Net(nn.Module):
                 nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
                 LinearFinal(h_dim//2, self.n_action))
 
-        if self.FixDoR:
-            self.ccategorical = CCategorical()
+        # if AlgorithmConfig.FixDoR:
+        self.ccategorical = CCategorical()
 
         self.is_recurrent = False
         self.apply(weights_init)
@@ -260,7 +259,7 @@ class Net(nn.Module):
 
         assert not self.alternative_critic
 
-        logit2act = self.logit2act if self.FixDoR else self.logit2act_old
+        logit2act = self.logit2act if AlgorithmConfig.FixDoR else self.logit2act_old
         act, actLogProbs, distEntropy, probs = logit2act(logits, eval_mode=eval_mode, 
                                                             test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 

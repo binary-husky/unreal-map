@@ -57,7 +57,7 @@ class AlgorithmConfig:
 
     n_agent = 'auto load, do not change'
     only_train_div_tree_and_ct = False
-    yita = 0.15
+    yita = 0.
     div_tree_init_level = 0
     yita_min_prob = 0.2
     FixDoR = False
@@ -66,6 +66,13 @@ class AlgorithmConfig:
 
     RecProbs = False
 
+
+    # personality reinforcement
+    personality_reinforcement_start_at_update = -1
+    _div_tree_level_inc_per_update = 1/10 # (30 updates per inc)
+    yita_max = 0.75
+    _yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
+
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
         self.n_thread = n_thread
@@ -73,6 +80,7 @@ class ReinforceAlgorithmFoundation(object):
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
         self.scenario_config = GlobalConfig.scenario_config
+        self.mcv = mcv
         n_actions = GlobalConfig.scenario_config.n_actions
         from .shell_env import ShellEnvWrapper
         self.shell_env = ShellEnvWrapper(
@@ -186,16 +194,40 @@ class ReinforceAlgorithmFoundation(object):
             self.batch_traj_manager.train_and_clear_traj_pool()
             if AlgorithmConfig.ConfigOnTheFly:
                 self._process_input()
-            if AlgorithmConfig.FixDoR:
-                self._update_yita(self.batch_traj_manager.update_cnt)
-                # self.policy.AT_div_tree.handle_update(self.batch_traj_manager.update_cnt)
 
-    def _update_yita(self, update_cnt):
-        max_yita = 0.75
-        _yita_inc_per_update = max_yita/500
-        AlgorithmConfig.yita += _yita_inc_per_update
-        if AlgorithmConfig.yita > 0.75:
-            AlgorithmConfig.yita = 0.75
+            if (not AlgorithmConfig.FixDoR) and AlgorithmConfig.personality_reinforcement_start_at_update > 0:
+                if self.batch_traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
+                    AlgorithmConfig.FixDoR = True
+                    # AlgorithmConfig.only_train_div_tree_and_ct = True
+                    # self.trainer.fn_only_train_div_tree_and_ct()
+
+            if AlgorithmConfig.FixDoR:
+                self._update_yita()
+                self._update_personality_division()
+
+            fixdor = 1 if AlgorithmConfig.FixDoR else 0
+            self.mcv.rec(fixdor, 'FixDoR')
+            self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
+            self.mcv.rec(AlgorithmConfig.yita, 'yita')
+
+    def _update_personality_division(self):
+        personality_tree = self.policy.AT_div_tree
+        personality_tree.current_level_floating += AlgorithmConfig._div_tree_level_inc_per_update
+        if personality_tree.current_level_floating > personality_tree.max_level:
+            personality_tree.current_level_floating = personality_tree.max_level
+
+
+
+        expected_level = int(personality_tree.current_level_floating)
+        if expected_level == personality_tree.current_level: return
+        personality_tree.change_div_tree_level(expected_level, auto_transfer=True)
+        print('[div_tree]: change_div_tree_level, ', personality_tree.current_level)
+
+
+    def _update_yita(self):
+        AlgorithmConfig.yita += AlgorithmConfig._yita_inc_per_update
+        if AlgorithmConfig.yita > AlgorithmConfig.yita_max:
+            AlgorithmConfig.yita = AlgorithmConfig.yita_max
         print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)
 
     def _process_input(self):
@@ -205,25 +237,24 @@ class ReinforceAlgorithmFoundation(object):
             cmdlines = f.readlines()
 
         cmdlines_writeback = []
+        any_change = False
 
         for cmdline in cmdlines:
-            # print(cmdline)
             if cmdline.startswith('#') or cmdline=="\n" or cmdline==" \n":
                 cmdlines_writeback.append(cmdline)
             else:
+                any_change = True
                 try:
                     print亮绿('[foundation.py] ------- executing: %s ------'%cmdline)
                     exec(cmdline)
                     cmdlines_writeback.append('# [execute successfully]\t'+cmdline)
                 except:
-                    print(traceback.format_exc())
+                    print红(traceback.format_exc())
                     cmdlines_writeback.append('# [execute failed]\t'+cmdline)
 
-        
-        # print("cmdlines_writeback:", cmdlines_writeback)
-
-        with open(self.input_file_dir, 'w+', encoding='utf8') as f:
-            f.writelines(cmdlines_writeback)
+        if any_change:
+            with open(self.input_file_dir, 'w+', encoding='utf8') as f:
+                f.writelines(cmdlines_writeback)
 
 
     '''

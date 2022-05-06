@@ -190,6 +190,13 @@ class PPO():
 
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
+    def fn_only_train_div_tree_and_ct(self):
+        self.only_train_div_tree_and_ct = True
+        self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_div_tree' in p_name]
+        self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
+        self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
+        self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
+
     def train_on_traj(self, traj_pool, task):
         while True:
             try:

@@ -14,11 +14,11 @@ class DivTree(nn.Module): # merge by MLP version
         from .foundation import AlgorithmConfig
         self.n_agent = AlgorithmConfig.n_agent
         self.div_tree = get_division_tree(self.n_agent)
-        self.max_level = len(self.div_tree)
-        # self.current_level = self.max_level - 1
+        self.n_level = len(self.div_tree)
+        self.max_level = len(self.div_tree) - 1
         self.current_level = 0
         self.init_level = AlgorithmConfig.div_tree_init_level
-
+        self.current_level_floating = 0.0
 
 
 
@@ -39,16 +39,12 @@ class DivTree(nn.Module): # merge by MLP version
                 self.change_div_tree_level(i+1)
 
 
-
     def handle_update(self, update_cnt):
         pass 
-        # expected_level = min(self.max_level, update_cnt // 100)
-        # if expected_level == self.current_level: return
-        # self.change_div_tree_level(expected_level, auto_transfer=True)
-        # print('[div_tree]: update_cnt:%d', update_cnt)
+
 
     def change_div_tree_level(self, level, auto_transfer=True):
-        print('performing div tree level change (%d -> %d/%d) \n'%(self.current_level, level, self.max_level-1))
+        print('performing div tree level change (%d -> %d/%d) \n'%(self.current_level, level, self.max_level))
         self.current_level = level
         assert len(self.div_tree) > self.current_level, ('Reach max level already!')
         if not auto_transfer: return
@@ -109,8 +105,8 @@ class DivTree(nn.Module): # merge by MLP version
         # on first run
         tree = self.div_tree
         n_agent = tree.shape[-1]
-        self.blood_distance_each_level = np.ones(shape=(self.max_level, n_agent, n_agent), dtype=np.float64) * np.nan
-        for m in range(self.max_level):
+        self.blood_distance_each_level = np.ones(shape=(self.n_level, n_agent, n_agent), dtype=np.float64) * np.nan
+        for m in range(self.n_level):
             n_agent = tree.shape[-1]
             blood_distance = np.ones(shape=(n_agent,n_agent), dtype=np.float64) * np.nan
             for i in range(n_agent):
