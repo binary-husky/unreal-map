@@ -3,7 +3,7 @@ import numpy as np
 from UTILS.colorful import *
 from config import GlobalConfig
 from UTILS.tensor_ops import __hash__, repeat_at, __hashn__
-
+# git
 class AlgorithmConfig:  
     '''
         AlgorithmConfig: This config class will be 'injected' with new settings from json.
