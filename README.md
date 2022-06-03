@@ -21,14 +21,14 @@ used to archive code used in our papers:
 ```https://github.com/binary-husky/hmp2g/tree/aaai-conc```.
 
 # Demo
-## Web Demo of DCA (AAAI paper version)
+## Web Demo of DCA (AAAI Paper Version)
 
 ```
 http://cloud.fuqingxu.top:11601/
 ```
 <img src="ZHECKPOINT/test-50+50/test50.gif" width="300" >
 
-## Decentralized Collective Assult (Improved Version, more difficult than AAAI paper version)
+## Decentralized Collective Assult (Improved Version, more Difficult Than AAAI Paper Version)
 
 ```
 git pull && python main.py -c ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
@@ -49,7 +49,7 @@ git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-cargo50/test-cargo50.jsonc --skip
 ```
 
-## Decentralized Collective Assult (AAAI paper version)
+## Decentralized Collective Assult (AAAI Paper Version)
 ```
 git pull && python main.py -c ZHECKPOINT/test-50+50/test-50+50.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
@@ -59,12 +59,12 @@ git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
 We use docker to solve dependency: [SetupDocker](./setup_docker.md)
 
 
-# Introducing the structure of HMP
+# Introducing the Structure of HMP
 
-## HMP's config system (How to experiment)
+## HMP's Config System (How to experiment)
 Unfinished doc
 
-## Task runner
+## Task Runner
 Unfinished doc
 
 ## ALGORITHM
@@ -79,7 +79,7 @@ Unfinished doc
 ## Execution Pool
 Unfinished doc
 
-## VHMAP, a component of HMP
+## VHMAP, a Component of HMP
 VHMAP is a visulization component of HMP. [VHMAP](./VISUALIZE/README.md)
 
 It is unfortunate that 
@@ -124,11 +124,13 @@ Interface functions, operation introduction.
 
 # Quick Start
 
-## 0. dependency
+## Dependency
 We use docker to solve dependency: 
-[SetupDocker](./SetupDocker.md)
+[setup_docker](./setup_docker.md). 
+This project uses techniques such shared memory for extreme training efficiency, 
+as a cost, WindowsOS+GPU training is not yet supported.
 
-Please read SetupDocker.md, then set up the container using:
+Please read setup_docker.md, then set up the container using:
 ```bash
 $ docker run -itd   --name  hmp-$USER \
 --net host \
@@ -137,7 +139,9 @@ $ docker run -itd   --name  hmp-$USER \
 fuqingxu/hmp:latest
 ```
 
-## 1. all default: testing
+
+## AAAI 2022
+### 1. All Default: Testing
 ```
 git pull && python main.py -c ZHECKPOINT/test-50+50/test-50+50.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
@@ -149,7 +153,7 @@ JS visualizer online: http://172.18.116.150:aRandomPort
 JS visualizer online (localhost): http://localhost:aRandomPort
 --------------------------------
 ```
-## 2. all default: training
+### 2. All Default: Training
 
 ```
 git pull && python main.py -c example.jsonc
@@ -157,12 +161,27 @@ git pull && python main.py -c example_dca.jsonc
 ```
 
 
-## 3. change settings
+### 3. Change Settings
 
 launch with: 
 ```
 python main.py --cfg xx.json
 ```
+
+## IJCNN 2022
+### 
+```
+git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip 
+git pull && python main.py -c ZHECKPOINT/test-cargo50/test-cargo50.jsonc --skip
+```
+
+## Others
+
+```
+git pull && python main.py --cfg ZHECKPOINT/adca-demo/test.json
+git pull && python main.py --cfg ZHECKPOINT/basic-ma-40-demo/test.json
+```
+
 
 # Project Roadmap
 If you are interested in something, you may continue to read:
@@ -192,7 +211,7 @@ If you are interested in something, you may continue to read:
     experiment batch executor                 -->   mprofile.py
 ```
 
-# How to add a new environment (MISSION) in HMP
+# How to Add a New Environment (MISSION) in HMP
 - make a new jsonc config file, using 'example.jsonc' as template
 - mkdir in MISSIONS, e.g. ./MISSIONS/bvr_sim, copy src code of the environment inside it.
 - open ```MISSIONS/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:
@@ -229,7 +248,7 @@ import_path_ref = {
 ```
 
 
-# (Written to myself) Steps to mirror to github
+# (Written to Myself) Steps to Mirror to Github
 
 ```
 rm -rf ~/ATempDir
