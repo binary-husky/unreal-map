@@ -1,9 +1,10 @@
+import atexit, json
 from lib2to3.pytree import Base
 import os, sys, math
-from cv2 import Algorithm
 import numpy as np
 from UTILS.tensor_ops import repeat_at, np_one_hot
 from UTILS.config_args import ChainVar
+from UTILS.network import TcpClientP2P
 
 '''
     ScenarioConfig: This config class will be 'injected' with new settings from JSONC.
@@ -60,6 +61,9 @@ class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do n
     one_hot_id = True
 
     levels = "1A-4B-2C"
+
+    render = False
+    render_tcp_port = 21051
 
 class BaseEnv(object):
     def __init__(self, rank) -> None:
@@ -118,6 +122,27 @@ class MathEnv(BaseEnv):
                         image_path='%s/rec_mathgame.jpg'%logdir)
             self.mcv.rec_init('g')
 
+        self.id = rank
+        self.render = ScenarioConfig.render and (self.id==0)
+
+        if self.render:
+            self.sendbuf_template = {
+                'type': 'type-A',
+                'n_agents': self.n_agents,
+                'cmd': 'None',
+                'cmd1': 'None',
+                'actions': [0.0, 0.0],
+                'arr_ph1': [0.0, 1.0],
+                'arr_ph2': [0.0, 2.0],
+                'arr_ph3': [0.0, 3.0],
+                'step': 9,
+                'u_beta': 3,
+            }
+            self.ue4_bridge_tcp = TcpClientP2P(('43.154.70.224', ScenarioConfig.render_tcp_port), obj='str')
+            atexit.register(lambda: self.ue4_bridge_tcp.close())
+
+
+
     def reset(self):
         self.TS = 0
         ob = self.get_obs(TS=0)
@@ -136,7 +161,107 @@ class MathEnv(BaseEnv):
         return ob
 
 
+    def _renderer_(self, type, act, reward_which_act, reward_which_act_list=None):
+
+        if type=='type-A':
+            pass
+            # send 1, wait 1 (spawn)
+            self.sendbuf_template['type'] = 'type-A'
+            self.sendbuf_template['cmd'] = 'spawn'
+            self.sendbuf_template['is_last_cmd'] = 'No'
+            self.sendbuf_template['cmd_spawn_pos'] = 'type-A-spawn'
+            self.sendbuf_template['indices'] = [ 1.0 , 0.2, 30 ]
+            reply = self.ue4_bridge_tcp.send_and_wait_reply(json.dumps(self.sendbuf_template))
+
+            # send 2, wait 2 (wait all agent arrive)
+            self.sendbuf_template['type'] = 'type-A'
+            self.sendbuf_template['is_last_cmd'] = 'Yes'
+            self.sendbuf_template['cmd'] = 'goto'
+            self.sendbuf_template['goto_where'] = [
+                'type-A-opt|type-A-dst' if single_act==reward_which_act else 'type-A-ord|type-A-dst' for single_act in act
+            ]
+            reply = self.ue4_bridge_tcp.send_and_wait_reply(json.dumps(self.sendbuf_template))
+            # print('well done')
+
+
+        if type=='type-B':
+            pass
+            # send 1, wait 1 (spawn)
+            self.sendbuf_template['type'] = 'type-B'
+            self.sendbuf_template['cmd'] = 'spawn'
+            self.sendbuf_template['is_last_cmd'] = 'No'
+            self.sendbuf_template['cmd_spawn_pos'] = 'type-B-spawn'
+            reply = self.ue4_bridge_tcp.send_and_wait_reply(json.dumps(self.sendbuf_template))
+
+            # # send 2, wait 2 (goto station)
+            self.sendbuf_template['type'] = 'type-B'
+            self.sendbuf_template['cmd'] = 'goto'
+            self.sendbuf_template['is_last_cmd'] = 'No'
+            self.sendbuf_template['goto_where'] = [
+                     'type-B-50act|' if single_act==reward_which_act_list[0]
+                else 'type-B-40act|' if single_act==reward_which_act_list[1]
+                else 'type-B-10act|' for single_act in act
+            ]
+            reply = self.ue4_bridge_tcp.send_and_wait_reply(json.dumps(self.sendbuf_template))
+
+            # # send 2, wait 2 (goto station)
+            self.sendbuf_template['type'] = 'type-B'
+            self.sendbuf_template['cmd'] = 'gamble'
+            self.sendbuf_template['cmd_gamble_res'] = 'type-B-50act'
+            self.sendbuf_template['is_last_cmd'] = 'No'
+            reply = self.ue4_bridge_tcp.send_and_wait_reply(json.dumps(self.sendbuf_template))
+
+            # # send 2, wait 2 (goto station)
+            self.sendbuf_template['type'] = 'type-B'
+            self.sendbuf_template['cmd'] = 'goto'
+            self.sendbuf_template['is_last_cmd'] = 'Yes'
+            self.sendbuf_template['goto_where'] = [
+                     'type-B-dst|' if single_act==reward_which_act_list[0]
+                else 'type-B-dst|' if single_act==reward_which_act_list[1]
+                else 'type-B-dst|' for single_act in act
+            ]
+            reply = self.ue4_bridge_tcp.send_and_wait_reply(json.dumps(self.sendbuf_template))
+            # print('well done')
+
+        if type=='type-C':
+            # send 1, wait 1 (spawn)
+            self.sendbuf_template['type'] = 'type-C'
+            self.sendbuf_template['cmd'] = 'spawn'
+            self.sendbuf_template['is_last_cmd'] = 'No'
+            self.sendbuf_template['cmd_spawn_pos'] = 'type-C-spawn'
+            reply = self.ue4_bridge_tcp.send_and_wait_reply(json.dumps(self.sendbuf_template))
+            # send 2, wait 2 (goto wait point)
+            self.sendbuf_template['type'] = 'type-C'
+            self.sendbuf_template['cmd'] = 'goto'
+            self.sendbuf_template['is_last_cmd'] = 'No'
+            self.sendbuf_template['goto_where'] = [
+                'type-C-main|' if single_act==reward_which_act 
+                else 'type-C-minor|' for single_act in act
+            ]
+            reply = self.ue4_bridge_tcp.send_and_wait_reply(json.dumps(self.sendbuf_template))
+            # send 2, wait 2 (goto wait point)
+            self.sendbuf_template['type'] = 'type-C'
+            self.sendbuf_template['cmd'] = 'goto'
+            self.sendbuf_template['is_last_cmd'] = 'Yes'
+            self.sendbuf_template['goto_where'] = [
+                'type-C-dst|' if single_act==reward_which_act 
+                else 'type-C-dst|' for single_act in act
+            ]
+            reply = self.ue4_bridge_tcp.send_and_wait_reply(json.dumps(self.sendbuf_template))
+            # print('well done')
+            pass
+
+
+
     def _give_reward_(self, act, reward_which_act, must_has_outlier):
+        if self.render:
+            # data = self.ue4_bridge_tcp.wait_next_dgram()
+            if must_has_outlier == False:
+                self._renderer_(type='type-A', act=act, reward_which_act=reward_which_act)
+            else:
+                self._renderer_(type='type-C', act=act, reward_which_act=reward_which_act)
+
+
         n_chosen_this_act = sum(act==reward_which_act)
         scale = (self.n_agents-1) if must_has_outlier else self.n_agents
 
@@ -155,7 +280,11 @@ class MathEnv(BaseEnv):
             if seed <= s:
                 reward_which_act = reward_which_act_list[i]
                 break
-            
+
+        if self.render:
+            # data = self.ue4_bridge_tcp.wait_next_dgram()
+            self._renderer_(type='type-B', act=act, reward_which_act=reward_which_act, reward_which_act_list=reward_which_act_list)
+
         return sum(act==reward_which_act)/(self.n_agents)*ratio
 
     def step(self, act):

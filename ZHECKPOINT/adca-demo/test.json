@@ -1,0 +1,65 @@
+{
+    "config.py->GlobalConfig": {
+        "note": "adca-demo",
+        "env_name": "collective_assult_debug",
+        "env_path": "MISSIONS.collective_assult_debug",
+        "draw_mode": "Img",
+        "num_threads": "1",
+        "report_reward_interval": "1",
+        "test_interval": "256",
+        "test_epoch": "64",
+        "test_only": "True",
+        "interested_agent_num": 50,
+        "device": "cuda",
+        "gpu_party": "off",
+        "fold": "1",
+        "n_parallel_frame": 190000000.0,
+        "max_n_episode": 103200,
+        "seed": 166111,
+        "backup_files": [
+            "ALGORITHM/conc_4hist_pr",
+            "MISSIONS/collective_assult"
+        ]
+    },
+    "MISSIONS.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig": {
+        "size": "5",
+        "random_jam_prob": 0.05,
+        "num_guards": 50,
+        "num_attackers": 60,
+        "introduce_terrain": "True",
+        "terrain_parameters": [
+            0.15,
+            0.2
+        ],
+        "num_steps": "190",
+        "render": "True",
+        "REWARD_DEBUG": "True",
+        "REWARD_DEBUG_Value": 3,
+        "half_death_reward": "True",
+        "TEAM_NAMES": [
+            "ALGORITHM.conc_4hist_pr.foundation->ReinforceAlgorithmFoundation"
+        ]
+    },
+    "ALGORITHM.conc_4hist_pr.foundation.py->AlgorithmConfig": {
+        "UseDivTree": "True",
+        "div_tree_init_level": 6,
+        "load_specific_checkpoint": "model_trained.pt",
+        "load_checkpoint": "True",
+        "n_focus_on": 3,
+        "gamma": 0.99,
+        "gamma_in_reward_forwarding": "True",
+        "gamma_in_reward_forwarding_value": 0.95,
+        "prevent_batchsize_oom": "True",
+        "train_traj_needed": "64",
+        "lr": 0.0005,
+        "ppo_epoch": 24,
+        "personality_reinforcement_start_at_update": 1300,
+        "PolicyResonance": "False",
+        "yita": 0.0,
+        "yita_min_prob": 0.15,
+        "yita_max": 0.5,
+
+        "only_train_div_tree_and_ct": "False",
+        "_div_tree_level_inc_per_update": 0.5
+    }
+}

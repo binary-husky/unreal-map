@@ -3,7 +3,7 @@ import numpy as np
 from UTILS.colorful import *
 from config import GlobalConfig
 from UTILS.tensor_ops import __hash__, repeat_at, __hashn__
-# git
+
 class AlgorithmConfig:  
     '''
         AlgorithmConfig: This config class will be 'injected' with new settings from json.
@@ -130,10 +130,12 @@ class ReinforceAlgorithmFoundation(object):
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
             strict = not AlgorithmConfig.only_train_div_tree_and_ct
             self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n), strict=strict)
+            if AlgorithmConfig.UseDivTree: 
+                assert AlgorithmConfig.div_tree_init_level != 0, ('careful!')
+                self.policy.AT_div_tree.set_to_init_level(auto_transfer=False)
             print黄('loaded checkpoint:', ckpt_dir)
-
-        if AlgorithmConfig.UseDivTree: 
-            self.policy.AT_div_tree.set_to_init_level()
+        else:
+            if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=True)
         # data integraty check
         self._unfi_frag_ = None
         # Skip currupt data integraty check after this patience is exhausted
@@ -195,16 +197,17 @@ class ReinforceAlgorithmFoundation(object):
             if AlgorithmConfig.ConfigOnTheFly:
                 self._process_input()
 
+
+
             if (not AlgorithmConfig.FixDoR) and AlgorithmConfig.personality_reinforcement_start_at_update > 0:
                 if self.batch_traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
                     AlgorithmConfig.FixDoR = True
-                    # AlgorithmConfig.only_train_div_tree_and_ct = True
-                    # self.trainer.fn_only_train_div_tree_and_ct()
+                    AlgorithmConfig.only_train_div_tree_and_ct = True
+                    self.trainer.fn_only_train_div_tree_and_ct()
 
             if AlgorithmConfig.FixDoR:
                 self._update_yita()
                 self._update_personality_division()
-
             fixdor = 1 if AlgorithmConfig.FixDoR else 0
             self.mcv.rec(fixdor, 'FixDoR')
             self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')

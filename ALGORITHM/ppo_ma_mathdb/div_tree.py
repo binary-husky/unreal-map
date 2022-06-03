@@ -33,10 +33,10 @@ class DivTree(nn.Module): # merge by MLP version
             get_net() for i in range(self.n_agent)  
         ])
 
-    def set_to_init_level(self):
+    def set_to_init_level(self, auto_transfer=True):
         if self.init_level!=self.current_level:
             for i in range(self.current_level, self.init_level):
-                self.change_div_tree_level(i+1)
+                self.change_div_tree_level(i+1, auto_transfer)
 
 
     def handle_update(self, update_cnt):

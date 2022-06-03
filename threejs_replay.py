@@ -19,7 +19,7 @@ if __name__ == '__main__':
         port = int(args.port)
     else:
         port = find_free_port()
-        print('没有用--port指定端口, 自动查找到可用端口:', port)
+        print('no --port arg, auto find:', port)
 
     load_via_json = (hasattr(args, 'cfg') and args.cfg is not None)
     

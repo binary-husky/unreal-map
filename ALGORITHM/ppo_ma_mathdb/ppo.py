@@ -1,4 +1,4 @@
-import torch, math, traceback  # v
+import torch, math, traceback
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -144,7 +144,6 @@ class PPO():
         self.only_train_div_tree_and_ct = ppo_config.only_train_div_tree_and_ct
         self.lr = ppo_config.lr
         self.extral_train_loop = ppo_config.extral_train_loop
-        self.turn_off_threat_est = ppo_config.turn_off_threat_est
         self.all_parameter = list(policy_and_critic.named_parameters())
         self.at_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'AT_' in p_name]
         self.ct_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'CT_' in p_name]
@@ -313,7 +312,7 @@ class PPO():
         if 'motivation value' in others:
             value_loss += 0.5 * F.mse_loss(real_value, others['motivation value'])
 
-        AT_net_loss = policy_loss -entropy_loss*self.entropy_coef # + probs_loss*20
+        AT_net_loss = policy_loss - entropy_loss*self.entropy_coef # + probs_loss*20
         CT_net_loss = value_loss * 1.0 # + threat_loss * 0.1 # + friend_threat_loss*0.01
         # AE_new_loss = ae_loss * 1.0
 

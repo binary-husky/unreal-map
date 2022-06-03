@@ -1,0 +1,45 @@
+{
+    "config.py->GlobalConfig": {
+        "note": "basic-ma-40-demo",
+        "env_name": "mathgame",
+        "env_path": "MISSIONS.math_game",
+        "draw_mode": "Img",
+        "num_threads": "64",
+        "test_only": "True",
+        "report_reward_interval": "64",
+        "test_interval": "1024",
+        "test_epoch": "192",
+        "device": "cuda",
+        "max_n_episode": 524288,
+        "fold": "4",
+        "backup_files": [
+            "MISSIONS/math_game",
+            "ALGORITHM/ppo_ma_mathdb"
+        ]
+    },
+    "MISSIONS.math_game.env.py->ScenarioConfig": {
+        "n_team1agent": 40,
+        "n_actions": 10,
+        "show_details": false,
+        "StateProvided": false,
+        "TEAM_NAMES": [
+            "ALGORITHM.ppo_ma_mathdb.foundation->ReinforceAlgorithmFoundation"
+        ]
+    },
+    "ALGORITHM.ppo_ma_mathdb.foundation.py->AlgorithmConfig": {
+        "personality_reinforcement_start_at_update": 512,
+        "load_specific_checkpoint":"trained_model.pt",
+        "_div_tree_level_inc_per_update": 0.1,
+        "yita_max": 0.75,
+        "_yita_inc_per_update": 0.0075,
+        "load_checkpoint": true,
+        "only_train_div_tree_and_ct": false,
+        "train_traj_needed": "512",
+        "div_tree_init_level": 6,
+        "UseDivTree": true,
+        "ppo_epoch": 24,
+        "FixDoR": false,
+        "gamma": 0.99,
+        "lr": 0.0005
+    }
+}

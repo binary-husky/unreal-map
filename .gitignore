@@ -107,8 +107,22 @@ ZHECKPOINT/test-aii515/*
 ZHECKPOINT/test-aii515/history_cpt/*
 !ZHECKPOINT/test-aii515/history_cpt/init.pkl
 
+!ZHECKPOINT/basic-ma-40-demo
+ZHECKPOINT/basic-ma-40-demo/*
+!ZHECKPOINT/basic-ma-40-demo/trained_model.pt
+!ZHECKPOINT/basic-ma-40-demo/train.json
+!ZHECKPOINT/basic-ma-40-demo/test.json
+
+!ZHECKPOINT/adca-demo
+ZHECKPOINT/adca-demo/*
+!ZHECKPOINT/adca-demo/model_trained.pt
+!ZHECKPOINT/adca-demo/train.json
+!ZHECKPOINT/adca-demo/test.json
+
 z_*
 ALGORITHM/conc_4hist_divtree3
 ALGORITHM/conc_4hist_divtree2
 example_dca_cs*
 PersonalityDevelop.pdf
+
+

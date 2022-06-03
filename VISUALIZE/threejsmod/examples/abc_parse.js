@@ -145,7 +145,7 @@ function parse_env(str){
     
     
         ////////////////////// add terrain /////////////////////
-        let width = 30; let height = 30;
+        let width = 13; let height = 13;
         let Segments = 200; let need_remove_old = false;
         if (!init_terrain){
             init_terrain=true; need_remove_old = false;
@@ -154,6 +154,7 @@ function parse_env(str){
                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                 texture.repeat.set(8, 8);
                 // TerrainMaterialKargs['map'] = texture;
+                TerrainMaterialKargs['color'] = 'Sienna';
                 TerrainMaterialKargs['bumpMap'] = texture;
                 TerrainMaterialKargs['bumpScale'] = 0.01;
             }

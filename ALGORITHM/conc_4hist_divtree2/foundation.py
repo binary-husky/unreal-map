@@ -19,11 +19,9 @@ class AlgorithmConfig:
     take_reward_as_unity = False
     use_normalization = True
     add_prob_loss = False
-    alternative_critic = False
 
     n_focus_on = 2
     n_entity_placeholder = 24
-    turn_off_threat_est = False
 
     # PPO part
     clip_param = 0.2
@@ -40,31 +38,36 @@ class AlgorithmConfig:
     # resulting in more samples and causing GPU OOM,
     # prevent this by fixing the number of samples to initial
     # by randomly sampling and droping
-    fix_n_sample = False
+    prevent_batchsize_oom = False
     gamma_in_reward_forwarding = False
     gamma_in_reward_forwarding_value = 0.99
 
     # extral
     extral_train_loop = False
-    actor_attn_mod = False
     load_specific_checkpoint = ''
     dual_conc = True
     use_my_attn = True
     alternative_critic = False
-    ignore_test_mode = False
 
     # net
     net_hdim = 48
     n_agent = 'auto load, do not change'
-    exp_external_actdim = False
     only_train_div_tree_and_ct = False
-    yita = 0.15
-    aw_add_kld_loss = False
-
-    kld_coef = 0.1
+    yita = 0.
     div_tree_init_level = 0
-    MAX_KLD = 1.0
-    yita_min_prob = 0.2
+    yita_min_prob = 0.15
+    PolicyResonance = False
+    ConfigOnTheFly = True
+    UseDivTree = True
+
+    RecProbs = False
+
+
+    # personality reinforcement dynamic
+    personality_reinforcement_start_at_update = -1
+    _div_tree_level_inc_per_update = 0.0 # (30 updates per inc)
+    yita_max = 0.75
+    _yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
 
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None):
@@ -73,6 +76,7 @@ class ReinforceAlgorithmFoundation(object):
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
         self.scenario_config = GlobalConfig.scenario_config
+        self.mcv = mcv
         n_actions = GlobalConfig.scenario_config.n_actions
         from .shell_env import ShellEnvWrapper
         self.shell_env = ShellEnvWrapper(
@@ -122,9 +126,10 @@ class ReinforceAlgorithmFoundation(object):
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
             strict = not AlgorithmConfig.only_train_div_tree_and_ct
             self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n), strict=strict)
+            if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=False)
             print黄('loaded checkpoint:', ckpt_dir)
-
-        self.policy.AT_div_tree.set_to_init_level()
+        else:
+            if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=True)
         # data integraty check
         self._unfi_frag_ = None
         # Skip currupt data integraty check after this patience is exhausted
@@ -139,8 +144,8 @@ class ReinforceAlgorithmFoundation(object):
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
 
         with torch.no_grad():
-            policy_test_mode = False if AlgorithmConfig.ignore_test_mode else test_mode
-            action, value, action_log_prob = self.policy.act(obs, test_mode=policy_test_mode, avail_act=avail_act)
+            if AlgorithmConfig.PolicyResonance: self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
+            action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act)
 
         # Warning! vars named like _x_ are aligned, others are not!
         traj_frag = {
@@ -183,16 +188,47 @@ class ReinforceAlgorithmFoundation(object):
         if self.batch_traj_manager.can_exec_training():
             # time to start a training routine
             self.batch_traj_manager.train_and_clear_traj_pool()
-            self._process_input()
-            self._update_yita(self.batch_traj_manager.update_cnt)
-            # self.policy.AT_div_tree.handle_update(self.batch_traj_manager.update_cnt)
+            if AlgorithmConfig.ConfigOnTheFly: self._process_input()
 
-    def _update_yita(self, update_cnt):
-        max_yita = 0.75
-        _yita_inc_per_update = max_yita/1000
-        AlgorithmConfig.yita += _yita_inc_per_update
-        if AlgorithmConfig.yita > 0.75:
-            AlgorithmConfig.yita = 0.75
+            if (not AlgorithmConfig.PolicyResonance) \
+                and AlgorithmConfig.personality_reinforcement_start_at_update > 0 \
+                and self.batch_traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
+                    AlgorithmConfig.PolicyResonance = True
+                    AlgorithmConfig.only_train_div_tree_and_ct = True
+                    self.trainer.fn_only_train_div_tree_and_ct()
+
+            if AlgorithmConfig.PolicyResonance:
+                self._update_yita()
+                self._update_personality_division()
+
+            PolicyResonance = 1 if AlgorithmConfig.PolicyResonance else 0
+            self.mcv.rec(PolicyResonance, 'PolicyResonance')
+            self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
+            self.mcv.rec(AlgorithmConfig.yita, 'yita')
+
+    def _update_personality_division(self):
+        '''
+            increase personality tree level @_div_tree_level_inc_per_update per fn call, 
+            when floating break int threshold, the tree enters next level
+        '''
+        personality_tree = self.policy.AT_div_tree
+        personality_tree.current_level_floating += AlgorithmConfig._div_tree_level_inc_per_update
+        if personality_tree.current_level_floating > personality_tree.max_level:
+            personality_tree.current_level_floating = personality_tree.max_level
+
+        expected_level = int(personality_tree.current_level_floating)
+        if expected_level == personality_tree.current_level: return
+        personality_tree.change_div_tree_level(expected_level, auto_transfer=True)
+        print('[div_tree]: change_div_tree_level, ', personality_tree.current_level)
+
+
+    def _update_yita(self):
+        '''
+            increase yita by @_yita_inc_per_update per function call
+        '''
+        AlgorithmConfig.yita += AlgorithmConfig._yita_inc_per_update
+        if AlgorithmConfig.yita > AlgorithmConfig.yita_max:
+            AlgorithmConfig.yita = AlgorithmConfig.yita_max
         print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)
 
     def _process_input(self):
@@ -202,25 +238,24 @@ class ReinforceAlgorithmFoundation(object):
             cmdlines = f.readlines()
 
         cmdlines_writeback = []
+        any_change = False
 
         for cmdline in cmdlines:
-            # print(cmdline)
             if cmdline.startswith('#') or cmdline=="\n" or cmdline==" \n":
                 cmdlines_writeback.append(cmdline)
             else:
+                any_change = True
                 try:
                     print亮绿('[foundation.py] ------- executing: %s ------'%cmdline)
                     exec(cmdline)
                     cmdlines_writeback.append('# [execute successfully]\t'+cmdline)
                 except:
-                    print(traceback.format_exc())
+                    print红(traceback.format_exc())
                     cmdlines_writeback.append('# [execute failed]\t'+cmdline)
 
-        
-        # print("cmdlines_writeback:", cmdlines_writeback)
-
-        with open(self.input_file_dir, 'w+', encoding='utf8') as f:
-            f.writelines(cmdlines_writeback)
+        if any_change:
+            with open(self.input_file_dir, 'w+', encoding='utf8') as f:
+                f.writelines(cmdlines_writeback)
 
 
     '''

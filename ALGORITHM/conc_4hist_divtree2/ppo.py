@@ -1,4 +1,4 @@
-import torch, math, traceback  # v
+import torch, math, traceback
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -10,13 +10,12 @@ from UTILS.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
 from UTILS.tensor_ops import my_view, scatter_with_nan, sample_balance
 from config import GlobalConfig as cfg
 from UTILS.gpu_share import GpuShareUnit
-
 class TrajPoolSampler():
-    def __init__(self, n_div, traj_pool, flag, fix_n_sample=False):
+    def __init__(self, n_div, traj_pool, flag, prevent_batchsize_oom=False):
         self.n_pieces_batch_division = n_div
-        self.fix_n_sample = fix_n_sample    
+        self.prevent_batchsize_oom = prevent_batchsize_oom    
 
-        if self.fix_n_sample:
+        if self.prevent_batchsize_oom:
             assert self.n_pieces_batch_division==1, ('?')
 
         self.num_batch = None
@@ -66,23 +65,29 @@ class TrajPoolSampler():
     def __len__(self):
         return self.n_pieces_batch_division
 
+    def determine_max_n_sample(self):
+        assert self.prevent_batchsize_oom
+        if not hasattr(TrajPoolSampler,'MaxSampleNum'):
+            # initialization
+            TrajPoolSampler.MaxSampleNum =  [int(self.big_batch_size*(i+1)/50) for i in range(50)]
+            max_n_sample = self.big_batch_size
+        elif TrajPoolSampler.MaxSampleNum[-1] > 0:  
+            # meaning that oom never happen, at least not yet
+            # only update when the batch size increases
+            if self.big_batch_size > TrajPoolSampler.MaxSampleNum[-1]: TrajPoolSampler.MaxSampleNum.append(self.big_batch_size)
+            max_n_sample = self.big_batch_size
+        else:
+            # meaning that oom already happened, choose TrajPoolSampler.MaxSampleNum[-2] to be the limit
+            assert TrajPoolSampler.MaxSampleNum[-2] > 0
+            max_n_sample = TrajPoolSampler.MaxSampleNum[-2]
+        return max_n_sample
+
     def reset_and_get_iter(self):
-        if not self.fix_n_sample:
+        if not self.prevent_batchsize_oom:
             self.sampler = BatchSampler(SubsetRandomSampler(range(self.big_batch_size)), self.mini_batch_size, drop_last=False)
         else:
-            if not hasattr(TrajPoolSampler,'MaxSampleNum'):
-                print('第一次初始化')
-                TrajPoolSampler.MaxSampleNum = [self.big_batch_size, ]
-                max_n_sample = self.big_batch_size
-            elif TrajPoolSampler.MaxSampleNum[-1] > 0:
-                TrajPoolSampler.MaxSampleNum.append(self.big_batch_size)
-                max_n_sample = self.big_batch_size
-            else:
-                assert TrajPoolSampler.MaxSampleNum[-2] > 0
-                max_n_sample = TrajPoolSampler.MaxSampleNum[-2]
-
+            max_n_sample = self.determine_max_n_sample()
             n_sample = min(self.big_batch_size, max_n_sample)
-                    
             if not hasattr(self,'reminded'):
                 self.reminded = True
                 print('droping %.1f percent samples..'%((self.big_batch_size-n_sample)/self.big_batch_size*100))
@@ -140,13 +145,10 @@ class PPO():
         self.entropy_coef = ppo_config.entropy_coef
         self.max_grad_norm = ppo_config.max_grad_norm
         self.add_prob_loss = ppo_config.add_prob_loss
-        self.fix_n_sample = ppo_config.fix_n_sample
-        self.aw_add_kld_loss = ppo_config.aw_add_kld_loss
+        self.prevent_batchsize_oom = ppo_config.prevent_batchsize_oom
         self.only_train_div_tree_and_ct = ppo_config.only_train_div_tree_and_ct
         self.lr = ppo_config.lr
         self.extral_train_loop = ppo_config.extral_train_loop
-        self.turn_off_threat_est = ppo_config.turn_off_threat_est
-        self.kld_coef = ppo_config.kld_coef
         self.all_parameter = list(policy_and_critic.named_parameters())
         self.at_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'AT_' in p_name]
         self.ct_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'CT_' in p_name]
@@ -192,6 +194,14 @@ class PPO():
 
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
+    def fn_only_train_div_tree_and_ct(self):
+        self.only_train_div_tree_and_ct = True
+        self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_div_tree' in p_name]
+        self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
+        self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
+        self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
+        print('change train object')
+
     def train_on_traj(self, traj_pool, task):
         while True:
             try:
@@ -200,13 +210,16 @@ class PPO():
                 break # 运行到这说明显存充足
             except RuntimeError as err:
                 print(traceback.format_exc())
-                if self.fix_n_sample:
-                    if TrajPoolSampler.MaxSampleNum[-1] < 0:
-                        TrajPoolSampler.MaxSampleNum.pop(-1)
-                        
-                    assert TrajPoolSampler.MaxSampleNum[-1]>0
+                if self.prevent_batchsize_oom:
+                    # in some cases, reversing MaxSampleNum a single time is not enough
+                    # [ 10, 20, 30, 40] 
+                    # --> inversion 1
+                    # [ 10, 20, 30, -1], try 30
+                    if TrajPoolSampler.MaxSampleNum[-1] < 0: TrajPoolSampler.MaxSampleNum.pop(-1)
+                    assert TrajPoolSampler.MaxSampleNum[-1] > 0
+                    # -> [ 10, 20, 30]
                     TrajPoolSampler.MaxSampleNum[-1] = -1
-
+                    # -> [ 10, 20, -1], try 20
                     print亮红('显存不足！ 回溯上次的样本量')
                 else:
                     self.n_div += 1
@@ -216,7 +229,7 @@ class PPO():
     def train_on_traj_(self, traj_pool, task):
 
         ppo_valid_percent_list = []
-        sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task, fix_n_sample=self.fix_n_sample)
+        sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task, prevent_batchsize_oom=self.prevent_batchsize_oom)
         assert self.n_div == len(sampler)
         for e in range(self.ppo_epoch):
             # print亮紫('pulse')
@@ -293,14 +306,6 @@ class PPO():
         filter = (real_threat<SAFE_LIMIT) & (real_threat>=0)
         threat_loss = F.mse_loss(others['threat'][filter], real_threat[filter])
 
-
-
-        if self.turn_off_threat_est: 
-            # print('清空threat_loss')
-            threat_loss = 0
-        # if n==14: est_check(x=others['threat'][filter], y=real_threat[filter])
-        
-        # probs_loss (should be turn off now)
         n_actions = probs.shape[-1]
         if self.add_prob_loss: assert n_actions <= 15  # 
         penalty_prob_line = (1/n_actions)*0.12
@@ -321,13 +326,7 @@ class PPO():
         if 'motivation value' in others:
             value_loss += 0.5 * F.mse_loss(real_value, others['motivation value'])
 
-
-        if self.aw_add_kld_loss:
-            aw_kld_loss = others['aw_kld']
-        else:
-            aw_kld_loss = 0
-
-        AT_net_loss = policy_loss - entropy_loss*self.entropy_coef - aw_kld_loss*self.kld_coef # + probs_loss*20
+        AT_net_loss = policy_loss - entropy_loss*self.entropy_coef # + probs_loss*20
         CT_net_loss = value_loss * 1.0 + threat_loss * 0.1 # + friend_threat_loss*0.01
         # AE_new_loss = ae_loss * 1.0
 
@@ -347,10 +346,7 @@ class PPO():
             # 'Auto encoder loss':        ae_loss,
             'CT_net_loss':              CT_net_loss,
             'AT_net_loss':              AT_net_loss,
-            'AW_kld_loss':              aw_kld_loss,
-            # 'AE_new_loss':              AE_new_loss,
         }
-        # print('ae_loss',ae_loss)
 
 
         return loss_final, others

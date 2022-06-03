@@ -52,7 +52,8 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     draw_mode = 'OFF'                                   # 'Web','Native','Img','Threejs' 
     activate_logger = True                              # activate data plotting (Tensorboard is not used because I do not like it)
     data_logger = 'auto load, do not change this var!'  # activate data plotting (Tensorboard is not used because I do not like it)
-    
+    resume_mod = False                                  # resume unfinished
+
     seed = np.random.randint(0, 100000)                 # seed for numpy and pytorch
 
     # ! warning, the note also determine where the experiment log is stored, typically at ./ZHECKPOINT/$note/*
@@ -74,7 +75,7 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
                                                         # this 'folding' is designed for IPC efficiency, you can thank python GIL for such a strange design... 
     
     n_parallel_frame = int(5e6)                         # Number of frames to run (in each frame, all parallel-envs step once)
-    max_n_episode = int(2e5)                           # max number of episodes
+    max_n_episode = int(2e5)                            # max number of episodes
 
     use_float64 = False                                 # force float64 when converting numpy->tensor
 
@@ -100,7 +101,7 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     matlab_logger = None                                # this is just a global logger, although we do not use matlab anymore...
     heartbeat_on = True                                 # some fancy commandline visual effect to show that envirenment is running
     
-    cfg_ready = False                                   # to show that json configuration is all locked-and-loaded
+    cfg_ready = False                                   # DO NOT change! automatically set to True when Json configuration is all locked-and-loaded
 
     # ! uploading "./ZHECKPOINT/$note" to a data storage server 
     allow_res_upload = True                             # upload results to a data storage server when exiting

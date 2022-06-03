@@ -1,10 +1,4 @@
-<style>
-img{
-    width: 30%;
-    /* padding-left = (100% - width) / 2 */
-    padding-left: 35%;
-}
-</style>
+
 # Install nvidia docker runtime
 Cuda is needed inside our docker container, which need toolkits from Nvidia for GPU support.
 Please install nvidia docker runtime on the host ubuntu system.
