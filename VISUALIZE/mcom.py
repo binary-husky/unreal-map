@@ -1,4 +1,4 @@
-import os, copy, atexit, time, gzip, threading, zlib, asyncio
+import os, copy, atexit, time, gzip, threading
 import numpy as np
 from colorama import init
 from multiprocessing import Process
@@ -27,13 +27,14 @@ mcom_fn_list_define = [
 
 # The Design Principle: Under No Circumstance should this program Interrupt the main program!
 class mcom():
-    def __init__(self, path=None, digit=8, rapid_flush=True, draw_mode=False, tag='default', **kargs):
+    def __init__(self, path=None, digit=8, rapid_flush=True, draw_mode=False, tag='default', resume_mod=False, **kargs):
         # digit 默认8，可选4,16，越小程序负担越轻 (All data is float, you do not need anything else)
         # rapid_flush 当数据流不大时，及时倾倒文件缓存内容 (set 'False' if you'd like your SSD to survive longer)
         self.draw_mode = draw_mode
         self.path = path
         self.digit = digit
         self.tag = tag
+        self.resume_mod = resume_mod
         if kargs is None: kargs = {}
 
         if draw_mode in ['Web', 'Native', 'Img', 'Threejs']:
@@ -58,14 +59,25 @@ class mcom():
 
 
         if not self.draw_mode=='Threejs':
-            _, _, self.current_buffer_index = find_where_to_log(self.path)
-            self.starting_file = self.path + '/mcom_buffer_%d____starting_session.txt' % (self.current_buffer_index)
             self.file_lines_cnt = 0
-            self.file_max_lines = 5e8  # limit file lines to avoid a very large file
             self.rapid_flush = rapid_flush
             self.flow_cnt = 0
-            print蓝('[mcom.py]: log file at:' + self.starting_file)
-            self.current_file_handle = open(self.starting_file, 'w+', encoding = "utf-8")
+            _, _, self.current_buffer_index = find_where_to_log(self.path)
+            if self.resume_mod:
+                self.starting_file = self.path + '/mcom_buffer_%d____starting_session.txt' % (self.current_buffer_index-1)
+                self.current_file_handle = open(self.starting_file, 'r', encoding = "utf-8")
+                if self.draw_process: 
+                    for line in self.current_file_handle.readlines():
+                        # self.draw_udp_client.sendto(data, self.draw_udp_port)
+                        self.draw_tcp_client.send_str(line)
+                    print('previous data transfered')
+                self.current_file_handle.close()
+                self.current_file_handle = open(self.starting_file, 'a+', encoding = "utf-8")
+
+            else:
+                self.starting_file = self.path + '/mcom_buffer_%d____starting_session.txt' % (self.current_buffer_index)
+                print蓝('[mcom.py]: log file at:' + self.starting_file)
+                self.current_file_handle = open(self.starting_file, 'w+', encoding = "utf-8")
 
         atexit.register(lambda: self.__del__())
 
@@ -113,15 +125,15 @@ class mcom():
         mcom core function: send out/write str
     '''
     def send(self, data):
-        # # step 1: send directive to draw process
+        #### step 1: send directive to draw process
         if self.draw_process: 
             # self.draw_udp_client.sendto(data, self.draw_udp_port)
             self.draw_tcp_client.send_str(data)
 
+
+        #### step 2: add to file
         # ! vhmap has its own backup method
         if self.draw_mode=='Threejs': return
-
-        # step 2: add to file
         self.file_lines_cnt += 1
         self.current_file_handle.write(data)
         if self.rapid_flush: 
@@ -129,15 +141,6 @@ class mcom():
         elif self.flow_cnt>500:
             self.current_file_handle.flush()
             self.flow_cnt = 0
-
-        # step 3: check whether the file is too large, if so, move on to next file.
-        if self.file_lines_cnt > self.file_max_lines:
-            end_file_flag = ('><EndFileFlag\n')
-            self.current_file_handle.write(end_file_flag)
-            self.current_file_handle.close()
-            self.current_buffer_index += 1
-            self.current_file_handle = open((self.path + '/mcom_buffer_%d.txt' % self.current_buffer_index), 'wb+')
-            self.file_lines_cnt = 0
         return
 
 
