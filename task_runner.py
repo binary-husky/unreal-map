@@ -226,7 +226,7 @@ class Runner(object):
             mean_reward = recent_rewards[:, self.interested_team].mean()
         else:
             if recent_rewards.shape[-1] != len(self.interested_agents_uid): 
-                print('警告! interested_agents_uid:', self.interested_agents_uid)
+                print('warning! interested_agents_uid:', self.interested_agents_uid)
             mean_reward = recent_rewards[:, self.interested_agents_uid].mean()
 
         self.mcv.rec(mean_reward, 'reward')
@@ -255,7 +255,8 @@ class Runner(object):
                         digit=16,
                         rapid_flush=True,
                         draw_mode=cfg.draw_mode,
-                        tag='[task_runner.py]')
+                        tag='[task_runner.py]',
+                        resume_mod=cfg.resume_mod)
             cfg.data_logger = mcv
         mcv.rec_init(color='b')
         return mcv

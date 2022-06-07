@@ -284,16 +284,16 @@ class collective_assultGlobalEnv(gym.Env):
         ]
         if any(terminate_cond):
             guard_win = (self.world.numAliveAttackers*self.world.numGuards <= self.world.numAliveGuards*self.world.numAttackers)
-            if self.world.numGuards != self.world.numAttackers:
-                with open('./test_only_profilex.txt','a+') as f:
-                    f.write(str(guard_win) + 'init_theta%.2f@%d: AliveGuards %d, AliveAttackers %d, orig: %d-%d \n'%(
-                    self.world.init_theta,
-                    self.world.time_step,
-                    self.world.numAliveGuards,
-                    self.world.numAliveAttackers,
-                    self.world.numGuards,
-                    self.world.numAttackers
-                    ))
+            # if self.world.numGuards != self.world.numAttackers:
+            #     with open('./test_only_profilex.txt','a+') as f:
+            #         f.write(str(guard_win) + 'init_theta%.2f@%d: AliveGuards %d, AliveAttackers %d, orig: %d-%d \n'%(
+            #         self.world.init_theta,
+            #         self.world.time_step,
+            #         self.world.numAliveGuards,
+            #         self.world.numAliveAttackers,
+            #         self.world.numGuards,
+            #         self.world.numAttackers
+            #         ))
             if terminate_cond[0]:
                 self.world.gameResult[0] = 1
                 return True, {'win': True}
@@ -384,12 +384,12 @@ class collective_assultGlobalEnv(gym.Env):
             self.threejs_bridge.set_style('font', fontPath='/examples/fonts/ttf/FZYTK.TTF', fontLineHeight=1500) # 注意不可以省略参数键值'font_path=','fontLineHeight=' ！！！
             # self.threejs_bridge.set_style('gray')
             self.threejs_bridge.set_style('skybox6side',    # 设置天空盒子，注意不可以省略参数键值 !!
-                posx='/wget/mars_textures/mars_posx.jpg',   
-                negx='/wget/mars_textures/mars_negx.jpg',   
-                posy='/wget/mars_textures/mars_posy.jpg',
-                negy='/wget/mars_textures/mars_negy.jpg',
-                posz='/wget/mars_textures/mars_posz.jpg',
-                negz='/wget/mars_textures/mars_negz.jpg',
+                posx='/wget/snow_textures/posx.jpg',   
+                negx='/wget/snow_textures/negx.jpg',   
+                posy='/wget/snow_textures/negy.jpg',
+                negy='/wget/snow_textures/posy.jpg',
+                posz='/wget/snow_textures/posz.jpg',
+                negz='/wget/snow_textures/negz.jpg',
             )
             self.threejs_bridge.其他几何体之旋转缩放和平移('tower', 'BoxGeometry(1,1,1)',   0,0,0,  1,1,5, 0,0,-3) # 长方体
             self.threejs_bridge.advanced_geometry_material('tower', 
@@ -414,13 +414,13 @@ class collective_assultGlobalEnv(gym.Env):
         t = self.threejs_bridge.time_cnt
         self.threejs_bridge.time_cnt += 1
         self.threejs_bridge.v2dx('tower|1000|%s|0.15'%('White'), 5, 5, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
-            label='坐标(+5,+5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
+            label='Coord(+5,+5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
         self.threejs_bridge.v2dx('tower|1001|%s|0.15'%('White'), 5, -5, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
-            label='坐标(+5,-5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
+            label='Coord(+5,-5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
         self.threejs_bridge.v2dx('tower|1002|%s|0.15'%('White'), -5, 5, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
-            label='坐标(-5,+5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
+            label='Coord(-5,+5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
         self.threejs_bridge.v2dx('tower|1003|%s|0.15'%('White'), -5, -5, 1.5, ro_x=0, ro_y=0, ro_z=t/20,label_bgcolor='Aqua',
-            label='坐标(-5,-5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
+            label='Coord(-5,-5)', label_offset = np.array([0,0,0.15]), label_color='Indigo', opacity=0.8)
 
         show_lambda = 2
 
@@ -432,11 +432,11 @@ class collective_assultGlobalEnv(gym.Env):
 
         n_red= len([0 for agent in self.world.agents if agent.alive and agent.attacker])
         n_blue = len([0 for agent in self.world.agents if agent.alive and not agent.attacker])
-        who_is_winning = '<Blue>蓝方(强化学习AI)<Black>领先' if n_blue>n_red else '<Red>红方(作战脚本)<Black>领先'
-        self.threejs_bridge.v2dx('tower2|1004|Gray|0.2', 0, 3, 1, ro_x=0, ro_y=0, ro_z=0, label_bgcolor='GhostWhite',
-            label='<Blue>蓝方(强化学习AI)<Black>剩余单位: <Blue>%d\n<Red>红方(作战脚本)<Black>剩余单位: <Red>%d \n%s<End>'%(n_blue, n_red, who_is_winning), label_color='DarkGreen', opacity=0)
+        who_is_winning = '<Blue>Blue(MARL AI)<Black> is leading' if n_blue>n_red else '<Red>Red(Script AI)<Black> is leading'
+        self.threejs_bridge.v2dx('tower2|1004|Gray|0.2', 0, 0, 1, ro_x=0, ro_y=0, ro_z=0, label_bgcolor='GhostWhite',
+            label='<Blue>Blue(MARL AI)<Black>Agents Remain: <Blue>%d\n<Red>Red(Script AI)<Black>Agents Remain: <Red>%d \n%s<End>'%(n_blue, n_red, who_is_winning), label_color='DarkGreen', opacity=0)
 
-
+ 
         for index, agent in enumerate(self.world.agents):
             x = agent.pos[0]; y = agent.pos[1]
             dir_ = dir2rad(agent.vel)

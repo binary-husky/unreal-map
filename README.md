@@ -21,14 +21,14 @@ used to archive code used in our papers:
 ```https://github.com/binary-husky/hmp2g/tree/aaai-conc```.
 
 # Demo
-## Web Demo of DCA (AAAI paper version)
+## Web Demo of DCA (AAAI Paper Version)
 
 ```
 http://cloud.fuqingxu.top:11601/
 ```
 <img src="ZHECKPOINT/test-50+50/test50.gif" width="300" >
 
-## Decentralized Collective Assult (Improved Version, more difficult than AAAI paper version)
+## Decentralized Collective Assult (Improved Version, more Difficult Than AAAI Paper Version)
 
 ```
 git pull && python main.py -c ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
@@ -49,7 +49,7 @@ git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-cargo50/test-cargo50.jsonc --skip
 ```
 
-## Decentralized Collective Assult (AAAI paper version)
+## Decentralized Collective Assult (AAAI Paper Version)
 ```
 git pull && python main.py -c ZHECKPOINT/test-50+50/test-50+50.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
@@ -59,18 +59,81 @@ git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
 We use docker to solve dependency: [SetupDocker](./setup_docker.md)
 
 
-# Introducing the structure of HMP
+# Introducing the Structure of HMP
 
-## HMP's config system (How to experiment)
-Unfinished doc
+## HMP's Config System (How to experiment)
+HMP aims to optimize the parameter control experience as a framework for researchers. 
+### <1>
+We discard the method of using the command line to control parameters; instead, the commented-JSON (JSONC) is used for experiment configuration. To run an experiment, just type:
+```
+python main.py --cfg Json_Experiment_Config_File.jsonc
+```
+### <2>
+Parameters assigned and overridden in the JSON file are NOT passed via init functions layer by layer as other frameworks usually do; instead, at the start of the ```main.py```, a special program defined in ```UTILS/config_args.py``` will directly INJECT the overridden parameters to the desired location.
 
-## Task runner
+We give an example to demonstrate how simple it is to add new parameters. 
+Suppose we want to introduce HP into DCA, then an initial HP, let say ```HP_MAX``` need to be defined as a parameter.
+Then:
+- Open ```MISSIONS/collective_assult/collective_assult_parallel_run.py```. (You can create new file if you wish so.)
+- (Step1, Define It !) In ```ScenarioConfig``` class add a new line writing ```HP_MAX=100```. (You can create another class if you wish so.)
+- (Step2, Use It !) Anywhere you want to use the ```HP_MAX```, first ```from xxx.collective_assult_parallel_run import ScenarioConfig```,
+then use the parameter by ```init_hp_of_some_agent = ScenarioConfig.HP_MAX```.
+- (Step3, Change It !) To override the default value ```HP_MAX=100``` in JSON (e.g., in ```./example_dca.jsonc```), 
+you just need to add a line in the field ```"MISSIONS.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig"```,
+for example:
+```Jsonc
+{
+    ...... (other field)
+    "MISSIONS.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig": {
+        "HP_MAX": 222,  # <------ add this!
+        "random_jam_prob": 0.05,    # (other config override in ScenarioConfig)
+        ......
+    },
+    ...... (other field)
+}
+```
+- All Done! Say bye-bye to annoying args passing and kargs passing!
+
+### <3>
+our framework can fully support complicated parameter dependency. 
+Some parameters are sometimes just Chained together. 
+Changing one of them can lead to the change of another. 
+E.g., Let the number of parallel envs (```num_threads```) be 32, 
+and we test the performance every ```test_interval``` episode,
+we wish to have relate them with ```test_interval``` = 8*```num_threads```, 
+meaning that a test run is shot every 8 round of parallel env executions.
+Such need can be simply satisfied by defining a Chained var structure:
+``` python
+num_threads = 32  # run N parallel envs,
+# define test interval
+test_interval = 8*num_threads
+# define the Chains of test interval
+test_interval_cv = ChainVar(lambda num_threads:8*num_threads, chained_with=['num_threads'])
+# all done! you need to do nothing else!
+```
+After this, you can expect following override (JSON config override) behaviors:
+- Changing Neither in JSON, then both parameters use default (```num_threads``` = 32, ```test_interval``` = 8*32)
+- Changing only ```num_threads``` in JSON, then ```test_interval``` is also forced to change according to ```test_interval=8*num_threads```.
+- Changing only ```test_interval``` in JSON, the Chain will not work, obay JSON override, nothing has higher priority than an explicit JSON override.
+- Changing both JSON, the Chain will not work, both obay JSON override, nothing has higher priority than an explicit JSON override.
+
+For details, please refer to ```config.py``` and ```UTILS/config_args.py```, 
+it is very easy to understand once you read any example of this.
+
+### <4>
+When the experiment starts, the Json config override will be stored in ```ZHECKPOINT/the-experiment-note-you-defined/experiment.json```.
+If the experiment latter produces surprising results,
+you can always reproduce it again using this config backup.
+
+
+## Task Runner
 Unfinished doc
+<img src="VISUALIZE/md_imgs/multi_team.jpg" width="700" >
 
 ## ALGORITHM
 Unfinished doc
 ### The time sequence of hmp-2g
-<img src="UTILS/hmp2g_timeline.svg" width="700" >
+<img src="VISUALIZE/md_imgs/timeline.jpg" width="700" >
 
 
 ## MISSIONS
@@ -79,7 +142,7 @@ Unfinished doc
 ## Execution Pool
 Unfinished doc
 
-## VHMAP, a component of HMP
+## VHMAP, a Component of HMP
 VHMAP is a visulization component of HMP. [VHMAP](./VISUALIZE/README.md)
 
 It is unfortunate that 
@@ -124,11 +187,13 @@ Interface functions, operation introduction.
 
 # Quick Start
 
-## 0. dependency
+## Dependency
 We use docker to solve dependency: 
-[SetupDocker](./SetupDocker.md)
+[setup_docker](./setup_docker.md). 
+This project uses techniques such shared memory for extreme training efficiency, 
+as a cost, WindowsOS+GPU training is not yet supported.
 
-Please read SetupDocker.md, then set up the container using:
+Please read setup_docker.md, then set up the container using:
 ```bash
 $ docker run -itd   --name  hmp-$USER \
 --net host \
@@ -137,7 +202,9 @@ $ docker run -itd   --name  hmp-$USER \
 fuqingxu/hmp:latest
 ```
 
-## 1. all default: testing
+
+## AAAI 2022
+### 1. All Default: Testing
 ```
 git pull && python main.py -c ZHECKPOINT/test-50+50/test-50+50.jsonc --skip
 git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
@@ -149,7 +216,7 @@ JS visualizer online: http://172.18.116.150:aRandomPort
 JS visualizer online (localhost): http://localhost:aRandomPort
 --------------------------------
 ```
-## 2. all default: training
+### 2. All Default: Training
 
 ```
 git pull && python main.py -c example.jsonc
@@ -157,12 +224,27 @@ git pull && python main.py -c example_dca.jsonc
 ```
 
 
-## 3. change settings
+### 3. Change Settings
 
 launch with: 
 ```
 python main.py --cfg xx.json
 ```
+
+## IJCNN 2022
+### 
+```
+git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip 
+git pull && python main.py -c ZHECKPOINT/test-cargo50/test-cargo50.jsonc --skip
+```
+
+## Others
+
+```
+git pull && python main.py --cfg ZHECKPOINT/adca-demo/test.json
+git pull && python main.py --cfg ZHECKPOINT/basic-ma-40-demo/test.json
+```
+
 
 # Project Roadmap
 If you are interested in something, you may continue to read:
@@ -192,7 +274,7 @@ If you are interested in something, you may continue to read:
     experiment batch executor                 -->   mprofile.py
 ```
 
-# How to add a new environment (MISSION) in HMP
+# How to Add a New Environment (MISSION) in HMP
 - make a new jsonc config file, using 'example.jsonc' as template
 - mkdir in MISSIONS, e.g. ./MISSIONS/bvr_sim, copy src code of the environment inside it.
 - open ```MISSIONS/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:
@@ -229,7 +311,7 @@ import_path_ref = {
 ```
 
 
-# (Written to myself) Steps to mirror to github
+# (Written to Myself) Steps to Mirror to Github
 
 ```
 rm -rf ~/ATempDir

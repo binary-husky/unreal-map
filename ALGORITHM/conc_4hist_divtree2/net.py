@@ -201,33 +201,29 @@ class Net(nn.Module):
         if self.alternative_critic:
             self.CT_get_value_alternative_critic = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
 
-        # # part
-        # from .div_tree import DivTree
-        # self.AT_div_tree = DivTree(input_dim=tmp_dim, h_dim=h_dim, n_action=n_action)
-        # part3
-        self.AT_get_logit_db = nn.Sequential(  
+        self.AT_get_logit_db = nn.Sequential(
             nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),
             nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
             nn.Linear(h_dim//2, self.n_action))
 
         from .div_tree import DivTree
         self.AT_div_tree = DivTree(input_dim=self.n_action, h_dim=self.n_action, n_action=self.n_action)
+        self.ccategorical = CCategorical()
 
         self.is_recurrent = False
         self.apply(weights_init)
-        self.ccategorical = CCategorical()
         return
 
-    # two ways to support avail_act, but which one is better?
-    def logit2act_old(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
-        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
-        act_dist = Categorical(logits = logits_agent_cluster)
-        if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions
-        else:              act = torch.argmax(act_dist.probs, axis=2)
-        actLogProbs = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
-        # sum up the log prob of all agents
-        distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
-        return act, actLogProbs, distEntropy, act_dist.probs
+    # # two ways to support avail_act, but which one is better?
+    # def logit2act_old(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+    #     if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
+    #     act_dist = Categorical(logits = logits_agent_cluster)
+    #     if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions
+    #     else:              act = torch.argmax(act_dist.probs, axis=2)
+    #     actLogProbs = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
+    #     # sum up the log prob of all agents
+    #     distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
+    #     return act, actLogProbs, distEntropy, act_dist.probs
 
 
     @Args2tensor_Return2numpy
@@ -239,7 +235,6 @@ class Net(nn.Module):
     def evaluate_actions(self, *args, **kargs):
         act = self._act if self.dual_conc else self._act_singlec
         return act(*args, **kargs, eval_mode=True)
-
 
     # div entity for DualConc models, distincting friend or hostile (present or history)
     def div_entity(self, mat, type=[(0,), # self
@@ -290,7 +285,7 @@ class Net(nn.Module):
 
         # fuse forward path
         v_C_fuse = torch.cat((vf_C, vh_C), dim=-1)  # (vs + vs + check_n + check_n)
-        pre_logits = self.AT_get_logit_db(v_C_fuse)  
+        pre_logits = self.AT_get_logit_db(v_C_fuse)
         logits, confact_info = self.AT_div_tree(pre_logits, req_confact_info=(self.aw_add_kld_loss and eval_mode))   # ($thread, $agent, $coredim)
 
         # motivation encoding fusion
@@ -303,9 +298,8 @@ class Net(nn.Module):
 
 
         act, actLogProbs, distEntropy, probs = self.logit2act(logits, eval_mode=eval_mode, 
-                                                                test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
+                                                            test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 
-        
         def re_scale(t):
             SAFE_LIMIT = 11
             r = 1. /2. * SAFE_LIMIT

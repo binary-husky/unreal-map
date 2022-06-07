@@ -122,7 +122,7 @@ class SuperProc(Process):
     def __del__(self):
         if hasattr(self,'_deleted_'): return    # avoid exit twice
         else: self._deleted_ = True     # avoid exit twice
-        print('executing child exit')
+        # print('executing child exit')
         self.shared_memory.close()
         for target_name in self.target_tracker: 
             setattr(self, target_name, None)    # GC by clearing the pointer.

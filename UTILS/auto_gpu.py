@@ -22,8 +22,8 @@ class sel_gpu():
     A manager which can list all available GPU devices
     and sort them and choice the most free one.Unspecified 
     ones pref.
-    GPU设备管理器，考虑列举出所有可用GPU设备，并加以排序，自动选出
-    最空闲的设备。在一个GPUManager对象内会记录每个GPU是否已被指定，
+    GPU设备管理器, 考虑列举出所有可用GPU设备, 并加以排序, 自动选出
+    最空闲的设备。在一个GPUManager对象内会记录每个GPU是否已被指定,
     优先选择未指定的GPU。
     '''
     def __init__(self,qargs=[]):
@@ -34,22 +34,15 @@ class sel_gpu():
 
 
     def _sort_by_memory(self,gpus,by_size=False):
-        for gpu in gpus:    # 优先使用A100显卡
+        for gpu in gpus:    
+            # 优先使用A100显卡
             if 'A100' in gpu['gpu_name']:
-                gpu['memory.free'] *= 2
-                gpu['memory.total'] *= 2
+                gpu['memory.free'] *= 1.25
+                gpu['memory.total'] *= 1.25
 
         if by_size:
             print黄('Sorted by free memory size')
-            # for gpu in gpus:    # 优先使用A100显卡
-            #     if 'A100' in gpu['gpu_name']:
-            #         gpu['memory.free'] *= 2
-            #         gpu['memory.total'] *= 2
             res = sorted(gpus,key=lambda d:d['memory.free'],reverse=True)
-            # for gpu in gpus:    # 优先使用A100显卡
-            #     if 'A100' in gpu['gpu_name']:
-            #         gpu['memory.free'] /= 2
-            #         gpu['memory.total'] /= 2
 
             return res
         else:

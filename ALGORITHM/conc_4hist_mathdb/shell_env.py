@@ -1,6 +1,7 @@
 import numpy as np
 from UTILS.colorful import *
 from UTILS.tensor_ops import my_view, __hash__, repeat_at
+from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
 DEBUG = True
 
@@ -73,6 +74,13 @@ class ShellEnvWrapper(object):
         P = State_Recall['ENV-PAUSE']
         RST = State_Recall['Env-Suffered-Reset']
 
+        if RST.all(): # just experienced full reset on all episode, this is the first step of all env threads
+            yita = AlgorithmConfig.yita
+            # randomly pick threads
+            FixMax = np.random.rand(self.n_thread) < yita
+            State_Recall['_FixMax_'] = FixMax
+            # print(FixMax)
+
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         his_pool_obs = State_Recall['_Histpool_Obs_'] if '_Histpool_Obs_' in State_Recall \
             else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])
@@ -86,6 +94,7 @@ class ShellEnvWrapper(object):
 
         I_State_Recall = {'obs':obs_feed_in, 
             'Test-Flag':State_Recall['Test-Flag'], 
+            '_FixMax_':State_Recall['_FixMax_'][~P], 
             'threads_active_flag':~P, 
             'Latest-Team-Info':State_Recall['Latest-Team-Info'][~P],
             }

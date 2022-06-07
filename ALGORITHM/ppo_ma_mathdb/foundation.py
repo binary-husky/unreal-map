@@ -19,9 +19,11 @@ class AlgorithmConfig:
     take_reward_as_unity = False
     use_normalization = True
     add_prob_loss = False
+    alternative_critic = False
 
-    n_focus_on = 2
-    n_entity_placeholder = 24
+    # n_focus_on = 2
+    n_entity_placeholder = 10
+    turn_off_threat_est = False
 
     # PPO part
     clip_param = 0.2
@@ -38,34 +40,36 @@ class AlgorithmConfig:
     # resulting in more samples and causing GPU OOM,
     # prevent this by fixing the number of samples to initial
     # by randomly sampling and droping
-    prevent_batchsize_oom = False
+    fix_n_sample = False
     gamma_in_reward_forwarding = False
     gamma_in_reward_forwarding_value = 0.99
 
     # extral
     extral_train_loop = False
+    actor_attn_mod = False
     load_specific_checkpoint = ''
     dual_conc = True
     use_my_attn = True
     alternative_critic = False
 
     # net
-    net_hdim = 48
+    net_hdim = 8
+
     n_agent = 'auto load, do not change'
     only_train_div_tree_and_ct = False
     yita = 0.
     div_tree_init_level = 0
-    yita_min_prob = 0.15
-    PolicyResonance = False
+    yita_min_prob = 0.2
+    FixDoR = False
     ConfigOnTheFly = True
     UseDivTree = True
 
     RecProbs = False
+    UseStepLevelResonance = False
 
-
-    # personality reinforcement dynamic
+    # personality reinforcement
     personality_reinforcement_start_at_update = -1
-    _div_tree_level_inc_per_update = 0.0 # (30 updates per inc)
+    _div_tree_level_inc_per_update = 1/10 # (30 updates per inc)
     yita_max = 0.75
     _yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
 
@@ -126,7 +130,9 @@ class ReinforceAlgorithmFoundation(object):
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
             strict = not AlgorithmConfig.only_train_div_tree_and_ct
             self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n), strict=strict)
-            if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=False)
+            if AlgorithmConfig.UseDivTree: 
+                assert AlgorithmConfig.div_tree_init_level != 0, ('careful!')
+                self.policy.AT_div_tree.set_to_init_level(auto_transfer=False)
             print黄('loaded checkpoint:', ckpt_dir)
         else:
             if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=True)
@@ -144,7 +150,8 @@ class ReinforceAlgorithmFoundation(object):
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
 
         with torch.no_grad():
-            if AlgorithmConfig.PolicyResonance: self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
+            if AlgorithmConfig.FixDoR and (not AlgorithmConfig.UseStepLevelResonance): 
+                self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
             action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act)
 
         # Warning! vars named like _x_ are aligned, others are not!
@@ -188,33 +195,32 @@ class ReinforceAlgorithmFoundation(object):
         if self.batch_traj_manager.can_exec_training():
             # time to start a training routine
             self.batch_traj_manager.train_and_clear_traj_pool()
-            if AlgorithmConfig.ConfigOnTheFly: self._process_input()
+            if AlgorithmConfig.ConfigOnTheFly:
+                self._process_input()
 
-            if (not AlgorithmConfig.PolicyResonance) \
-                and AlgorithmConfig.personality_reinforcement_start_at_update > 0 \
-                and self.batch_traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
-                    AlgorithmConfig.PolicyResonance = True
+
+
+            if (not AlgorithmConfig.FixDoR) and AlgorithmConfig.personality_reinforcement_start_at_update > 0:
+                if self.batch_traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
+                    AlgorithmConfig.FixDoR = True
                     AlgorithmConfig.only_train_div_tree_and_ct = True
                     self.trainer.fn_only_train_div_tree_and_ct()
 
-            if AlgorithmConfig.PolicyResonance:
+            if AlgorithmConfig.FixDoR:
                 self._update_yita()
                 self._update_personality_division()
-
-            PolicyResonance = 1 if AlgorithmConfig.PolicyResonance else 0
-            self.mcv.rec(PolicyResonance, 'PolicyResonance')
+            fixdor = 1 if AlgorithmConfig.FixDoR else 0
+            self.mcv.rec(fixdor, 'FixDoR')
             self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
             self.mcv.rec(AlgorithmConfig.yita, 'yita')
 
     def _update_personality_division(self):
-        '''
-            increase personality tree level @_div_tree_level_inc_per_update per fn call, 
-            when floating break int threshold, the tree enters next level
-        '''
         personality_tree = self.policy.AT_div_tree
         personality_tree.current_level_floating += AlgorithmConfig._div_tree_level_inc_per_update
         if personality_tree.current_level_floating > personality_tree.max_level:
             personality_tree.current_level_floating = personality_tree.max_level
+
+
 
         expected_level = int(personality_tree.current_level_floating)
         if expected_level == personality_tree.current_level: return
@@ -223,9 +229,6 @@ class ReinforceAlgorithmFoundation(object):
 
 
     def _update_yita(self):
-        '''
-            increase yita by @_yita_inc_per_update per function call
-        '''
         AlgorithmConfig.yita += AlgorithmConfig._yita_inc_per_update
         if AlgorithmConfig.yita > AlgorithmConfig.yita_max:
             AlgorithmConfig.yita = AlgorithmConfig.yita_max

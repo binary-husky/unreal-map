@@ -20,6 +20,8 @@ class DivTree(nn.Module): # merge by MLP version
         self.init_level = AlgorithmConfig.div_tree_init_level
         self.current_level_floating = 0.0
 
+
+
         get_net = lambda: nn.Sequential(
             nn.Linear(h_dim+self.n_agent, h_dim), 
             nn.ReLU(inplace=True),
@@ -36,6 +38,9 @@ class DivTree(nn.Module): # merge by MLP version
             for i in range(self.current_level, self.init_level):
                 self.change_div_tree_level(i+1, auto_transfer)
 
+
+    def handle_update(self, update_cnt):
+        pass 
 
 
     def change_div_tree_level(self, level, auto_transfer=True):
@@ -59,21 +64,75 @@ class DivTree(nn.Module): # merge by MLP version
         return 
 
     def forward(self, x_in, req_confact_info):  # x0: shape = (?,...,?, n_agent, core_dim)
-        if self.current_level == 0:
-            x0 = add_onehot_id_at_last_dim(x_in)
-            x2 = self.nets[0](x0)
-            return x2, None
-        else:
-            x0 = add_onehot_id_at_last_dim(x_in)
-            res = []
+        x0 = add_onehot_id_at_last_dim(x_in)
+        # x1 = self.shared_net(x0)
+        res = []
+        for i in range(self.n_agent):
+            use_which_net = self.div_tree[self.current_level, i]
+            res.append(self.nets[use_which_net](x0[..., i, :]))
+        x2 = torch.stack(res, -2)
+        # x22 = self.nets[0](x1)
+        
+        if req_confact_info:
+            ######### forward twice: shuffle forward
+            perm_index = torch.randperm(self.n_agent, device=x_in.device)   # shape = (n_agent)
+            perm_index = perm_index.expand(x_in.shape[:-1]) # shape = (...?, n_agent)
+            # x_in shape = (...?, n_agent, coredim)
+            perm_x_in = gather_righthand(src=x_in, index=perm_index, check=False)
+            perm_x0 = add_onehot_id_at_last_dim(perm_x_in)
+            perm_res = []
             for i in range(self.n_agent):
                 use_which_net = self.div_tree[self.current_level, i]
-                res.append(self.nets[use_which_net](x0[..., i, :]))
-            x2 = torch.stack(res, -2)
-            # x22 = self.nets[0](x1)
-            
-            return x2, None
+                perm_res.append(self.nets[use_which_net](perm_x0[..., i, :]))
+            perm_x2 = torch.stack(perm_res, -2)
 
+            confact_x2 = torch.zeros_like(perm_x2) + np.nan
+            confact_x2 = scatter_righthand(scatter_into=confact_x2, src=perm_x2, index=perm_index)
+            assert not torch.isnan(confact_x2).any()
+            confact_info = {'orig_out':x2, 'confact_out':confact_x2, 'perm_index':perm_index}
+        else:
+            confact_info = None
+            
+        return x2, confact_info
+
+    def get_blood_distance(self):
+        current_level = self.current_level
+
+        # not first run, read buffer
+        if hasattr(self, 'blood_distance_each_level'):
+            return self.blood_distance_each_level[current_level]
+
+        # on first run
+        tree = self.div_tree
+        n_agent = tree.shape[-1]
+        self.blood_distance_each_level = np.ones(shape=(self.n_level, n_agent, n_agent), dtype=np.float64) * np.nan
+        for m in range(self.n_level):
+            n_agent = tree.shape[-1]
+            blood_distance = np.ones(shape=(n_agent,n_agent), dtype=np.float64) * np.nan
+            for i in range(n_agent):
+                for j in range(n_agent):
+                    if i==j:blood_distance[i,j] = 0
+                    if not np.isnan(blood_distance[i,j]):
+                        continue
+                    for t in range(m+1):
+                        investigate_level = (m) - t
+                        if tree[investigate_level, i] == tree[investigate_level, j]:
+                            blood_distance[i,j] = t
+                            blood_distance[j,i] = t
+                            break
+            self.blood_distance_each_level[m, :] = blood_distance
+
+        assert not np.isnan(self.blood_distance_each_level).any()
+        self.blood_distance_each_level = _2tensor(self.blood_distance_each_level)
+
+        if hasattr(self, 'blood_distance_each_level'):
+            return self.blood_distance_each_level[current_level]
+        else:
+            assert False
+
+    def get_weighted_kld(self, kld_matrix):
+        blood_distance = self.get_blood_distance()
+        return (kld_matrix*blood_distance).mean()
     # def forward_try_parallel(self, x0):  # x0: shape = (?,...,?, n_agent, core_dim)
     #     x1 = self.shared_net(x0)
     #     stream = []
