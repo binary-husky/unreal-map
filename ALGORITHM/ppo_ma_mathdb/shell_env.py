@@ -5,31 +5,11 @@ from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
 DEBUG = True
 
-def distance_matrix(A):
-    assert A.shape[-1] == 2 # assert 2D situation
-    n_subject = A.shape[-2] # is 2
-    A = np.repeat(np.expand_dims(A,-2), n_subject, axis=-2) # =>(64, 100, 100, 2)
-    At = np.swapaxes(A,-2,-3) # =>(64, 100, 100, 2)
-    dis = At-A # =>(64, 100, 100, 2)
-    dis = np.linalg.norm(dis, axis=-1)
-    return dis
 
-def stack_padding(l):
-    import itertools
-    return np.column_stack((itertools.zip_longest(*l, fillvalue=0)))
 
-def dir_to_rad_angle(delta_pos):
-    result = np.empty(delta_pos.shape[:-1], dtype=complex)
-    result.real = delta_pos[...,0]; result.imag = delta_pos[...,1]
-    rad_angle = np.angle(result) 
-    return rad_angle
 
-def reg_angle_deg(deg):
-    return (deg + 180)%360 -180
 
-def reg_angle(rad):
-    # it's OK to show "RuntimeWarning: invalid value encountered in remainder"
-    return (rad + np.pi)%(2*np.pi) -np.pi
+
 
 class ShellEnvWrapper(object):
     def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config):
@@ -53,6 +33,7 @@ class ShellEnvWrapper(object):
 
         # whether to load previously saved checkpoint
         self.load_checkpoint = alg_config.load_checkpoint
+        self.UseStepLevelResonance = alg_config.UseStepLevelResonance
         self.cold_start = True
 
     @staticmethod
@@ -74,12 +55,9 @@ class ShellEnvWrapper(object):
         P = State_Recall['ENV-PAUSE']
         RST = State_Recall['Env-Suffered-Reset']
 
-        if RST.all(): # just experienced full reset on all episode, this is the first step of all env threads
-            yita = AlgorithmConfig.yita
-            # randomly pick threads
-            FixMax = np.random.rand(self.n_thread) < yita
-            State_Recall['_FixMax_'] = FixMax
-            # print(FixMax)
+        if RST.all() and (not self.UseStepLevelResonance): 
+            # just experienced full reset on all episode, this is the first step of all env threads
+            State_Recall['_FixMax_'] = ( np.random.rand(self.n_thread) < AlgorithmConfig.yita )
 
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         # his_pool_obs = State_Recall['_Histpool_Obs_'] if '_Histpool_Obs_' in State_Recall \
@@ -151,14 +129,14 @@ class ShellEnvWrapper(object):
 
 
 
-    def get_mask_id(self, obs_feed):
-        mask_and_id = np.zeros_like(obs_feed)[:,:,:, 0] # thread,agent,agent_obs
-        binary = obs_feed[...,-8:]
-        alive = obs_feed[..., 0]
-        for i in range(8):
-            mask_and_id += binary[..., i]* 2**i
-        # print(mask_and_id)
-        mask_and_id = np.where(alive==1, mask_and_id, np.nan)
-        return mask_and_id
+    # def get_mask_id(self, obs_feed):
+    #     mask_and_id = np.zeros_like(obs_feed)[:,:,:, 0] # thread,agent,agent_obs
+    #     binary = obs_feed[...,-8:]
+    #     alive = obs_feed[..., 0]
+    #     for i in range(8):
+    #         mask_and_id += binary[..., i]* 2**i
+    #     # print(mask_and_id)
+    #     mask_and_id = np.where(alive==1, mask_and_id, np.nan)
+    #     return mask_and_id
 
 

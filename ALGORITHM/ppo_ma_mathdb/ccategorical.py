@@ -97,8 +97,11 @@ class CCategorical():
         probs = dist.probs.clone()
         # assert 1/probs.shape[-1] > yita, ('yita is too big, please set it less than', 1/probs.shape[-1])
         # hit = True if torch.rand(()) < p_hit else False
-        return random_process_with_clamp3(probs, self.fix_max)
-        # return random_process_allow_big_yita(probs, hit)
+        if not AlgorithmConfig.UseStepLevelResonance:
+            return random_process_with_clamp3(probs, self.fix_max)
+        else:
+            steplevelfix = torch.rand(probs.shape[0]) < AlgorithmConfig.yita
+            return random_process_with_clamp3(probs, steplevelfix)
 
     def register_fixmax(self, fix_max):
         self.fix_max = fix_max

@@ -65,7 +65,7 @@ class AlgorithmConfig:
     UseDivTree = True
 
     RecProbs = False
-
+    UseStepLevelResonance = False
 
     # personality reinforcement
     personality_reinforcement_start_at_update = -1
@@ -150,7 +150,8 @@ class ReinforceAlgorithmFoundation(object):
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
 
         with torch.no_grad():
-            if AlgorithmConfig.FixDoR: self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
+            if AlgorithmConfig.FixDoR and (not AlgorithmConfig.UseStepLevelResonance): 
+                self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
             action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act)
 
         # Warning! vars named like _x_ are aligned, others are not!
