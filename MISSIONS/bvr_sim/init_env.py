@@ -10,8 +10,13 @@ from .endgame import EndGame
 from UTILS.tensor_ops import MayGoWrong, repeat_at
 from UTILS.config_args import ChainVar
 
-class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
-
+class ScenarioConfig(object):  
+    '''
+        ScenarioConfig: This config class will be 'injected' with new settings from JSONC.
+        (E.g., override configs with ```python main.py --cfg example.jsonc```)
+        (As the name indicated, ChainVars will change WITH vars it 'chained_with' during config injection)
+        (please see UTILS.config_args to find out how this advanced trick works out.)
+    '''
     ################ needed by the core of hmp ################
     N_TEAM = 1  
     N_AGENT_EACH_TEAM = [5,]

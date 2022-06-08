@@ -20,7 +20,13 @@ def find_angle(pose):
         angle += 2*np.pi
     return angle
 
-class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
+class ScenarioConfig(object):  
+    '''
+        ScenarioConfig: This config class will be 'injected' with new settings from JSONC.
+        (E.g., override configs with ```python main.py --cfg example.jsonc```)
+        (As the name indicated, ChainVars will change WITH vars it 'chained_with' during config injection)
+        (please see UTILS.config_args to find out how this advanced trick works out.)
+    '''
     num_agents = 9
     num_landmarks = 3
     dist_threshold = 0.1

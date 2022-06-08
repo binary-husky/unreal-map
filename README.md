@@ -289,6 +289,9 @@ If you are interested in something, you may continue to read:
 ```
 
 # How to Add a New Environment (MISSION) in HMP
+Please refer to [MISSIONS README](./MISSIONS/readme.md) for more details.
+
+
 - Make a new jsonc config file, using 'example.jsonc' as template
 - mkdir in MISSIONS, e.g. ./MISSIONS/bvr_sim, copy src code of the environment inside it.
 - Open ```MISSIONS/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:

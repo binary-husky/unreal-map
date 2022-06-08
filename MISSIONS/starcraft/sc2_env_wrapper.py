@@ -33,14 +33,13 @@ map_param_registry = smac_maps.get_smac_map_registry()
 
 
 
-
-'''
-    ScenarioConfig: This config class will be 'injected' with new settings from json(c).
-    (E.g., override configs with ```python main.py --cfg example.jsonc```)
-    (As the name indicated, ChainVars will change WITH vars it 'chained_with' during config injection)
-    (please see UTILS.config_args to find out how this advanced trick works out.)
-'''
-class ScenarioConfig(object): # ADD_TO_CONF_SYSTEM 加入参数搜索路径 do not remove this comment !!!
+class ScenarioConfig(object):  
+    '''
+        ScenarioConfig: This config class will be 'injected' with new settings from JSONC.
+        (E.g., override configs with ```python main.py --cfg example.jsonc```)
+        (As the name indicated, ChainVars will change WITH vars it 'chained_with' during config injection)
+        (please see UTILS.config_args to find out how this advanced trick works out.)
+    '''
     sc_version = '2.4.10'
     map_ = 'corridor'
     step_mul = 8
