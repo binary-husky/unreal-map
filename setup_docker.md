@@ -5,7 +5,7 @@ Please install nvidia docker runtime on the host ubuntu system.
 
 For details, refer to https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#installing-on-ubuntu-and-debian
 
-# Start docker container
+# 2. Start docker container
 From the host:
 ```bash
 $ docker run -itd   --name  hmp-$USER \
@@ -26,7 +26,7 @@ Finally check docker status with ```docker ps```, should be seeing a container n
 
 
 
-# Get inside HMP container via SSH
+# 3. Get inside HMP container via SSH
 ```
 $ docker exec -it hmp-$USER service ssh start
 ```
@@ -42,7 +42,7 @@ Now find a computer to ssh into it: ```ssh hmp@your_host_ip -p 2233```
 
 
 
-# (Optional) Connect to HMP container with remote desktop (RDP)
+# (3. Optional) Connect to HMP container with remote desktop (RDP)
 (choice 1) Use SSH to get ```inside``` the HMP container.
 
 (choice 2) From the host, use ``` docker exec -it hmp-$USER bash ``` command to get inside the HMP container.
@@ -80,7 +80,7 @@ Next, use the remote desktop tool of MS Windows (or anything supporting RDP) to 
 (It's normal that xrdp is a bit slow, but there is no better RDP solution for docker container yet, please use SSH when GUI is not needed)
 ```
 
-# Run HMP
+# 4. Run HMP
 After getting ```inside``` the HMP container:
 
 ```
@@ -93,20 +93,19 @@ After getting ```inside``` the HMP container:
 # clone rep from gitee:
 (hmp-container)$ git clone https://gitee.com/hh505030475/hmp-2g.git
 
-# or github (sync once a week, may not be the latest)
+# or github (sync once a week, may not be the latest, please use gitee rep if possible)
 (hmp-container)$ git clone https://github.com/binary-husky/hmp2g.git
 
 # cd into it.
 (hmp-container)$ cd hmp-2g
 
-# inspect experiment config
-(hmp-container)$ cat ./example.jsonc
+# run an trained model to find out if everthing works well ^_^
+(hmp-container)$ git pull && python main.py -c ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
 
-# run experiment 
-(hmp-container)$ python main.py --cfg ./example.jsonc
 ```
+<img src="ZHECKPOINT/test-50+50/butterfly.webp" width="300" >
 
-# Docker in Docker
+# Docker in Docker (If need to run air combat env)
 
 If you want to play ```docker in docker```, please mount ```/var/run/docker.sock```:
 ```bash
