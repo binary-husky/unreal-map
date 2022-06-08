@@ -1,4 +1,4 @@
-# To interface with most algorithm, the task configuration should at least contain following field:
+# Task Configuration Core Fields:
 
 ## Parameter Internal Relationship
 * You may notice some configuration field ends with ```_cv```, they are parameters chained with other parameters. For example, when changing the ```map```, the limit of ```episode_length``` and the number of agents ```N_AGENT_EACH_TEAM``` are implicated and also need to be changed. 
@@ -20,7 +20,10 @@ Generally, you can safely ignore them and only pay attention to fields below.
 | ObsAsUnity    | ```bool``` | Agents do not has individual observation, only shared collective observation | 没有个体观测值，整个群体的观测值获取方式如同单智能体问题一样  |
 | StateProvided    | ```bool``` | Whether the global state is provided in training. If True, the Algorithm can access both ```obs``` and ```state``` during training  | 是否在训练过程中提供全局state  |
 
-## How to Introduce a New Mission Environment
+
+
+
+# * How to Introduce a New Mission Environment
 
 ### Step 1: Declare Mission Info (how many agents and actions, maximum episode steps et.al.)
 - make a folder under ```./MISSIONS```, e.g. ```./MISSIONS/uhmap.```
@@ -29,6 +32,8 @@ Generally, you can safely ignore them and only pay attention to fields below.
 
 ```python
 from UTILS.config_args import ChainVar
+
+# please register this ScenarioConfig into MISSIONS/env_router.py
 class ScenarioConfig(object):  
     '''
         ScenarioConfig: This config class will be 'injected' with new settings from JSONC.
@@ -68,7 +73,8 @@ class ScenarioConfig(object):
     ObsAsUnity = False
 
     # <Part 2> Needed by env itself #
-    MaxEpisodeStep = 10
+    MaxEpisodeStep = 100
+    render = False
 
     # <Part 3> Needed by some ALGORITHM #
     StateProvided = False
@@ -76,9 +82,133 @@ class ScenarioConfig(object):
     EntityOriented = False
 
     n_actions = 2
-    show_details = False
+    obs_vec_length = 10
+
 ```
 
 ### Step 2: Writing Environment
 
+- For convenience, please copy and paste ```class BaseEnv(object)``` into your script:
+```python
+class BaseEnv(object):
+    def __init__(self, rank) -> None:
+        self.observation_space = None
+        self.action_space = None
+        self.rank = rank
 
+    def step(self, act):
+        # obs: a Tensor with shape (n_agent, ...)
+        # reward: a Tensor with shape (n_agent, 1) or (n_team, 1)
+        # done: a Bool
+        # info: a dict
+        raise NotImplementedError
+        # Warning: if you have only one team and RewardAsUnity, 
+        # you must make sure that reward has shape=[n_team=1, 1]
+        # e.g. 
+        # >> RewardForTheOnlyTeam = +1
+        # >> RewardForAllTeams = np.array([RewardForTheOnlyTeam, ])
+        # >> return (ob, RewardForAllTeams, done, info)
+        return (ob, RewardForAllTeams,  done, info)  # choose this if RewardAsUnity
+        return (ob, RewardForAllAgents, done, info)  # choose this if not RewardAsUnity
+
+    def reset(self):
+        # obs: a Tensor with shape (n_agent, ...)
+        # done: a Bool
+        raise NotImplementedError
+        return ob, info
+
+```
+
+- Then create a class that inherit from it (```class UhmapEnv(BaseEnv)```):
+```python
+class UhmapEnv(BaseEnv):
+    def __init__(self, rank) -> None:
+        super().__init__(rank)
+        self.id = rank
+        self.render = ScenarioConfig.render and (self.id==0)
+        self.n_agents = ScenarioConfig.n_team1agent
+        # self.observation_space = ?
+        # self.action_space = ?
+        if ScenarioConfig.StateProvided:
+            # self.observation_space['state_shape'] = ?
+            pass
+        if self.render:
+            # render init
+            pass
+```
+- Next, it is time to write your own code of ```step()``` and ```reset()``` function.
+There is little we can help about that, as it is your custom environment after all.
+
+### Step 3: Write a Function to Initialize the Environment
+A empty function getting a instance of environment, it will used in step 4. 
+But don'y worry, two lines of code will do:
+```python
+# please register this into MISSIONS/env_router.py
+def make_uhmap_env(env_id, rank):
+    return UhmapEnv(rank)
+```
+
+### Step 4: Make Everything Kiss Together
+This step will make HMP aware of the existence of this new MISSION.
+- Open ```MISSIONS/env_router.py```
+- Add the path of environment's configuration in ```import_path_ref```
+``` python
+import_path_ref = {
+    "uhmap": ("MISSIONS.uhmap.uhmap_env_wrapper", 'ScenarioConfig'),
+}   
+```
+- Add the path of environment's init function in ```env_init_function_ref```, e.g.:
+``` python
+env_init_function_ref = {
+    "uhmap": ("MISSIONS.uhmap.uhmap_env_wrapper", "make_uhmap_env"),
+}   
+```
+
+### Step 5: Write a Config Override to Start Experiment
+Create a ```exp.jsonc``` or ```json``` file, 
+copy and paste following content, and please pay attention to lines marked with ```***```, they are the most important ones:
+```jsonc
+{
+    // config HMP core
+    "config.py->GlobalConfig": {
+        "note": "uhmp-dev",
+        "env_name": "uhmap", // *** the selection of MISSION
+        "env_path": "MISSIONS.uhmap", // *** confirm the path of env (a fail safe)
+        "draw_mode": "Img",
+        "num_threads": "1",
+        "report_reward_interval": "1",
+        "test_interval": "128",
+        "test_epoch": "4",
+        "device": "cuda",
+        "max_n_episode": 500000,
+        "fold": "4",
+        "backup_files": [
+        ]
+    },
+
+    // config MISSION
+    "MISSIONS.uhmap.uhmap_env_wrapper.py->ScenarioConfig": {  // *** must kiss with "env_name" and "env_path"
+        // remember this? declared in ScenarioConfig class in ./MISSIONS/math_game/uhmap.py.
+        "n_team1agent": 4,
+        "n_actions": 10,
+        "StateProvided": false,
+        "TEAM_NAMES": [
+            "ALGORITHM.conc_4hist.foundation->ReinforceAlgorithmFoundation"  // *** select ALGORITHMs
+        ]
+    },
+
+    // config ALGORITHMs
+    "ALGORITHM.conc_4hist.foundation.py->AlgorithmConfig": { // must kiss with "TEAM_NAMES"
+        "train_traj_needed": "16",
+        "fix_n_sample": "True",
+        "n_focus_on": 3,
+        "lr": 0.0005,
+        "ppo_epoch": 24,
+        "gamma_in_reward_forwarding": "True",
+        "gamma_in_reward_forwarding_value": 0.95,
+        "gamma": 0.99
+    }
+}
+```
+
+At last, run experiment with ```python main.py --cfg ./path-to-exp-json/exp.jsonc```.

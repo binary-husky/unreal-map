@@ -91,6 +91,8 @@ for example:
     ...... (other field)
 }
 ```
+- You need not to worry about the format. You can write ```{"HP_MAX": 222}``` or  ```{"HP_MAX": "222"}```. If the value is a bool, you can write ```{"Key1":true,"Key2":false}``` or ```{"Key1":"True", "Key2":"False"}```. **Both are OK**.
+- Be aware, in Step2, ```HP_MAX=100``` defines ```HP_MAX``` as Int. If what you want is a float, please write ```HP_MAX=100.0```. Overriding a Int with float will trigger assert error.
 - All Done! Say bye-bye to annoying args passing and kargs passing!
 
 ### <3> How to Deal with Parameter Dependency:
@@ -297,7 +299,7 @@ Please refer to [MISSIONS README](./MISSIONS/readme.md) for more details.
 - Open ```MISSIONS/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:
 ``` python
 env_init_function_ref = {
-    "bvr": ("MISSIONS.bvr_sim.init_env", "ScenarioConfig"),
+    "bvr": ("MISSIONS.bvr_sim.init_env", "make_bvr_env"),
 }   
 # bvr is the final name that HMP recognize, 
 # MISSIONS.bvr_sim.init_env is a py file, 
@@ -306,7 +308,7 @@ env_init_function_ref = {
 - Open ```MISSIONS/env_router.py```, add the path of environment's configuration in ```import_path_ref```
 ``` python
 import_path_ref = {
-    "bvr": ("MISSIONS.bvr_sim.init_env", 'make_bvr_env'),
+    "bvr": ("MISSIONS.bvr_sim.init_env", 'ScenarioConfig'),
 }   
 # bvr will be the final name that HMP recognize, 
 # MISSIONS.bvr_sim.init_env is a py file, 
