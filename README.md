@@ -1,24 +1,23 @@
 Author: Fu Qingxu, CASIA
+
 # Introduction
 Hybrid Multi-agent Playground (HMP) is an experimental framework designed for RL researchers.
 Unlike any other framework which only isolates the TASKs from the framework, 
 HMP also separates the ALGORITHMs from the framework to achieve excellent compatibility.
 
-Any algorithm, from the most straightforward script AI to sophisticated RL learner,
+Any algorithm, from the most straightforward script-AI to sophisticated RL learner,
 is abstracted into a module inside ./ALGORITHM/*.
 
 We also put effect to interface all kinds of multi-agent environments,
 including gym, SMAC, air combat, et.al.
-
 Other frameworks such as pymarl2 can interface with HMP as well.
 The entire HMP can disguise as an RL environment in pymarl2.
 We make it happen by building a particular ALGORITHM module, which
-runs pymarl2 in a subprocess. This work is ongoing and has not been finished yet.
+runs pymarl2 in a subprocess. This work is ongoing. Currently, HMP can link to a modified version of pymarl2.
 
-The root rep url is ```https://gitee.com/hh505030475/hmp-2g```.
-We also have a github rep which is a mirror of this gitee rep, which is 
-used to archive code used in our papers:
-```https://github.com/binary-husky/hmp2g/tree/aaai-conc```.
+**Please ```star``` the root Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/hmp2g```**
+
+By the way, we also have a gitee rep which is a mirror of this Github rep: ```https://gitee.com/hh505030475/hmp-2g```. Archived code used in our AAAI papers: ```https://github.com/binary-husky/hmp2g/tree/aaai-conc```.
 
 # Demo
 ## Web Demo of DCA (AAAI Paper Version)
@@ -63,12 +62,12 @@ We use docker to solve dependency: [SetupDocker](./setup_docker.md)
 
 ## HMP's Config System (How to experiment)
 HMP aims to optimize the parameter control experience as a framework for researchers. 
-### <1>
+### <1> How to Config:
 We discard the method of using the command line to control parameters; instead, the commented-JSON (JSONC) is used for experiment configuration. To run an experiment, just type:
 ```
 python main.py --cfg Json_Experiment_Config_File.jsonc
 ```
-### <2>
+### <2> How to Add and Override A Parameter:
 Parameters assigned and overridden in the JSON file are NOT passed via init functions layer by layer as other frameworks usually do; instead, at the start of the ```main.py```, a special program defined in ```UTILS/config_args.py``` will directly INJECT the overridden parameters to the desired location.
 
 We give an example to demonstrate how simple it is to add new parameters. 
@@ -94,7 +93,7 @@ for example:
 ```
 - All Done! Say bye-bye to annoying args passing and kargs passing!
 
-### <3>
+### <3> How to Deal with Parameter Dependency:
 our framework can fully support complicated parameter dependency. 
 Some parameters are sometimes just Chained together. 
 Changing one of them can lead to the change of another. 
@@ -120,24 +119,38 @@ After this, you can expect following override (JSON config override) behaviors:
 For details, please refer to ```config.py``` and ```UTILS/config_args.py```, 
 it is very easy to understand once you read any example of this.
 
-### <4>
+### <4> How to Recover Configuration's Auto Backup:
 When the experiment starts, the Json config override will be stored in ```ZHECKPOINT/the-experiment-note-you-defined/experiment.json```.
 If the experiment latter produces surprising results,
 you can always reproduce it again using this config backup.
 
 
 ## Task Runner
-Unfinished doc
-<img src="VISUALIZE/md_imgs/multi_team.jpg" width="700" >
+Task Runner (```task_runner.py```) only have three lines of important code:
+``` python
+# line 1
+actions_list, self.info_runner = self.platform_controller.act(self.info_runner)
+# line 2: 
+obs, reward, done, info = self.envs.step(actions_list)
+# line 3: 
+self.info_runner = self.update_runner(done, obs, reward, info)
+```
 
-## ALGORITHM
-Unfinished doc
-### The time sequence of hmp-2g
+- ```self.platform_controller.act```: Get action, block infomation access between teams (LINK to ```ARGORITHM```), handle algorithm internal state loopback.
+<img src="VISUALIZE/md_imgs/multi_team.jpg" width="700" >
+- ```self.envs.step```: Multi-thread environment step (LINK to ```MISSIONS```).
+- ```self.update_runner```: Prepare obs (for decision making) and reward (for driving RL algorithms) for next step.
+
+
+## The Time Sequence of HMP
+In general, HMP task runner can operate two ways:
+- (Deprecated due) self.align_episode = False: threads immediately restart at terminal state, threads do not wait each other
+- self.align_episode = True: threads pause at terminal state, waiting until all threads terminate, then reset
 <img src="VISUALIZE/md_imgs/timeline.jpg" width="700" >
 
 
 ## MISSIONS
-Unfinished doc
+Please refer to [MISSIONS README](./MISSIONS/readme.md).
 
 ## Execution Pool
 Unfinished doc
@@ -275,9 +288,9 @@ If you are interested in something, you may continue to read:
 ```
 
 # How to Add a New Environment (MISSION) in HMP
-- make a new jsonc config file, using 'example.jsonc' as template
+- Make a new jsonc config file, using 'example.jsonc' as template
 - mkdir in MISSIONS, e.g. ./MISSIONS/bvr_sim, copy src code of the environment inside it.
-- open ```MISSIONS/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:
+- Open ```MISSIONS/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:
 ``` python
 env_init_function_ref = {
     "bvr": ("MISSIONS.bvr_sim.init_env", "ScenarioConfig"),
@@ -286,17 +299,17 @@ env_init_function_ref = {
 # MISSIONS.bvr_sim.init_env is a py file, 
 # ScenarioConfig is a class
 ```
-- open ```MISSIONS/env_router.py```, add the path of environment's configuration in ```import_path_ref```
+- Open ```MISSIONS/env_router.py```, add the path of environment's configuration in ```import_path_ref```
 ``` python
 import_path_ref = {
     "bvr": ("MISSIONS.bvr_sim.init_env", 'make_bvr_env'),
 }   
-# bvr is the final name that HMP recognize, 
+# bvr will be the final name that HMP recognize, 
 # MISSIONS.bvr_sim.init_env is a py file, 
 # make_bvr_env is a function
 ```
-- write your own ScenarioConfig. (refer to ```MISSIONS.bvr_sim.init_env.ScenarioConfig```, as a template).
-- write your own env init function. (refer to ```MISSIONS.bvr_sim.init_env.make_bvr_env```, as a template).
+- Write your own ScenarioConfig. (refer to ```MISSIONS.bvr_sim.init_env.ScenarioConfig```, as a template).
+- Write your own env init function. (refer to ```MISSIONS.bvr_sim.init_env.make_bvr_env```, as a template).
 
 
 
