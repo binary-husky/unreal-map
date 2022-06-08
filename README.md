@@ -138,6 +138,7 @@ self.info_runner = self.update_runner(done, obs, reward, info)
 
 - ```self.platform_controller.act```: Get action, block infomation access between teams (LINK to ```ARGORITHM```), handle algorithm internal state loopback.
 <img src="VISUALIZE/md_imgs/multi_team.jpg" width="700" >
+
 - ```self.envs.step```: Multi-thread environment step (LINK to ```MISSIONS```).
 - ```self.update_runner```: Prepare obs (for decision making) and reward (for driving RL algorithms) for next step.
 
