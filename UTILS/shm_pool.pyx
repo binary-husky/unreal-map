@@ -9,12 +9,11 @@
     Note: 
         SHARE_BUF_SIZE: shared memory size, 10MB per process
 """
-import time, pickle
+import time, pickle, platform, datetime
+import numpy as np
 from multiprocessing import Process, RawValue, Semaphore
 from multiprocessing import shared_memory
 from ctypes import c_char, c_uint16, c_bool, c_uint32, c_byte
-import numpy as np
-import datetime
 from time import sleep as _sleep
 from .hmp_daemon import kill_process_and_its_children
 SHARE_BUF_SIZE = 10485760
@@ -88,7 +87,7 @@ def reverse_opti_numpy_object(obj, shm):
 
 def child_process_load_config():
     # important! load json config or cmdline config to child process
-    from config_args import prepare_args
+    from UTILS.config_args import prepare_args
     prepare_args(vb=False)
     pass
 
@@ -378,3 +377,8 @@ class SmartPool(object):
 
         print_green('[shm_pool]: __del__ finish')
         self.terminated = True
+
+# To compat Windows
+if not platform.system()=="Linux":  
+    from UTILS.win_pool import SmartPool
+    

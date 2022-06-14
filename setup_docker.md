@@ -117,6 +117,25 @@ docker run -itd   --name  hmp-$USER \
 fuqingxu/hmp:latest
 ```
 
+# requirement.txt
+If possible, please use docker to Avoid following
+pip package management.
+This requirement list is provided only as 
+a reminder of dependencies being used,
+do NOT use it for configuration unless
+no other choice is available!
+
+```
+pytorch
+numpy
+tensorboardX
+func_timeout
+commentjson
+gym
+flask
+waitress
+```
+
 <!-- ```
 git clone git@gitee.com:hh505030475/hmp-2g.git
 ``` -->

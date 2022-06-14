@@ -99,12 +99,12 @@ def prepare_args(vb=True):
     parser.add_argument('-s', '--skip', action='store_true', help='skip logdir check')
     args, unknown = parser.parse_known_args()
     load_via_json = (hasattr(args, 'cfg') and args.cfg is not None)
-    skip_logdir_check = (hasattr(args, 'skip') and (args.skip is not None) and args.skip)
+    skip_logdir_check = (hasattr(args, 'skip') and (args.skip is not None) and args.skip) or (not vb)
     if load_via_json:
         if len(unknown) > 0 and vb: 
             print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
         import commentjson as json
-        with open(args.cfg) as f:
+        with open(args.cfg, encoding='utf8') as f:
             json_data = json.load(f)
         new_args = load_config_via_json(json_data, vb)
     else:

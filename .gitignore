@@ -16,6 +16,7 @@ bin-release/
 *.apk
 *.so
 *.pyc
+*.pyd
 *.so
 # gpu lock
 *.glock
@@ -125,5 +126,4 @@ ALGORITHM/conc_4hist_divtree3
 ALGORITHM/conc_4hist_divtree2
 example_dca_cs*
 PersonalityDevelop.pdf
-
 

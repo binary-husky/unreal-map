@@ -11,7 +11,7 @@ def get_host_ip():
     ip = None
     try:
         s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8',80))
+        s.connect(('8.8.8.8',80))  # if fail here, please connect Internet to get IP?
         ip=s.getsockname()[0]
     finally:
         s.close()

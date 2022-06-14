@@ -1,5 +1,9 @@
-import flock, os, torch, uuid, time
+import platform, os, torch, uuid, time
 from atexit import register
+IsLinux = platform.system()=="Linux"
+if IsLinux: 
+    print('system is not Linux, flock module not available!')
+    import flock # flock is Linux only
 
 class GpuShareUnit():
     def __init__(self, which_gpu, lock_path=None, manual_gpu_ctl=True, gpu_party=''):
@@ -82,3 +86,17 @@ class GpuShareUnit():
             _lock.__exit__(None,None,None)
             print('unregister')
 
+if not IsLinux: 
+    class GpuShareUnitFake():
+        def __init__(self, which_gpu, lock_path=None, manual_gpu_ctl=True, gpu_party=''):
+            print('system is not Linux, Using a fake GpuShareUnit!')
+
+        def __del__(self):
+            return
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return
+    GpuShareUnit = GpuShareUnitFake

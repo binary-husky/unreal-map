@@ -4,7 +4,9 @@ cimport cython
 from cython.parallel import prange
 np.import_array()
 ctypedef np.float32_t DTYPE_t
-ctypedef np.int64_t DTYPE_int64_t
+ctypedef fused DTYPE_int64_t:
+    np.int64_t
+    np.int32_t  # to compat Windows
 ctypedef np.uint8_t DTYPE_bool_t
 
 

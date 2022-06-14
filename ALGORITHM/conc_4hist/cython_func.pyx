@@ -4,7 +4,9 @@ cimport cython
 from cython.parallel import prange
 np.import_array()
 ctypedef np.float32_t DTYPE_t
-ctypedef np.int64_t DTYPE_int64_t
+ctypedef fused DTYPE_intlong_t:
+    np.int64_t
+    np.int32_t  # to compat Windows
 ctypedef np.uint8_t DTYPE_bool_t
 # @cython.boundscheck(False)
 # @cython.wraparound(False)
@@ -32,7 +34,7 @@ ctypedef np.uint8_t DTYPE_bool_t
 def roll_hisory( DTYPE_t[:,:,:,:] obs_feed_new, 
                 DTYPE_t[:,:,:,:] prev_obs_feed, 
                 DTYPE_bool_t[:,:,:] valid_mask, 
-                DTYPE_int64_t[:,:] N_valid, 
+                DTYPE_intlong_t[:,:] N_valid, 
                 DTYPE_t[:,:,:,:] next_his_pool):
     cdef Py_ssize_t vmax = N_valid.shape[0]
     cdef Py_ssize_t wmax = N_valid.shape[1]

@@ -7,7 +7,9 @@ from libc.math cimport cos, atan2, abs
 np.import_array()
 ctypedef np.float64_t DTYPE_F64_t
 ctypedef np.float32_t DTYPE_t
-ctypedef np.int64_t DTYPE_int64_t
+ctypedef fused DTYPE_int64_t:
+    np.int64_t
+    np.int32_t  # to compat Windows
 ctypedef np.uint8_t DTYPE_bool_t
 
 PI = np.pi

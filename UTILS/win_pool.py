@@ -1,8 +1,24 @@
-# cython: language_level=3
+"""
+    Author: Fu Qingxu,CASIA
+    Description: Efficient parallel execting tool, 
+        it resembles Ray but:
+            1.optimized for single machine using shared memory
+            2.optimized for numpy ndarray
+            3.use semaphore for IPC
+            4.faster!
+    Note: 
+        SHARE_BUF_SIZE: shared memory size, 10MB per process
+"""
 import numpy as np
 from multiprocessing import Pipe
-import time
+import time, platform
 import multiprocessing
+
+def child_process_load_config():
+    # important! load json config or cmdline config to child process
+    from UTILS.config_args import prepare_args
+    prepare_args(vb=False)
+    pass
 
 
 class SuperProc(multiprocessing.Process):
@@ -50,6 +66,8 @@ class SuperProc(multiprocessing.Process):
     def run(self):
         import numpy
         numpy.random.seed(self.local_seed)
+        # linux uses fork, but windows does not, reload config for windows
+        if not platform.system()=="Linux":  child_process_load_config()
         print('process worker %d started'%self.index)
         try:
             while True:
@@ -85,7 +103,7 @@ class SmartPool(object):
         self.proc_pool = [SuperProc(pipe=p, pipeHelp=pH, index=cnt, base_seed=self.base_seed)
                           for p, pH, cnt in zip(self.thatSide, self.thatSideHelp, range(proc_num))]
         for proc in self.proc_pool:
-            proc.daemon = True
+            proc.daemon = False
             proc.start()
             time.sleep(0.001)
         # shut down
@@ -184,3 +202,7 @@ class SmartPool(object):
                 res_sort[i] = result_recv_List_List[which_proc][which_fold]
             return res_sort
 
+    def party_over(self):
+        self.__del__()
+
+        
