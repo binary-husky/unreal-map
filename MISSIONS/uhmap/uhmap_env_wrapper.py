@@ -1,4 +1,4 @@
-import json
+import json, os, subprocess, time
 import numpy as np
 from UTILS.colorful import print紫, print靛
 from UTILS.network import TcpClientP2P
@@ -51,7 +51,16 @@ class ScenarioConfig(object):
     # <Part 2> Needed by env itself #
     MaxEpisodeStep = 100
     render = False
-
+    TcpAddr = '127.0.0.1'
+    UhmapPort = 21051
+    SubTaskSelection = 'UhmapBreakingBad'
+    
+    UhmapServerExe = 'F:/UHMP/Build/WindowsServer/UHMPServer.exe'
+    TimeDilation = 1.25
+    FrameRate = 30
+    # must satisfy: (TimeDilation=1.25*n, FrameRate=30*n)
+    FrameRate_cv = ChainVar(lambda TimeDilation: int(TimeDilation/1.25*30), chained_with=['TimeDilation'])
+    UhmapStartCmd = []
     # <Part 3> Needed by some ALGORITHM #
     StateProvided = False
     AvailActProvided = False
@@ -61,7 +70,7 @@ class ScenarioConfig(object):
     obs_vec_length = 7
     act2digit_dictionary = act2digit_dictionary
 
-DEBUG = True 
+DEBUG = False
 
 class UhmapEnvParseHelper:
     def parse_response_ob_info(self, response):
@@ -110,7 +119,21 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         if self.render:
             # render init
             pass
-        ipport = ('cloud.fuqingxu.top', 21051)
+        ipport = (ScenarioConfig.TcpAddr, ScenarioConfig.UhmapPort)
+        # os.system()
+        if ScenarioConfig.UhmapServerExe != '':
+            subprocess.Popen([
+                ScenarioConfig.UhmapServerExe,
+                '-log', 
+                '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
+                '-FrameRate=%d'%ScenarioConfig.FrameRate,
+                '-LockGameDuringCom=True',
+            ])
+            # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=10', '-FrameRate=240'])
+            # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=20', '-FrameRate=480'])
+            print('UHMAP started, wait 10s before continue:')
+            time.sleep(10)
+
         self.client = TcpClientP2P(ipport, obj='str')
         self.t = 0
         #  run flag https://docs.unrealengine.com/5.0/en-US/unreal-engine-pixel-streaming-reference/
@@ -142,7 +165,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     'IndexInTeam': i,   # int IndexInTeam = 0;
                     'UID': agent_uid_cnt,   # int UID = 0;
                     'MaxMoveSpeed': 600,
-                    'AgentHp':2000,
+                    'AgentHp':150,
                     'InitLocation': { 'x': x,  'y': y, 'z': z, },
                 },
             )
@@ -215,4 +238,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
 
 # please register this into MISSIONS/env_router.py
 def make_uhmap_env(env_id, rank):
-    return UhmapEnv(rank)
+    if ScenarioConfig.SubTaskSelection == 'UhmapEnv':
+        return UhmapEnv(rank)
+    if ScenarioConfig.SubTaskSelection == 'UhmapBreakingBad':
+        from .SubTasks.UhmapBreakingBad import UhmapBreakingBad
+        return UhmapBreakingBad(rank)

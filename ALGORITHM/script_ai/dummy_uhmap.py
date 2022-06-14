@@ -58,11 +58,17 @@ class DummyAlgorithm(DummyAlgorithmBase):
         env0_step = State_Recall['Current-Obs-Step']
 
         thread = 0
-        if env0_step < 2:
-            
-            actions[thread, :] = self.act2digit_dictionary['ActionSet2::Idle;DynamicGuard']
-            # actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-Y']
-
+        # if env0_step < 2:
+            # actions[thread, :] = self.act2digit_dictionary['ActionSet2::Idle;DynamicGuard']
+        x = input('>> Press WASD\n')
+        if x == 'w':
+            actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-Y']
+        elif x == 's':
+            actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+Y']
+        elif x == 'a':
+            actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-X']
+        elif x == 'd':
+            actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+X']
 
         # actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;X=-6800.0 Y=6830.0 Z=397.215454']
 
