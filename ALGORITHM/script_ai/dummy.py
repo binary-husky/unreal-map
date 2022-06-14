@@ -2,7 +2,7 @@ import numpy as np
 from UTILS.tensor_ops import copy_clone
 
 class DummyAlgConfig():
-    reserve = None
+    reserve = ""
 
 class DummyAlgorithmBase():
     def __init__(self, n_agent, n_thread, space, mcv):

@@ -1,6 +1,12 @@
 import json
+import numpy as np
+from UTILS.colorful import print紫, print靛
 from UTILS.network import TcpClientP2P
 from UTILS.config_args import ChainVar
+from ..common.base_env import BaseEnv
+from .actset_lookup import digit2act_dictionary, agent_json2local_attrs
+from .actset_lookup import act2digit_dictionary, no_act_placeholder, dictionary_n_actions
+from .agent import Agent
 
 # please register this ScenarioConfig into MISSIONS/env_router.py
 class ScenarioConfig(object):  
@@ -11,6 +17,7 @@ class ScenarioConfig(object):
         (please see UTILS.config_args to find out how this advanced trick works out.)
     '''
     n_team1agent = 5
+    n_team2agent = 5
 
     # <Part 1> Needed by the hmp core #
     N_TEAM = 1
@@ -50,44 +57,40 @@ class ScenarioConfig(object):
     AvailActProvided = False
     EntityOriented = False
 
-    n_actions = 2
-    obs_vec_length = 10
+    n_actions = dictionary_n_actions
+    obs_vec_length = 7
+    act2digit_dictionary = act2digit_dictionary
 
-
-class BaseEnv(object):
-    def __init__(self, rank) -> None:
-        self.observation_space = None
-        self.action_space = None
-        self.rank = rank
-
-    def step(self, act):
-        # obs: a Tensor with shape (n_agent, ...)
-        # reward: a Tensor with shape (n_agent, 1) or (n_team, 1)
-        # done: a Bool
-        # info: a dict
-        raise NotImplementedError
-        # Warning: if you have only one team and RewardAsUnity, 
-        # you must make sure that reward has shape=[n_team=1, 1]
-        # e.g. 
-        # >> RewardForTheOnlyTeam = +1
-        # >> RewardForAllTeams = np.array([RewardForTheOnlyTeam, ])
-        # >> return (ob, RewardForAllTeams, done, info)
-        return (ob, RewardForAllTeams,  done, info)  # choose this if RewardAsUnity
-        return (ob, RewardForAllAgents, done, info)  # choose this if not RewardAsUnity
-
-    def reset(self):
-        # obs: a Tensor with shape (n_agent, ...)
-        # done: a Bool
-        raise NotImplementedError
-        return ob, info
-
+DEBUG = True 
 
 class UhmapEnvParseHelper:
-
     def parse_response_ob_info(self, response):
-        ob = None
-        info = None
-        return ob, info
+        assert response['valid']
+        if len(response['dataGlobal']['events'])>0:
+            tmp = [kv.split('>') for kv in response['dataGlobal']['events'][0].split('<') if kv]
+            info_parse = {t[0]:t[1] for t in tmp}
+            # print('pass')
+        info_dict = response
+        info = response['dataArr']
+        for i, agent_info in enumerate(info):
+            self.agents[i].update_agent_attrs(agent_info)
+        # return ob, info
+        return self.make_obs(), info_dict
+
+    def make_obs(self):
+        encoded_obs = np.zeros(shape=(self.n_agents, 10), dtype=np.float32); p=0
+        for i, agent in enumerate(self.rl_agents):
+            part_1 = np.array([
+                agent.index,
+                agent.Location['x'],
+                agent.Location['y'],
+                agent.Location['z'],
+                agent.hp,
+                agent.weaponCD,
+            ])
+            length = part_1.shape[0]
+            encoded_obs[i,:length] = part_1[:]
+        return encoded_obs
 
 
 class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
@@ -96,6 +99,9 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         self.id = rank
         self.render = ScenarioConfig.render and (self.id==0)
         self.n_agents = ScenarioConfig.n_team1agent
+        self.agents = [Agent(team=0, team_id=i, uid=i                            ) for i in range(ScenarioConfig.n_team1agent)] \
+                    + [Agent(team=1, team_id=i, uid=i+ScenarioConfig.n_team1agent) for i in range(ScenarioConfig.n_team2agent)]
+        self.rl_agents = self.agents[:self.n_agents]
         # self.observation_space = ?
         # self.action_space = ?
         if ScenarioConfig.StateProvided:
@@ -107,57 +113,103 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         ipport = ('cloud.fuqingxu.top', 21051)
         self.client = TcpClientP2P(ipport, obj='str')
         self.t = 0
+        #  run flag https://docs.unrealengine.com/5.0/en-US/unreal-engine-pixel-streaming-reference/
+        #   ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED
+        #   ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -RenderOffscreen -TimeDilation=1.25 -FrameRate=30
+        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=1.25 -FrameRate=30
+        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=2.5 -FrameRate=60
+        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=3.75 -FrameRate=90 -RenderOffscreen
+        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=5 -FrameRate=120 -RenderOffscreen
+        #  ./UHMP.exe -ResX=0 -ResY=0 -WINDOWED -TimeDilation=5 -FrameRate=120 -RenderOffscreen
 
+
+    # override reset function
     def reset(self):
         self.t = 0
         AgentSettingArray = []
+        agent_uid_cnt = 0
         for i in range(ScenarioConfig.n_team1agent):
-            x = 2000*i
-            y = 0
+            x = -10990.0 + 500*(i+1)  *  (-1)**(i+1)
+            y = -9440.0
+            # 500 is slightly above the ground (depending the map you have built), 
+            # but agent will be spawn to ground automatically
+            z = 500 
+            AgentSettingArray.append(
+                {
+                    'ClassName': 'AgentControllable',   # FString ClassName = "";
+                    'AcceptRLControl': True,    # bool AcceptRLControl = 0;
+                    'AgentTeam': 0, # int AgentTeam = 0;
+                    'IndexInTeam': i,   # int IndexInTeam = 0;
+                    'UID': agent_uid_cnt,   # int UID = 0;
+                    'MaxMoveSpeed': 600,
+                    'AgentHp':2000,
+                    'InitLocation': { 'x': x,  'y': y, 'z': z, },
+                },
+            )
+            agent_uid_cnt += 1
+
+        for i in range(ScenarioConfig.n_team2agent):
+            x = -10990.0 + 3000*(i+1)  *  (-1)**(i+1)
+            y = -21770.0
             # 500 is slightly above the ground, but agent will be spawn to ground automatically
             z = 500 
             AgentSettingArray.append(
                 {
                     'ClassName': 'AgentControllable',
-                    'AgentTeam': 0,
+                    'AcceptRLControl': False,
+                    'AgentTeam': 1,
                     'IndexInTeam': i,
-                    'UID': i,
-                    'TimeStep' : self.t,
+                    'UID': agent_uid_cnt,
                     'MaxMoveSpeed': 600,
-                    'InitLocation': {
-                        'x': x,
-                        'y': y,
-                        'z': z,
-                    },
+                    'AgentHp':29,
+                    'InitLocation': { 'x': x, 'y': y, 'z': z, },
                 },
             )
+            agent_uid_cnt += 1
 
+        # refer to struct.cpp, FParsedDataInput
         json_to_send = json.dumps({
             'valid': True,
             'DataCmd': 'reset',
             'NumAgents' : ScenarioConfig.n_team1agent,
-            'AgentSettingArray': AgentSettingArray,
+            'AgentSettingArray': AgentSettingArray,  # refer to struct.cpp, FAgentProperty
+            'TimeStepMax': ScenarioConfig.MaxEpisodeStep,
             'TimeStep' : 0,
             'Actions': None,
         })
         resp = self.client.send_and_wait_reply(json_to_send)
         resp = json.loads(resp)
+        if DEBUG:
+            print靛(resp['dataGlobal'])
         return self.parse_response_ob_info(resp)
 
+
+    # override step function
     def step(self, act):
+
+        assert len(act) == self.n_agents
+        act_send = [digit2act_dictionary[a] for a in act] + \
+                   ['ActionSet2::PatrolMoving;x=-10525.0 Y=-6009.0 Z=380.0' for _ in range(ScenarioConfig.n_team2agent)]
         json_to_send = json.dumps({
             'valid': True,
             'DataCmd': 'step',
             'TimeStep': self.t,
-            'Actions': act,
+            'Actions': None,
+            'StringActions': act_send,
         })
-        response = self.client.send_and_wait_reply(json_to_send)
-        response = json.loads(response)
+        resp = self.client.send_and_wait_reply(json_to_send)
+        resp = json.loads(resp)
 
-        ob = None
-        RewardForAllTeams = None
-        done = None
-        info = None
+        ob, info = self.parse_response_ob_info(resp)
+        RewardForAllTeams = 0
+        done = resp['dataGlobal']['episodeDone']
+        if resp['dataGlobal']['timeCnt'] >= ScenarioConfig.MaxEpisodeStep:
+            done = True
+        if DEBUG:
+            if done:
+                print紫(resp['dataGlobal'])
+            else:
+                print(resp['dataGlobal'])
         return (ob, RewardForAllTeams,  done, info)  # choose this if RewardAsUnity
 
 

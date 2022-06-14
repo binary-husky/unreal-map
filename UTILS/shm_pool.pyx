@@ -9,7 +9,7 @@
     Note: 
         SHARE_BUF_SIZE: shared memory size, 10MB per process
 """
-import time, pickle #, traceback
+import time, pickle
 from multiprocessing import Process, RawValue, Semaphore
 from multiprocessing import shared_memory
 from ctypes import c_char, c_uint16, c_bool, c_uint32, c_byte
@@ -116,7 +116,6 @@ class SuperProc(Process):
     def __del__(self):
         if hasattr(self,'_deleted_'): return    # avoid exit twice
         else: self._deleted_ = True     # avoid exit twice
-        # print('executing child exit')
         self.shared_memory.close()
         for target_name in self.target_tracker: 
             setattr(self, target_name, None)    # GC by clearing the pointer.
@@ -223,8 +222,6 @@ class SuperProc(Process):
 
 class SmartPool(object):
     def __init__(self, proc_num, fold, base_seed=None):
-        # import signal
-        # signal.signal(signal.SIGCHLD, signal.SIG_IGN)
         self.proc_num = proc_num
         self.task_fold = fold
         self.base_seed = int(np.random.rand()*1e5) if base_seed is None else base_seed
