@@ -25,7 +25,9 @@ By the way, we also have a gitee rep which is a mirror of this Github rep: ```ht
 ```
 http://cloud.fuqingxu.top:11601/
 ```
+<div align="center">
 <img src="ZHECKPOINT/test-50+50/test50.gif" width="300" >
+</div>
 
 ## Decentralized Collective Assult (Improved Version, more Difficult Than AAAI Paper Version)
 
@@ -35,15 +37,18 @@ git pull && python main.py -c ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
 ```
 
 ## Anti-Invasion Interception
+<div align="center">
 <img src="ZHECKPOINT/test-aii515/aii.jpg" width="300" >
+</div>
 
 ```
 git pull && python main.py -c ZHECKPOINT/test-aii515/test-aii515.jsonc --skip 
 ```
 
 ## Hazardous Cargo Transport
+<div align="center">
 <img src="ZHECKPOINT/test-cargo50/cargo50.jpg" width="300" >
-
+</div>
 ```
 git pull && python main.py -c ZHECKPOINT/test-cargo50/test-cargo50.jsonc --skip
 ```
@@ -69,7 +74,9 @@ also refer to the last part of [setup_docker](./setup_docker.md) for pip require
 HMP aims to optimize the parameter control experience as a framework for researchers. 
 One configuration file is all that is needed for the config insertion.
 
+<div align="center">
 <img src="VISUALIZE/md_imgs/HMP_CONF.svg" width="400" >
+</div>
 
 ### <1> How to Config:
 We discard the method of using the command line to control parameters; instead, the commented-JSON (JSONC) is used for experiment configuration. To run an experiment, just type:
@@ -158,7 +165,9 @@ self.info_runner = self.update_runner(done, obs, reward, info)
 In general, HMP task runner can operate two ways:
 - (Deprecated due) self.align_episode = False: threads immediately restart at terminal state, threads do not wait each other
 - self.align_episode = True: threads pause at terminal state, waiting until all threads terminate, then reset
+<div align="center">
 <img src="VISUALIZE/md_imgs/timeline.jpg" width="700" >
+</div>
 
 
 ## MISSIONS
@@ -192,7 +201,7 @@ VHMAP is just the answer,Features:
 - Use zlib to compress data streams, low network bandwidth requirement
 
 <div align="center">
-<img src="VISUALIZE/md_imgs/动画9.gif" width="700" >
+<img src="VISUALIZE/md_imgs/动画9.gif" width="450" >
 </div>
 
 Interface functions, operation introduction.
