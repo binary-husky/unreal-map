@@ -56,6 +56,7 @@ class ScenarioConfig(object):
     SubTaskSelection = 'UhmapBreakingBad'
     
     UhmapServerExe = 'F:/UHMP/Build/WindowsServer/UHMPServer.exe'
+    UhmapRenderExe = ''
     TimeDilation = 1.25
     FrameRate = 30
     # must satisfy: (TimeDilation=1.25*n, FrameRate=30*n)
@@ -116,12 +117,10 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         if ScenarioConfig.StateProvided:
             # self.observation_space['state_shape'] = ?
             pass
-        if self.render:
-            # render init
-            pass
+        self.render = ScenarioConfig.render and (rank==0)
         ipport = (ScenarioConfig.TcpAddr, ScenarioConfig.UhmapPort)
         # os.system()
-        if ScenarioConfig.UhmapServerExe != '':
+        if (not self.render) and ScenarioConfig.UhmapServerExe != '':
             subprocess.Popen([
                 ScenarioConfig.UhmapServerExe,
                 '-log', 
@@ -131,8 +130,24 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             ])
             # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=10', '-FrameRate=240'])
             # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=20', '-FrameRate=480'])
-            print('UHMAP started, wait 10s before continue:')
+            print('UHMAP started, wait 10s before continue ...')
             time.sleep(10)
+        elif self.render and ScenarioConfig.UhmapRenderExe != '':
+            print('UHMAP render client started, wait 10s before continue ...')
+            subprocess.Popen([
+                ScenarioConfig.UhmapRenderExe,
+                '-log', 
+                '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
+                '-FrameRate=%d'%ScenarioConfig.FrameRate,
+                '-LockGameDuringCom=True',
+                "-ResX=1280",
+                "-ResY=720",
+                "-WINDOWED"
+            ])
+            time.sleep(10)
+        else:
+            print('Cannot start Headless Server Or GUI Server!')
+            assert False, 'Cannot start Headless Server Or GUI Server!'
 
         self.client = TcpClientP2P(ipport, obj='str')
         self.t = 0

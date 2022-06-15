@@ -55,13 +55,22 @@ git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
 ```
 
 # Dependency
-We use docker to solve dependency: [SetupDocker](./setup_docker.md)
+We use docker to solve dependency: [SetupDocker](./setup_docker.md).
+
+Please do not run on WindowsOS (low efficiency), 
+but if you have to, 
+also refer to the last part of [setup_docker](./setup_docker.md) for pip requirements list. 
 
 
 # Introducing the Structure of HMP
+## HMP's General Framework Structure
 
 ## HMP's Config System (How to experiment)
 HMP aims to optimize the parameter control experience as a framework for researchers. 
+One configuration file is all that is needed for the config insertion.
+
+<img src="VISUALIZE/md_imgs/HMP_CONF.svg" width="400" >
+
 ### <1> How to Config:
 We discard the method of using the command line to control parameters; instead, the commented-JSON (JSONC) is used for experiment configuration. To run an experiment, just type:
 ```
@@ -207,7 +216,8 @@ Interface functions, operation introduction.
 We use docker to solve dependency: 
 [setup_docker](./setup_docker.md). 
 This project uses techniques such shared memory for extreme training efficiency, 
-as a cost, WindowsOS+GPU training is not yet supported.
+as a cost, 
+WindowsOS+GPU training is not well supported (using pipe IO for Windows compat).
 For Windows (Not recommended, please do NOT run under Windows if possible), 
 also refer to the last part of [setup_docker](./setup_docker.md) for pip requirements list. 
 
