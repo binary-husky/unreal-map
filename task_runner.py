@@ -47,7 +47,7 @@ class Runner(object):
     # ------------------------------ Major Loop -------------------------------
     # -------------------------------------------------------------------------
     def run(self):
-        # all item in self.info_runner:  n_thread..n_agent/n_team..
+        # all item in self.info_runner: shape =(n_thread, n_agent/n_team, ...)
         self.init_runner()
         # test machine performance
         tic = time.time()

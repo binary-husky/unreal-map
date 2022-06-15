@@ -81,7 +81,6 @@ if __name__ == '__main__':
 
     # Prepare everything else
     from task_runner import Runner
-    # import time; time.sleep(999)
     runner = Runner(process_pool=smart_pool)
     # GO! GO! GO!
     runner.run() 
