@@ -126,9 +126,14 @@ a reminder of dependencies being used,
 do NOT use it for configuration unless
 no other choice is available!
 
-```
+```python
+# Just install the latest version !
+python >= 3.8
 pytorch
 numpy
+cython
+numba
+colorama
 tensorboardX
 func_timeout
 commentjson
