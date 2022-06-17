@@ -20,13 +20,13 @@ class ScenarioConfig(object):
     n_team2agent = 5
 
     # <Part 1> Needed by the hmp core #
-    N_TEAM = 1
+    N_TEAM = 2
 
-    N_AGENT_EACH_TEAM = [n_team1agent,]
-    N_AGENT_EACH_TEAM_cv = ChainVar(lambda n_team1agent: [n_team1agent,], chained_with=['n_team1agent'])
+    N_AGENT_EACH_TEAM = [n_team1agent, n_team2agent]
+    N_AGENT_EACH_TEAM_cv = ChainVar(lambda n1, n2: [n1, n2], chained_with=['n_team1agent', 'n_team2agent'])
 
-    AGENT_ID_EACH_TEAM = [range(0,n_team1agent),]
-    AGENT_ID_EACH_TEAM_cv = ChainVar(lambda n_team1agent: [range(0,n_team1agent),], chained_with=['n_team1agent'])
+    AGENT_ID_EACH_TEAM = [range(0,n_team1agent), range(0,n_team2agent)]
+    AGENT_ID_EACH_TEAM_cv = ChainVar(lambda  n1, n2: [range(0,n1),range(0,n2)], chained_with=['n_team1agent', 'n_team2agent'])
 
     TEAM_NAMES = ['ALGORITHM.None->None',]
 
@@ -89,7 +89,7 @@ class UhmapEnvParseHelper:
 
     def make_obs(self):
         encoded_obs = np.zeros(shape=(self.n_agents, 10), dtype=np.float32); p=0
-        for i, agent in enumerate(self.rl_agents):
+        for i, agent in enumerate(self.agents):
             part_1 = np.array([
                 agent.index,
                 agent.Location['x'],
@@ -100,7 +100,9 @@ class UhmapEnvParseHelper:
             ])
             length = part_1.shape[0]
             encoded_obs[i,:length] = part_1[:]
-        return encoded_obs
+        from UTILS.tensor_ops import repeat_at
+        encoded_obs_all_agent = repeat_at(encoded_obs, insert_dim=0, n_times=self.n_agents)
+        return encoded_obs_all_agent
 
 
 class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
@@ -108,10 +110,9 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         super().__init__(rank)
         self.id = rank
         self.render = ScenarioConfig.render and (self.id==0)
-        self.n_agents = ScenarioConfig.n_team1agent
+        self.n_agents = ScenarioConfig.n_team1agent + ScenarioConfig.n_team2agent
         self.agents = [Agent(team=0, team_id=i, uid=i                            ) for i in range(ScenarioConfig.n_team1agent)] \
                     + [Agent(team=1, team_id=i, uid=i+ScenarioConfig.n_team1agent) for i in range(ScenarioConfig.n_team2agent)]
-        self.rl_agents = self.agents[:self.n_agents]
         # self.observation_space = ?
         # self.action_space = ?
         if ScenarioConfig.StateProvided:
@@ -145,6 +146,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 "-WINDOWED"
             ])
             time.sleep(10)
+        elif self.render and ScenarioConfig.UhmapServerExe == '':
+            pass
         else:
             print('Cannot start Headless Server Or GUI Server!')
             assert False, 'Cannot start Headless Server Or GUI Server!'
@@ -152,8 +155,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         self.client = TcpClientP2P(ipport, obj='str')
         self.t = 0
         #  run flag https://docs.unrealengine.com/5.0/en-US/unreal-engine-pixel-streaming-reference/
-        #   ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED
-        #   ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -RenderOffscreen -TimeDilation=1.25 -FrameRate=30
+        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED
+        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -RenderOffscreen -TimeDilation=1.25 -FrameRate=30
         #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=1.25 -FrameRate=30
         #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=2.5 -FrameRate=60
         #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=3.75 -FrameRate=90 -RenderOffscreen
@@ -180,7 +183,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     'IndexInTeam': i,   # int IndexInTeam = 0;
                     'UID': agent_uid_cnt,   # int UID = 0;
                     'MaxMoveSpeed': 600,
-                    'AgentHp':150,
+                    'AgentHp':100,
+                    'RSVD1':'(R=0,G=1,B=0,A=1)',
                     'InitLocation': { 'x': x,  'y': y, 'z': z, },
                 },
             )
@@ -199,7 +203,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     'IndexInTeam': i,
                     'UID': agent_uid_cnt,
                     'MaxMoveSpeed': 600,
-                    'AgentHp':29,
+                    'AgentHp':100,
                     'InitLocation': { 'x': x, 'y': y, 'z': z, },
                 },
             )
@@ -258,3 +262,6 @@ def make_uhmap_env(env_id, rank):
     if ScenarioConfig.SubTaskSelection == 'UhmapBreakingBad':
         from .SubTasks.UhmapBreakingBad import UhmapBreakingBad
         return UhmapBreakingBad(rank)
+    if ScenarioConfig.SubTaskSelection == 'UhmapLargeScale':
+        from .SubTasks.UhmapLargeScale import UhmapLargeScale
+        return UhmapLargeScale(rank)

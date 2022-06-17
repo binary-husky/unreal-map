@@ -4,13 +4,13 @@ from UTILS.colorful import print紫, print靛
 from UTILS.network import TcpClientP2P
 from UTILS.config_args import ChainVar
 from ...common.base_env import BaseEnv
-from ..actset_lookup import digit2act_dictionary, decode_action_as_string
+from ..actset_lookup import digit2act_dictionary
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
 
 DEBUG = True
 
-class UhmapBreakingBad(UhmapEnv):
+class UhmapLargeScale(UhmapEnv):
     def __init__(self, rank) -> None:
         super().__init__(rank)
 
@@ -18,9 +18,9 @@ class UhmapBreakingBad(UhmapEnv):
         self.t = 0
         AgentSettingArray = []
         agent_uid_cnt = 0
-        for i in range(ScenarioConfig.n_team1agent-1):
-            x = 2249.0 + 500*i
-            y = 4911.0
+        for i in range(ScenarioConfig.n_team1agent):
+            x = 0 + 500*(i+1)  *  (-1)**(i+1)
+            y = 0
             # 500 is slightly above the ground (depending the map you have built), 
             # but agent will be spawn to ground automatically
             z = 500 
@@ -33,37 +33,15 @@ class UhmapBreakingBad(UhmapEnv):
                     'UID': agent_uid_cnt,   # int UID = 0;
                     'MaxMoveSpeed': 600,
                     'AgentHp':100,
-                    "WeaponCD": 1,
                     'RSVD1':'(R=0,G=1,B=0,A=1)',
                     'InitLocation': { 'x': x,  'y': y, 'z': z, },
                 },
             ); agent_uid_cnt += 1
 
-        x = 2249.0 + 1500
-        y = 4911.0
-        # 500 is slightly above the ground (depending the map you have built), 
-        # but agent will be spawn to ground automatically
-        z = 2000
-        AgentSettingArray.append(
-            {
-                'ClassName': 'RLA_UAV',   # FString ClassName = "";
-                'AcceptRLControl': True,    # bool AcceptRLControl = 0;
-                'AgentTeam': 0, # int AgentTeam = 0;
-                'IndexInTeam': i,   # int IndexInTeam = 0;
-                'UID': agent_uid_cnt,   # int UID = 0;
-                'MaxMoveSpeed': 600,
-                'AgentHp':1000,
-                "WeaponCD": 1000,
-                'RSVD1':'(R=0,G=1,B=0,A=1)',
-                'InitLocation': { 'x': x,  'y': y, 'z': z, },
-            },
-        ); agent_uid_cnt += 1
-        
-
 
         for i in range(ScenarioConfig.n_team2agent):
-            x = 766.0 + 500*(i+1)  *  (-1)**(i+1)
-            y = 595.0
+            x = 0 + 500*(i+1)  *  (-1)**(i+1)
+            y = 2000
             # 500 is slightly above the ground, but agent will be spawn to ground automatically
             z = 500 
             AgentSettingArray.append(
@@ -75,8 +53,7 @@ class UhmapBreakingBad(UhmapEnv):
                     'UID': agent_uid_cnt,
                     'MaxMoveSpeed': 600,
                     'AgentHp':100,
-                    "WeaponCD": 0.75,
-                    'RSVD1':'(R=1,G=0,B=0,A=1)',
+                    'RSVD1':'(R=1,G=0,B=1,A=1)',
                     'InitLocation': { 'x': x, 'y': y, 'z': z, },
                 },
             ); agent_uid_cnt += 1
@@ -100,7 +77,8 @@ class UhmapBreakingBad(UhmapEnv):
     def step(self, act):
 
         assert len(act) == self.n_agents
-        act_send = [decode_action_as_string(a) for a in act]
+        act_send = [digit2act_dictionary[a] for a in act] + \
+                   ['ActionSet2::N/A;N/A' for _ in range(ScenarioConfig.n_team2agent)]
         json_to_send = json.dumps({
             'valid': True,
             'DataCmd': 'step',
