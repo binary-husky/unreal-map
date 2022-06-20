@@ -75,7 +75,7 @@ HMP aims to optimize the parameter control experience as a framework for researc
 One configuration file is all that is needed for the config insertion.
 
 <div align="center">
-<img src="VISUALIZE/md_imgs/HMP_CONF.svg" width="400" >
+<img src="VISUALIZE/md_imgs/HMP_CONF.svg" width="500" >
 </div>
 
 ### <1> How to Config:
@@ -227,16 +227,21 @@ We use docker to solve dependency:
 This project uses techniques such shared memory for extreme training efficiency, 
 as a cost, 
 WindowsOS+GPU training is not well supported (using pipe IO for Windows compat).
+
 For Windows (Not recommended, please do NOT run under Windows if possible), 
 also refer to the last part of [setup_docker](./setup_docker.md) for pip requirements list. 
 
-Please read setup_docker.md, then set up the container using:
+Please read [setup_docker.md](./setup_docker.md) first, and then set up the container using:
 ```bash
 $ docker run -itd   --name  hmp-$USER \
 --net host \
 --gpus all \
 --shm-size=16G \
 fuqingxu/hmp:latest
+
+# Now inside the HMP container
+$ su hmp # (switch the account Inside the HMP container, password: hmp)
+$ cd ~   # (go to home directory)
 ```
 
 

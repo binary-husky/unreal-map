@@ -54,6 +54,7 @@ class ScenarioConfig(object):
     TcpAddr = '127.0.0.1'
     UhmapPort = 21051
     SubTaskSelection = 'UhmapBreakingBad'
+    UElink2editor = False
     
     UhmapServerExe = 'F:/UHMP/Build/WindowsServer/UHMPServer.exe'
     UhmapRenderExe = ''
@@ -121,36 +122,35 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         self.render = ScenarioConfig.render and (rank==0)
         ipport = (ScenarioConfig.TcpAddr, ScenarioConfig.UhmapPort)
         # os.system()
-        if (not self.render) and ScenarioConfig.UhmapServerExe != '':
-            subprocess.Popen([
-                ScenarioConfig.UhmapServerExe,
-                '-log', 
-                '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
-                '-FrameRate=%d'%ScenarioConfig.FrameRate,
-                '-LockGameDuringCom=True',
-            ])
-            # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=10', '-FrameRate=240'])
-            # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=20', '-FrameRate=480'])
-            print('UHMAP started, wait 10s before continue ...')
-            time.sleep(10)
-        elif self.render and ScenarioConfig.UhmapRenderExe != '':
-            print('UHMAP render client started, wait 10s before continue ...')
-            subprocess.Popen([
-                ScenarioConfig.UhmapRenderExe,
-                '-log', 
-                '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
-                '-FrameRate=%d'%ScenarioConfig.FrameRate,
-                '-LockGameDuringCom=True',
-                "-ResX=1280",
-                "-ResY=720",
-                "-WINDOWED"
-            ])
-            time.sleep(10)
-        elif self.render and ScenarioConfig.UhmapServerExe == '':
-            pass
-        else:
-            print('Cannot start Headless Server Or GUI Server!')
-            assert False, 'Cannot start Headless Server Or GUI Server!'
+        if not ScenarioConfig.UElink2editor:
+            if (not self.render) and ScenarioConfig.UhmapServerExe != '':
+                subprocess.Popen([
+                    ScenarioConfig.UhmapServerExe,
+                    '-log', 
+                    '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
+                    '-FrameRate=%d'%ScenarioConfig.FrameRate,
+                    '-LockGameDuringCom=True',
+                ])
+                # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=10', '-FrameRate=240'])
+                # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=20', '-FrameRate=480'])
+                print('UHMAP started, wait 10s before continue ...')
+                time.sleep(10)
+            elif self.render and ScenarioConfig.UhmapRenderExe != '':
+                print('UHMAP render client started, wait 10s before continue ...')
+                subprocess.Popen([
+                    ScenarioConfig.UhmapRenderExe,
+                    '-log', 
+                    '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
+                    '-FrameRate=%d'%ScenarioConfig.FrameRate,
+                    '-LockGameDuringCom=True',
+                    "-ResX=1280",
+                    "-ResY=720",
+                    "-WINDOWED"
+                ])
+                time.sleep(10)
+            else:
+                print('Cannot start Headless Server Or GUI Server!')
+                assert False, 'Cannot start Headless Server Or GUI Server!'
 
         self.client = TcpClientP2P(ipport, obj='str')
         self.t = 0

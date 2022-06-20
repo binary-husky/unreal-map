@@ -19,8 +19,10 @@ class UhmapBreakingBad(UhmapEnv):
         AgentSettingArray = []
         agent_uid_cnt = 0
         for i in range(ScenarioConfig.n_team1agent-1):
-            x = 2249.0 + 500*i
-            y = 4911.0
+            #x = 2249.0 + 500*i
+            #y = 4911.0
+            x = 0 + 500*i
+            y = 2500
             # 500 is slightly above the ground (depending the map you have built), 
             # but agent will be spawn to ground automatically
             z = 500 
@@ -32,15 +34,17 @@ class UhmapBreakingBad(UhmapEnv):
                     'IndexInTeam': i,   # int IndexInTeam = 0;
                     'UID': agent_uid_cnt,   # int UID = 0;
                     'MaxMoveSpeed': 600,
-                    'AgentHp':100,
-                    "WeaponCD": 1,
+                    'AgentHp': 100,
+                    "WeaponCD": 0.5,
                     'RSVD1':'(R=0,G=1,B=0,A=1)',
                     'InitLocation': { 'x': x,  'y': y, 'z': z, },
                 },
             ); agent_uid_cnt += 1
 
-        x = 2249.0 + 1500
-        y = 4911.0
+        #x = 2249.0 + 1500
+        #y = 4911.0
+        x = -1500
+        y = 2500
         # 500 is slightly above the ground (depending the map you have built), 
         # but agent will be spawn to ground automatically
         z = 2000
@@ -53,7 +57,7 @@ class UhmapBreakingBad(UhmapEnv):
                 'UID': agent_uid_cnt,   # int UID = 0;
                 'MaxMoveSpeed': 600,
                 'AgentHp':1000,
-                "WeaponCD": 1000,
+                "WeaponCD": 10000000,
                 'RSVD1':'(R=0,G=1,B=0,A=1)',
                 'InitLocation': { 'x': x,  'y': y, 'z': z, },
             },
@@ -62,8 +66,10 @@ class UhmapBreakingBad(UhmapEnv):
 
 
         for i in range(ScenarioConfig.n_team2agent):
-            x = 766.0 + 500*(i+1)  *  (-1)**(i+1)
-            y = 595.0
+            #x = 766.0 + 500*(i+1)  *  (-1)**(i+1)
+            #y = 595.0
+            x = 0 + 500*(i+1)  *  (-1)**(i+1)
+            y = -3000
             # 500 is slightly above the ground, but agent will be spawn to ground automatically
             z = 500 
             AgentSettingArray.append(
@@ -75,7 +81,7 @@ class UhmapBreakingBad(UhmapEnv):
                     'UID': agent_uid_cnt,
                     'MaxMoveSpeed': 600,
                     'AgentHp':100,
-                    "WeaponCD": 0.75,
+                    "WeaponCD": 0.5,
                     'RSVD1':'(R=1,G=0,B=0,A=1)',
                     'InitLocation': { 'x': x, 'y': y, 'z': z, },
                 },

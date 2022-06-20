@@ -59,7 +59,7 @@ class DummyAlgorithmT1(DummyAlgorithmBase):
 
         thread = 0
 
-        actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+Y']
+        actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;X=0.0 Y=0.0 Z=100.0']
 
 
 
@@ -89,7 +89,7 @@ class DummyAlgorithmT2(DummyAlgorithmBase):
 
         thread = 0
 
-        actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-Y']
+        actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;X=0.0 Y=0.0 Z=100.0']
 
         # actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;X=-6800.0 Y=6830.0 Z=397.215454']
 

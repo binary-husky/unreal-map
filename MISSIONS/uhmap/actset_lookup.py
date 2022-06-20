@@ -22,6 +22,7 @@ dictionary_items = [
     'ActionSet2::PatrolMoving;Dir-Y'    ,
     'ActionSet2::PatrolMoving;Dir+X-Y'  ,
     'ActionSet2::PatrolMoving;X=-6800.0 Y=6830.0 Z=397.215454',
+    'ActionSet2::PatrolMoving;X=0.0 Y=0.0 Z=100.0',
     'ActionSet2::SpecificAttacking;T1-1',
     'ActionSet2::SpecificAttacking;T1-2',
     'ActionSet2::SpecificAttacking;T1-3',

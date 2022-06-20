@@ -39,7 +39,9 @@ Now find a computer to ssh into it: ```ssh hmp@your_host_ip -p 2233```
 # Password: hmp
 ```
 
-
+Note: The environment is not configured in the ```root``` account! 
+If you enter directly after ```docker run``` (not using ssh), 
+you have to switch the account manually from ```root``` to ```hmp``` (using linux command ```su hmp```), 
 
 
 # (3. Optional) Connect to HMP container with remote desktop (RDP)
@@ -90,11 +92,11 @@ After getting ```inside``` the HMP container:
 # goto its home directory
 (hmp-container)$ cd
 
-# clone rep from gitee:
-(hmp-container)$ git clone https://gitee.com/hh505030475/hmp-2g.git
-
-# or github (sync once a week, may not be the latest, please use gitee rep if possible)
+# clone rep from github:
 (hmp-container)$ git clone https://github.com/binary-husky/hmp2g.git
+
+# or gitee (sync once a week, may not be the latest, please use gitee rep if possible)
+(hmp-container)$ git clone https://gitee.com/hh505030475/hmp-2g.git
 
 # cd into it.
 (hmp-container)$ cd hmp-2g
@@ -128,18 +130,22 @@ no other choice is available!
 
 ```python
 # Just install the latest version !
-python >= 3.8
+python >= 3.8   # (Very necessary!)
 pytorch
+gym             # (the latest version will do)
+flask
 numpy
-cython
+scipy
 numba
+cython
+waitress
 colorama
-tensorboardX
 func_timeout
 commentjson
-gym
-flask
-waitress
+matplotlib
+psutil
+paramiko        # (for multi-server experiments)
+ipykernel       # (optional, for openning jupyter notebook)
 ```
 
 <!-- ```
