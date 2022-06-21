@@ -208,3 +208,25 @@ def decode_action_as_string(digits):
     else:
         print('指令错误无法解析')
     return res
+
+
+AgentPropertyDefaults = {
+    'ClassName': 'RLA_CAR',     # FString ClassName = "";
+    'AcceptRLControl': True,    # bool AcceptRLControl = 0;
+    'AgentTeam': 0,             # int AgentTeam = 0;
+    'IndexInTeam': 0,           # int IndexInTeam = 0;
+    'UID': 0,                   # int UID = 0;
+    'MaxMoveSpeed': 600,
+    'InitLocation': { 'x': 0,  'y': 0, 'z': 0, },
+    'InitRotation': { 'x': 0,  'y': 0, 'z': 0, },
+    'AgentScale': { 'x': 1,  'y': 1, 'z': 1, },
+    'InitVelocity': { 'x': 0,  'y': 0, 'z': 0, },
+    'AgentHp':100,
+    "WeaponCD": 1,
+    "IsTeamReward": True,
+    "Type": "",
+    'Color':'(R=0,G=1,B=0,A=1)',
+    "FireRange": 1000,
+    'RSVD1':'',
+    'RSVD2':'',
+}

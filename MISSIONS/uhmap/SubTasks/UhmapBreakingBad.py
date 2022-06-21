@@ -1,13 +1,14 @@
-import json, os, subprocess, time
+import json, os, subprocess, time, copy
 import numpy as np
 from UTILS.colorful import print紫, print靛
 from UTILS.config_args import ChainVar
 from ...common.base_env import BaseEnv
-from ..actset_lookup import digit2act_dictionary, decode_action_as_string
+from ..actset_lookup import digit2act_dictionary, decode_action_as_string, AgentPropertyDefaults
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
 
 DEBUG = True
+
 
 class UhmapBreakingBad(UhmapEnv):
     def __init__(self, rank) -> None:
@@ -25,8 +26,8 @@ class UhmapBreakingBad(UhmapEnv):
             # 500 is slightly above the ground (depending the map you have built), 
             # but agent will be spawn to ground automatically
             z = 500 
-            AgentSettingArray.append(
-                {
+            agent_property = copy.deepcopy(AgentPropertyDefaults)
+            agent_property.update({
                     'ClassName': 'RLA_CAR',   # FString ClassName = "";
                     'AcceptRLControl': True,    # bool AcceptRLControl = 0;
                     'AgentTeam': 0, # int AgentTeam = 0;
@@ -35,10 +36,11 @@ class UhmapBreakingBad(UhmapEnv):
                     'MaxMoveSpeed': 600,
                     'AgentHp': 100,
                     "WeaponCD": 0.5,
-                    'RSVD1':'(R=0,G=1,B=0,A=1)',
+                    'Color':'(R=0,G=1,B=0,A=1)',
                     'InitLocation': { 'x': x,  'y': y, 'z': z, },
-                },
-            ); agent_uid_cnt += 1
+                })
+            AgentSettingArray.append(agent_property); agent_uid_cnt += 1
+
 
         #x = 2249.0 + 1500
         #y = 4911.0
@@ -47,8 +49,8 @@ class UhmapBreakingBad(UhmapEnv):
         # 500 is slightly above the ground (depending the map you have built), 
         # but agent will be spawn to ground automatically
         z = 2000
-        AgentSettingArray.append(
-            {
+        agent_property = copy.deepcopy(AgentPropertyDefaults)
+        agent_property.update({
                 'ClassName': 'RLA_UAV',   # FString ClassName = "";
                 'AcceptRLControl': True,    # bool AcceptRLControl = 0;
                 'AgentTeam': 0, # int AgentTeam = 0;
@@ -57,11 +59,10 @@ class UhmapBreakingBad(UhmapEnv):
                 'MaxMoveSpeed': 600,
                 'AgentHp':1000,
                 "WeaponCD": 10000000,
-                'RSVD1':'(R=0,G=1,B=0,A=1)',
+                'Color':'(R=0,G=1,B=0,A=1)',
                 'InitLocation': { 'x': x,  'y': y, 'z': z, },
-            },
-        ); agent_uid_cnt += 1
-        
+        })
+        AgentSettingArray.append(agent_property); agent_uid_cnt += 1
 
 
         for i in range(ScenarioConfig.n_team2agent):
@@ -71,8 +72,8 @@ class UhmapBreakingBad(UhmapEnv):
             y = -3000
             # 500 is slightly above the ground, but agent will be spawn to ground automatically
             z = 500 
-            AgentSettingArray.append(
-                {
+            agent_property = copy.deepcopy(AgentPropertyDefaults)
+            agent_property.update({
                     'ClassName': 'RLA_CAR_RED',
                     'AcceptRLControl': False,
                     'AgentTeam': 1,
@@ -81,10 +82,10 @@ class UhmapBreakingBad(UhmapEnv):
                     'MaxMoveSpeed': 600,
                     'AgentHp':100,
                     "WeaponCD": 0.5,
-                    'RSVD1':'(R=1,G=0,B=0,A=1)',
+                    'Color':'(R=1,G=0,B=0,A=1)',
                     'InitLocation': { 'x': x, 'y': y, 'z': z, },
-                },
-            ); agent_uid_cnt += 1
+            })
+            AgentSettingArray.append(agent_property); agent_uid_cnt += 1
 
         # refer to struct.cpp, FParsedDataInput
         json_to_send = json.dumps({
