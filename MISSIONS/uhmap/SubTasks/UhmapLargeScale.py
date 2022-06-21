@@ -1,7 +1,6 @@
 import json, os, subprocess, time, copy
 import numpy as np
 from UTILS.colorful import print紫, print靛
-from UTILS.network import TcpClientP2P
 from UTILS.config_args import ChainVar
 from ...common.base_env import BaseEnv
 from ..actset_lookup import digit2act_dictionary
@@ -134,7 +133,12 @@ class UhmapLargeScale(UhmapEnv):
             'StringActions': act_send,
         })
         resp = self.client.send_and_wait_reply(json_to_send)
+
+        tic = time.time()
         resp = json.loads(resp)
+        toc = time.time()
+        print(toc-tic)
+
 
         ob, info = self.parse_response_ob_info(resp)
         RewardForAllTeams = 0

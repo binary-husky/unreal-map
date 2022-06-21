@@ -1,7 +1,4 @@
-import json
 import numpy as np
-from UTILS.network import TcpClientP2P
-from UTILS.config_args import ChainVar
 from .actset_lookup import digit2act_dictionary, agent_json2local_attrs
 from .actset_lookup import act2digit_dictionary, no_act_placeholder, dictionary_n_actions
 

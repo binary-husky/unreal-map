@@ -1,7 +1,7 @@
 import json, os, subprocess, time
 import numpy as np
 from UTILS.colorful import print紫, print靛
-from UTILS.network import TcpClientP2P
+from UTILS.network import TcpClientP2PWithCompress
 from UTILS.config_args import ChainVar
 from ..common.base_env import BaseEnv
 from .actset_lookup import digit2act_dictionary, agent_json2local_attrs
@@ -152,7 +152,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 print('Cannot start Headless Server Or GUI Server!')
                 assert False, 'Cannot start Headless Server Or GUI Server!'
 
-        self.client = TcpClientP2P(ipport, obj='str')
+        self.client = TcpClientP2PWithCompress(ipport)
         self.t = 0
         #  run flag https://docs.unrealengine.com/5.0/en-US/unreal-engine-pixel-streaming-reference/
         #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED

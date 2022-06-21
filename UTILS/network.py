@@ -1,4 +1,4 @@
-import socket, threading, pickle, uuid, os, atexit
+import socket, threading, pickle, uuid, os, atexit, time
 
 def find_free_port():
     from contextlib import closing
@@ -471,7 +471,63 @@ class TcpClientP2P(StreamingPackageSep):
 
 '''
 
+class TcpClientP2PWithCompress(StreamingPackageSep):
+    def __init__(self, target_ip_port, self_ip_port=None, obj='bytes') -> None:
+        import lz4.block as lz4block
+        self.lz4block = lz4block
+        self.try_decom_usize = 255
+        super().__init__()
+        self.target_ip_port = target_ip_port
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.use_pickle = (obj=='pickle')
+        assert not (obj=='str')
+        self.connected = False
+        atexit.register(self.__del__)
 
+    def decompress(self, data):
+        while True:
+            try:
+                decompressed = self.lz4block.decompress(data, uncompressed_size=self.try_decom_usize)
+                return decompressed
+            except:
+                self.try_decom_usize *= 2
+                if self.try_decom_usize > 10485760: # 10 MB
+                    assert False, "compression failure"
+        return None
+
+    def compress(self, data):
+        compressed = self.lz4block.compress(data, store_size=False)
+        return compressed
+
+    def send_dgram_to_target(self, data):
+        if self.use_pickle: data = pickle.dumps(data)
+        if not self.connected: self.client.connect(self.target_ip_port); self.connected = True
+        data = self.compress(data)
+        self.lower_send(data, self.client)
+        if DEBUG_NETWORK: print('send_targeted_dgram :', self.client, ' data :', data)
+        return
+
+    def manual_connect(self):
+        if not self.connected: self.client.connect(self.target_ip_port); self.connected = True
+
+    def send_and_wait_reply(self, data):
+        if self.use_pickle: data = pickle.dumps(data)
+        data = bytes(data, encoding='utf8')
+        if not self.connected: self.client.connect(self.target_ip_port); self.connected = True
+        data = self.compress(data)
+        self.lower_send(data, self.client)
+        data, _ = self.lower_recv(self.client)
+        data = self.decompress(data)
+        if self.use_pickle: data = pickle.loads(data)
+        if DEBUG_NETWORK: print('get_reply :', self.client, ' data :', data)
+        return data
+
+    def __del__(self):
+        self.close()
+        return
+
+    def close(self):
+        self.client.close()
 
 class QueueOnTcpClient():
     def __init__(self, ip):

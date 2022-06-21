@@ -1,7 +1,6 @@
 import json, os, subprocess, time
 import numpy as np
 from UTILS.colorful import print紫, print靛
-from UTILS.network import TcpClientP2P
 from UTILS.config_args import ChainVar
 from ...common.base_env import BaseEnv
 from ..actset_lookup import digit2act_dictionary, decode_action_as_string

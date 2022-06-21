@@ -1,5 +1,25 @@
 # Unreal HMAP (UHMAP) 混合多智能体平台-虚幻仿真模块
 
+## UHMAP 中对虚幻源代码的修改
+
+- (1) 将lz4的接口暴露在外，方便使用
+```
+F:\UnrealSourceCode\UnrealEngine-4.27.2-release\Engine\Source\Runtime\Core\Public\Compression\lz4.h
+新增一行
+#define LZ4_DLL_EXPORT 1
+```
+
+- (2) 将AIPerception Sight的计算量拉高
+
+```
+F:\UnrealSourceCode\UnrealEngine-4.27.2-release\Engine\Source\Runtime\AIModule\Private\Perception\AISense_Sight.cpp
+```
+修改参数，这两个参数增大，有助于尽早发现进入范围的智能体（源代码中为了运行效率牺牲了实时性，用运行时间和Trace数量加以约束）
+```
+static const int32 DefaultMaxTracesPerTick = 16;
+static const int32 DefaultMinQueriesPerTimeSliceCheck = 40;
+```
+
 ## Switching MISSION to UHMAP in Json Config 切至虚幻仿真模块
 Please use following template:
 

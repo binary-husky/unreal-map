@@ -132,6 +132,7 @@ no other choice is available!
 # Just install the latest version !
 python >= 3.8   # (Very necessary!)
 pytorch
+lz4
 gym             # (the latest version will do)
 flask
 numpy
