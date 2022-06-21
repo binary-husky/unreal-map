@@ -46,16 +46,34 @@ struct FAgentProperty
 		float WeaponCD = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		float MaxEpisodeStep = 999;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		bool IsTeamReward = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FString Type = "";
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		FString InitBuff = "";
+		FString WeaponType = "";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString Color = "";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		float DodgeProb = 0.0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		float ExplodeDmg = 20.0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		float FireRange = 1000.0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		float GuardRange = 1400.0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString RSVD1 = "";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString RSVD2 = "";
 };
 
 
@@ -86,11 +104,19 @@ struct FParsedDataInput
 		int TimeStep = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		int TimeStepMax = 0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TArray<float> Actions;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TArray<FString> StringActions;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString RSVD1 = "";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString RSVD2 = "";
 };
 
 
@@ -147,12 +173,6 @@ struct FAgentDataOutput
 		float MaxEpisodeStep = 999;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		int TimeCnt = 0;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		float Time = 0;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		int PreviousAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
@@ -165,16 +185,17 @@ struct FAgentDataOutput
 		bool IsTeamReward = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		bool EpisodeDone = false;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TArray<FString> Interaction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FString Type = "";
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		FString CurrentBuff = "";
+		FString RSVD1 = "";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString RSVD2 = "";
+
 };
 
 USTRUCT(BlueprintType)
@@ -183,7 +204,7 @@ struct FGlobalDataOutput
 
 	GENERATED_BODY()
 
-		UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		bool Valid = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
@@ -194,6 +215,33 @@ struct FGlobalDataOutput
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		TArray<FString> Events;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		TArray<int> VisibleMatFlatten;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		TArray<float> DisMatFlatten;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		float MaxEpisodeStep = 999;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		int TimeCnt = 0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		float Time = 0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		bool EpisodeDone = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString RSVD1 = "";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString RSVD2 = "";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString RSVDJson = "";
 };
 
 USTRUCT(BlueprintType)
