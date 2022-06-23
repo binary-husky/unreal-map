@@ -1,7 +1,7 @@
 import json, os, subprocess, time
 import numpy as np
 from UTILS.colorful import print紫, print靛
-from UTILS.network import TcpClientP2PWithCompress
+from UTILS.network import TcpClientP2PWithCompress, find_free_port
 from UTILS.config_args import ChainVar
 from ..common.base_env import BaseEnv
 from .actset_lookup import digit2act_dictionary, agent_json2local_attrs
@@ -55,12 +55,12 @@ class ScenarioConfig(object):
     UhmapPort = 21051
     SubTaskSelection = 'UhmapBreakingBad'
     UElink2editor = False
-    
+    AutoPortOverride = False
+
     UhmapServerExe = 'F:/UHMP/Build/WindowsServer/UHMPServer.exe'
     UhmapRenderExe = ''
     TimeDilation = 1.25
-    FrameRate = 30
-    # must satisfy: (TimeDilation=1.25*n, FrameRate=30*n)
+    FrameRate = 30 # ChainVar must satisfy: (TimeDilation=1.25*n, FrameRate=30*n)
     FrameRate_cv = ChainVar(lambda TimeDilation: int(TimeDilation/1.25*30), chained_with=['TimeDilation'])
     UhmapStartCmd = []
     # <Part 3> Needed by some ALGORITHM #
@@ -74,7 +74,11 @@ class ScenarioConfig(object):
 
 DEBUG = False
 
+
+
+
 class UhmapEnvParseHelper:
+
     def parse_response_ob_info(self, response):
         assert response['valid']
         if len(response['dataGlobal']['events'])>0:
@@ -91,6 +95,8 @@ class UhmapEnvParseHelper:
     def make_obs(self):
         encoded_obs = np.zeros(shape=(self.n_agents, 10), dtype=np.float32); p=0
         for i, agent in enumerate(self.agents):
+            if agent.Location['x'] is None:
+                print('??')
             part_1 = np.array([
                 agent.index,
                 agent.Location['x'],
@@ -119,40 +125,54 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         if ScenarioConfig.StateProvided:
             # self.observation_space['state_shape'] = ?
             pass
-        self.render = ScenarioConfig.render and (rank==0)
-        ipport = (ScenarioConfig.TcpAddr, ScenarioConfig.UhmapPort)
+        self.render = ScenarioConfig.render #  and (rank==0)
+        which_port = ScenarioConfig.UhmapPort
+        if ScenarioConfig.AutoPortOverride:
+            which_port = find_free_port()
+        ipport = (ScenarioConfig.TcpAddr, which_port)
         # os.system()
         if not ScenarioConfig.UElink2editor:
             if (not self.render) and ScenarioConfig.UhmapServerExe != '':
                 subprocess.Popen([
                     ScenarioConfig.UhmapServerExe,
-                    '-log', 
+                    # '-log', 
+                    '-TcpPort=%d'%which_port,
                     '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%d'%ScenarioConfig.FrameRate,
-                    '-LockGameDuringCom=True',
+                    '-DebugMod=False',
+                    '-LockGameDuringCom=False',
                 ])
-                # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=10', '-FrameRate=240'])
-                # subprocess.Popen(['F:/UHMP/Build/WindowsServer/UHMPServer.exe','-log', '-TimeDilation=20', '-FrameRate=480'])
-                print('UHMAP started, wait 10s before continue ...')
+                print紫('UHMAP (Headless) started, wait 10s before continue ...')
                 time.sleep(10)
             elif self.render and ScenarioConfig.UhmapRenderExe != '':
-                print('UHMAP render client started, wait 10s before continue ...')
                 subprocess.Popen([
                     ScenarioConfig.UhmapRenderExe,
-                    '-log', 
+                    # '-log', 
+                    '-TcpPort=%d'%which_port,
                     '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%d'%ScenarioConfig.FrameRate,
-                    '-LockGameDuringCom=True',
+                    '-DebugMod=False',
+                    '-LockGameDuringCom=False',
                     "-ResX=1280",
                     "-ResY=720",
                     "-WINDOWED"
                 ])
-                time.sleep(10)
+                print紫('UHMAP (Render) started, wait 10s before continue ...')
             else:
                 print('Cannot start Headless Server Or GUI Server!')
                 assert False, 'Cannot start Headless Server Or GUI Server!'
 
         self.client = TcpClientP2PWithCompress(ipport)
+        MAX_RETRY = 100
+        for i in range(MAX_RETRY):
+            try: 
+                self.client.manual_connect()
+                print('handshake complete %d'%rank)
+                break
+            except: 
+                print('Thread %d: Trying to connect to uhmap simulation. Retry %d ...'%(rank, i))
+                time.sleep(1)
+
         self.t = 0
         #  run flag https://docs.unrealengine.com/5.0/en-US/unreal-engine-pixel-streaming-reference/
         #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED
