@@ -33,11 +33,11 @@ class UhmapBreakingBad(UhmapEnv):
                     'AgentTeam': 0, # int AgentTeam = 0;
                     'IndexInTeam': i,   # int IndexInTeam = 0;
                     'UID': agent_uid_cnt,   # int UID = 0;
-                    'MaxMoveSpeed': 100,
+                    'MaxMoveSpeed': 500,
                     "ExplodeDmg": 250,
                     "DodgeProb": 0.8,
-                    'AgentHp': 100,
-                    "WeaponCD": 0.5,
+                    'AgentHp': 1000,
+                    "WeaponCD": 1,
                     'Color':'(R=0,G=1,B=0,A=1)',
                     'InitLocation': { 'x': x,  'y': y, 'z': z, },
                 })
@@ -46,7 +46,8 @@ class UhmapBreakingBad(UhmapEnv):
 
         #x = 2249.0 + 1500
         #y = 4911.0
-        x = -1500
+        #x = -1500
+        x = 1500
         y = 2500
         # 500 is slightly above the ground (depending the map you have built), 
         # but agent will be spawn to ground automatically
@@ -58,11 +59,11 @@ class UhmapBreakingBad(UhmapEnv):
                 'AgentTeam': 0, # int AgentTeam = 0;
                 'IndexInTeam': i,   # int IndexInTeam = 0;
                 'UID': agent_uid_cnt,   # int UID = 0;
-                'MaxMoveSpeed': 50,
+                'MaxMoveSpeed': 300,
                 "DodgeProb": 1.0,
                 "ExplodeDmg": 250,
-                'AgentHp':1000,
-                "WeaponCD": 1,
+                'AgentHp':10000,
+                "WeaponCD": 10000000000,
                 'Color':'(R=0,G=1,B=0,A=1)',
                 'InitLocation': { 'x': x,  'y': y, 'z': z, },
         })
@@ -83,11 +84,11 @@ class UhmapBreakingBad(UhmapEnv):
                     'AgentTeam': 1,
                     'IndexInTeam': i,
                     'UID': agent_uid_cnt,
-                    'MaxMoveSpeed': 2000,
+                    'MaxMoveSpeed': 500,
                     "DodgeProb": 0.89,
-                    'AgentHp':100,
+                    'AgentHp':1000,
                     "ExplodeDmg": 250,
-                    "WeaponCD": 0.5,
+                    "WeaponCD": 1,
                     'Color':'(R=1,G=0,B=0,A=1)',
                     'InitLocation': { 'x': x, 'y': y, 'z': z, },
             })

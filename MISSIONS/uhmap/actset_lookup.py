@@ -221,14 +221,14 @@ AgentPropertyDefaults = {
     'MaxMoveSpeed': 600,        # move speed, test ok
     'InitLocation': { 'x': 0,  'y': 0, 'z': 0, },
     'InitRotation': { 'x': 0,  'y': 0, 'z': 0, },
-    'AgentScale'  : { 'x': .5,  'y': .5, 'z': .5, },     # agent size, test ok
+    'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },     # agent size, test ok
     'InitVelocity': { 'x': 0,  'y': 0, 'z': 0, },
     'AgentHp':100,
     "WeaponCD": 1,              # weapon fire rate
     "IsTeamReward": True,
     "Type": "",
-    "DodgeProb": 0.1,           # probability of escaping dmg 闪避概率, test ok
-    "ExplodeDmg": 50,           # ms explode dmg. test ok
+    "DodgeProb": 0.8,           # probability of escaping dmg 闪避概率, test ok
+    "ExplodeDmg": 25,           # ms explode dmg. test ok
     "FireRange": 1000.0,        # <= 1500
     "GuardRange": 1400.0,       # <= 1500
     'Color':'(R=0,G=1,B=0,A=1)',    # color

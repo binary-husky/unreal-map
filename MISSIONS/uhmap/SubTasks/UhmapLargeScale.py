@@ -52,6 +52,9 @@ class UhmapLargeScale(UhmapEnv):
             'ClassName': 'RLA_CAR_Laser',   # FString ClassName = "";
             'MaxMoveSpeed': 600,
             'AgentHp':100,
+            'AgentScale'  : { 'x': 0.5,  'y': 0.5, 'z': 0.5, },     # agent size, test ok
+            "DodgeProb": 0.2,           # probability of escaping dmg 闪避概率, test ok
+            "ExplodeDmg": 50,           # ms explode dmg. test ok
         })
 
         # 500 is slightly above the ground,
