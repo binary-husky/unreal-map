@@ -3,7 +3,7 @@ import string
 import numpy as np
 from UTILS.colorful import print紫, print靛
 from UTILS.config_args import ChainVar
-from UTILS.tensor_ops import my_view, distance_matrix
+from UTILS.tensor_ops import my_view, distance_matrix, repeat_at
 from ...common.base_env import BaseEnv
 from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
 from ..agent import Agent
@@ -11,7 +11,7 @@ from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
 
 DEBUG = True
 
-class raw_obs_array(object):
+class RawObsArray(object):
     raw_obs_size = -1   # shared
     def __init__(self):
         if self.raw_obs_size==-1:
@@ -40,6 +40,41 @@ class raw_obs_array(object):
         assert self.raw_obs_size > 0
         return self.raw_obs_size
 
+class RawObsArrayGameObj(object):
+    raw_obs_size = -1   # shared
+    def __init__(self):
+        if self.raw_obs_size==-1:
+            self.guards_group = []
+            self.nosize = True
+        else:
+            self.guards_group = np.zeros(shape=(self.raw_obs_size), dtype=np.float32)
+            self.nosize = False
+            self.p = 0
+
+    def append(self, buf):
+        if self.nosize:
+            self.guards_group.append(buf)
+        else:
+            L = len(buf)
+            self.guards_group[self.p:self.p+L] = buf[:]
+            self.p += L
+
+    def get(self):
+        if self.nosize:
+            self.guards_group = np.concatenate(self.guards_group)
+            self.raw_obs_size = len(self.guards_group)
+        return self.guards_group
+        
+    def get_raw_obs_size(self):
+        assert self.raw_obs_size > 0
+        return self.raw_obs_size
+
+def type_map(classname):
+    if 'KeyObjExample' in classname:
+        return 1
+    else:
+        assert False, 'New type introduced?'
+
 class UhmapLargeScale(UhmapEnv):
     def __init__(self, rank) -> None:
         super().__init__(rank)
@@ -65,8 +100,9 @@ class UhmapLargeScale(UhmapEnv):
         for which_team in range(2):
             n_team_agent = ScenarioConfig.n_team1agent if which_team==0 else ScenarioConfig.n_team2agent
             for i in range(n_team_agent):
-                x = 0 + 100*(i - n_team_agent//2)
-                y = -3000 + 500* (i%6) + 3000 * which_team
+                N_COL = 2
+                x = 0 + 100*(i - n_team_agent//2) //N_COL
+                y = 500* (i%N_COL) + 2000 * (-1)**(which_team+1)
                 z = 500
                 yaw = 90 if which_team==0 else -90
                 assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
@@ -97,12 +133,6 @@ class UhmapLargeScale(UhmapEnv):
         # make sure the map (level in UE) is correct
         assert resp['dataGlobal']['rSVD1'] == 'UhmapLargeScale'
 
-        # skip initial frames
-        skip_n_init_frame = 1
-        for _ in range(skip_n_init_frame):
-            resp = self.step_skip()
-        resp = json.loads(resp)
-
         return self.parse_response_ob_info(resp)
 
 
@@ -120,9 +150,10 @@ class UhmapLargeScale(UhmapEnv):
         resp = self.client.send_and_wait_reply(json_to_send)
         resp = json.loads(resp)
 
+        RewardForAllTeams = self.gen_reward(resp)   # step 1
 
-        ob, info = self.parse_response_ob_info(resp)
-        RewardForAllTeams = self.gen_reward(resp)
+
+        ob, info = self.parse_response_ob_info(resp)    # step 3, make obs
         done = resp['dataGlobal']['episodeDone']
         if resp['dataGlobal']['timeCnt'] >= ScenarioConfig.MaxEpisodeStep:
             done = True
@@ -132,6 +163,10 @@ class UhmapLargeScale(UhmapEnv):
     def parse_event(self, event):
         if not hasattr(self, 'pattern'): self.pattern = re.compile(r'<([^<>]*)>([^<>]*)')
         return {k:v for k,v  in re.findall(self.pattern, event)}
+
+    def extract_key_gameobj(self, resp):
+        keyObjArr = resp['dataGlobal']['keyObjArr']
+        return keyObjArr
 
 
     def gen_reward(self, resp):
@@ -171,10 +206,35 @@ class UhmapLargeScale(UhmapEnv):
         info = response['dataArr']
         for i, agent_info in enumerate(info):
             self.agents[i].update_agent_attrs(agent_info)
+
+        # for fn:make_obs()
+        self.key_obj = self.extract_key_gameobj(response)
+
         # return ob, info
         return self.make_obs(), info_dict
 
 
+
+    @staticmethod
+    def item_random_mv(src,dst,prob,rand=False):
+        assert len(src.shape)==1; assert len(dst.shape)==1
+        if rand: np.random.shuffle(src)
+        len_src = len(src)
+        n_mv = (np.random.rand(len_src) < prob).sum()
+        item_mv = src[range(len_src-n_mv,len_src)]
+        src = src[range(0,0+len_src-n_mv)]
+        dst = np.concatenate((item_mv, dst))
+        return src, dst
+
+    @staticmethod
+    def get_binary_array(n_int, n_bits=8, dtype=np.float32):
+        arr = np.zeros((*n_int.shape, n_bits), dtype=dtype)
+        pointer = 0
+        for i in range(n_bits):
+            arr[:, i] = (n_int%2==1).astype(np.int)
+            n_int = n_int / 2
+            n_int = n_int.astype(np.int8)
+        return arr
 
     def make_obs(self):
         # temporary parameters
@@ -195,7 +255,7 @@ class UhmapLargeScale(UhmapEnv):
         team_belonging = np.array([agent.team for agent in self.agents])
 
         # gather the obs arr of all known agents
-        obs_arr = raw_obs_array()
+        obs_arr = RawObsArray()
 
         if not hasattr(self, "uid_binary"):
             self.uid_binary = self.get_binary_array(np.arange(self.n_agents), 10)
@@ -286,29 +346,69 @@ class UhmapLargeScale(UhmapEnv):
 
             OBS_ALL_AGENTS[i,:] = np.concatenate((self_ally_feature_sort, a2h_feature_sort), axis = 0)
 
-        # # now, new_obs is a matrix of shape (n_agent, core_dim)
-        # from UTILS.tensor_ops import repeat_at
-        # encoded_obs_all_agent = repeat_at(encoded_obs, insert_dim=0, n_times=self.n_agents)
+
+        # the last part of observation is the list of core game objects
+        MAX_OBJ_NUM_ACCEPT = 5
+        OBJ_FEATURE_DIM = 12
+        self.N_Obj = len(self.key_obj)
+
+        OBJ_UID_OFFSET = 32768
+        OBS_GameObj = np.zeros(shape=(
+            MAX_OBJ_NUM_ACCEPT, 
+            OBS_ALL_AGENTS.shape[-1]
+        ))
+
+        obs_arr = RawObsArrayGameObj()
+
+        for i, obj in enumerate(self.key_obj):
+            assert obj['uId'] - OBJ_UID_OFFSET == i
+            obs_arr.append(
+                -self.uid_binary[i] # reverse uid binary, self.uid_binary[i]
+            )
+            obs_arr.append([
+                obj['uId'] - OBJ_UID_OFFSET,    #agent.index,
+                -1,                             #agent.team,
+                True,                           #agent.alive,
+                obj['uId'] - OBJ_UID_OFFSET,    #agent.uid_remote,
+            ])
+            obs_arr.append(
+                [obj['location']['x'], obj['location']['y'], obj['location']['z']]  # agent.pos3d
+            )
+            obs_arr.append(
+                [obj['velocity']['x'], obj['velocity']['y'], obj['velocity']['z']]  # agent.vel3d
+            )
+            obs_arr.append([
+                -1,                         # hp
+                obj['rotation']['yaw'],     # yaw 
+                0,                          # max_speed
+            ])
+        OBS_GameObj = my_view(obs_arr.get(), [len(self.key_obj), -1])
+        OBS_GameObj = repeat_at(OBS_GameObj, insert_dim=0, n_times=self.n_agents)
+        OBS_ALL_AGENTS = np.concatenate((OBS_ALL_AGENTS, OBS_GameObj), axis=1)
+
         return OBS_ALL_AGENTS
 
+'''
+            obs_arr.append(
+                self.uid_binary[i]
+            )
+            obs_arr.append([
+                agent.index,
+                agent.team,
+                agent.alive,
+                agent.uid_remote,
+            ])
+            obs_arr.append(
+                agent.pos3d
+            )
+            obs_arr.append(
+                agent.vel3d
+            )
+            obs_arr.append([
+                agent.hp,
+                agent.yaw,
+                agent.max_speed,
+            ])
 
-    @staticmethod
-    def item_random_mv(src,dst,prob,rand=False):
-        assert len(src.shape)==1; assert len(dst.shape)==1
-        if rand: np.random.shuffle(src)
-        len_src = len(src)
-        n_mv = (np.random.rand(len_src) < prob).sum()
-        item_mv = src[range(len_src-n_mv,len_src)]
-        src = src[range(0,0+len_src-n_mv)]
-        dst = np.concatenate((item_mv, dst))
-        return src, dst
 
-    @staticmethod
-    def get_binary_array(n_int, n_bits=8, dtype=np.float32):
-        arr = np.zeros((*n_int.shape, n_bits), dtype=dtype)
-        pointer = 0
-        for i in range(n_bits):
-            arr[:, i] = (n_int%2==1).astype(np.int)
-            n_int = n_int / 2
-            n_int = n_int.astype(np.int8)
-        return arr
+'''

@@ -65,7 +65,6 @@ agent_json2local_attrs = [
             ('agentVelocity',           'velocity'),
             ('agentHp',                 'hp'),
             ('weaponCD',                'weapon_cd'),
-            ('maxEpisodeStep',          'time_limit'),
             ('interaction',             'interaction'), 
             ('type',                    'type'),
 ]
