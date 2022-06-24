@@ -56,6 +56,7 @@ class ScenarioConfig(object):
     SubTaskSelection = 'UhmapBreakingBad'
     UElink2editor = False
     AutoPortOverride = False
+    StepGameTime = 1
 
     UhmapServerExe = 'F:/UHMP/Build/WindowsServer/UHMPServer.exe'
     UhmapRenderExe = ''
@@ -118,6 +119,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         self.id = rank
         self.render = ScenarioConfig.render and (self.id==0)
         self.n_agents = ScenarioConfig.n_team1agent + ScenarioConfig.n_team2agent
+        self.n_teams = ScenarioConfig.N_TEAM
         self.agents = [Agent(team=0, team_id=i, uid=i                            ) for i in range(ScenarioConfig.n_team1agent)] \
                     + [Agent(team=1, team_id=i, uid=i+ScenarioConfig.n_team1agent) for i in range(ScenarioConfig.n_team2agent)]
         # self.observation_space = ?
@@ -139,6 +141,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-TcpPort=%d'%which_port,
                     '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%d'%ScenarioConfig.FrameRate,
+                    '-IOInterval=%.4f'%ScenarioConfig.StepGameTime
                     '-DebugMod=False',
                     '-LockGameDuringCom=True',
                 ])
@@ -151,6 +154,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-TcpPort=%d'%which_port,
                     '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%d'%ScenarioConfig.FrameRate,
+                    '-IOInterval=%.4f'%ScenarioConfig.StepGameTime
                     '-DebugMod=False',
                     '-LockGameDuringCom=True',
                     "-ResX=1280",

@@ -238,7 +238,22 @@ AgentPropertyDefaults = {
 }
 
 '''
-
+<Agent>T0-5<UID>5<Event>Destroyed 
+<Agent>T1-6<UID>16<Event>Destroyed 
+<Agent>T0-4<UID>4<Event>Destroyed 
+<Agent>T0-2<UID>2<Event>Destroyed 
+<Agent>T1-7<UID>17<Event>Destroyed 
+<Agent>T1-1<UID>11<Event>Destroyed 
+<Agent>T0-8<UID>8<Event>Destroyed 
+<Agent>T0-7<UID>7<Event>Destroyed 
+<Agent>T1-3<UID>13<Event>Destroyed
+<Agent>T0-9<UID>9<Event>Destroyed
+<Agent>T0-6<UID>6<Event>Destroyed
+<Agent>T0-0<UID>0<Event>Destroyed
+<Agent>T1-2<UID>12<Event>Destroyed
+<Agent>T0-1<UID>1<Event>Destroyed
+<Agent>T0-3<UID>3<Event>Destroyed
+<Event>EndEpisode<EndReason><AllRLAgentDown>Lose<WinTeam>1
 
 
 '''

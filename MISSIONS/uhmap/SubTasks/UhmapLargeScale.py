@@ -1,4 +1,5 @@
-import json, os, subprocess, time, copy
+import json, os, subprocess, time, copy, re
+import string
 import numpy as np
 from UTILS.colorful import print紫, print靛
 from UTILS.config_args import ChainVar
@@ -47,51 +48,36 @@ class UhmapLargeScale(UhmapEnv):
         self.t = 0
 
         AgentPropertyDefaults.update({
+            'AcceptRLControl': True, 
             'ClassName': 'RLA_CAR_Laser',   # FString ClassName = "";
             'MaxMoveSpeed': 600,
             'AgentHp':100,
         })
-        # 500 is slightly above the ground, 
+
+        # 500 is slightly above the ground,
         # but agent will be spawn to ground automatically
-        z = 500
-        ##################################################
-        ################ spawn group 1 ###################
+        ####################### spawn all ###########################
         AgentSettingArray = []
         agent_uid_cnt = 0
-        for i in range(ScenarioConfig.n_team1agent):
-            x = 0 + 100*(i - ScenarioConfig.n_team1agent//2)
-            y = -3000 + 500* (i%6)
-            assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
-            agent_property = copy.deepcopy(AgentPropertyDefaults)
-            agent_property.update({
-                    'AcceptRLControl': True,    # bool AcceptRLControl = 0;
-                    'AgentTeam': 0, # int AgentTeam = 0;
-                    'IndexInTeam': i,   # int IndexInTeam = 0;
-                    'UID': agent_uid_cnt,   # int UID = 0;
-                    'Color':'(R=1,G=1,B=0,A=1)',
-                    'InitLocation': { 'x': x,  'y': y, 'z': z, },
-                    'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': 90, },
-            }),
-            AgentSettingArray.append(agent_property); agent_uid_cnt += 1
-
-        ##################################################
-        ################ spawn group 2 ###################
-        for i in range(ScenarioConfig.n_team2agent):
-            x = 0    + 100*(i - ScenarioConfig.n_team2agent//2)
-            y = 3000 + 500* (i%6)
-            assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
-            agent_property = copy.deepcopy(AgentPropertyDefaults)
-            agent_property.update({
-                    'ClassName': 'RLA_CAR_Laser',
-                    'AcceptRLControl': False,
-                    'AgentTeam': 1,
-                    'IndexInTeam': i,
-                    'UID': agent_uid_cnt,
-                    'Color':'(R=0,G=0,B=1,A=1)',
-                    'InitLocation': { 'x': x, 'y': y, 'z': z, },
-                    'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': -90, },
+        for which_team in range(2):
+            n_team_agent = ScenarioConfig.n_team1agent if which_team==0 else ScenarioConfig.n_team2agent
+            for i in range(n_team_agent):
+                x = 0 + 100*(i - n_team_agent//2)
+                y = -3000 + 500* (i%6) + 3000 * which_team
+                z = 500
+                yaw = 90 if which_team==0 else -90
+                assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
+                agent_property = copy.deepcopy(AgentPropertyDefaults)
+                agent_property.update({
+                        'AgentTeam': which_team,
+                        'IndexInTeam': i, 
+                        'UID': agent_uid_cnt, 
+                        'Color':'(R=0,G=1,B=0,A=1)' if which_team==0 else '(R=0,G=0,B=1,A=1)',
+                        'InitLocation': { 'x': x,  'y': y, 'z': z, },
+                        'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': yaw, },
                 }),
-            AgentSettingArray.append(agent_property); agent_uid_cnt += 1
+                AgentSettingArray.append(agent_property); agent_uid_cnt += 1
+
 
         # refer to struct.cpp, FParsedDataInput
         resp = self.client.send_and_wait_reply(json.dumps({
@@ -105,16 +91,16 @@ class UhmapLargeScale(UhmapEnv):
         }))
         resp = json.loads(resp)
 
+        # make sure the map (level in UE) is correct
         assert resp['dataGlobal']['rSVD1'] == 'UhmapLargeScale'
 
-        # # The agents need to get some 'rest' after spawn (updating the perception)
+        # skip initial frames
         skip_n_init_frame = 1
         for _ in range(skip_n_init_frame):
             resp = self.step_skip()
         resp = json.loads(resp)
 
         return self.parse_response_ob_info(resp)
-
 
 
     def step(self, act):
@@ -133,14 +119,27 @@ class UhmapLargeScale(UhmapEnv):
 
 
         ob, info = self.parse_response_ob_info(resp)
-        RewardForAllTeams = 0
+        RewardForAllTeams = self.gen_reward(resp)
         done = resp['dataGlobal']['episodeDone']
         if resp['dataGlobal']['timeCnt'] >= ScenarioConfig.MaxEpisodeStep:
             done = True
 
         return (ob, RewardForAllTeams,  done, info)  # choose this if RewardAsUnity
 
+    def parse_event(self, event):
+        if not hasattr(self, 'pattern'): self.pattern = re.compile(r'<([^<>]*)>([^<>]*)')
+        return {k:v for k,v  in re.findall(self.pattern, event)}
 
+
+    def gen_reward(self, resp):
+        reward = [0]*self.n_teams
+        events = resp['dataGlobal']['events']
+        for event in events: 
+            event_parsed = self.parse_event(event)
+            if event_parsed['Event'] == 'Destroyed':
+                team = self.find_agent_by_uid(event_parsed['UID']).team
+                reward[team]    -= 1    # this team
+        return reward
 
     def step_skip(self):
         return self.client.send_and_wait_reply(json.dumps({
@@ -148,6 +147,14 @@ class UhmapLargeScale(UhmapEnv):
             'DataCmd': 'skip_frame',
         }))
 
+
+    def find_agent_by_uid(self, uid):
+        if not hasattr(self, 'uid_to_agent_dict'):
+            self.uid_to_agent_dict = {}
+            self.uid_to_agent_dict.update({agent.uid:agent for agent in self.agents}) 
+            if isinstance(uid, str):
+                self.uid_to_agent_dict.update({str(agent.uid):agent for agent in self.agents}) 
+        return self.uid_to_agent_dict[uid]
 
 
 
