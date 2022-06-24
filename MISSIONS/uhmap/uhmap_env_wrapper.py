@@ -96,15 +96,15 @@ class UhmapEnvParseHelper:
     def make_obs(self):
         encoded_obs = np.zeros(shape=(self.n_agents, 10), dtype=np.float32); p=0
         for i, agent in enumerate(self.agents):
-            if agent.Location['x'] is None:
+            if agent.location['x'] is None:
                 print('??')
             part_1 = np.array([
                 agent.index,
-                agent.Location['x'],
-                agent.Location['y'],
-                agent.Location['z'],
+                agent.location['x'],
+                agent.location['y'],
+                agent.location['z'],
                 agent.hp,
-                agent.weaponCD,
+                agent.weapon_cd,
             ])
             length = part_1.shape[0]
             encoded_obs[i,:length] = part_1[:]
@@ -141,7 +141,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-TcpPort=%d'%which_port,
                     '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%d'%ScenarioConfig.FrameRate,
-                    '-IOInterval=%.4f'%ScenarioConfig.StepGameTime
+                    '-IOInterval=%.4f'%ScenarioConfig.StepGameTime,
                     '-DebugMod=False',
                     '-LockGameDuringCom=True',
                 ])
@@ -154,7 +154,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-TcpPort=%d'%which_port,
                     '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%d'%ScenarioConfig.FrameRate,
-                    '-IOInterval=%.4f'%ScenarioConfig.StepGameTime
+                    '-IOInterval=%.4f'%ScenarioConfig.StepGameTime,
                     '-DebugMod=False',
                     '-LockGameDuringCom=True',
                     "-ResX=1280",
