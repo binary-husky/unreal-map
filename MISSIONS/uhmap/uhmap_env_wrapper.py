@@ -140,7 +140,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%d'%ScenarioConfig.FrameRate,
                     '-DebugMod=False',
-                    '-LockGameDuringCom=False',
+                    '-LockGameDuringCom=True',
                 ])
                 print紫('UHMAP (Headless) started, wait 10s before continue ...')
                 time.sleep(10)
@@ -152,7 +152,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%d'%ScenarioConfig.FrameRate,
                     '-DebugMod=False',
-                    '-LockGameDuringCom=False',
+                    '-LockGameDuringCom=True',
                     "-ResX=1280",
                     "-ResY=720",
                     "-WINDOWED"

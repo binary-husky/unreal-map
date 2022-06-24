@@ -191,7 +191,7 @@ class collective_assultEnvV1(gym.Env):
     def get_binary_array(n_int, n_bits=8, dtype=np.float32):
         arr = np.zeros((*n_int.shape, n_bits), dtype=dtype)
         pointer = 0
-        for i in range(8):
+        for i in range(n_bits):
             arr[:, i] = (n_int%2==1).astype(np.int)
             n_int = n_int / 2
             n_int = n_int.astype(np.int8)

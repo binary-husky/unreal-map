@@ -45,43 +45,41 @@ class UhmapLargeScale(UhmapEnv):
 
     def reset(self):
         self.t = 0
+
+        AgentPropertyDefaults.update({
+            'ClassName': 'RLA_CAR_Laser',   # FString ClassName = "";
+            'MaxMoveSpeed': 600,
+            'AgentHp':100,
+        })
+        # 500 is slightly above the ground, 
+        # but agent will be spawn to ground automatically
+        z = 500
         ##################################################
         ################ spawn group 1 ###################
-        ##################################################
         AgentSettingArray = []
         agent_uid_cnt = 0
         for i in range(ScenarioConfig.n_team1agent):
             x = 0 + 100*(i - ScenarioConfig.n_team1agent//2)
             y = -3000 + 500* (i%6)
-            assert np.abs(x) < 15000.0
-            assert np.abs(y) < 15000.0
-            # 500 is slightly above the ground (depending the map you have built), 
-            # but agent will be spawn to ground automatically
-            z = 500 
+            assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
             agent_property = copy.deepcopy(AgentPropertyDefaults)
             agent_property.update({
-                    'ClassName': 'RLA_CAR_Laser',   # FString ClassName = "";
                     'AcceptRLControl': True,    # bool AcceptRLControl = 0;
                     'AgentTeam': 0, # int AgentTeam = 0;
                     'IndexInTeam': i,   # int IndexInTeam = 0;
                     'UID': agent_uid_cnt,   # int UID = 0;
-                    'MaxMoveSpeed': 600,
-                    'AgentHp':100,
                     'Color':'(R=1,G=1,B=0,A=1)',
                     'InitLocation': { 'x': x,  'y': y, 'z': z, },
+                    'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': 90, },
             }),
             AgentSettingArray.append(agent_property); agent_uid_cnt += 1
 
         ##################################################
         ################ spawn group 2 ###################
-        ##################################################
         for i in range(ScenarioConfig.n_team2agent):
             x = 0    + 100*(i - ScenarioConfig.n_team2agent//2)
             y = 3000 + 500* (i%6)
-            assert np.abs(x) < 15000.0
-            assert np.abs(y) < 15000.0
-            # 500 is slightly above the ground, but agent will be spawn to ground automatically
-            z = 500 
+            assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
             agent_property = copy.deepcopy(AgentPropertyDefaults)
             agent_property.update({
                     'ClassName': 'RLA_CAR_Laser',
@@ -89,10 +87,9 @@ class UhmapLargeScale(UhmapEnv):
                     'AgentTeam': 1,
                     'IndexInTeam': i,
                     'UID': agent_uid_cnt,
-                    'MaxMoveSpeed': 600,
-                    'AgentHp':100,
                     'Color':'(R=0,G=0,B=1,A=1)',
                     'InitLocation': { 'x': x, 'y': y, 'z': z, },
+                    'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': -90, },
                 }),
             AgentSettingArray.append(agent_property); agent_uid_cnt += 1
 
@@ -107,6 +104,8 @@ class UhmapLargeScale(UhmapEnv):
             'Actions': None,
         }))
         resp = json.loads(resp)
+
+        assert resp['dataGlobal']['rSVD1'] == 'UhmapLargeScale'
 
         # # The agents need to get some 'rest' after spawn (updating the perception)
         skip_n_init_frame = 1
@@ -170,25 +169,34 @@ class UhmapLargeScale(UhmapEnv):
     def make_obs(self):
         # temporary parameters
         OBS_RANGE_PYTHON_SIDE = 2500
-        MAX_NUM_OPP_OBS = 16
-        MAX_NUM_ALL_OBS = 16
+        MAX_NUM_OPP_OBS = 5
+        MAX_NUM_ALL_OBS = 5
 
         # get and calculate distance array
         pos3d_arr = np.zeros(shape=(self.n_agents, 3), dtype=np.float32)
         for i, agent in enumerate(self.agents): pos3d_arr[i] = agent.pos3d
         dis_mat = distance_matrix(pos3d_arr)    # dis_mat is a matrix, shape = (n_agent, n_agent)
-        alive_all = [agent.alive for agent in self.agents]
+        alive_all = np.array([agent.alive for agent in self.agents])
         dis_mat[~alive_all,:] = +np.inf
         dis_mat[:,~alive_all] = +np.inf
         # IN_VISUAL_PYTHON_SIDE = dis_mat < OBS_RANGE_PYTHON_SIDE
 
         # get team list
-        team_belonging = np.zeros([agent.team for agent in self.agents])
+        team_belonging = np.array([agent.team for agent in self.agents])
 
         # gather the obs arr of all known agents
         obs_arr = raw_obs_array()
+
+        if not hasattr(self, "uid_binary"):
+            self.uid_binary = self.get_binary_array(np.arange(self.n_agents), 10)
+
         for i, agent in enumerate(self.agents):
             assert agent.location is not None
+            assert agent.uid == i
+
+            obs_arr.append(
+                self.uid_binary[i]
+            )
             obs_arr.append([
                 agent.index,
                 agent.team,
@@ -213,22 +221,84 @@ class UhmapLargeScale(UhmapEnv):
         OBS_ALL_AGENTS = np.zeros(shape=(
             self.n_agents, 
             MAX_NUM_OPP_OBS+MAX_NUM_ALL_OBS, 
-
+            new_obs.shape[-1]
             ))
+
         # now arranging the individual obs
         for i, agent in enumerate(self.agents):
-
             if not agent.alive:
-                agent_obs = np.zeros(shape=(self.agent_emb.shape[-1] *vis_n*2,))
-                return agent_obss
+                OBS_ALL_AGENTS[i, :] = np.nan
+                continue
 
+            # if alive
+
+            # scope <all>
             dis2all = dis_mat[i, :]
             is_ally = (team_belonging == agent.team)
 
-            dis2ally = dis2all[is_ally]
-            dis2opp = dis2all[~is_ally]
+            # scope <opp/hostile>
+            a2h_dis = dis2all[~is_ally]
+            h_alive = alive_all[~is_ally]
+            h_feature = new_obs[~is_ally]
+            h_iden_sort  = np.argsort(a2h_dis)[:MAX_NUM_OPP_OBS]
+            a2h_dis_sorted = a2h_dis[h_iden_sort]
+            h_alive_sorted = h_alive[h_iden_sort]
+            h_vis_mask = (a2h_dis_sorted <= OBS_RANGE_PYTHON_SIDE) & h_alive_sorted
+            
+            # scope <all>
+            h_vis_index = h_iden_sort[h_vis_mask]
+            h_invis_index = h_iden_sort[~h_vis_mask]
+            h_vis_index, h_invis_index = self.item_random_mv(src=h_vis_index, dst=h_invis_index,prob=0, rand=True)
+            h_ind = np.concatenate((h_vis_index, h_invis_index))
+            h_msk = np.concatenate((h_vis_index<0, h_invis_index>=0)) # "<0" project to False; ">=0" project to True
+            a2h_feature_sort = h_feature[h_ind]
+            a2h_feature_sort[h_msk] = 0
+
+            # scope <ally/friend>
+            a2f_dis = dis2all[is_ally]
+            f_alive = alive_all[is_ally]
+            f_feature = new_obs[is_ally]
+            f_iden_sort  = np.argsort(a2f_dis)[:MAX_NUM_ALL_OBS]
+            a2f_dis_sorted = a2f_dis[f_iden_sort]
+            f_alive_sorted = f_alive[f_iden_sort]
+            f_vis_mask = (a2f_dis_sorted <= OBS_RANGE_PYTHON_SIDE) & f_alive_sorted
+
+            # scope <all>
+            f_vis_index = f_iden_sort[f_vis_mask]
+            self_vis_index = f_vis_index[:1] # seperate self and ally
+            f_vis_index = f_vis_index[1:]    # seperate self and ally
+            f_invis_index = f_iden_sort[~f_vis_mask]
+            f_vis_index, f_invis_index = self.item_random_mv(src=f_vis_index, dst=f_invis_index,prob=0, rand=True)
+            f_ind = np.concatenate((self_vis_index, f_vis_index, f_invis_index))
+            f_msk = np.concatenate((self_vis_index<0, f_vis_index<0, f_invis_index>=0)) # "<0" project to False; ">=0" project to True
+            self_ally_feature_sort = f_feature[f_ind]
+            self_ally_feature_sort[f_msk] = 0
+
+            OBS_ALL_AGENTS[i,:] = np.concatenate((self_ally_feature_sort, a2h_feature_sort), axis = 0)
 
         # # now, new_obs is a matrix of shape (n_agent, core_dim)
         # from UTILS.tensor_ops import repeat_at
         # encoded_obs_all_agent = repeat_at(encoded_obs, insert_dim=0, n_times=self.n_agents)
-        return encoded_obs_all_agent
+        return OBS_ALL_AGENTS
+
+
+    @staticmethod
+    def item_random_mv(src,dst,prob,rand=False):
+        assert len(src.shape)==1; assert len(dst.shape)==1
+        if rand: np.random.shuffle(src)
+        len_src = len(src)
+        n_mv = (np.random.rand(len_src) < prob).sum()
+        item_mv = src[range(len_src-n_mv,len_src)]
+        src = src[range(0,0+len_src-n_mv)]
+        dst = np.concatenate((item_mv, dst))
+        return src, dst
+
+    @staticmethod
+    def get_binary_array(n_int, n_bits=8, dtype=np.float32):
+        arr = np.zeros((*n_int.shape, n_bits), dtype=dtype)
+        pointer = 0
+        for i in range(n_bits):
+            arr[:, i] = (n_int%2==1).astype(np.int)
+            n_int = n_int / 2
+            n_int = n_int.astype(np.int8)
+        return arr
