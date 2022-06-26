@@ -157,6 +157,8 @@ class ReinforceAlgorithmFoundation(object):
 
             # dir 2
             info = str(update_cnt) if info is None else ''.join([str(update_cnt),'_',info])
+            # Windows OS will not allow some special symbols in the file name
+            info = info.replace(' ','').replace(':','=') 
             pt_path = '%s/history_cpt/model_%s.pt'%(logdir, info)
             torch.save(self.policy.state_dict(), pt_path)
             try: os.remove(flag)

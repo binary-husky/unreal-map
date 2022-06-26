@@ -190,7 +190,7 @@ class UhmapLargeScale(UhmapEnv):
                 reward[team]    -= 1    # this team
             if event_parsed['Event'] == 'EndEpisode':
                 EndReason = event_parsed['EndReason']
-                WinTeam = event_parsed['WinTeam']
+                WinTeam = int(event_parsed['WinTeam'])
                 WinningResult = {
                     "team_ranking": [WinTeam, 1-WinTeam],
                     "end_reason": EndReason

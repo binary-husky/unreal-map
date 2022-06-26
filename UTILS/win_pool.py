@@ -1,13 +1,8 @@
 """
     Author: Fu Qingxu,CASIA
     Description: Efficient parallel execting tool, 
-        it resembles Ray but:
-            1.optimized for single machine using shared memory
-            2.optimized for numpy ndarray
-            3.use semaphore for IPC
-            4.faster!
-    Note: 
-        SHARE_BUF_SIZE: shared memory size, 10MB per process
+    Less efficient than the shm_pool (Linux only), 
+    but this one supports Windows as well as Linux.
 """
 import numpy as np
 from multiprocessing import Pipe
@@ -61,7 +56,7 @@ class SuperProc(multiprocessing.Process):
         numpy.random.seed(self.local_seed)
         # linux uses fork, but windows does not, reload config for windows
         # if not platform.system()=="Linux":  child_process_load_config()
-        print('process worker %d started'%self.index)
+        print('[win_pool]: process worker %d started'%self.index)
         try:
             while True:
                 recv_args = self.p.recv()
@@ -69,7 +64,7 @@ class SuperProc(multiprocessing.Process):
                     if recv_args == 0:
                         self.add_targets(self.pH.recv())
                     elif recv_args == -1:
-                        print('子进程退出')
+                        print('Parallel worker exit')
                         break  # terminate
                     else:
                         assert False
@@ -95,7 +90,7 @@ class SmartPool(object):
         self.thisSide, self.thatSide = zip(*[Pipe() for _ in range(proc_num)])
         self.thisSideHelp, self.thatSideHelp = zip(*[Pipe() for _ in range(proc_num)])
         self.base_seed = int(np.random.rand()*1e5) if base_seed is None else base_seed
-        print('SmartPool base rand seed', self.base_seed)
+        print('[win_pool]: SmartPool base rand seed', self.base_seed)
         self.proc_pool = [SuperProc(pipe=p, pipeHelp=pH, index=cnt, base_seed=self.base_seed)
                           for p, pH, cnt in zip(self.thatSide, self.thatSideHelp, range(proc_num))]
         for proc in self.proc_pool:
@@ -190,13 +185,14 @@ class SmartPool(object):
             print_red('[shm_pool]: already terminated, skipping ~')
             return
 
+        print('[win_pool]: Sending exit command to workers ...')
         try:
             for i in range(self.proc_num):
                 self.thisSide[i].send(-1)    # switch to helper channel
-                print('向子进程发出退出指令')
             self.terminated = True
-
         except: pass
+
+        print('[win_pool]: Closing pipe ...')
         for i in range(self.proc_num):
             try:
                 self.thisSide[i].close()
@@ -205,13 +201,13 @@ class SmartPool(object):
 
         N_SEC_WAIT = 2
         for i in range(N_SEC_WAIT):
-            print_red('[shm_pool]: terminate in %d'%(N_SEC_WAIT-i));time.sleep(1)
+            print_red('[win_pool]: terminate in %d'%(N_SEC_WAIT-i));time.sleep(1)
 
         # 杀死shm_pool创建的所有子进程，以及子进程的孙进程
-        print_red('[shm_pool]: kill_process_and_its_children(proc)')
+        print_red('[win_pool]: kill_process_and_its_children(proc)')
         for proc in self.proc_pool: 
             try: kill_process_and_its_children(proc)
-            except Exception as e: print_red('[shm_pool]: error occur when kill_process_and_its_children:\n', e)
+            except Exception as e: print_red('[win_pool]: error occur when kill_process_and_its_children:\n', e)
             
 
 

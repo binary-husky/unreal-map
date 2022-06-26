@@ -73,6 +73,7 @@ class Runner(object):
         self.info_runner['Test-Flag'] = self.test_only  # not testing mode for rl methods
         self.info_runner['Recent-Reward-Sum'] = []
         self.info_runner['Recent-Win'] = []
+        self.info_runner['Recent-Team-Ranking'] = []
         obs_info = self.envs.reset() # assumes only the first time reset is manual
         self.info_runner['Latest-Obs'], self.info_runner['Latest-Team-Info'] = obs_info if isinstance(obs_info, tuple) else (obs_info, None)
         self.info_runner['Env-Suffered-Reset'] = np.array([True for _ in range(self.n_thread)])
@@ -103,21 +104,24 @@ class Runner(object):
             # otherwise, the environment just been reset
             self.current_n_frame += self.info_runner['Current-Obs-Step'][i]
             self.current_n_episode += 1
-            # print(self.info_runner['Latest-Reward-Sum'][i])
             self.info_runner['Recent-Reward-Sum'].append(self.info_runner['Latest-Reward-Sum'][i].copy())
             term_info = self.info_runner['Latest-Team-Info'][i]
+            # update win/lose (single-team), or team ranking (multi-team)
             win = 1 if 'win' in term_info and term_info['win']==True else 0
             self.info_runner['Recent-Win'].append(win)
+            if 'team_ranking' in term_info: 
+                self.info_runner['Recent-Team-Ranking'].append(term_info['team_ranking'])
             self.info_runner['Latest-Reward-Sum'][i] = 0
             self.info_runner['Current-Obs-Step'][i] = 0
             self.info_runner['Thread-Episode-Cnt'][i] += 1
             # hault finished threads to wait unfinished ones
             if self.align_episode: self.info_runner['ENV-PAUSE'][i] = True
-            # leave a backdoor here to monitor rewards for some specific agents
+            # monitoring agents/team of interest
             if self.current_n_episode % self.report_interval == 0: 
-                self._checkout_interested_agents(self.info_runner['Recent-Reward-Sum'])
+                self._checkout_interested_agents()  # monitor rewards for some specific agents
                 self.info_runner['Recent-Reward-Sum'] = []
                 self.info_runner['Recent-Win'] = []
+                self.info_runner['Recent-Team-Ranking'] = []
             # begin a testing session?
             if self.train_time_testing and (not self.test_only) and (self.current_n_episode % self.test_interval == 0): 
                 self.start_a_test_run()
@@ -147,17 +151,24 @@ class Runner(object):
                 actions_list, self.test_info_runner = self.platform_controller.act(self.test_info_runner)
                 obs, reward, done, info = self.test_envs.step(actions_list)
                 self.test_info_runner = self.update_test_runner(done, obs, reward, info)
-                # print(self.test_info_runner['Thread-Episode-Cnt'])
-                # If the test run reach its end:
+                # If the test run reach its end, record the reward and win-rate:
                 if (self.test_info_runner['Thread-Episode-Cnt']>=ntimesthread).all():
+                    # get the reward average
                     reward_of_each_ep = np.stack(self.test_info_runner['Recent-Reward-Sum']) #.squeeze()
                     if self.RewardAsUnity: 
                         reward_avg_itr_agent = reward_of_each_ep[:, self.interested_team].mean()
                     else:
                         reward_avg_itr_agent = reward_of_each_ep[:, self.interested_agents_uid].mean()
+                    # get the win rate
                     win_rate = np.array(self.test_info_runner['win']).mean()
+                    teams_ranking = self.test_info_runner['Recent-Team-Ranking']
+                    if len(teams_ranking)>0:
+                        rank_itr_team = np.where(np.array(teams_ranking)==self.interested_team)[1]
+                        win_rate = (rank_itr_team==0).mean()  # 0 means rank first
+                        self.mcv.rec(win_rate, 'test top-rank ratio')
+                    else:
+                        self.mcv.rec(win_rate, 'test-win-rate')
                     self.mcv.rec(reward_avg_itr_agent, 'test-reward')
-                    self.mcv.rec(win_rate, 'test-win-rate')
                     self.mcv.rec_show()
                     print_info = 'average reward: %.2f, win rate: %.2f'%(reward_avg_itr_agent, win_rate)
                     print靛('\r[task runner]: test finished, %s'%print_info )
@@ -172,6 +183,7 @@ class Runner(object):
             self.test_info_runner['Test-Flag'] = True
             self.test_info_runner['win'] = []
             self.test_info_runner['Recent-Reward-Sum'] = []
+            self.test_info_runner['Recent-Team-Ranking'] = []
             test_obs_info = self.test_envs.reset() # assume only the first time reset is manual
             self.test_info_runner['Latest-Obs'], self.test_info_runner['Latest-Team-Info'] = test_obs_info if isinstance(test_obs_info, tuple) else (test_obs_info, None)
             self.test_info_runner['Env-Suffered-Reset'] = np.array([True for _ in range(self.n_thread)])
@@ -205,6 +217,8 @@ class Runner(object):
                 term_info = self.test_info_runner['Latest-Team-Info'][i]
                 win = 1 if 'win' in term_info and term_info['win']==True else 0
                 self.test_info_runner['win'].append(win)
+                if 'team_ranking' in term_info: 
+                    self.test_info_runner['Recent-Team-Ranking'].append(term_info['team_ranking'])
                 if self.align_episode: self.test_info_runner['ENV-PAUSE'][i] = True
             if self.align_episode and self.test_info_runner['ENV-PAUSE'].all(): self.test_info_runner['ENV-PAUSE'][:] = False
             return self.test_info_runner
@@ -220,25 +234,32 @@ class Runner(object):
         self.interested_team = cfg.interested_team
         self.top_rewards = None
         return
-    def _checkout_interested_agents(self, recent_rewards):
-        recent_rewards = np.stack(recent_rewards)
+    def _checkout_interested_agents(self):
+        # (1). record mean reward
+        recent_rewards = np.stack(self.info_runner['Recent-Reward-Sum'])
         if self.RewardAsUnity:
             mean_reward = recent_rewards[:, self.interested_team].mean()
         else:
             if recent_rewards.shape[-1] != len(self.interested_agents_uid): 
                 print('warning! interested_agents_uid:', self.interested_agents_uid)
             mean_reward = recent_rewards[:, self.interested_agents_uid].mean()
-
         self.mcv.rec(mean_reward, 'reward')
+        # (2).reflesh historical top reward
         if self.top_rewards is None: self.top_rewards = mean_reward
         if mean_reward > self.top_rewards: self.top_rewards = mean_reward
-        win_rate = np.array(self.info_runner['Recent-Win']).mean()
         self.mcv.rec(self.top_rewards, 'top reward')
+        # (3).record winning rate (single-team) or record winning rate (multi-team)
+        win_rate = np.array(self.info_runner['Recent-Win']).mean()
+        teams_ranking = self.info_runner['Recent-Team-Ranking']
+        if len(teams_ranking)>0:
+            rank_itr_team = np.where(np.array(teams_ranking)==self.interested_team)[1]
+            win_rate = (rank_itr_team==0).mean()  # 0 means rank first
+            self.mcv.rec(win_rate, 'top-rank ratio')
+        else:
+            self.mcv.rec(win_rate, 'win rate')
+        # plot the figure
         self.mcv.rec_show()
-        if self.test_only:
-            with open(cfg.test_logger,'a+') as f:  f.write('mean_reward:%.4f|win_rate:%.4f\n'%(mean_reward, win_rate))
-
-        print靛('\r[task runner]: (%s) finished episode %d, at frame %d, recent reward %.3f, best reward %.3f'
+        print靛('\r[task runner]: (%s) finished episode %d, at frame %d. [agents of interest]: recent reward %.3f, best reward %.3f'
                 % (self.note, self.current_n_episode, self.current_n_frame, mean_reward, self.top_rewards))
         return
 
