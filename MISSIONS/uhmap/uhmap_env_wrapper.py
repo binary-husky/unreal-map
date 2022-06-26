@@ -56,7 +56,7 @@ class ScenarioConfig(object):
     SubTaskSelection = 'UhmapBreakingBad'
     UElink2editor = False
     AutoPortOverride = False
-    StepGameTime = 1
+    StepGameTime = 1.0
 
     UhmapServerExe = 'F:/UHMP/Build/WindowsServer/UHMPServer.exe'
     UhmapRenderExe = ''
@@ -134,6 +134,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         ipport = (ScenarioConfig.TcpAddr, which_port)
         # os.system()
         if not ScenarioConfig.UElink2editor:
+            assert ScenarioConfig.AutoPortOverride
             if (not self.render) and ScenarioConfig.UhmapServerExe != '':
                 subprocess.Popen([
                     ScenarioConfig.UhmapServerExe,
@@ -165,6 +166,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             else:
                 print('Cannot start Headless Server Or GUI Server!')
                 assert False, 'Cannot start Headless Server Or GUI Server!'
+        else:
+            assert not ScenarioConfig.AutoPortOverride
 
         self.client = TcpClientP2PWithCompress(ipport)
         MAX_RETRY = 100

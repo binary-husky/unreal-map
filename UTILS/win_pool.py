@@ -14,12 +14,6 @@ from multiprocessing import Pipe
 import time, platform
 import multiprocessing
 
-def child_process_load_config():
-    # important! load json config or cmdline config to child process
-    from UTILS.config_args import prepare_args
-    prepare_args(vb=False)
-    pass
-
 
 class SuperProc(multiprocessing.Process):
     def __init__(self, pipe, pipeHelp, index, base_seed):
@@ -67,7 +61,7 @@ class SuperProc(multiprocessing.Process):
         import numpy
         numpy.random.seed(self.local_seed)
         # linux uses fork, but windows does not, reload config for windows
-        if not platform.system()=="Linux":  child_process_load_config()
+        # if not platform.system()=="Linux":  child_process_load_config()
         print('process worker %d started'%self.index)
         try:
             while True:

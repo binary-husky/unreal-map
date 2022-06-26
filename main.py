@@ -19,7 +19,7 @@
         matlab logging/plotting bridge            -->   mcom.py & mcom_rec.py
         experiment batch executor                 -->   mprofile.py
 """
-import os, sys, atexit
+import os, sys, atexit, platform
 
 def SET_NUM_THREADS(internal_threads):
     os.environ['NUM_THREADS'] = str(internal_threads)
@@ -88,3 +88,8 @@ if __name__ == '__main__':
     # DONE!
     print绿('--- All jobs finished ---')
     smart_pool.party_over()
+
+elif platform.system()!="Linux":
+    # Linux uses fork for multi-processing, but Windows does not, reload config for Windows
+    from UTILS.config_args import prepare_args
+    cfg = prepare_args(vb=False)
