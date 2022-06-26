@@ -78,6 +78,7 @@ def type_map(classname):
 class UhmapLargeScale(UhmapEnv):
     def __init__(self, rank) -> None:
         super().__init__(rank)
+        self.observation_space = self.make_obs(get_shape=True)
 
     def reset(self):
         self.t = 0
@@ -100,8 +101,8 @@ class UhmapLargeScale(UhmapEnv):
         for which_team in range(2):
             n_team_agent = ScenarioConfig.n_team1agent if which_team==0 else ScenarioConfig.n_team2agent
             for i in range(n_team_agent):
-                N_COL = 2
-                x = 0 + 100*(i - n_team_agent//2) //N_COL
+                N_COL = 1
+                x = 0 + 300*(i - n_team_agent//2) //N_COL
                 y = 500* (i%N_COL) + 2000 * (-1)**(which_team+1)
                 z = 500
                 yaw = 90 if which_team==0 else -90
@@ -139,26 +140,35 @@ class UhmapLargeScale(UhmapEnv):
     def step(self, act):
 
         assert len(act) == self.n_agents
+
+        # translate actions to the format recognized by unreal engine
         act_send = [digit2act_dictionary[a] for a in act]
-        json_to_send = json.dumps({
+
+        # simulation engine IO
+        resp = json.loads(self.client.send_and_wait_reply(json.dumps({
             'valid': True,
             'DataCmd': 'step',
             'TimeStep': self.t,
             'Actions': None,
             'StringActions': act_send,
-        })
-        resp = self.client.send_and_wait_reply(json_to_send)
-        resp = json.loads(resp)
+        })))
 
-        RewardForAllTeams = self.gen_reward(resp)   # step 1
+        # get obs for RL, info for script AI
+        ob, info = self.parse_response_ob_info(resp)
 
-
-        ob, info = self.parse_response_ob_info(resp)    # step 3, make obs
-        done = resp['dataGlobal']['episodeDone']
-        if resp['dataGlobal']['timeCnt'] >= ScenarioConfig.MaxEpisodeStep:
+        # generate reward, get the episode ending infomation
+        RewardForAllTeams, WinningResult = self.gen_reward_and_win(resp)
+        if WinningResult is not None: 
+            info.update(WinningResult)
+            assert resp['dataGlobal']['episodeDone']
             done = True
+        else:
+            done = False
 
-        return (ob, RewardForAllTeams,  done, info)  # choose this if RewardAsUnity
+        if resp['dataGlobal']['timeCnt'] >= ScenarioConfig.MaxEpisodeStep:
+            assert done
+
+        return (ob, RewardForAllTeams, done, info)  # choose this if RewardAsUnity
 
     def parse_event(self, event):
         if not hasattr(self, 'pattern'): self.pattern = re.compile(r'<([^<>]*)>([^<>]*)')
@@ -169,15 +179,23 @@ class UhmapLargeScale(UhmapEnv):
         return keyObjArr
 
 
-    def gen_reward(self, resp):
+    def gen_reward_and_win(self, resp):
         reward = [0]*self.n_teams
         events = resp['dataGlobal']['events']
+        WinningResult = None
         for event in events: 
             event_parsed = self.parse_event(event)
             if event_parsed['Event'] == 'Destroyed':
                 team = self.find_agent_by_uid(event_parsed['UID']).team
                 reward[team]    -= 1    # this team
-        return reward
+            if event_parsed['Event'] == 'EndEpisode':
+                EndReason = event_parsed['EndReason']
+                WinTeam = event_parsed['WinTeam']
+                WinningResult = {
+                    "team_ranking": [WinTeam, 1-WinTeam],
+                    "end_reason": EndReason
+                }
+        return reward, WinningResult
 
     def step_skip(self):
         return self.client.send_and_wait_reply(json.dumps({
@@ -207,7 +225,6 @@ class UhmapLargeScale(UhmapEnv):
         for i, agent_info in enumerate(info):
             self.agents[i].update_agent_attrs(agent_info)
 
-        # for fn:make_obs()
         self.key_obj = self.extract_key_gameobj(response)
 
         # return ob, info
@@ -236,12 +253,17 @@ class UhmapLargeScale(UhmapEnv):
             n_int = n_int.astype(np.int8)
         return arr
 
-    def make_obs(self):
+    def make_obs(self, get_shape=False):
+        CORE_DIM = 23
+        assert ScenarioConfig.obs_vec_length == CORE_DIM
+        if get_shape:
+            return CORE_DIM
+
         # temporary parameters
         OBS_RANGE_PYTHON_SIDE = 2500
         MAX_NUM_OPP_OBS = 5
         MAX_NUM_ALL_OBS = 5
-
+        
         # get and calculate distance array
         pos3d_arr = np.zeros(shape=(self.n_agents, 3), dtype=np.float32)
         for i, agent in enumerate(self.agents): pos3d_arr[i] = agent.pos3d
@@ -287,11 +309,11 @@ class UhmapLargeScale(UhmapEnv):
         obs_ = obs_arr.get()
         new_obs = my_view(obs_, [self.n_agents, -1])
 
-
+        assert CORE_DIM == new_obs.shape[-1]
         OBS_ALL_AGENTS = np.zeros(shape=(
             self.n_agents, 
             MAX_NUM_OPP_OBS+MAX_NUM_ALL_OBS, 
-            new_obs.shape[-1]
+            CORE_DIM
             ))
 
         # now arranging the individual obs
@@ -355,7 +377,7 @@ class UhmapLargeScale(UhmapEnv):
         OBJ_UID_OFFSET = 32768
         OBS_GameObj = np.zeros(shape=(
             MAX_OBJ_NUM_ACCEPT, 
-            OBS_ALL_AGENTS.shape[-1]
+            CORE_DIM
         ))
 
         obs_arr = RawObsArrayGameObj()

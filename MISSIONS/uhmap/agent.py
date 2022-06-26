@@ -1,6 +1,6 @@
 import numpy as np
 from .actset_lookup import digit2act_dictionary, agent_json2local_attrs
-from .actset_lookup import act2digit_dictionary, no_act_placeholder, dictionary_n_actions
+from .actset_lookup import act2digit_dictionary, dictionary_n_actions
 
 class Agent(object):
     def __init__(self, team, team_id, uid) -> None:

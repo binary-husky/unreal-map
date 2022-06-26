@@ -11,9 +11,13 @@
 """
 import numpy as np
 from multiprocessing import Pipe
-import time, platform
+import time, psutil
+from .hmp_daemon import kill_process_and_its_children
 import multiprocessing
-
+def print_red(*kw,**kargs):
+    print("\033[1;31m",*kw,"\033[0m",**kargs)
+def print_green(*kw,**kargs):
+    print("\033[1;32m",*kw,"\033[0m",**kargs)
 
 class SuperProc(multiprocessing.Process):
     def __init__(self, pipe, pipeHelp, index, base_seed):
@@ -22,11 +26,6 @@ class SuperProc(multiprocessing.Process):
         self.pH = pipeHelp
         self.local_seed = index + base_seed
         self.index = index
-
-
-    def __del__(self):
-        self.p.close()
-        self.pH.close()
 
     def automatic_generation(self, name, gen_fn, *arg):
         setattr(self, name, gen_fn(*arg))
@@ -81,7 +80,10 @@ class SuperProc(multiprocessing.Process):
             self.__del__()
         self.__del__()
 
-
+    def __del__(self):
+        self.p.close()
+        self.pH.close()
+        kill_process_and_its_children(psutil.Process())
 
 
 class SmartPool(object):
@@ -105,25 +107,7 @@ class SmartPool(object):
             self.thatSide[i].close()
             self.thatSideHelp[i].close()
 
-    def __del__(self):
-        try:
-            if hasattr(self, 'terminated'):
-                return
-        except:
-            return
 
-        print(' kill ')
-        try:
-            for i in range(self.proc_num):
-                self.thisSide[i].send(-1)    # switch to helper channel
-                print('向子进程发出退出指令')
-            time.sleep(3)
-            self.terminated = True
-            for i in range(self.proc_num):
-                self.thisSide[i].close()
-                self.thisSideHelp[i].close()
-        except:
-            pass
 
     # add an object of some class, initialize it proc_num=64 times, assigning them to proc_num/fold_num=16 python
     # processes
@@ -199,4 +183,37 @@ class SmartPool(object):
     def party_over(self):
         self.__del__()
 
-        
+    def __del__(self):
+        print('[win_pool]: executing superpool del')
+
+        if hasattr(self, 'terminated'): 
+            print_red('[shm_pool]: already terminated, skipping ~')
+            return
+
+        try:
+            for i in range(self.proc_num):
+                self.thisSide[i].send(-1)    # switch to helper channel
+                print('向子进程发出退出指令')
+            self.terminated = True
+
+        except: pass
+        for i in range(self.proc_num):
+            try:
+                self.thisSide[i].close()
+                self.thisSideHelp[i].close()
+            except: pass
+
+        N_SEC_WAIT = 2
+        for i in range(N_SEC_WAIT):
+            print_red('[shm_pool]: terminate in %d'%(N_SEC_WAIT-i));time.sleep(1)
+
+        # 杀死shm_pool创建的所有子进程，以及子进程的孙进程
+        print_red('[shm_pool]: kill_process_and_its_children(proc)')
+        for proc in self.proc_pool: 
+            try: kill_process_and_its_children(proc)
+            except Exception as e: print_red('[shm_pool]: error occur when kill_process_and_its_children:\n', e)
+            
+
+
+        print_green('[shm_pool]: __del__ finish')
+        self.terminated = True

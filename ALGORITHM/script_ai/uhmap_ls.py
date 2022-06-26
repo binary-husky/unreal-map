@@ -58,10 +58,12 @@ class DummyAlgorithmT1(DummyAlgorithmBase):
         env0_step = State_Recall['Current-Obs-Step']
 
         thread = 0
+ 
+        actions[:, :] = 12
+        if env0_step==0:
+            actions[:, :] = 2
 
-        # actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;X=0.0 Y=0.0 Z=100.0']
-        actions[:, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+Y']
-
+        assert False
 
 
         # set actions of in-active threads to NaN (will be done again in multi_team.py, this line is not necessary)
@@ -86,18 +88,16 @@ class DummyAlgorithmT2(DummyAlgorithmBase):
 
         actions = np.zeros(shape=(self.n_thread, self.n_agent))
 
-        env0_step = State_Recall['Current-Obs-Step']
-
-        thread = 0
-
-        actions[:, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-Y']
-
-        # actions[thread, :] = self.act2digit_dictionary['ActionSet2::PatrolMoving;X=-6800.0 Y=6830.0 Z=397.215454']
+        env0_step = State_Recall['Current-Obs-Step'][0]
 
 
-        # actions[thread, 1] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir-Y']
-        # actions[thread, 2] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir-Y']
-        # actions[thread, 3] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir-Y']
+        actions[:, 0] = 13
+        actions[:, 1] = 14
+        actions[:, 2] = 15
+        actions[:, 3] = 16
+        actions[:, 4] = 17
+        if env0_step==0:
+            actions[:, :] = 3
 
         # set actions of in-active threads to NaN (will be done again in multi_team.py, this line is not necessary)
         actions[ENV_PAUSE] = np.nan
@@ -105,88 +105,3 @@ class DummyAlgorithmT2(DummyAlgorithmBase):
         # swap (self.n_thread, self.n_agent) -> (self.n_agent, self.n_thread) 
         actions = np.swapaxes(actions, 0, 1)
         return actions, {}
-
-'''
-        if env0_step < 5:
-            actions[thread, :] = self.act2digit_dictionary['ActionSet2::Idle;DynamicGuard']
-        elif env0_step < 15:
-            actions[thread, :] = self.act2digit_dictionary['ActionSet2::SpecificAttacking;UID-3']
-        elif env0_step < 25:
-            actions[thread, :] = self.act2digit_dictionary['ActionSet2::SpecificAttacking;UID-4']
-        elif env0_step < 35:
-            actions[thread, :] = self.act2digit_dictionary['ActionSet2::SpecificAttacking;UID-5']
-        elif env0_step < 45:
-            actions[thread, :] = self.act2digit_dictionary['ActionSet2::SpecificAttacking;UID-6']
-        elif env0_step < 55:
-            actions[thread, :] = self.act2digit_dictionary['ActionSet2::SpecificAttacking;UID-7']
-'''
-
-'''
-        if env0_step < 5:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::Idle;DynamicGuard']
-        else:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::SpecificAttacking;UID-1']
-            
-
-'''
-
-'''
-    if env0_step < 5:
-        if env0_step%4 == 0:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+X+Y']
-        if env0_step%4 == 1:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+X-Y']
-        if env0_step%4 == 2:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-X-Y']
-        if env0_step%4 == 3:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-X+Y']
-    elif env0_step < 10:
-        actions[thread, 0] = self.act2digit_dictionary['ActionSet2::Idle;DynamicGuard']
-    elif env0_step < 15:
-        if env0_step%4 == 0:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir+X']
-        if env0_step%4 == 1:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir+Y']
-        if env0_step%4 == 2:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir-X']
-        if env0_step%4 == 3:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir-Y']
-    elif env0_step < 20:
-        actions[thread, 0] = self.act2digit_dictionary['ActionSet2::Idle;StaticAlert']
-    elif env0_step < 30:
-        if env0_step%4 == 0:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+X+Y']
-        if env0_step%4 == 1:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+X-Y']
-        if env0_step%4 == 2:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-X-Y']
-        if env0_step%4 == 3:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-X+Y']
-    else:
-        actions[thread, 0] = self.act2digit_dictionary['ActionSet2::Idle;StaticAlert']
-
-'''
-
-"""
-        thread = 0
-        if env0_step%4 == 0:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+X+Y']
-        if env0_step%4 == 1:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir+X-Y']
-        if env0_step%4 == 2:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-X-Y']
-        if env0_step%4 == 3:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::PatrolMoving;Dir-X+Y']
-"""
-
-"""
-        thread = 0
-        if env0_step%4 == 0:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir+X+Y']
-        if env0_step%4 == 1:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir+X-Y']
-        if env0_step%4 == 2:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir-X-Y']
-        if env0_step%4 == 3:
-            actions[thread, 0] = self.act2digit_dictionary['ActionSet2::SpecificMoving;Dir-X+Y']
-"""

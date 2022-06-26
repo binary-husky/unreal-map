@@ -5,7 +5,7 @@ from UTILS.network import TcpClientP2PWithCompress, find_free_port
 from UTILS.config_args import ChainVar
 from ..common.base_env import BaseEnv
 from .actset_lookup import digit2act_dictionary, agent_json2local_attrs
-from .actset_lookup import act2digit_dictionary, no_act_placeholder, dictionary_n_actions
+from .actset_lookup import act2digit_dictionary, dictionary_n_actions
 from .agent import Agent
 
 # please register this ScenarioConfig into MISSIONS/env_router.py
@@ -70,7 +70,7 @@ class ScenarioConfig(object):
     EntityOriented = False
 
     n_actions = dictionary_n_actions
-    obs_vec_length = 7
+    obs_vec_length = 23
     act2digit_dictionary = act2digit_dictionary
 
 DEBUG = False

@@ -1,42 +1,66 @@
 import numpy as np
 
+# # # # # # # # # # # # # # # # # # # # # # #
+# # # # # Part 1, interface for RL # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # #
+# dictionary_items = [
+#     'ActionSet2::N/A;N/A',
+#     'ActionSet2::Idle;DynamicGuard'     ,
+#     'ActionSet2::Idle;StaticAlert'      ,
+#     'ActionSet2::Idle;AggressivePersue' ,
+#     'ActionSet2::SpecificMoving;Dir+X'  ,
+#     'ActionSet2::SpecificMoving;Dir+X+Y',
+#     'ActionSet2::SpecificMoving;Dir+Y'  ,
+#     'ActionSet2::SpecificMoving;Dir-X+Y',
+#     'ActionSet2::SpecificMoving;Dir-X'  ,
+#     'ActionSet2::SpecificMoving;Dir-X-Y',
+#     'ActionSet2::SpecificMoving;Dir-Y'  ,
+#     'ActionSet2::SpecificMoving;Dir+X-Y',
+#     'ActionSet2::SpecificMoving;X=-1.0 Y=2.0 Z=3.0',
+#     'ActionSet2::PatrolMoving;Dir+X'    ,
+#     'ActionSet2::PatrolMoving;Dir+X+Y'  ,
+#     'ActionSet2::PatrolMoving;Dir+Y'    ,
+#     'ActionSet2::PatrolMoving;Dir-X+Y'  ,
+#     'ActionSet2::PatrolMoving;Dir-X'    ,
+#     'ActionSet2::PatrolMoving;Dir-X-Y'  ,
+#     'ActionSet2::PatrolMoving;Dir-Y'    ,
+#     'ActionSet2::PatrolMoving;Dir+X-Y'  ,
+#     'ActionSet2::PatrolMoving;X=0.0 Y=0.0 Z=100.0',
+#     'ActionSet2::SpecificAttacking;T1-1',
+#     'ActionSet2::SpecificAttacking;T1-2',
+#     'ActionSet2::SpecificAttacking;T1-3',
+#     'ActionSet2::SpecificAttacking;T1-4',
+#     'ActionSet2::SpecificAttacking;UID-0',
+#     'ActionSet2::SpecificAttacking;UID-1',
+#     'ActionSet2::SpecificAttacking;UID-2',
+#     'ActionSet2::SpecificAttacking;UID-3',
+#     'ActionSet2::SpecificAttacking;UID-4',
+#     'ActionSet2::SpecificAttacking;UID-5',
+#     'ActionSet2::SpecificAttacking;UID-6',
+#     'ActionSet2::SpecificAttacking;UID-7',
+#     'ActionSet2::SpecificAttacking;UID-8',
+# ]
+
 dictionary_items = [
-    'ActionSet2::Idle;DynamicGuard'     ,
-    'ActionSet2::Idle;StaticAlert'      ,
-    'ActionSet2::Idle;AggressivePersue' ,
-    'ActionSet2::SpecificMoving;Dir+X'  ,
-    'ActionSet2::SpecificMoving;Dir+X+Y',
-    'ActionSet2::SpecificMoving;Dir+Y'  ,
-    'ActionSet2::SpecificMoving;Dir-X+Y',
-    'ActionSet2::SpecificMoving;Dir-X'  ,
-    'ActionSet2::SpecificMoving;Dir-X-Y',
-    'ActionSet2::SpecificMoving;Dir-Y'  ,
-    'ActionSet2::SpecificMoving;Dir+X-Y',
-    'ActionSet2::SpecificMoving;X=-6800.0 Y=6830.0 Z=397.215454',
-    'ActionSet2::PatrolMoving;Dir+X'    ,
-    'ActionSet2::PatrolMoving;Dir+X+Y'  ,
-    'ActionSet2::PatrolMoving;Dir+Y'    ,
-    'ActionSet2::PatrolMoving;Dir-X+Y'  ,
-    'ActionSet2::PatrolMoving;Dir-X'    ,
-    'ActionSet2::PatrolMoving;Dir-X-Y'  ,
-    'ActionSet2::PatrolMoving;Dir-Y'    ,
-    'ActionSet2::PatrolMoving;Dir+X-Y'  ,
-    'ActionSet2::PatrolMoving;X=-6800.0 Y=6830.0 Z=397.215454',
-    'ActionSet2::PatrolMoving;X=0.0 Y=0.0 Z=100.0',
-    'ActionSet2::SpecificAttacking;T1-1',
-    'ActionSet2::SpecificAttacking;T1-2',
-    'ActionSet2::SpecificAttacking;T1-3',
-    'ActionSet2::SpecificAttacking;T1-4',
-    'ActionSet2::N/A;N/A',
-    'ActionSet2::SpecificAttacking;UID-0',
-    'ActionSet2::SpecificAttacking;UID-1',
-    'ActionSet2::SpecificAttacking;UID-2',
-    'ActionSet2::SpecificAttacking;UID-3',
-    'ActionSet2::SpecificAttacking;UID-4',
-    'ActionSet2::SpecificAttacking;UID-5',
-    'ActionSet2::SpecificAttacking;UID-6',
-    'ActionSet2::SpecificAttacking;UID-7',
-    'ActionSet2::SpecificAttacking;UID-8',
+    'ActionSet2::N/A;N/A',                  # 0
+    'ActionSet2::Idle;DynamicGuard'     ,   # 1
+    'ActionSet2::Idle;StaticAlert'      ,   # 2
+    'ActionSet2::Idle;AggressivePersue' ,   # 3
+    'ActionSet2::SpecificMoving;Dir+X'  ,   # 4
+    'ActionSet2::SpecificMoving;Dir+Y'  ,   # 5
+    'ActionSet2::SpecificMoving;Dir-X'  ,   # 6
+    'ActionSet2::SpecificMoving;Dir-Y'  ,   # 7
+    'ActionSet2::SpecificAttacking;T1-0',   # 8
+    'ActionSet2::SpecificAttacking;T1-1',   # 9
+    'ActionSet2::SpecificAttacking;T1-2',   # 10
+    'ActionSet2::SpecificAttacking;T1-3',   # 11
+    'ActionSet2::SpecificAttacking;T1-4',   # 12
+    
+    'ActionSet2::SpecificAttacking;T0-0',   # 13
+    'ActionSet2::SpecificAttacking;T0-1',   # 14
+    'ActionSet2::SpecificAttacking;T0-2',   # 15
+    'ActionSet2::SpecificAttacking;T0-3',   # 16
+    'ActionSet2::SpecificAttacking;T0-4',   # 17
 ]
 
 dictionary_n_actions = len(dictionary_items)
@@ -49,7 +73,9 @@ act2digit_dictionary = {
     dictionary_items[i]:i for i, item in enumerate(dictionary_items)
 }
 
-no_act_placeholder = 'ActionSet2::N/A;N/A'
+# # # # # # # # # # # # # # # # # # # # # # #
+# # # # # Part 2, translate actions # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # #
 
 agent_json2local_attrs = [
             # json key       ----->    agent key
@@ -70,51 +96,6 @@ agent_json2local_attrs = [
 ]
 
 
-h_map_center = (-7290.0, 6010.0)
-h_grid_size = 400
-v_ground = 340
-v_grid_size = 1000
-
-x_arr = np.array([h_map_center[0]+v_grid_size*i for i in range(-20, 20)])   # 0~39, 40, 1
-y_arr = np.array([h_map_center[1]+v_grid_size*i for i in range(-20, 20)])   # 0~39, 40, 40
-z_arr = np.array([v_ground+v_grid_size*i for i in range(4)])                # 0~3,  4,  1600
-# offset                                                                    # 0~1,  2,  6400
-
-
-# output $y \in [1000, 12800]$
-def _2digit(main_cmd, x, y, z):
-    z_logit = np.argmin(np.abs(z - z_arr))
-    x_logit = np.argmin(np.abs(x - x_arr))
-    y_logit = np.argmin(np.abs(y - y_arr))
-    if main_cmd=='SpecificMoving': cmd_logit = 0
-    elif main_cmd=='PatrolMoving': cmd_logit = 1
-    ls_mod = [1,40,1600,6400]
-    offset = 1000
-    x = np.array([x_logit, y_logit, z_logit, cmd_logit])
-    print(x)
-    y = np.dot(x, ls_mod)+offset
-    return y
-
-def _2coordinate(x):
-    offset = 1000
-    ls_mod = [1,40,1600,6400]
-    x = x - offset
-    res = []
-    for mod in reversed(ls_mod):
-        tmp = x // mod
-        x = x - tmp*mod
-        res.append(tmp)
-    res = list(reversed(res))
-    x_logit, y_logit, z_logit, cmd_logit = res
-    if    cmd_logit == 0 : main_cmd ='SpecificMoving'
-    elif  cmd_logit == 1 : main_cmd ='PatrolMoving'  
-    x = x_arr[x_logit]
-    y = y_arr[y_logit]
-    z = z_arr[z_logit]
-    print(main_cmd, x, y, z)
-    return main_cmd, x, y, z
-
-    
 
 def encode_action_as_digits(main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None):
     main_cmd_encoder = {
@@ -211,6 +192,10 @@ def decode_action_as_string(digits):
     return res
 
 
+# # # # # # # # # # # # # # # # # # # # # # #
+# # # # # Part 3, agent init defaults # # # #
+# # # # # # # # # # # # # # # # # # # # # # #
+
 AgentPropertyDefaults = {
     'ClassName': 'RLA_CAR',     # FString ClassName = "";
     'AcceptRLControl': True,    # bool AcceptRLControl = 0;
@@ -236,23 +221,84 @@ AgentPropertyDefaults = {
     'RSVD2':'',
 }
 
-'''
-<Agent>T0-5<UID>5<Event>Destroyed 
-<Agent>T1-6<UID>16<Event>Destroyed 
-<Agent>T0-4<UID>4<Event>Destroyed 
-<Agent>T0-2<UID>2<Event>Destroyed 
-<Agent>T1-7<UID>17<Event>Destroyed 
-<Agent>T1-1<UID>11<Event>Destroyed 
-<Agent>T0-8<UID>8<Event>Destroyed 
-<Agent>T0-7<UID>7<Event>Destroyed 
-<Agent>T1-3<UID>13<Event>Destroyed
-<Agent>T0-9<UID>9<Event>Destroyed
-<Agent>T0-6<UID>6<Event>Destroyed
-<Agent>T0-0<UID>0<Event>Destroyed
-<Agent>T1-2<UID>12<Event>Destroyed
-<Agent>T0-1<UID>1<Event>Destroyed
-<Agent>T0-3<UID>3<Event>Destroyed
-<Event>EndEpisode<EndReason><AllRLAgentDown>Lose<WinTeam>1
 
 
-'''
+# # # # # # # # # # # # # # # # # # # # # # #
+# # # # # Part 3, ??????????????????? # # # #
+# # # # # # # # # # # # # # # # # # # # # # #
+
+# '''
+# <Agent>T0-5<UID>5<Event>Destroyed 
+# <Agent>T1-6<UID>16<Event>Destroyed 
+# <Agent>T0-4<UID>4<Event>Destroyed 
+# <Agent>T0-2<UID>2<Event>Destroyed 
+# <Agent>T1-7<UID>17<Event>Destroyed 
+# <Agent>T1-1<UID>11<Event>Destroyed 
+# <Agent>T0-8<UID>8<Event>Destroyed 
+# <Agent>T0-7<UID>7<Event>Destroyed 
+# <Agent>T1-3<UID>13<Event>Destroyed
+# <Agent>T0-9<UID>9<Event>Destroyed
+# <Agent>T0-6<UID>6<Event>Destroyed
+# <Agent>T0-0<UID>0<Event>Destroyed
+# <Agent>T1-2<UID>12<Event>Destroyed
+# <Agent>T0-1<UID>1<Event>Destroyed
+# <Agent>T0-3<UID>3<Event>Destroyed
+# <Event>EndEpisode<EndReason><AllRLAgentDown>Lose<WinTeam>1
+# '''
+
+
+
+
+
+################## ########################## ########################
+################## ########################## ########################
+################## ########################## ########################
+################## single digit encode, not used ########################
+# h_map_center = (-7290.0, 6010.0)
+# h_grid_size = 400
+# v_ground = 340
+# v_grid_size = 1000
+
+# x_arr = np.array([h_map_center[0]+v_grid_size*i for i in range(-20, 20)])   # 0~39, 40, 1
+# y_arr = np.array([h_map_center[1]+v_grid_size*i for i in range(-20, 20)])   # 0~39, 40, 40
+# z_arr = np.array([v_ground+v_grid_size*i for i in range(4)])                # 0~3,  4,  1600
+# # offset                                                                    # 0~1,  2,  6400
+
+
+# # output $y \in [1000, 12800]$
+# def _2digit(main_cmd, x, y, z):
+#     z_logit = np.argmin(np.abs(z - z_arr))
+#     x_logit = np.argmin(np.abs(x - x_arr))
+#     y_logit = np.argmin(np.abs(y - y_arr))
+#     if main_cmd=='SpecificMoving': cmd_logit = 0
+#     elif main_cmd=='PatrolMoving': cmd_logit = 1
+#     ls_mod = [1,40,1600,6400]
+#     offset = 1000
+#     x = np.array([x_logit, y_logit, z_logit, cmd_logit])
+#     print(x)
+#     y = np.dot(x, ls_mod)+offset
+#     return y
+
+# def _2coordinate(x):
+#     offset = 1000
+#     ls_mod = [1,40,1600,6400]
+#     x = x - offset
+#     res = []
+#     for mod in reversed(ls_mod):
+#         tmp = x // mod
+#         x = x - tmp*mod
+#         res.append(tmp)
+#     res = list(reversed(res))
+#     x_logit, y_logit, z_logit, cmd_logit = res
+#     if    cmd_logit == 0 : main_cmd ='SpecificMoving'
+#     elif  cmd_logit == 1 : main_cmd ='PatrolMoving'  
+#     x = x_arr[x_logit]
+#     y = y_arr[y_logit]
+#     z = z_arr[z_logit]
+#     print(main_cmd, x, y, z)
+#     return main_cmd, x, y, z
+################## ########################## ########################
+################## ########################## ########################
+################## ########################## ########################
+
+    
