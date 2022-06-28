@@ -1,12 +1,12 @@
 import numpy as np
 from UTILS.tensor_ops import copy_clone
+from config import GlobalConfig
 
 class DummyAlgConfig():
     reserve = ""
 
 class DummyAlgorithmBase():
     def __init__(self, n_agent, n_thread, space, mcv):
-        from config import GlobalConfig
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.scenario_config = GlobalConfig.scenario_config
@@ -88,16 +88,31 @@ class DummyAlgorithmT2(DummyAlgorithmBase):
 
         actions = np.zeros(shape=(self.n_thread, self.n_agent))
 
-        env0_step = State_Recall['Current-Obs-Step'][0]
+        for thread in range(self.n_thread):
+            if ENV_PAUSE[thread]: continue
+            step_cnt = State_Recall['Current-Obs-Step'][thread]
+            raw_info = State_Recall['Latest-Team-Info'][thread]['dataArr']
+            
+            uid_range = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM
+            opp_uid_range = uid_range[0]
+            self_uid_range = uid_range[1]
+            
+            def uid_alive(uid):
+                return raw_info[uid]['agentAlive']
+
+            uid_offset = 13
+            for uid in opp_uid_range:
+                if uid_alive(uid):
+                    actions[thread, :] = uid + uid_offset
+
+        # actions[:, 0] = 13
+        # actions[:, 1] = 14
+        # actions[:, 2] = 15
+        # actions[:, 3] = 16
+        # actions[:, 4] = 17
 
 
-        actions[:, 0] = 13
-        actions[:, 1] = 14
-        actions[:, 2] = 15
-        actions[:, 3] = 16
-        actions[:, 4] = 17
-        if env0_step==0:
-            actions[:, :] = 3
+
 
         # set actions of in-active threads to NaN (will be done again in multi_team.py, this line is not necessary)
         actions[ENV_PAUSE] = np.nan

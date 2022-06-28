@@ -25,8 +25,8 @@ class ScenarioConfig(object):
     N_AGENT_EACH_TEAM = [n_team1agent, n_team2agent]
     N_AGENT_EACH_TEAM_cv = ChainVar(lambda n1, n2: [n1, n2], chained_with=['n_team1agent', 'n_team2agent'])
 
-    AGENT_ID_EACH_TEAM = [range(0,n_team1agent), range(0,n_team2agent)]
-    AGENT_ID_EACH_TEAM_cv = ChainVar(lambda  n1, n2: [range(0,n1),range(0,n2)], chained_with=['n_team1agent', 'n_team2agent'])
+    AGENT_ID_EACH_TEAM = [range(0,n_team1agent), range(n_team1agent,n_team1agent+n_team2agent)]
+    AGENT_ID_EACH_TEAM_cv = ChainVar(lambda  n1, n2: [range(0,n1),range(n1,n1+n2)], chained_with=['n_team1agent', 'n_team2agent'])
 
     TEAM_NAMES = ['ALGORITHM.None->None',]
 

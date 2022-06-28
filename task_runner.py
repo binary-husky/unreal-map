@@ -259,7 +259,7 @@ class Runner(object):
             self.mcv.rec(win_rate, 'win rate')
         # plot the figure
         self.mcv.rec_show()
-        print靛('\r[task runner]: (%s) finished episode %d, at frame %d. [agents of interest]: recent reward %.3f, best reward %.3f'
+        print靛('\r[task runner]: (%s) finished episode %d, frame %d. | agents of interest: recent reward %.3f, best reward %.3f.'
                 % (self.note, self.current_n_episode, self.current_n_frame, mean_reward, self.top_rewards))
         return
 
