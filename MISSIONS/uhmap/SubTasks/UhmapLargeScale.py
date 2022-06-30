@@ -85,12 +85,13 @@ class UhmapLargeScale(UhmapEnv):
 
         AgentPropertyDefaults.update({
             'AcceptRLControl': True, 
-            'ClassName': 'RLA_CAR_Laser',   # FString ClassName = "";
             'MaxMoveSpeed': 600,
-            'AgentHp':100,
-            'AgentScale'  : { 'x': 0.5,  'y': 0.5, 'z': 0.5, },     # agent size, test ok
-            "DodgeProb": 0.2,           # probability of escaping dmg 闪避概率, test ok
-            "ExplodeDmg": 50,           # ms explode dmg. test ok
+            # agent size, also influence object mass 
+            # (agent acceleration, missile acceleration/control...), 
+            # please change it with causion!
+            'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },     
+            "DodgeProb": 0.0,           # probability of escaping dmg 闪避概率, test ok
+            "ExplodeDmg": 20,           # ms explode dmg. test ok
         })
 
         # 500 is slightly above the ground,
@@ -101,15 +102,20 @@ class UhmapLargeScale(UhmapEnv):
         for which_team in range(2):
             n_team_agent = ScenarioConfig.n_team1agent if which_team==0 else ScenarioConfig.n_team2agent
             for i in range(n_team_agent):
-                N_COL = 1
-                x = 0 + 300*(i - n_team_agent//2) //N_COL
-                y = 500* (i%N_COL) + 2000 * (-1)**(which_team+1)
+                # N_COL = 1
+                N_COL = 2
+                # x = 0 + 300*(i - n_team_agent//2) //N_COL
+                x = 0 + 400*(i - n_team_agent//2) //N_COL
+                y = (400* (i%N_COL) + 2000) * (-1)**(which_team+1)
                 z = 500
                 yaw = 90 if which_team==0 else -90
                 assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
                 agent_property = copy.deepcopy(AgentPropertyDefaults)
                 agent_property.update({
                         'AgentTeam': which_team,
+                        'ClassName': 'RLA_CAR_Laser', # if i%2!=1 else 'RLA_CAR', 
+                        "FireRange": 700.0, # if i%2!=1 else 1250,
+                        'AgentHp':np.random.randint(low=90,high=110),
                         'IndexInTeam': i, 
                         'UID': agent_uid_cnt, 
                         'Color':'(R=0,G=1,B=0,A=1)' if which_team==0 else '(R=0,G=0,B=1,A=1)',
@@ -130,9 +136,8 @@ class UhmapLargeScale(UhmapEnv):
             'Actions': None,
         }))
         resp = json.loads(resp)
-
         # make sure the map (level in UE) is correct
-        assert resp['dataGlobal']['rSVD1'] == 'UhmapLargeScale'
+        assert resp['dataGlobal']['levelName'] == 'UhmapLargeScale'
 
         return self.parse_response_ob_info(resp)
 
@@ -168,6 +173,11 @@ class UhmapLargeScale(UhmapEnv):
         if resp['dataGlobal']['timeCnt'] >= ScenarioConfig.MaxEpisodeStep:
             assert done
 
+        # print(resp['dataGlobal']['time'], resp['dataGlobal']['timeCnt'])
+        # print(resp['dataGlobal']['rSVD2'])
+        # print(np.array([np.concatenate((a.pos3d, [a.hp])) for a in self.agents]))
+
+            
         return (ob, RewardForAllTeams, done, info)  # choose this if RewardAsUnity
 
     def parse_event(self, event):
@@ -187,14 +197,44 @@ class UhmapLargeScale(UhmapEnv):
             event_parsed = self.parse_event(event)
             if event_parsed['Event'] == 'Destroyed':
                 team = self.find_agent_by_uid(event_parsed['UID']).team
-                reward[team]    -= 1    # this team
+                reward[team]    -= 0.05    # this team
+                reward[1-team]  += 0.10    # opp team
             if event_parsed['Event'] == 'EndEpisode':
+                # print([a.alive * a.hp for a in self.agents])
                 EndReason = event_parsed['EndReason']
                 WinTeam = int(event_parsed['WinTeam'])
-                WinningResult = {
-                    "team_ranking": [WinTeam, 1-WinTeam],
-                    "end_reason": EndReason
-                }
+                if WinTeam<0: # end due to timeout
+                    agents_left_each_team = [0 for _ in range(self.n_teams)]
+                    for a in self.agents:
+                        if a.alive: agents_left_each_team[a.team] += 1
+                    WinTeam = np.argmax(agents_left_each_team)
+
+                    # <<1>> The alive agent number is EQUAL
+                    if agents_left_each_team[WinTeam] == agents_left_each_team[1-WinTeam]:
+                        hp_each_team = [0 for _ in range(self.n_teams)]
+                        for a in self.agents:
+                            if a.alive: hp_each_team[a.team] += a.hp
+                        WinTeam = np.argmax(hp_each_team)
+
+                        # <<2>> The alive agent HP sum is EQUAL
+                        if hp_each_team[WinTeam] == hp_each_team[1-WinTeam]:
+                            WinTeam = -1
+
+
+                if WinTeam >= 0:
+                    WinningResult = {
+                        "team_ranking": [0,1] if WinTeam==0 else [1,0],
+                        "end_reason": EndReason
+                    }
+                    reward[WinTeam] += 1
+                    reward[1-WinTeam] -= 1
+                else:
+                    WinningResult = {
+                        "team_ranking": [-1, -1],
+                        "end_reason": EndReason
+                    }
+                reward = [-1 for _ in range(self.n_teams)]
+
         return reward, WinningResult
 
     def step_skip(self):
@@ -254,6 +294,26 @@ class UhmapLargeScale(UhmapEnv):
         return arr
 
     def make_obs(self, get_shape=False):
+        CORE_DIM = 23
+        assert ScenarioConfig.obs_vec_length == CORE_DIM
+        if get_shape:
+            return CORE_DIM
+
+        # temporary parameters
+        OBS_RANGE_PYTHON_SIDE = 2500
+        MAX_NUM_OPP_OBS = 5
+        MAX_NUM_ALL_OBS = 5
+        
+
+        OBS_ALL_AGENTS = np.zeros(shape=(
+            self.n_agents, 
+            MAX_NUM_OPP_OBS+MAX_NUM_ALL_OBS, 
+            CORE_DIM
+            ))
+
+        return OBS_ALL_AGENTS
+
+    def make_obs_view(self, get_shape=False):
         CORE_DIM = 23
         assert ScenarioConfig.obs_vec_length == CORE_DIM
         if get_shape:
@@ -375,10 +435,6 @@ class UhmapLargeScale(UhmapEnv):
         self.N_Obj = len(self.key_obj)
 
         OBJ_UID_OFFSET = 32768
-        OBS_GameObj = np.zeros(shape=(
-            MAX_OBJ_NUM_ACCEPT, 
-            CORE_DIM
-        ))
 
         obs_arr = RawObsArrayGameObj()
 

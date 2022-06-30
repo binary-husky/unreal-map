@@ -61,6 +61,12 @@ dictionary_items = [
     'ActionSet2::SpecificAttacking;T0-2',   # 15
     'ActionSet2::SpecificAttacking;T0-3',   # 16
     'ActionSet2::SpecificAttacking;T0-4',   # 17
+
+    'ActionSet2::PatrolMoving;Dir+X'    ,
+    'ActionSet2::PatrolMoving;Dir+Y'    ,
+    'ActionSet2::PatrolMoving;Dir-X'    ,
+    'ActionSet2::PatrolMoving;Dir-Y'    ,
+
 ]
 
 dictionary_n_actions = len(dictionary_items)
@@ -224,8 +230,16 @@ AgentPropertyDefaults = {
 
 
 # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # Part 3, ??????????????????? # # # #
+# # # # # Part 3, framerate selection # # # #
 # # # # # # # # # # # # # # # # # # # # # # #
+# Check whether a number can be represented precisely by a float
+def binary_friendly(x):
+    y_f16 = np.array(x, dtype=np.float16)
+    y_f64 = np.array(x, dtype=np.float64)
+    t = y_f64 - y_f16
+    assert t.dtype == np.float64
+    return (t==0)
+
 
 # '''
 # <Agent>T0-5<UID>5<Event>Destroyed 

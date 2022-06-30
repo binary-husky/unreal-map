@@ -163,7 +163,7 @@ class Runner(object):
                     win_rate = np.array(self.test_info_runner['win']).mean()
                     teams_ranking = self.test_info_runner['Recent-Team-Ranking']
                     if len(teams_ranking)>0:
-                        rank_itr_team = np.where(np.array(teams_ranking)==self.interested_team)[1]
+                        rank_itr_team = np.array(teams_ranking)[:,self.interested_team]
                         win_rate = (rank_itr_team==0).mean()  # 0 means rank first
                         self.mcv.rec(win_rate, 'test top-rank ratio')
                     else:
@@ -252,15 +252,15 @@ class Runner(object):
         win_rate = np.array(self.info_runner['Recent-Win']).mean()
         teams_ranking = self.info_runner['Recent-Team-Ranking']
         if len(teams_ranking)>0:
-            rank_itr_team = np.where(np.array(teams_ranking)==self.interested_team)[1]
+            rank_itr_team = np.array(teams_ranking)[:,self.interested_team]
             win_rate = (rank_itr_team==0).mean()  # 0 means rank first
             self.mcv.rec(win_rate, 'top-rank ratio')
         else:
             self.mcv.rec(win_rate, 'win rate')
         # plot the figure
         self.mcv.rec_show()
-        print靛('\r[task runner]: (%s) finished episode %d, frame %d. | agents of interest: recent reward %.3f, best reward %.3f.'
-                % (self.note, self.current_n_episode, self.current_n_frame, mean_reward, self.top_rewards))
+        print靛('\r[task runner]: (%s) finished episode %d, frame %d. | agents of interest: recent reward %.3f, best reward %.3f, win rate %.3f'
+                % (self.note, self.current_n_episode, self.current_n_frame, mean_reward, self.top_rewards, win_rate))
         return
 
 

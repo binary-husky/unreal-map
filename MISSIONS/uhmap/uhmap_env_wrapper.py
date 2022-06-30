@@ -1,10 +1,10 @@
 import json, os, subprocess, time
 import numpy as np
-from UTILS.colorful import print紫, print靛
+from UTILS.colorful import print紫, print靛, print亮红
 from UTILS.network import TcpClientP2PWithCompress, find_free_port
 from UTILS.config_args import ChainVar
 from ..common.base_env import BaseEnv
-from .actset_lookup import digit2act_dictionary, agent_json2local_attrs
+from .actset_lookup import digit2act_dictionary, binary_friendly
 from .actset_lookup import act2digit_dictionary, dictionary_n_actions
 from .agent import Agent
 
@@ -56,13 +56,16 @@ class ScenarioConfig(object):
     SubTaskSelection = 'UhmapBreakingBad'
     UElink2editor = False
     AutoPortOverride = False
-    StepGameTime = 1.0
+
+    # this is not going to be precise,
+    # the precise step time will be floor(StepGameTime/TimeDilation*FrameRate)*TimeDilation/FrameRate
+    StepGameTime = 0.5  
 
     UhmapServerExe = 'F:/UHMP/Build/WindowsServer/UHMPServer.exe'
     UhmapRenderExe = ''
-    TimeDilation = 1.25
-    FrameRate = 30 # ChainVar must satisfy: (TimeDilation=1.25*n, FrameRate=30*n)
-    FrameRate_cv = ChainVar(lambda TimeDilation: int(TimeDilation/1.25*30), chained_with=['TimeDilation'])
+    TimeDilation = 1    # engine calcualtion speed control
+    FrameRate = 25.6 # must satisfy: (TimeDilation=1*n, FrameRate=25.6*n)
+    FrameRate_cv = ChainVar(lambda TimeDilation: (TimeDilation/1 * 25.6), chained_with=['TimeDilation'])
     UhmapStartCmd = []
     # <Part 3> Needed by some ALGORITHM #
     StateProvided = False
@@ -135,34 +138,47 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         # os.system()
         if not ScenarioConfig.UElink2editor:
             assert ScenarioConfig.AutoPortOverride
+            # * A Butterfly Effect problem *:
+            # UE4 use float (instead of double) for time delta calculation,
+            # causing some error calcualtion dt = 1/FrameRate
+            # which will be enlarged due to Butterfly Effect
+            # therefore we have to make sure that FrameRate = 16,32,64,...
+            print亮红('checking ScenarioConfig args problems ...') 
+            assert binary_friendly(1/ScenarioConfig.FrameRate), "* A Butterfly Effect problem *"
+            assert binary_friendly(ScenarioConfig.TimeDilation/256), "* A Butterfly Effect problem *"
+            real_step_time = np.floor(ScenarioConfig.StepGameTime/ScenarioConfig.TimeDilation*ScenarioConfig.FrameRate)*ScenarioConfig.TimeDilation/ScenarioConfig.FrameRate
+            print亮红('Alert, the real Step Game Time will be:', real_step_time) 
             if (not self.render) and ScenarioConfig.UhmapServerExe != '':
                 subprocess.Popen([
                     ScenarioConfig.UhmapServerExe,
                     # '-log', 
                     '-TcpPort=%d'%which_port,
-                    '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
-                    '-FrameRate=%d'%ScenarioConfig.FrameRate,
-                    '-IOInterval=%.4f'%ScenarioConfig.StepGameTime,
+                    '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
+                    '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
+                    '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
+                    '-Seed=%d'%int(np.random.rand()*1e5), # 如果已经设定了主线程随机数种子，这里随机出来的数字则是确定的
                     '-DebugMod=False',
                     '-LockGameDuringCom=True',
                 ])
-                print紫('UHMAP (Headless) started, wait 10s before continue ...')
-                time.sleep(10)
+                print紫('UHMAP (Headless) started ...')
+                time.sleep(1)
             elif self.render and ScenarioConfig.UhmapRenderExe != '':
                 subprocess.Popen([
                     ScenarioConfig.UhmapRenderExe,
                     # '-log', 
                     '-TcpPort=%d'%which_port,
-                    '-TimeDilation=%.4f'%ScenarioConfig.TimeDilation, 
-                    '-FrameRate=%d'%ScenarioConfig.FrameRate,
-                    '-IOInterval=%.4f'%ScenarioConfig.StepGameTime,
+                    '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
+                    '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
+                    '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
+                    '-Seed=%d'%int(np.random.rand()*1e5), # 如果已经设定了主线程随机数种子，这里随机出来的数字则是确定的
                     '-DebugMod=False',
                     '-LockGameDuringCom=True',
                     "-ResX=1280",
                     "-ResY=720",
                     "-WINDOWED"
                 ])
-                print紫('UHMAP (Render) started, wait 10s before continue ...')
+                print紫('UHMAP (Render) started ...')
+                time.sleep(1)
             else:
                 print('Cannot start Headless Server Or GUI Server!')
                 assert False, 'Cannot start Headless Server Or GUI Server!'
@@ -177,7 +193,10 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 print('handshake complete %d'%rank)
                 break
             except: 
-                print('Thread %d: Trying to connect to uhmap simulation. Retry %d ...'%(rank, i))
+                if i>3:
+                    print('Thread %d: Trying to connect to uhmap simulation. Going to take a while when openning for the first time. Retry %d ...'%(rank, i))
+                else:
+                    print('Thread %d: Trying to connect to uhmap simulation. Retry %d ...'%(rank, i))
                 time.sleep(1)
 
         self.t = 0

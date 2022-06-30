@@ -98,7 +98,14 @@ class ReinforceAlgorithmFoundation(object):
         return self.shell_env.interact_with_env(State_Recall) # redirect to shell_env to help with history rolling
 
     def interact_with_env_genuine(self, State_Recall):
-        if not State_Recall['Test-Flag']: self.train()  # when needed, train!
+        if not State_Recall['Test-Flag']: 
+            if not self.policy.training: 
+                self.policy.train()
+            self.train()  # when needed, train!
+        else:
+            if self.policy.training: 
+                self.policy.eval()
+
         return self.action_making(State_Recall, State_Recall['Test-Flag'])
 
     def train(self):
