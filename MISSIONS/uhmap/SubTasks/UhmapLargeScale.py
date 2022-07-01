@@ -254,21 +254,21 @@ class UhmapLargeScale(UhmapEnv):
 
 
 
-    def parse_response_ob_info(self, response):
-        assert response['valid']
-        if len(response['dataGlobal']['events'])>0:
-            tmp = [kv.split('>') for kv in response['dataGlobal']['events'][0].split('<') if kv]
+    def parse_response_ob_info(self, resp):
+        assert resp['valid']
+        if len(resp['dataGlobal']['events'])>0:
+            tmp = [kv.split('>') for kv in resp['dataGlobal']['events'][0].split('<') if kv]
             info_parse = {t[0]:t[1] for t in tmp}
             # print('pass')
-        info_dict = response
-        info = response['dataArr']
+        info_dict = resp
+        info = resp['dataArr']
         for i, agent_info in enumerate(info):
             self.agents[i].update_agent_attrs(agent_info)
 
-        self.key_obj = self.extract_key_gameobj(response)
+        self.key_obj = self.extract_key_gameobj(resp)
 
         # return ob, info
-        return self.make_obs(), info_dict
+        return self.make_obs(resp), info_dict
 
 
 
@@ -293,27 +293,27 @@ class UhmapLargeScale(UhmapEnv):
             n_int = n_int.astype(np.int8)
         return arr
 
-    def make_obs(self, get_shape=False):
-        CORE_DIM = 23
-        assert ScenarioConfig.obs_vec_length == CORE_DIM
-        if get_shape:
-            return CORE_DIM
+    # def make_obs(self, get_shape=False):
+    #     CORE_DIM = 23
+    #     assert ScenarioConfig.obs_vec_length == CORE_DIM
+    #     if get_shape:
+    #         return CORE_DIM
 
-        # temporary parameters
-        OBS_RANGE_PYTHON_SIDE = 2500
-        MAX_NUM_OPP_OBS = 5
-        MAX_NUM_ALL_OBS = 5
+    #     # temporary parameters
+    #     OBS_RANGE_PYTHON_SIDE = 2500
+    #     MAX_NUM_OPP_OBS = 5
+    #     MAX_NUM_ALL_OBS = 5
         
 
-        OBS_ALL_AGENTS = np.zeros(shape=(
-            self.n_agents, 
-            MAX_NUM_OPP_OBS+MAX_NUM_ALL_OBS, 
-            CORE_DIM
-            ))
+    #     OBS_ALL_AGENTS = np.zeros(shape=(
+    #         self.n_agents, 
+    #         MAX_NUM_OPP_OBS+MAX_NUM_ALL_OBS, 
+    #         CORE_DIM
+    #         ))
 
-        return OBS_ALL_AGENTS
+    #     return OBS_ALL_AGENTS
 
-    def make_obs_view(self, get_shape=False):
+    def make_obs(self, resp=None, get_shape=False):
         CORE_DIM = 23
         assert ScenarioConfig.obs_vec_length == CORE_DIM
         if get_shape:
@@ -327,7 +327,10 @@ class UhmapLargeScale(UhmapEnv):
         # get and calculate distance array
         pos3d_arr = np.zeros(shape=(self.n_agents, 3), dtype=np.float32)
         for i, agent in enumerate(self.agents): pos3d_arr[i] = agent.pos3d
-        dis_mat = distance_matrix(pos3d_arr)    # dis_mat is a matrix, shape = (n_agent, n_agent)
+        # use the distance matrix calculated by unreal engine to accelerate
+        # dis_mat = distance_matrix(pos3d_arr)    # dis_mat is a matrix, shape = (n_agent, n_agent)
+        dis_mat = np.array(resp['dataGlobal']['distanceMat']['flat_arr']).reshape(self.n_agents,self.n_agents)
+
         alive_all = np.array([agent.alive for agent in self.agents])
         dis_mat[~alive_all,:] = +np.inf
         dis_mat[:,~alive_all] = +np.inf

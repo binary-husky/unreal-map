@@ -50,14 +50,16 @@ you have to switch the account manually from ```root``` to ```hmp``` (using linu
 (choice 2) From the host, use ``` docker exec -it hmp-$USER bash ``` command to get inside the HMP container.
 
 Then:
-```
-(hmp-docker)$ /etc/init.d/xrdp stop; sleep 5;
-(hmp-docker)$ rm -rf /var/run/xrdp/xrdp-sesman.pid; sleep 5;
-(hmp-docker)$ xrdp; sleep 5;
-(hmp-docker)$ /etc/init.d/xrdp start; sleep 5;
+```sh
+# before continue, make sure the host port 3389 is free to use for RDP
+
+(hmp-docker)$ sudo /etc/init.d/xrdp stop; sleep 5;
+(hmp-docker)$ sudo rm -rf /var/run/xrdp/xrdp-sesman.pid; sleep 5;
+(hmp-docker)$ sudo xrdp; sleep 5;
+(hmp-docker)$ sudo /etc/init.d/xrdp start; sleep 5;
 ```
 Now, you should see xrdp-sesman running via:
-```
+```sh
 (hmp-docker)$ /etc/init.d/xrdp status
 
 # Successful if you see >>
@@ -81,6 +83,11 @@ Next, use the remote desktop tool of MS Windows (or anything supporting RDP) to 
 
 (It's normal that xrdp is a bit slow, but there is no better RDP solution for docker container yet, please use SSH when GUI is not needed)
 ```
+<div align="center">
+<img src="VISUALIZE/md_imgs/2022-07-01-10-08-56.png" width="400" >
+</div>
+
+
 
 # 4. Run HMP
 After getting ```inside``` the HMP container:
