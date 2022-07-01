@@ -1,4 +1,4 @@
-import json, os, subprocess, time
+import json, os, subprocess, time, stat
 import numpy as np
 from UTILS.colorful import print紫, print靛, print亮红
 from UTILS.network import TcpClientP2PWithCompress, find_free_port
@@ -149,6 +149,15 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             real_step_time = np.floor(ScenarioConfig.StepGameTime/ScenarioConfig.TimeDilation*ScenarioConfig.FrameRate)*ScenarioConfig.TimeDilation/ScenarioConfig.FrameRate
             print亮红('Alert, the real Step Game Time will be:', real_step_time) 
             if (not self.render) and ScenarioConfig.UhmapServerExe != '':
+                # deal with linux env
+                if '.sh' in ScenarioConfig.UhmapServerExe:
+                    # expand '~' path
+                    ScenarioConfig.UhmapServerExe = os.path.expanduser(ScenarioConfig.UhmapServerExe)
+                    # give execution permission
+                    st = os.stat(ScenarioConfig.UhmapServerExe)
+                    # give execution permission
+                    os.chmod(ScenarioConfig.UhmapServerExe, st.st_mode | stat.S_IEXEC)
+                # start child process
                 subprocess.Popen([
                     ScenarioConfig.UhmapServerExe,
                     # '-log', 
@@ -159,7 +168,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-Seed=%d'%int(np.random.rand()*1e5), # 如果已经设定了主线程随机数种子，这里随机出来的数字则是确定的
                     '-DebugMod=False',
                     '-LockGameDuringCom=True',
-                ])
+                ], stdout=subprocess.DEVNULL)
                 print紫('UHMAP (Headless) started ...')
                 time.sleep(1)
             elif self.render and ScenarioConfig.UhmapRenderExe != '':
