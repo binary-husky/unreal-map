@@ -501,6 +501,7 @@ class TcpClientP2PWithCompress(StreamingPackageSep):
 
     def send_dgram_to_target(self, data):
         if self.use_pickle: data = pickle.dumps(data)
+        data = bytes(data, encoding='utf8')
         if not self.connected: self.client.connect(self.target_ip_port); self.connected = True
         data = self.compress(data)
         self.lower_send(data, self.client)

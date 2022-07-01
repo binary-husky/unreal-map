@@ -81,6 +81,8 @@ class UhmapLargeScale(UhmapEnv):
         self.observation_space = self.make_obs(get_shape=True)
 
     def reset(self):
+        super().reset()
+        
         self.t = 0
 
         AgentPropertyDefaults.update({
@@ -105,7 +107,7 @@ class UhmapLargeScale(UhmapEnv):
                 # N_COL = 1
                 N_COL = 2
                 # x = 0 + 300*(i - n_team_agent//2) //N_COL
-                x = 0 + 400*(i - n_team_agent//2) //N_COL
+                x = 0 + 800*(i - n_team_agent//2) //N_COL
                 y = (400* (i%N_COL) + 2000) * (-1)**(which_team+1)
                 z = 500
                 yaw = 90 if which_team==0 else -90
@@ -176,7 +178,6 @@ class UhmapLargeScale(UhmapEnv):
         # print(resp['dataGlobal']['time'], resp['dataGlobal']['timeCnt'])
         # print(resp['dataGlobal']['rSVD2'])
         # print(np.array([np.concatenate((a.pos3d, [a.hp])) for a in self.agents]))
-
             
         return (ob, RewardForAllTeams, done, info)  # choose this if RewardAsUnity
 
@@ -233,7 +234,7 @@ class UhmapLargeScale(UhmapEnv):
                         "team_ranking": [-1, -1],
                         "end_reason": EndReason
                     }
-                reward = [-1 for _ in range(self.n_teams)]
+                    reward = [-1 for _ in range(self.n_teams)]
 
         return reward, WinningResult
 

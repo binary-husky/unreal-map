@@ -3,11 +3,11 @@ import numpy as np
 from UTILS.colorful import print紫, print靛, print亮红
 from UTILS.network import TcpClientP2PWithCompress, find_free_port
 from UTILS.config_args import ChainVar
+from UTILS.file_lock import FileLock
 from ..common.base_env import BaseEnv
 from .actset_lookup import digit2act_dictionary, binary_friendly
 from .actset_lookup import act2digit_dictionary, dictionary_n_actions
 from .agent import Agent
-
 # please register this ScenarioConfig into MISSIONS/env_router.py
 class ScenarioConfig(object):  
     '''
@@ -130,6 +130,23 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         if ScenarioConfig.StateProvided:
             # self.observation_space['state_shape'] = ?
             pass
+
+        # from UTILS.gpu_share import GpuShareUnit # here this unit has nothing to do with GPU, just use it as a lock 
+        # self.init_lock = GpuShareUnit("NULL", gpu_party="UhmapEnv")
+
+        self.max_simulation_life = 256
+        # with self.init_lock:
+        # time.sleep(np.abs(rank))
+        self.simulation_life = self.max_simulation_life
+        with FileLock("./UTILS/file_lock.py"):
+            self.activate_simulation(self.id)
+
+    def __del__(self):
+        self.terminate_simulation()
+
+    def activate_simulation(self, rank):
+        print('thread %d initializing'%rank)
+        self.sim_thread = 'activiting'
         self.render = ScenarioConfig.render #  and (rank==0)
         which_port = ScenarioConfig.UhmapPort
         if ScenarioConfig.AutoPortOverride:
@@ -147,9 +164,9 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             assert binary_friendly(1/ScenarioConfig.FrameRate), "* A Butterfly Effect problem *"
             assert binary_friendly(ScenarioConfig.TimeDilation/256), "* A Butterfly Effect problem *"
             real_step_time = np.floor(ScenarioConfig.StepGameTime/ScenarioConfig.TimeDilation*ScenarioConfig.FrameRate)*ScenarioConfig.TimeDilation/ScenarioConfig.FrameRate
-            print亮红('Alert, the real Step Game Time will be:', real_step_time) 
+            # print亮红('Alert, the real Step Game Time will be:', real_step_time) 
             if (not self.render) and ScenarioConfig.UhmapServerExe != '':
-                subprocess.Popen([
+                self.sim_thread = subprocess.Popen([
                     ScenarioConfig.UhmapServerExe,
                     # '-log', 
                     '-TcpPort=%d'%which_port,
@@ -163,7 +180,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 print紫('UHMAP (Headless) started ...')
                 time.sleep(1)
             elif self.render and ScenarioConfig.UhmapRenderExe != '':
-                subprocess.Popen([
+                self.sim_thread = subprocess.Popen([
                     ScenarioConfig.UhmapRenderExe,
                     # '-log', 
                     '-TcpPort=%d'%which_port,
@@ -200,76 +217,38 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 time.sleep(1)
 
         self.t = 0
-        #  run flag https://docs.unrealengine.com/5.0/en-US/unreal-engine-pixel-streaming-reference/
-        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED
-        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -RenderOffscreen -TimeDilation=1.25 -FrameRate=30
-        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=1.25 -FrameRate=30
-        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=2.5 -FrameRate=60
-        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=3.75 -FrameRate=90 -RenderOffscreen
-        #  ./UHMP.exe -ResX=1280 -ResY=720 -WINDOWED -TimeDilation=5 -FrameRate=120 -RenderOffscreen
-        #  ./UHMP.exe -ResX=0 -ResY=0 -WINDOWED -TimeDilation=5 -FrameRate=120 -RenderOffscreen
+        print('thread %d initialize complete'%rank)
+
+
+    def terminate_simulation(self):
+        if hasattr(self, 'sim_thread'):
+            # self.sim_thread.terminate()
+            
+            self.client.send_dgram_to_target(json.dumps({
+                'valid': True,
+                'DataCmd': 'end_unreal_engine',
+                'NumAgents' : ScenarioConfig.n_team1agent,
+                'TimeStepMax': ScenarioConfig.MaxEpisodeStep,
+                'TimeStep' : 0,
+                'Actions': None,
+            }))
+            self.client.close()
+            # json_to_send = json.dumps({
+            #     'valid': True,
+            #     'DataCmd': 'end_unreal_engine',
+            # })
+            # self.client.send_dgram_to_target(json_to_send)
 
 
     # override reset function
     def reset(self):
-        self.t = 0
-        AgentSettingArray = []
-        agent_uid_cnt = 0
-        for i in range(ScenarioConfig.n_team1agent):
-            x = -10990.0 + 500*(i+1)  *  (-1)**(i+1)
-            y = -9440.0
-            # 500 is slightly above the ground (depending the map you have built), 
-            # but agent will be spawn to ground automatically
-            z = 500 
-            AgentSettingArray.append(
-                {
-                    'ClassName': 'AgentControllable',   # FString ClassName = "";
-                    'AcceptRLControl': True,    # bool AcceptRLControl = 0;
-                    'AgentTeam': 0, # int AgentTeam = 0;
-                    'IndexInTeam': i,   # int IndexInTeam = 0;
-                    'UID': agent_uid_cnt,   # int UID = 0;
-                    'MaxMoveSpeed': 600,
-                    'AgentHp':100,
-                    'RSVD1':'(R=0,G=1,B=0,A=1)',
-                    'InitLocation': { 'x': x,  'y': y, 'z': z, },
-                },
-            )
-            agent_uid_cnt += 1
+        self.simulation_life -= 1
+        if self.simulation_life < 0:
+            self.terminate_simulation()
+            self.simulation_life = self.max_simulation_life
+            with FileLock("./UTILS/file_lock.py"):
+                self.activate_simulation(self.id)
 
-        for i in range(ScenarioConfig.n_team2agent):
-            x = -10990.0 + 3000*(i+1)  *  (-1)**(i+1)
-            y = -21770.0
-            # 500 is slightly above the ground, but agent will be spawn to ground automatically
-            z = 500 
-            AgentSettingArray.append(
-                {
-                    'ClassName': 'AgentControllable',
-                    'AcceptRLControl': False,
-                    'AgentTeam': 1,
-                    'IndexInTeam': i,
-                    'UID': agent_uid_cnt,
-                    'MaxMoveSpeed': 600,
-                    'AgentHp':100,
-                    'InitLocation': { 'x': x, 'y': y, 'z': z, },
-                },
-            )
-            agent_uid_cnt += 1
-
-        # refer to struct.cpp, FParsedDataInput
-        json_to_send = json.dumps({
-            'valid': True,
-            'DataCmd': 'reset',
-            'NumAgents' : ScenarioConfig.n_team1agent,
-            'AgentSettingArray': AgentSettingArray,  # refer to struct.cpp, FAgentProperty
-            'TimeStepMax': ScenarioConfig.MaxEpisodeStep,
-            'TimeStep' : 0,
-            'Actions': None,
-        })
-        resp = self.client.send_and_wait_reply(json_to_send)
-        resp = json.loads(resp)
-        if DEBUG:
-            print靛(resp['dataGlobal'])
-        return self.parse_response_ob_info(resp)
 
 
     # override step function
