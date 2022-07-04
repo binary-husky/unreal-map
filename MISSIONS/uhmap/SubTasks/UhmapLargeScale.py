@@ -101,7 +101,7 @@ class UhmapLargeScale(UhmapEnv):
         }))
         resp = json.loads(resp)
         # make sure the map (level in UE) is correct
-        assert resp['dataGlobal']['levelName'] == 'UhmapLargeScale'
+        # assert resp['dataGlobal']['levelName'] == 'UhmapLargeScale'
 
         return self.parse_response_ob_info(resp)
 
@@ -375,7 +375,7 @@ class UhmapLargeScale(UhmapEnv):
 
 
         # the last part of observation is the list of core game objects
-        MAX_OBJ_NUM_ACCEPT = 5
+        MAX_OBJ_NUM_ACCEPT = 1
         OBJ_FEATURE_DIM = 12
         self.N_Obj = len(self.key_obj)
 
@@ -405,7 +405,7 @@ class UhmapLargeScale(UhmapEnv):
                 obj['rotation']['yaw'],     # yaw 
                 0,                          # max_speed
             ])
-        OBS_GameObj = my_view(obs_arr.get(), [len(self.key_obj), -1])
+        OBS_GameObj = my_view(obs_arr.get(), [len(self.key_obj), -1])[:MAX_OBJ_NUM_ACCEPT, :]
         OBS_GameObj = repeat_at(OBS_GameObj, insert_dim=0, n_times=self.n_agents)
         OBS_ALL_AGENTS = np.concatenate((OBS_ALL_AGENTS, OBS_GameObj), axis=1)
 

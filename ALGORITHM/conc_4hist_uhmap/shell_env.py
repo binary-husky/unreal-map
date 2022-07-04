@@ -2,34 +2,43 @@ import numpy as np
 from config import GlobalConfig
 from UTILS.colorful import *
 from UTILS.tensor_ops import my_view, __hash__, repeat_at
+from MISSIONS.uhmap.actset_lookup import encode_action_as_digits
 from .cython_func import roll_hisory
 DEBUG = True
 
-def distance_matrix(A):
-    assert A.shape[-1] == 2 # assert 2D situation
-    n_subject = A.shape[-2] # is 2
-    A = np.repeat(np.expand_dims(A,-2), n_subject, axis=-2) # =>(64, 100, 100, 2)
-    At = np.swapaxes(A,-2,-3) # =>(64, 100, 100, 2)
-    dis = At-A # =>(64, 100, 100, 2)
-    dis = np.linalg.norm(dis, axis=-1)
-    return dis
+class ActionConvertLegacy():
 
-def stack_padding(l):
-    import itertools
-    return np.column_stack((itertools.zip_longest(*l, fillvalue=0)))
+    # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
+    dictionary_args = [
+        ('N/A',     'N/A',              None, None, None, None, None, None),   # 0
+        ('Idle',    'DynamicGuard',     None, None, None, None, None, None),   # 1
+        ('Idle',    'StaticAlert',      None, None, None, None, None, None),   # 2
+        ('Idle',    'AggressivePersue', None, None, None, None, None, None),   # 3
+        ('SpecificMoving', 'Dir+X',     None, None, None, None, None, None),   # 4
+        ('SpecificMoving', 'Dir+Y',     None, None, None, None, None, None),   # 5
+        ('SpecificMoving', 'Dir-X',     None, None, None, None, None, None),   # 6
+        ('SpecificMoving', 'Dir-Y',     None, None, None, None, None, None),   # 7
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    0),      # 8
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    1),      # 9
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    2),      # 10
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    3),      # 11
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    4),      # 12
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    0),      # 13
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    1),      # 14
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    2),      # 15
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    3),      # 16
+        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    4),      # 17
+        ('PatrolMoving', 'Dir+X',       None, None, None, None, None, None),   # 19
+        ('PatrolMoving', 'Dir+Y',       None, None, None, None, None, None),   # 20
+        ('PatrolMoving', 'Dir-X',       None, None, None, None, None, None),   # 21
+        ('PatrolMoving', 'Dir-Y',       None, None, None, None, None, None),   # 22
+    ]
 
-def dir_to_rad_angle(delta_pos):
-    result = np.empty(delta_pos.shape[:-1], dtype=complex)
-    result.real = delta_pos[...,0]; result.imag = delta_pos[...,1]
-    rad_angle = np.angle(result) 
-    return rad_angle
 
-def reg_angle_deg(deg):
-    return (deg + 180)%360 -180
-
-def reg_angle(rad):
-    # it's OK to show "RuntimeWarning: invalid value encountered in remainder"
-    return (rad + np.pi)%(2*np.pi) -np.pi
+    @staticmethod
+    def convert_act_arr(a):
+        return(encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a]))
+        
 
 class ShellEnvWrapper(object):
     def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config):
@@ -92,7 +101,9 @@ class ShellEnvWrapper(object):
         act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_State_Recall)
 
         act[~ENV_PAUSE] = act_active
-        actions_list = np.swapaxes(act, 0, 1) # swap thread(batch) axis and agent axis
+
+        act_converted = np.array([ActionConvertLegacy.convert_act_arr(a) for a in act.flatten()]).reshape(self.n_thread, self.n_agent,-1)
+        actions_list = np.swapaxes(act_converted, 0, 1) # swap thread(batch) axis and agent axis
 
         # return necessary handles to main platform
         if self.cold_start: self.cold_start = False
@@ -130,17 +141,4 @@ class ShellEnvWrapper(object):
         if (~alive_mask).any():
             obs_feed[~alive_mask] = np.nan
         return obs_feed, next_his_pool
-
-
-
-    def get_mask_id(self, obs_feed):
-        mask_and_id = np.zeros_like(obs_feed)[:,:,:, 0] # thread,agent,agent_obs
-        binary = obs_feed[...,-8:]
-        alive = obs_feed[..., 0]
-        for i in range(8):
-            mask_and_id += binary[..., i]* 2**i
-        # print(mask_and_id)
-        mask_and_id = np.where(alive==1, mask_and_id, np.nan)
-        return mask_and_id
-
 
