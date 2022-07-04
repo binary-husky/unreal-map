@@ -3,43 +3,6 @@ import numpy as np
 # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # Part 1, interface for RL # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # #
-# dictionary_items = [
-#     'ActionSet2::N/A;N/A',
-#     'ActionSet2::Idle;DynamicGuard'     ,
-#     'ActionSet2::Idle;StaticAlert'      ,
-#     'ActionSet2::Idle;AggressivePersue' ,
-#     'ActionSet2::SpecificMoving;Dir+X'  ,
-#     'ActionSet2::SpecificMoving;Dir+X+Y',
-#     'ActionSet2::SpecificMoving;Dir+Y'  ,
-#     'ActionSet2::SpecificMoving;Dir-X+Y',
-#     'ActionSet2::SpecificMoving;Dir-X'  ,
-#     'ActionSet2::SpecificMoving;Dir-X-Y',
-#     'ActionSet2::SpecificMoving;Dir-Y'  ,
-#     'ActionSet2::SpecificMoving;Dir+X-Y',
-#     'ActionSet2::SpecificMoving;X=-1.0 Y=2.0 Z=3.0',
-#     'ActionSet2::PatrolMoving;Dir+X'    ,
-#     'ActionSet2::PatrolMoving;Dir+X+Y'  ,
-#     'ActionSet2::PatrolMoving;Dir+Y'    ,
-#     'ActionSet2::PatrolMoving;Dir-X+Y'  ,
-#     'ActionSet2::PatrolMoving;Dir-X'    ,
-#     'ActionSet2::PatrolMoving;Dir-X-Y'  ,
-#     'ActionSet2::PatrolMoving;Dir-Y'    ,
-#     'ActionSet2::PatrolMoving;Dir+X-Y'  ,
-#     'ActionSet2::PatrolMoving;X=0.0 Y=0.0 Z=100.0',
-#     'ActionSet2::SpecificAttacking;T1-1',
-#     'ActionSet2::SpecificAttacking;T1-2',
-#     'ActionSet2::SpecificAttacking;T1-3',
-#     'ActionSet2::SpecificAttacking;T1-4',
-#     'ActionSet2::SpecificAttacking;UID-0',
-#     'ActionSet2::SpecificAttacking;UID-1',
-#     'ActionSet2::SpecificAttacking;UID-2',
-#     'ActionSet2::SpecificAttacking;UID-3',
-#     'ActionSet2::SpecificAttacking;UID-4',
-#     'ActionSet2::SpecificAttacking;UID-5',
-#     'ActionSet2::SpecificAttacking;UID-6',
-#     'ActionSet2::SpecificAttacking;UID-7',
-#     'ActionSet2::SpecificAttacking;UID-8',
-# ]
 
 dictionary_items = [
     'ActionSet2::N/A;N/A',                  # 0

@@ -1,24 +1,25 @@
 import json, os, subprocess, time, copy, re
-import string
 import numpy as np
 from UTILS.colorful import print紫, print靛
 from UTILS.config_args import ChainVar
-from UTILS.tensor_ops import my_view, distance_matrix, repeat_at
+from UTILS.tensor_ops import my_view, repeat_at
 from ...common.base_env import BaseEnv
 from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
+from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
 
 DEBUG = True
 
 class RawObsArray(object):
-    raw_obs_size = -1   # shared
-    def __init__(self):
-        if self.raw_obs_size==-1:
+    raw_obs_size = {}   # shared
+    def __init__(self, key='default'):
+        self.key = key
+        if self.key not in self.raw_obs_size:
             self.guards_group = []
             self.nosize = True
         else:
-            self.guards_group = np.zeros(shape=(self.raw_obs_size), dtype=np.float32)
+            self.guards_group = np.zeros(shape=(self.raw_obs_size[self.key]), dtype=np.float32)
             self.nosize = False
             self.p = 0
 
@@ -33,47 +34,12 @@ class RawObsArray(object):
     def get(self):
         if self.nosize:
             self.guards_group = np.concatenate(self.guards_group)
-            self.raw_obs_size = len(self.guards_group)
+            self.raw_obs_size[self.key] = len(self.guards_group)
         return self.guards_group
         
     def get_raw_obs_size(self):
-        assert self.raw_obs_size > 0
-        return self.raw_obs_size
-
-class RawObsArrayGameObj(object):
-    raw_obs_size = -1   # shared
-    def __init__(self):
-        if self.raw_obs_size==-1:
-            self.guards_group = []
-            self.nosize = True
-        else:
-            self.guards_group = np.zeros(shape=(self.raw_obs_size), dtype=np.float32)
-            self.nosize = False
-            self.p = 0
-
-    def append(self, buf):
-        if self.nosize:
-            self.guards_group.append(buf)
-        else:
-            L = len(buf)
-            self.guards_group[self.p:self.p+L] = buf[:]
-            self.p += L
-
-    def get(self):
-        if self.nosize:
-            self.guards_group = np.concatenate(self.guards_group)
-            self.raw_obs_size = len(self.guards_group)
-        return self.guards_group
-        
-    def get_raw_obs_size(self):
-        assert self.raw_obs_size > 0
-        return self.raw_obs_size
-
-def type_map(classname):
-    if 'KeyObjExample' in classname:
-        return 1
-    else:
-        assert False, 'New type introduced?'
+        assert self.key in self.raw_obs_size > 0
+        return self.raw_obs_size[self.key]
 
 class UhmapLargeScale(UhmapEnv):
     def __init__(self, rank) -> None:
@@ -88,10 +54,7 @@ class UhmapLargeScale(UhmapEnv):
         AgentPropertyDefaults.update({
             'AcceptRLControl': True, 
             'MaxMoveSpeed': 600,
-            # agent size, also influence object mass 
-            # (agent acceleration, missile acceleration/control...), 
-            # please change it with causion!
-            'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },     
+            'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },     # also influence object mass, please change it with causion!
             "DodgeProb": 0.0,           # probability of escaping dmg 闪避概率, test ok
             "ExplodeDmg": 20,           # ms explode dmg. test ok
         })
@@ -126,7 +89,6 @@ class UhmapLargeScale(UhmapEnv):
                 }),
                 AgentSettingArray.append(agent_property); agent_uid_cnt += 1
 
-
         # refer to struct.cpp, FParsedDataInput
         resp = self.client.send_and_wait_reply(json.dumps({
             'valid': True,
@@ -149,7 +111,10 @@ class UhmapLargeScale(UhmapEnv):
         assert len(act) == self.n_agents
 
         # translate actions to the format recognized by unreal engine
-        act_send = [digit2act_dictionary[a] for a in act]
+        if ScenarioConfig.ActionFormat == 'Single-Digit':
+            act_send = [digit2act_dictionary[a] for a in act]
+        elif ScenarioConfig.ActionFormat == 'Multi-Digit':
+            act_send = [decode_action_as_string(a) for a in act]
 
         # simulation engine IO
         resp = json.loads(self.client.send_and_wait_reply(json.dumps({
@@ -175,10 +140,6 @@ class UhmapLargeScale(UhmapEnv):
         if resp['dataGlobal']['timeCnt'] >= ScenarioConfig.MaxEpisodeStep:
             assert done
 
-        # print(resp['dataGlobal']['time'], resp['dataGlobal']['timeCnt'])
-        # print(resp['dataGlobal']['rSVD2'])
-        # print(np.array([np.concatenate((a.pos3d, [a.hp])) for a in self.agents]))
-            
         return (ob, RewardForAllTeams, done, info)  # choose this if RewardAsUnity
 
     def parse_event(self, event):
@@ -220,7 +181,6 @@ class UhmapLargeScale(UhmapEnv):
                         # <<2>> The alive agent HP sum is EQUAL
                         if hp_each_team[WinTeam] == hp_each_team[1-WinTeam]:
                             WinTeam = -1
-
 
                 if WinTeam >= 0:
                     WinningResult = {
@@ -294,25 +254,7 @@ class UhmapLargeScale(UhmapEnv):
             n_int = n_int.astype(np.int8)
         return arr
 
-    # def make_obs(self, get_shape=False):
-    #     CORE_DIM = 23
-    #     assert ScenarioConfig.obs_vec_length == CORE_DIM
-    #     if get_shape:
-    #         return CORE_DIM
 
-    #     # temporary parameters
-    #     OBS_RANGE_PYTHON_SIDE = 2500
-    #     MAX_NUM_OPP_OBS = 5
-    #     MAX_NUM_ALL_OBS = 5
-        
-
-    #     OBS_ALL_AGENTS = np.zeros(shape=(
-    #         self.n_agents, 
-    #         MAX_NUM_OPP_OBS+MAX_NUM_ALL_OBS, 
-    #         CORE_DIM
-    #         ))
-
-    #     return OBS_ALL_AGENTS
 
     def make_obs(self, resp=None, get_shape=False):
         CORE_DIM = 23
@@ -321,7 +263,7 @@ class UhmapLargeScale(UhmapEnv):
             return CORE_DIM
 
         # temporary parameters
-        OBS_RANGE_PYTHON_SIDE = 2500
+        OBS_RANGE_PYTHON_SIDE = 1500
         MAX_NUM_OPP_OBS = 5
         MAX_NUM_ALL_OBS = 5
         
@@ -335,13 +277,12 @@ class UhmapLargeScale(UhmapEnv):
         alive_all = np.array([agent.alive for agent in self.agents])
         dis_mat[~alive_all,:] = +np.inf
         dis_mat[:,~alive_all] = +np.inf
-        # IN_VISUAL_PYTHON_SIDE = dis_mat < OBS_RANGE_PYTHON_SIDE
 
         # get team list
         team_belonging = np.array([agent.team for agent in self.agents])
 
         # gather the obs arr of all known agents
-        obs_arr = RawObsArray()
+        obs_arr = RawObsArray(key='Agent')
 
         if not hasattr(self, "uid_binary"):
             self.uid_binary = self.get_binary_array(np.arange(self.n_agents), 10)
@@ -440,7 +381,7 @@ class UhmapLargeScale(UhmapEnv):
 
         OBJ_UID_OFFSET = 32768
 
-        obs_arr = RawObsArrayGameObj()
+        obs_arr = RawObsArray(key = 'GameObj')
 
         for i, obj in enumerate(self.key_obj):
             assert obj['uId'] - OBJ_UID_OFFSET == i
@@ -452,14 +393,14 @@ class UhmapLargeScale(UhmapEnv):
                 -1,                             #agent.team,
                 True,                           #agent.alive,
                 obj['uId'] - OBJ_UID_OFFSET,    #agent.uid_remote,
-            ])
-            obs_arr.append(
-                [obj['location']['x'], obj['location']['y'], obj['location']['z']]  # agent.pos3d
-            )
-            obs_arr.append(
-                [obj['velocity']['x'], obj['velocity']['y'], obj['velocity']['z']]  # agent.vel3d
-            )
-            obs_arr.append([
+            ]+
+            [
+                obj['location']['x'], obj['location']['y'], obj['location']['z']  # agent.pos3d
+            ]+
+            [
+                obj['velocity']['x'], obj['velocity']['y'], obj['velocity']['z']  # agent.vel3d
+            ]+
+            [
                 -1,                         # hp
                 obj['rotation']['yaw'],     # yaw 
                 0,                          # max_speed

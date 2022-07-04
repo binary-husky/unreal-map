@@ -3,7 +3,7 @@ import random
 import numpy as np
 import datetime
 import time
-from ALGORITHM.script_ai.stance import *
+from ALGORITHM.script_ai.module_evaluation import *
 from ALGORITHM.script_ai.global_params import *
 
 
@@ -16,6 +16,9 @@ class TaskAssign(object):
 		self.defenders = defenders
 
 		self.evaluator = Evaluation_module()
+
+		# params
+		self.ratio_thres = 1
 
 	# UGV attack(get defender target id)
 	def assign_attack(self, attack_IDlist):
@@ -134,19 +137,32 @@ class TaskAssign(object):
 
 
 	# UGV defend(active defend)
-	def assign_defend(self, ):
+	# def defend(self, def_ID):
 
-		# if alive_attackers>0:
-		# defend_ids = list(self.defenders.keys())
-		attack_ids = [ID for ID, attr in self.attackers.items() if 'dead' not in attr['state']]
+		# attack_ids = [ID for ID, attr in self.attackers.items() if 'dead' not in attr['state']]
+		# defend_ids = [ID for ID, attr in self.defenders.items() if 'dead' not in attr['state']]
+		#
+		# alive_attack = len(attack_ids)
+		# alive_defend = len(defend_ids)
+		#
+		# if alive_attack > 0 and alive_defend > 0 and def_ID in defend_ids:
+		# 	if alive_attack == alive_defend:
+		# 		idx = defend_ids.index(def_ID)
+		# 		return ['attack', attack_ids[idx]]
+		# 	elif alive_attack < alive_defend:
+		# 		return ['attack', attack_ids[0]]
+		# 	else:
+		# 		return ['attack', attack_ids[0]]
+		# else:
+		# 	return ['idle']
 
-		def2att_ids = [defender['state'][1] for defender in self.defenders.values() if defender['state'][0] == 'attack']
-		avail_ids = [ID for ID in attack_ids if ID not in def2att_ids]
-
-		if len(avail_ids)>0:
-			return ['attack', avail_ids[0]]
-		else:
-			return ['attack', def2att_ids[0]]
+		# def2att_ids = [defender['state'][1] for defender in self.defenders.values() if defender['state'][0] == 'attack']
+		# avail_ids = [ID for ID in attack_ids if ID not in def2att_ids]
+		#
+		# if len(avail_ids)>0:
+		# 	return ['attack', avail_ids[0]]
+		# else:
+		# 	return ['attack', def2att_ids[0]]
 
 	# # UGV expel(nearest assign)
 	# def assign_expel(self, def_ID):
@@ -172,21 +188,103 @@ class TaskAssign(object):
 	# 		return None
 
 	# UGV expel(both)
-	def assign_expel(self, ):
+	def expel(self, ):
 		drone_pos = [self.drone['X'], self.drone['Y']]
 		drone_dist = []
 		for key_point in key_points:
 			drone_dist.append(np.linalg.norm(np.array(key_point)-np.array(drone_pos)))
+		# if min(drone_dist) < DRIVE_AWAY_DIST:
+		return ['expel', drone_dist.index(min(drone_dist))]
+		# else:
+		# 	return None
 
-		if min(drone_dist) < DRIVE_AWAY_DIST:
-			return ['expel', drone_dist.index(min(drone_dist))]
+	# defender assign
+	def assign_defend(self, def_ID):
+
+		alive_attackers = [attacker for attacker in self.attackers.values() if 'dead' not in attacker['state']]
+		alive_attackers_ids = [ID for ID, attr in self.attackers.items() if 'dead' not in attr['state']]
+		dist = [np.linalg.norm(np.array([att['X'], att['Y']]) - np.array([self.defenders[def_ID]['X'], self.defenders[def_ID]['Y']])) for att in alive_attackers]
+
+		if len(dist) > 0 and min(dist) < DEFEND_DIST:
+			idx = dist.index(min(dist))
+			return ['attack', alive_attackers_ids[idx]]
 		else:
-			return None
+			return self.expel()
+
+		# alive_attacker_list = [att for att in self.attackers.values() if 'dead' not in att['state']]
+		#
+		# if len(alive_attacker_list) > 0:
+		# 	UGV_stance = [self.evaluator.UAV2UAV_id('offensive', attacker, self.defenders[def_ID]) for attacker in alive_attacker_list]
+		# 	# print(inner_stance_list)
+		# 	max_UGV_stance = max(UGV_stance)
+		#
+		# 	drone_stance = [self.evaluator.Drone2Point_id(self.drone, keyPoint) for keyPoint in key_points]
+		# 	max_drone_stance = max(drone_stance)
+		#
+		# 	print('UGV stance: ', max_UGV_stance)
+		# 	print('drone stance: ', max_drone_stance)
+		# 	print('ratio: ', max_UGV_stance/max_drone_stance)
+		#
+		# 	ratio = max_UGV_stance/max_drone_stance
+		#
+		# 	if ratio > self.ratio_thres:
+		# 		assigned_state = self.defend(def_ID)
+		# 	else:
+		# 		assigned_state = self.expel()
+		#
+		# else:
+		# 	assigned_state = self.expel()
+		#
+		# return assigned_state
+
+	# judge retreat for attackers
+	def is_retreat(self, att_ID, def_ID):
+		if 'dead' in self.attackers[att_ID]['state'] or 'dead' in self.defenders[def_ID]['state']:
+			return False
+		else:
+			# # dist version
+			# attacker_pos = [self.attackers[att_ID]['X'], self.attackers[att_ID]['Y']]
+			# dist_list = [np.linalg.norm(np.array(attacker_pos) - np.array([defender['X'], defender['Y']])) for defender \
+			# 			 in self.defenders.values()]
+			# if min(dist_list) < 800:
+			# 	return True
+			# else:
+			# 	return False
+
+			# stance_version
+			stance = self.evaluator.UAV2UAV_id('offensive', self.attackers[att_ID], self.defenders[def_ID])
+			if stance > RETREAT_STANCE:
+				print('retreat stance: ', stance)
+				return True
+			else:
+				return False
 
 
+	def is_attack(self, att_ID):
+		if 'dead' in self.attackers[att_ID]['state']:
+			return False
+		else:
+			# # dist version
+			# attacker_pos = [self.attackers[att_ID]['X'], self.attackers[att_ID]['Y']]
+			# dist_list = [np.linalg.norm(np.array(attacker_pos) - np.array([defender['X'], defender['Y']])) for defender \
+			# 			 in self.defenders.values()]
+			# if min(dist_list) > 1000:
+			# 	return True
+			# else:
+			# 	return False
+
+			# stance version
+			stance_list = [self.evaluator.UAV2UAV_id('offensive', self.attackers[att_ID], self.defenders[def_ID]) for def_ID in \
+						   self.defenders.keys() if 'dead' not in self.defenders[def_ID]['state']]
+			if max(stance_list) < RETREAT_STANCE:
+				print('attack stance: ', max(stance_list))
+				return True
+			else:
+				print('retreat stance: ', max(stance_list))
+				return False
 
 # test
-if __name__ == '__main__':
-
-	assigner = TaskAssign()
-	attack_goals, defend_goals, avoid_goals, uav_point = align.assign_all(ally_agents_data, enemy_agents_data, key_points)
+# if __name__ == '__main__':
+#
+# 	# assigner = TaskAssign()
+# 	# attack_goals, defend_goals, avoid_goals, uav_point = align.assign_all(ally_agents_data, enemy_agents_data, key_points)

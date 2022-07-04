@@ -26,14 +26,6 @@ class decision():
 		self.alive_attack = len([att for att in list(self.attackers.values()) if 'dead' not in att['state']])
 		self.alive_defend = len([ded for ded in list(self.defenders.values()) if 'dead' not in ded['state']])
 
-		# for attr in self.attackers.values():
-		# 	if 'dead' in attr['state']:
-		# 		self.alive_attack -= 1
-
-		# for attr in self.defenders.values():
-		# 	if 'dead' in attr['state']:
-		# 		self.alive_defend -= 1
-
 		if not type:
 			type = 'attackers'
 
@@ -41,31 +33,36 @@ class decision():
 			self.attack_StateTrans()
 
 			for ID, attr in self.attackers.items():
-			# if 'dead' not in attr['state']:
+
+				if 'dead' in attr['state']:
+					des_pos = [attr['X'], attr['Y'], attr['Z']]
+					actions_list[ID] = des_pos
+					continue
+
 				if 'attack' in attr['state'] and attr['state'][1] is not '0':
 					def_ID = attr['state'][1]
 					opp = self.defenders[def_ID]
-					des_pos = [opp['X'], opp['Y'], opp['Z']]
+					des_pos = [opp['X']-400, opp['Y']-400, opp['Z']]
 					actions_list[ID] = des_pos
 
 				elif 'retreat' in attr['state']:
 					if self.drone['state'][0] is not 'idle':
 						select_key_points = key_points[self.drone['state'][1]]
-						agent_pos = [attr['X'], attr['Y']]
+						agent_pos = [attr['X'], attr['Y'], attr['Z']]
 						if select_key_points[1] - agent_pos[1] > 50 and select_key_points[0] - agent_pos[0] > 50:
 							k = (select_key_points[1] - agent_pos[1]) / (select_key_points[0] - agent_pos[0])
-							des_pos = [agent_pos[0] - 200, agent_pos[1] - 200 * k]
+							des_pos = [agent_pos[0] - 1400, agent_pos[1] - 1400 * k, agent_pos[2]]
 						else:
-							des_pos = [agent_pos[0] - 200, agent_pos[1]]
-						# des_pos = ATTA_RETREAT_POS
-						actions_list[ID] = des_pos
+							des_pos = [agent_pos[0] - 1400, agent_pos[1], agent_pos[2]]
+					else:
+						des_pos = ATTA_RETREAT_POS
+					actions_list[ID] = des_pos
+					# des_pos = ATTA_RETREAT_POS
+					# actions_list[ID] = des_pos
 
 				elif 'idle' in attr['state']:
 					des_pos = [attr['X'], attr['Y'], attr['Z']]
 					actions_list[ID] = des_pos
-				# else:
-				# 	des_pos = [attr['X'], attr['Y'], attr['Z']]
-				# 	actions_list[ID] = des_pos
 
 			# attack target assign
 			assign_attackers = [ID for ID, attr in self.attackers.items() if (len(attr['state'])>1 and attr['state'][1] == '0')]
@@ -76,7 +73,7 @@ class decision():
 				target = self.defenders[target_ID]
 
 			for attacker_ID in assign_attackers:
-				actions_list[attacker_ID] = [target['X'], target['Y'], target['Z']]
+				actions_list[attacker_ID] = [target['X']-300, target['Y']-300, target['Z']]
 				self.attackers[attacker_ID]['state'][1] = target_ID
 
 
@@ -96,7 +93,11 @@ class decision():
 
 			for ID, attr in self.defenders.items():
 
-				# if 'dead' not in attr['state']:
+				if 'dead' in attr['state']:
+					des_pos = [attr['X'], attr['Y'], attr['Z']]
+					actions_list[ID] = des_pos
+					continue
+
 				if 'attack' in attr['state']:
 					def_ID = attr['state'][1]
 					opp = self.attackers[def_ID]
@@ -131,11 +132,11 @@ class decision():
 		for ID in list(self.attackers.keys()):
 			attr = self.attackers[ID]
 
-			# # check alive/dead(blood thres: 2)
-			# if attr['blood'] <= 2 and 'dead' not in attr['state']:
-			# 	attr['blood'] = 0
-			# 	attr['state'] = 'dead'
-			# 	continue
+			# check alive/dead(blood thres: 2)
+			if attr['blood'] <= 2 and 'dead' not in attr['state']:
+				attr['blood'] = 0
+				attr['state'] = ['dead']
+				continue
 
 			# idle2attack
 			if 'idle' in attr['state']:
@@ -149,14 +150,32 @@ class decision():
 			# attack2idle/retreat(blood thres: 10)
 			if 'attack' in attr['state']:
 				def_ID = attr['state'][1]
-
-				# 2retreat
-				if attr['blood'] <= 10 and def_ID in self.defenders.keys() and self.defenders[def_ID]['blood'] > 5:
-					attr['state'] = ['retreat']
+				is_attack = self.assigner.is_attack(ID)
 
 				# 2idle
-				elif def_ID not in self.defenders.keys() or 'dead' in self.defenders[def_ID]['state']:
-					attr['state'] = ['idle']
+				if 'dead' in self.defenders[def_ID]['state']:
+					attr['state'] = ['attack']
+					def_ID = '0'
+					attr['state'].append(def_ID)
+				elif not is_attack:
+					attr['state'] = ['retreat']
+
+				continue
+
+			# retreat2attack
+			if 'retreat' in attr['state']:
+				if self.alive_defend > 0 and attr['blood'] > 10:
+					is_attack = self.assigner.is_attack(ID)
+					if is_attack:
+						attr['state'] = ['attack']
+						def_ID = '0'
+						attr['state'].append(def_ID)
+					# dist_list = [np.linalg.norm(np.array([attr['X'], attr['Y'], attr['Z']]) - np.array([ded['X'], ded['Y'], ded['Z']])) for ded in self.defenders.values()]
+					# min_dist = min(dist_list)
+					# if min_dist > 1500:
+					# 	attr['state'] = ['attack']
+					# 	def_ID = '0'
+					# 	attr['state'].append(def_ID)
 
 		# if 'idle' in self.drone['state']:
 		# self.drone['state'] = self.assigner.assign_2point()
@@ -193,26 +212,27 @@ class decision():
 		for ID in list(self.defenders.keys()):
 			attr = self.defenders[ID]
 
-			# # check alive/dead
-			# if attr['blood'] <= 2 and 'dead' not in attr['state']:
-			# 	attr['blood'] = 0
-			# 	attr['state'] = 'dead'
-			# 	continue
+			# check alive/dead
+			if attr['blood'] <= 2 and 'dead' not in attr['state']:
+				attr['blood'] = 0
+				attr['state'] = ['dead']
+				continue
 
-			# expel nearest
+			# # expel nearest
 			# if self.assigner.assign_expel(ID) is not None:
 			# 	attr['state'] = self.assigner.assign_expel(ID)
 			# 	continue
 
-			# expel both
-			if self.assigner.assign_expel() is not None:
-				attr['state'] = self.assigner.assign_expel()
-				continue
-
-			# idle2attack
-			if self.alive_attack>0 and self.assigner.assign_defend() is not None:
-				attr['state'] = self.assigner.assign_defend()
-				continue
+			# # expel both
+			# if self.assigner.assign_expel() is not None:
+			# 	attr['state'] = self.assigner.assign_expel()
+			# 	continue
+			#
+			# # idle2attack
+			# if self.alive_attack>0 and self.assigner.assign_defend() is not None:
+			# 	attr['state'] = self.assigner.assign_defend()
+			# 	continue
+			attr['state'] = self.assigner.assign_defend(ID)
 
 			# attack2idle/retreat(blood thres: 10)
 			if 'attack' in attr['state']:
@@ -223,8 +243,11 @@ class decision():
 					attr['state'] = ['retreat']
 
 				# 2idle
-				elif att_ID not in self.defenders.keys() or 'dead' in self.attackers[att_ID]['state']:
+				elif 'dead' in self.attackers[att_ID]['state']:
 					attr['state'] = ['idle']
+
+			# else:
+			# 	attr['state'] = self.assigner.assign_defend(ID)
 
 
 

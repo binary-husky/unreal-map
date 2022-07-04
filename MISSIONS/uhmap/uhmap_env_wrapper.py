@@ -1,4 +1,4 @@
-import json, os, subprocess, time, stat
+import json, os, subprocess, time, stat, platform
 import numpy as np
 from UTILS.colorful import print紫, print靛, print亮红
 from UTILS.network import TcpClientP2PWithCompress, find_free_port
@@ -72,6 +72,8 @@ class ScenarioConfig(object):
     AvailActProvided = False
     EntityOriented = False
 
+    ActionFormat = 'Multi-Digit'    # 'Single-Digit'
+
     n_actions = dictionary_n_actions
     obs_vec_length = 23
     act2digit_dictionary = act2digit_dictionary
@@ -131,13 +133,11 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             # self.observation_space['state_shape'] = ?
             pass
 
-        # from UTILS.gpu_share import GpuShareUnit # here this unit has nothing to do with GPU, just use it as a lock 
-        # self.init_lock = GpuShareUnit("NULL", gpu_party="UhmapEnv")
-
-        self.max_simulation_life = 256
-        # with self.init_lock:
-        # time.sleep(np.abs(rank))
+        # Restart env, this is very fast, can be a failsave if there is memory leaking away on UE side
+        self.max_simulation_life = 1024
+        
         self.simulation_life = self.max_simulation_life
+        # with a lock, we can initialize UE side one by one (not necessary though)
         with FileLock("./UTILS/file_lock.py"):
             self.activate_simulation(self.id)
 
@@ -165,15 +165,15 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             assert binary_friendly(ScenarioConfig.TimeDilation/256), "* A Butterfly Effect problem *"
             real_step_time = np.floor(ScenarioConfig.StepGameTime/ScenarioConfig.TimeDilation*ScenarioConfig.FrameRate)*ScenarioConfig.TimeDilation/ScenarioConfig.FrameRate
             # print亮红('Alert, the real Step Game Time will be:', real_step_time) 
+            # deal with linux env
+            if platform.system()=="Linux":
+                # expand '~' path
+                ScenarioConfig.UhmapServerExe = os.path.expanduser(ScenarioConfig.UhmapServerExe)
+                # give execution permission
+                st = os.stat(ScenarioConfig.UhmapServerExe)
+                os.chmod(ScenarioConfig.UhmapServerExe, st.st_mode | stat.S_IEXEC)
+
             if (not self.render) and ScenarioConfig.UhmapServerExe != '':
-                # deal with linux env
-                if '.sh' in ScenarioConfig.UhmapServerExe:
-                    # expand '~' path
-                    ScenarioConfig.UhmapServerExe = os.path.expanduser(ScenarioConfig.UhmapServerExe)
-                    # give execution permission
-                    st = os.stat(ScenarioConfig.UhmapServerExe)
-                    # give execution permission
-                    os.chmod(ScenarioConfig.UhmapServerExe, st.st_mode | stat.S_IEXEC)
                 # start child process
                 self.sim_thread = subprocess.Popen([
                     ScenarioConfig.UhmapServerExe,

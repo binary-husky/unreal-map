@@ -12,11 +12,16 @@
 #
 # # key points
 # key_points = [[0.7, -3.3], [-3, 0.7]]
+
+# stance thres
+RETREAT_STANCE = 0.3
+
+
 # expel dist
-DRIVE_AWAY_DIST = 4000
+DRIVE_AWAY_DIST = 1000
 
 # defend dist
-DEFEND_DIST = 2000
+DEFEND_DIST = 1000
 
 # retreat to the safe entrance
 ATTA_RETREAT_POS = [-500, -3000]

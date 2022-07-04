@@ -125,30 +125,44 @@ class DummyAlgorithmT1(DummyAlgorithmBase):
             att_states.append({k: v['state']})
         for k, v in defenders.items():
             def_states.append({k: v['state']})
-        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        print(drone['state'])
-        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        # print(drone['state'])
+        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
 
         attact_states['211']=att_states[0]['211']
         attact_states['221'] = att_states[1]['221']
         defend_states['311'] = def_states[0]['311']
         defend_states['321'] = def_states[1]['321']
         drone_state['231'] = drone['state']
+
+        print('+++++++++++++++++++++++++ info +++++++++++++++++++++++++++++++++')
+        print('211 state: ', attact_states['211'])
+        print('221 state: ', attact_states['221'])
+        print('311 state: ', defend_states['311'])
+        print('321 state: ', defend_states['321'])
+        print('drone state: ', drone['state'])
+        print('attack actions: ', attack_actions)
+        print('defend actions: ', defend_actions)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
         # 小车211决策
         if attact_states['211'][0] == 'attack':
             if attact_states['211'][1] == '311':
-                actions[thread, 0] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None,UID=3,T=None, T_index=None)
+                # actions[thread, 0] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None,UID=3,T=None, T_index=None)
+                actions[thread, 0] = encode_action_as_digits("SpecificMoving", "N/A", x=attack_actions['211'][0], y=attack_actions['221'][1], z=500,UID=None,T=None, T_index=None)
             else:
-                actions[thread, 0] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=4,T=None, T_index=None)
+                # actions[thread, 0] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=4,T=None, T_index=None)
+                actions[thread, 0] = encode_action_as_digits("SpecificMoving", "N/A", x=attack_actions['211'][0], y=attack_actions['211'][1],z=500,UID=None,T=None, T_index=None)
         else:
-            actions[thread, 0] = encode_action_as_digits("SpecificMoving", "N/A", x=attack_actions['211'][0], y=attack_actions['221'][1],z=500,UID=None,T=None, T_index=None)
+            actions[thread, 0] = encode_action_as_digits("SpecificMoving", "N/A", x=attack_actions['211'][0], y=attack_actions['211'][1],z=500,UID=None,T=None, T_index=None)
 
         # 小车221决策
         if attact_states['221'][0] == 'attack':
             if attact_states['221'][1] == '311':
-                actions[thread, 1] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=3,T=None, T_index=None)
+                # actions[thread, 1] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=3,T=None, T_index=None)
+                actions[thread, 1] = encode_action_as_digits("SpecificMoving", "N/A", x=attack_actions['221'][0], y=attack_actions['221'][1],z=500,UID=None,T=None, T_index=None)
             else:
-                actions[thread, 1] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=4,T=None, T_index=None)
+                # actions[thread, 1] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=4,T=None, T_index=None)
+                actions[thread, 1] = encode_action_as_digits("SpecificMoving", "N/A", x=attack_actions['221'][0], y=attack_actions['221'][1],z=500,UID=None,T=None, T_index=None)
         else:
             actions[thread, 1] = encode_action_as_digits("SpecificMoving", "N/A", x=attack_actions['221'][0], y=attack_actions['221'][1],z=500,UID=None,T=None, T_index=None)
         # 无人机231决策
@@ -271,9 +285,11 @@ class DummyAlgorithmT2(DummyAlgorithmBase):
         # 小车311决策
         if defend_states['311'][0] == 'attack':
             if defend_states['311'][1] == '211':
-                actions[thread, 0] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=0,T=None, T_index=None)
+                # actions[thread, 0] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=0,T=None, T_index=None)
+                actions[thread, 0] = encode_action_as_digits("SpecificMoving", "N/A", x=defend_actions['311'][0], y=defend_actions['311'][1],z=500,UID=None,T=None, T_index=None)
             else:
-                actions[thread, 0] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=1,T=None, T_index=None)
+                # actions[thread, 0] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=1,T=None, T_index=None)
+                actions[thread, 1] = encode_action_as_digits("SpecificMoving", "N/A", x=defend_actions['311'][0], y=defend_actions['311'][1],z=500,UID=None,T=None, T_index=None)
         else:
             actions[thread, 0] = encode_action_as_digits("SpecificMoving", "N/A", x=defend_actions['311'][0], y=defend_actions['311'][1],z=500,UID=None,T=None, T_index=None)
 
@@ -281,9 +297,11 @@ class DummyAlgorithmT2(DummyAlgorithmBase):
         # 小车321决策
         if defend_states['321'][0] == 'attack':
             if defend_states['321'][1] == '211':
-                actions[thread, 1] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=0,T=None, T_index=None)
+                # actions[thread, 1] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=0,T=None, T_index=None)
+                actions[thread, 1] = encode_action_as_digits("SpecificMoving", "N/A", x=defend_actions['321'][0], y=defend_actions['321'][1],z=500,UID=None,T=None, T_index=None)
             else:
-                actions[thread, 1] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=1,T=None, T_index=None)
+                # actions[thread, 1] = encode_action_as_digits("SpecificAttacking", "N/A", x=None, y=None, z=None, UID=1,T=None, T_index=None)
+                actions[thread, 1] = encode_action_as_digits("SpecificMoving", "N/A", x=defend_actions['321'][0], y=defend_actions['321'][1],z=500,UID=None,T=None, T_index=None)
         else:
             actions[thread, 1] = encode_action_as_digits("SpecificMoving", "N/A", x=defend_actions['321'][0], y=defend_actions['321'][1],z=500,UID=None,T=None, T_index=None)
 

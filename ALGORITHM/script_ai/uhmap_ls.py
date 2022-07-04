@@ -1,5 +1,5 @@
-import numpy as np
 import copy
+import numpy as np
 from UTILS.tensor_ops import copy_clone
 from config import GlobalConfig
 

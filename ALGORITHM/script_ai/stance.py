@@ -10,14 +10,14 @@ import math
 
 class Evaluation_module():
     def __init__(self, critical_points=[[-3, -0.7, 0], [0.7, 3.3, 0]]):
-        self.R0 = 1.5  # 距离态势缩放因子
+        self.R0 = 1.5 * 100  # 距离态势缩放因子
         self.V0 = 0.1  # 速度态势缩放因子
-        self.phi0 = 1   # 俯仰角态势系数
+        self.phi0 = np.pi / 4   # 俯仰角态势系数
         self.psi0 = 0  # 偏航角态势系数
-        self.ammo0 = 5  # 载荷态势缩放因子(增函数用)
-        self.heal0 = 5  # 血量态势缩放因子(增函数用)
-        self.AMMO0 = 500  # 载荷态势缩放因子(减函数用)
-        self.HEAL0 = 500  # 血量态势缩放因子(减函数用)
+        self.ammo0 = 0.15  # 载荷态势缩放因子(增函数用)
+        self.heal0 = 0.15  # 血量态势缩放因子(增函数用)
+        self.AMMO0 = 0.5  # 载荷态势缩放因子(减函数用)
+        self.HEAL0 = 0.5  # 血量态势缩放因子(减函数用)
 
         # 已知的环境信息
         self.critical_points = critical_points  # 夺控点位置
@@ -156,31 +156,35 @@ class Evaluation_module():
         #进攻方无人车信息
         ally_agent_pos = [attacker_dict['X'], attacker_dict['Y'], attacker_dict['Z']]
         ally_agent_blood = attacker_dict['blood']
-        ally_agent_ammo = attacker_dict['ammo']
+        # ally_agent_ammo = attacker_dict['ammo']
 
         enemy_agent_pos = [defender_dict['X'], defender_dict['Y'], defender_dict['Z']]
         enemy_agent_blood = defender_dict['blood']
-        enemy_agent_ammo = defender_dict['ammo']
+        # enemy_agent_ammo = defender_dict['ammo']
 
         a_position = np.array(ally_agent_pos)
         position = np.array(enemy_agent_pos)
-        a_ammo = ally_agent_ammo
+        # a_ammo = ally_agent_ammo
         a_health = ally_agent_blood
-        ammo = enemy_agent_ammo
+        # ammo = enemy_agent_ammo
         health = enemy_agent_blood
 
         # 进攻方优势计算(选择优势最大的进行打击，若相同则选择距离更近的进行打击）
         if identity == "offensive":
             # 相对距离威胁
-            Mammo = self.SigmoidNine(a_ammo, self.ammo0)
-            Mhealth = self.SigmoidNine(a_health, self.heal0)
+            # Mammo = self.SigmoidNine(a_ammo, self.ammo0)
+            # Mhealth = np.exp(a_health / self.heal0)
+            Mhealth = np.exp(a_health/100)
             # 对方载荷及健康优势计算（减函数）
-            Sammo = np.exp(ammo / self.AMMO0)
-            Shealth = np.exp(health / self.HEAL0)
+            # Sammo = np.exp(-ammo / self.AMMO0)
+            # Shealth = np.exp(-health / self.HEAL0)
+            Shealth = np.exp(-health/100)
             r = a_position - position
             dist = np.sqrt(np.sum(np.square(r)))
-            Sr = np.exp(-dist / self.R0)
-            S_offensive = 25 * Mammo * Mhealth * Sammo * Shealth * Sr  # 乘了系数10以致于S不过分小
+            # Sr = np.exp(-dist / self.R0)
+            Sr = np.exp(-dist / 1000)
+            # S_offensive = 10 * Mammo*Mhealth * Sammo*Shealth * Sr  # 乘了系数10以致于S不过分小
+            S_offensive = 0.1 * Mhealth * Shealth * Sr  # 乘了系数10以致于S不过分小
 
             return S_offensive
         # 防守方优势计算（优先打击距离夺控点近的无人车）
@@ -197,30 +201,31 @@ class Evaluation_module():
                 Sr = np.exp(-dist / self.R0)
                 if Sr >= Sr_temp:
                     Sr_temp = Sr
-            S_defensive = 25 * Mammo * Mhealth * Sammo * Shealth * Sr_temp
+            S_defensive = 10 * Mammo * Mhealth * Sammo * Shealth * Sr_temp
             return S_defensive
 
     def Drone2Point_id(self, drone_data, key_point):
-        drone_pos = [drone_data['X'], drone_data['Y'], drone_data['Z']]
-        drone_blood = drone_data['blood']
-        drone_velocityx = drone_data['vx']
-        drone_velocityy = drone_data['vy']
-        drone_velocity = [drone_velocityx, drone_velocityy, 0]
+        drone_pos = [drone_data['X'], drone_data['Y']]
+        # drone_blood = drone_data['blood']
+        # drone_velocityx = drone_data['vx']
+        # drone_velocityy = drone_data['vy']
+        # drone_velocity = [drone_velocityx, drone_velocityy, 0]
         # 相对距离威胁
         p_position = np.array(key_point)
         position = np.array(drone_pos)
-        velocity = np.array(drone_velocity)
+        # velocity = np.array(drone_velocity)
         r = p_position - position
         dist = np.sqrt(np.sum(np.square(r)))
-        Spr = np.exp(-dist / 1)   # 此处的放缩系数采用与无人机参数相关的
+        Spr = np.exp(-dist / 100)   # 此处的放缩系数采用与无人机参数相关的
         # 相对速度威胁
-        V = np.dot(r, velocity) / dist  # 求速度在连线朝向上的投影
-        Spv = self.SigmoidTen(V, 0.2)   # 此处的放缩系数采用与无人机参数相关的
+        # V = np.dot(r, velocity) / dist  # 求速度在连线朝向上的投影
+        # Spv = self.SigmoidTen(V, 0.2)   # 此处的放缩系数采用与无人机参数相关的
         # 停留时间威胁
         # Spt = self.SigmoidNine(p_ts, 0.5)  # 不能接受无人机停留3秒及以上
         # 计算综合态势
         # Sp = Spt + 0.6 * Spr + 0.2 * Spv  # 建议驱离阈值: Sp >= 0.5
-        Sp = 0.6 * Spr + 0.4 * Spv
+        # Sp = 0.6 * Spr + 0.4 * Spv
+        Sp = Spr
         return Sp
 
 
