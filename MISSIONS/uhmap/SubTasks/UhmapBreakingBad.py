@@ -300,8 +300,8 @@ class UhmapBreakingBad(UhmapEnv):
 
         # temporary parameters
         OBS_RANGE_PYTHON_SIDE = 1500
-        MAX_NUM_OPP_OBS = 5
-        MAX_NUM_ALL_OBS = 5
+        MAX_NUM_OPP_OBS = 3
+        MAX_NUM_ALL_OBS = 3
         
         # get and calculate distance array
         pos3d_arr = np.zeros(shape=(self.n_agents, 3), dtype=np.float32)
@@ -386,6 +386,11 @@ class UhmapBreakingBad(UhmapEnv):
             h_msk = np.concatenate((h_vis_index<0, h_invis_index>=0)) # "<0" project to False; ">=0" project to True
             a2h_feature_sort = h_feature[h_ind]
             a2h_feature_sort[h_msk] = 0
+            if len(a2h_feature_sort)<MAX_NUM_OPP_OBS:
+                a2h_feature_sort = np.concatenate((
+                    a2h_feature_sort, 
+                    np.ones(shape=(MAX_NUM_OPP_OBS-len(a2h_feature_sort), CORE_DIM))+np.nan
+                ), axis=0)
 
             # scope <ally/friend>
             a2f_dis = dis2all[is_ally]
@@ -406,7 +411,11 @@ class UhmapBreakingBad(UhmapEnv):
             f_msk = np.concatenate((self_vis_index<0, f_vis_index<0, f_invis_index>=0)) # "<0" project to False; ">=0" project to True
             self_ally_feature_sort = f_feature[f_ind]
             self_ally_feature_sort[f_msk] = 0
-
+            if len(self_ally_feature_sort)<MAX_NUM_ALL_OBS:
+                self_ally_feature_sort = np.concatenate((
+                    self_ally_feature_sort, 
+                    np.ones(shape=(MAX_NUM_ALL_OBS-len(self_ally_feature_sort), CORE_DIM))+np.nan
+                ), axis=0)
             OBS_ALL_AGENTS[i,:] = np.concatenate((self_ally_feature_sort, a2h_feature_sort), axis = 0)
 
 
@@ -441,7 +450,7 @@ class UhmapBreakingBad(UhmapEnv):
                 obj['rotation']['yaw'],     # yaw 
                 0,                          # max_speed
             ])
-        OBS_GameObj = my_view(obs_arr.get(), [len(self.key_obj), -1])
+        OBS_GameObj = my_view(obs_arr.get(), [len(self.key_obj), -1])[:MAX_OBJ_NUM_ACCEPT, :]
         OBS_GameObj = repeat_at(OBS_GameObj, insert_dim=0, n_times=self.n_agents)
         OBS_ALL_AGENTS = np.concatenate((OBS_ALL_AGENTS, OBS_GameObj), axis=1)
 

@@ -5,8 +5,7 @@ from UTILS.network import TcpClientP2PWithCompress, find_free_port
 from UTILS.config_args import ChainVar
 from UTILS.file_lock import FileLock
 from ..common.base_env import BaseEnv
-from .actset_lookup import digit2act_dictionary, binary_friendly
-from .actset_lookup import act2digit_dictionary, dictionary_n_actions
+from .actset_lookup import binary_friendly, dictionary_n_actions
 from .agent import Agent
 # please register this ScenarioConfig into MISSIONS/env_router.py
 class ScenarioConfig(object):  
@@ -53,7 +52,10 @@ class ScenarioConfig(object):
     render = False
     TcpAddr = '127.0.0.1'
     UhmapPort = 21051
+
+    UnrealLevel = 'UhmapBreakingBad'
     SubTaskSelection = 'UhmapBreakingBad'
+
     UElink2editor = False
     AutoPortOverride = False
 
@@ -76,7 +78,6 @@ class ScenarioConfig(object):
 
     n_actions = dictionary_n_actions
     obs_vec_length = 23
-    act2digit_dictionary = act2digit_dictionary
 
 DEBUG = False
 
@@ -183,6 +184,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     # '-log', 
                     '-TcpPort=%d'%which_port,   # port for hmp data exchanging
                     '-Port=%d'%ue_networking,   # port for remote visualizing
+                    '-OpenLevel=%s'%ScenarioConfig.UnrealLevel, 
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
@@ -198,6 +200,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     # '-log', 
                     '-TcpPort=%d'%which_port,   # port for hmp data exchanging
                     '-Port=%d'%ue_networking,   # port for remote visualizing
+                    '-OpenLevel=%s'%ScenarioConfig.UnrealLevel, 
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
