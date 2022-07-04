@@ -24,6 +24,7 @@ class FileLock(object):
         self.file_name = file_name
         self.timeout = timeout
         self.delay = delay
+        self.try_cnt = 0
  
  
     def acquire(self):
@@ -45,9 +46,12 @@ class FileLock(object):
                     raise FileLockException("Could not acquire lock on {}".format(self.file_name))
                 if (time.time() - start_time) >= self.timeout:
                     raise FileLockException("Timeout occured.")
+                self.try_cnt += 1
+                if (self.try_cnt>3000):
+                    print('Retry too many times to get the lock, if deadlock here, remove *RECYCLE* fold and try again.')
                 time.sleep(self.delay)
-#        self.is_locked = True
- 
+
+        self.try_cnt = 0
  
     def release(self):
         """ Get rid of the lock by deleting the lockfile. 

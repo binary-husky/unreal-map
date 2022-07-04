@@ -138,7 +138,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         
         self.simulation_life = self.max_simulation_life
         # with a lock, we can initialize UE side one by one (not necessary though)
-        with FileLock("./UTILS/file_lock.py"):
+        with FileLock("./RECYCLE/unreal_engine_init_lock"):
             self.activate_simulation(self.id)
 
     def __del__(self):
@@ -150,7 +150,10 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         self.render = ScenarioConfig.render #  and (rank==0)
         which_port = ScenarioConfig.UhmapPort
         if ScenarioConfig.AutoPortOverride:
-            which_port = find_free_port()
+            which_port = find_free_port()   # port for hmp data exchanging
+        ue_networking = find_free_port()    # port for remote visualizing
+        print('Port %d will be used by hmp, port %d will be used by UE internally'%(which_port, ue_networking))
+
         ipport = (ScenarioConfig.TcpAddr, which_port)
         # os.system()
         if not ScenarioConfig.UElink2editor:
@@ -178,7 +181,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 self.sim_thread = subprocess.Popen([
                     ScenarioConfig.UhmapServerExe,
                     # '-log', 
-                    '-TcpPort=%d'%which_port,
+                    '-TcpPort=%d'%which_port,   # port for hmp data exchanging
+                    '-Port=%d'%ue_networking,   # port for remote visualizing
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
@@ -192,7 +196,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 self.sim_thread = subprocess.Popen([
                     ScenarioConfig.UhmapRenderExe,
                     # '-log', 
-                    '-TcpPort=%d'%which_port,
+                    '-TcpPort=%d'%which_port,   # port for hmp data exchanging
+                    '-Port=%d'%ue_networking,   # port for remote visualizing
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
@@ -202,7 +207,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     "-ResX=1280",
                     "-ResY=720",
                     "-WINDOWED"
-                ])
+                ], stdout=subprocess.DEVNULL)
                 print紫('UHMAP (Render) started ...')
                 time.sleep(1)
             else:
