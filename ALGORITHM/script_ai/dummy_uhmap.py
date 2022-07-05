@@ -55,6 +55,17 @@ class DummyAlgorithmBase():
 # 进攻方决策
 class DummyAlgorithmT1(DummyAlgorithmBase):
     def interact_with_env(self, State_Recall):
+        try:
+            res = self.interact_with_env_(State_Recall)
+        except:
+            actions = np.zeros(shape=(self.n_thread, self.n_agent, 8))
+            actions[:] = encode_action_as_digits("N/A", "N/A", x=None, y=None, z=None, UID=None, T=None, T_index=None)
+            actions = np.swapaxes(actions, 0, 1)
+            res = (actions, None)
+        return res
+
+
+    def interact_with_env_(self, State_Recall):
         assert State_Recall['Latest-Obs'] is not None, ('make sure obs is ok')
 
         ENV_PAUSE = State_Recall['ENV-PAUSE']
@@ -200,6 +211,17 @@ class DummyAlgorithmT1(DummyAlgorithmBase):
 # 防守方决策
 class DummyAlgorithmT2(DummyAlgorithmBase):
     def interact_with_env(self, State_Recall):
+        try:
+            res = self.interact_with_env_(State_Recall)
+        except:
+            actions = np.zeros(shape=(self.n_thread, self.n_agent, 8))
+            actions[:] = encode_action_as_digits("N/A", "N/A", x=None, y=None, z=None, UID=None, T=None, T_index=None)
+            actions = np.swapaxes(actions, 0, 1)
+            res = (actions, None)
+        return res
+
+
+    def interact_with_env_(self, State_Recall):
         assert State_Recall['Latest-Obs'] is not None, ('make sure obs is ok')
 
         ENV_PAUSE = State_Recall['ENV-PAUSE']

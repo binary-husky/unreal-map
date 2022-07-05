@@ -91,9 +91,11 @@ def get_core_args(vb=True):
     from config import GlobalConfig as cfg
     return cfg
 
-
+def prepare_recycle_folder():
+    if not os.path.exists('./RECYCLE'): os.mkdir('./RECYCLE')
 
 def prepare_args(vb=True):
+    prepare_recycle_folder()
     parser = argparse.ArgumentParser(description='HMP')
     parser.add_argument('-c', '--cfg', help='Path of the configuration file')
     parser.add_argument('-s', '--skip', action='store_true', help='skip logdir check')

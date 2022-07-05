@@ -36,10 +36,19 @@ class ActionConvertLegacy():
 
 
     @staticmethod
-    def convert_act_arr(a):
-        
-        return (encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a]))
-        
+    def convert_act_arr(type, a):
+        if 'RLA_UAV' in type:
+            args = ActionConvertLegacy.dictionary_args[a]
+            # override wrong actions
+            if args[0] == 'SpecificAttacking':
+                return encode_action_as_digits('N/A',         'N/A',              None, None, None, None, None, None)
+            # override incorrect actions
+            if args[0] == 'Idle':
+                return encode_action_as_digits('Idle',        'StaticAlert',      None, None, None, None, None, None)
+            return encode_action_as_digits(*args)
+        else:
+            return encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a])
+ 
 
 class ShellEnvWrapper(object):
     def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config, team):
@@ -112,7 +121,7 @@ class ShellEnvWrapper(object):
 
         act_converted = np.array([
             [
-                ActionConvertLegacy.convert_act_arr(agentid, act)  for agentid, act in enumerate(th) 
+                ActionConvertLegacy.convert_act_arr(self.agent_type[agentid], act)  for agentid, act in enumerate(th) 
             ] for th in act])
         actions_list = np.swapaxes(act_converted, 0, 1) # swap thread(batch) axis and agent axis
 

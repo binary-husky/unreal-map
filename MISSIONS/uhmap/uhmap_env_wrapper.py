@@ -270,31 +270,9 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
 
     # override step function
     def step(self, act):
-
-        assert len(act) == self.n_agents
-        act_send = [digit2act_dictionary[a] for a in act] + \
-                   ['ActionSet2::PatrolMoving;x=-10525.0 Y=-6009.0 Z=380.0' for _ in range(ScenarioConfig.n_team2agent)]
-        json_to_send = json.dumps({
-            'valid': True,
-            'DataCmd': 'step',
-            'TimeStep': self.t,
-            'Actions': None,
-            'StringActions': act_send,
-        })
-        resp = self.client.send_and_wait_reply(json_to_send)
-        resp = json.loads(resp)
-
-        ob, info = self.parse_response_ob_info(resp)
-        RewardForAllTeams = 0
-        done = resp['dataGlobal']['episodeDone']
-        if resp['dataGlobal']['timeCnt'] >= ScenarioConfig.MaxEpisodeStep:
-            done = True
-        if DEBUG:
-            if done:
-                print紫(resp['dataGlobal'])
-            else:
-                print(resp['dataGlobal'])
-        return (ob, RewardForAllTeams,  done, info)  # choose this if RewardAsUnity
+        raise NotImplementedError
+        # return (ob, RewardForAllTeams,  done, info)  # choose this if RewardAsUnity
+        
 
 
 # please register this into MISSIONS/env_router.py

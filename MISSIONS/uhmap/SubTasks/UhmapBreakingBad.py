@@ -2,7 +2,7 @@ import json, os, subprocess, time, copy, re
 import numpy as np
 from UTILS.colorful import print紫, print靛
 from UTILS.config_args import ChainVar
-from UTILS.tensor_ops import my_view, repeat_at
+from UTILS.tensor_ops import my_view, repeat_at, distance_matrix, distance_mat_between
 from ...common.base_env import BaseEnv
 from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
 from ..actset_lookup import decode_action_as_string, decode_action_as_string
@@ -188,16 +188,33 @@ class UhmapBreakingBad(UhmapEnv):
 
 
     def gen_reward_and_win(self, resp):
-        reward = [0]*self.n_teams
+        WIN_OR_LOSE_REWARD = 5
+        DRAW_REWARD = 2.5
+        KILL_REWARD = 0.1
+        BE_KILLED_REWARD = 0
+
+        reward = np.array([0.0]*self.n_teams,dtype=float)
         events = resp['dataGlobal']['events']
         WinningResult = None
+
+        # reward according to distance to either of the landmarks
+        landmarks_pos3darr = np.array([[
+            lm['location']['x'], lm['location']['y'], lm['location']['z']
+            ] for lm in resp['dataGlobal']['keyObjArr']])
+        agent_pos3darr = np.array([agent.pos3d for agent in self.agents])
+        res = distance_mat_between(agent_pos3darr, landmarks_pos3darr)
+        penalty = -np.min(res, axis = -1) / 100000
+        reward += np.array([sum(penalty[ ScenarioConfig.AGENT_ID_EACH_TEAM[i] ]) for i in range(self.n_teams)])
+
+        # reward according to event (including win or lose event)
         for event in events: 
             event_parsed = self.parse_event(event)
             
             if event_parsed['Event'] == 'Destroyed':
                 team = self.find_agent_by_uid(event_parsed['UID']).team
-                reward[team]    -= 0.05    # this team
-                reward[1-team]  += 0.10    # opp team
+                reward[team]    -= BE_KILLED_REWARD     # this team
+                reward[1-team]  += KILL_REWARD          # opp team
+
             if event_parsed['Event'] == 'EndEpisode':
                 # print([a.alive * a.hp for a in self.agents])
                 EndReason = event_parsed['EndReason']
@@ -224,14 +241,14 @@ class UhmapBreakingBad(UhmapEnv):
                         "team_ranking": [0,1] if WinTeam==0 else [1,0],
                         "end_reason": EndReason
                     }
-                    reward[WinTeam] += 1
-                    reward[1-WinTeam] -= 1
+                    reward[WinTeam] += WIN_OR_LOSE_REWARD
+                    reward[1-WinTeam] -= WIN_OR_LOSE_REWARD
                 else:
                     WinningResult = {
                         "team_ranking": [-1, -1],
                         "end_reason": EndReason
                     }
-                    reward = [-1 for _ in range(self.n_teams)]
+                    reward = [-DRAW_REWARD for _ in range(self.n_teams)]
 
         return reward, WinningResult
 
