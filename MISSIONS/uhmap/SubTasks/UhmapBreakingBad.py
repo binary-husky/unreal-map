@@ -65,8 +65,8 @@ class UhmapBreakingBad(UhmapEnv):
         AgentSettingArray = []
         agent_uid_cnt = 0
         for i in range(ScenarioConfig.n_team1agent-1):  # For attacking, drones on the ground
-            x = 0 + 500*i
-            y = 2500
+            x = 3254.0
+            y = 3891.0
             z = 500 
             agent_property = copy.deepcopy(AgentPropertyDefaults)
             agent_property.update({
@@ -75,9 +75,9 @@ class UhmapBreakingBad(UhmapEnv):
                     'IndexInTeam': i,               # int IndexInTeam = 0;
                     'UID': agent_uid_cnt,           # int UID = 0;
                     'MaxMoveSpeed': 600,
-                    "ExplodeDmg": 250,
-                    "DodgeProb": 0.8,
-                    'AgentHp': 1000,
+                    "ExplodeDmg": 10,
+                    "DodgeProb": 0.1,
+                    'AgentHp': 100,
                     "WeaponCD": 1,
                     'Color':'(R=0,G=1,B=0,A=1)',
                     'InitLocation': { 'x': x,  'y': y, 'z': z, },
@@ -85,8 +85,8 @@ class UhmapBreakingBad(UhmapEnv):
             AgentSettingArray.append(agent_property); agent_uid_cnt += 1
 
 
-        x = 1500
-        y = 2500
+        x = 3254.0
+        y = 3891.0
         z = 2000
         agent_property = copy.deepcopy(AgentPropertyDefaults)
         agent_property.update({
@@ -95,9 +95,9 @@ class UhmapBreakingBad(UhmapEnv):
                 'IndexInTeam': agent_uid_cnt,   # under most situations IndexInTeam=agent_uid_cnt for team 0
                 'UID': agent_uid_cnt,           # int UID = 0;
                 'MaxMoveSpeed': 600,
-                "DodgeProb": 1.0,
-                "ExplodeDmg": 250,
-                'AgentHp': 10000,
+                "DodgeProb": 0.1,
+                "ExplodeDmg": 10,
+                'AgentHp': 100,
                 "WeaponCD": 10000000000,
                 'Color':'(R=0,G=1,B=0,A=1)',
                 'InitLocation': { 'x': x,  'y': y, 'z': z, },
@@ -116,10 +116,10 @@ class UhmapBreakingBad(UhmapEnv):
                     'IndexInTeam': i,
                     'UID': agent_uid_cnt,
                     'MaxMoveSpeed': 700,
-                    "DodgeProb": 0.80,
-                    'AgentHp':1000,
-                    "ExplodeDmg": 250,
-                    "WeaponCD": 1,
+                    "DodgeProb": 0.1,
+                    'AgentHp':100,
+                    "ExplodeDmg": 10,
+                    "WeaponCD": 0.5,
                     'Color':'(R=1,G=0,B=0,A=1)',
                     'InitLocation': { 'x': x, 'y': y, 'z': z, },
             })
@@ -193,6 +193,7 @@ class UhmapBreakingBad(UhmapEnv):
         WinningResult = None
         for event in events: 
             event_parsed = self.parse_event(event)
+            
             if event_parsed['Event'] == 'Destroyed':
                 team = self.find_agent_by_uid(event_parsed['UID']).team
                 reward[team]    -= 0.05    # this team

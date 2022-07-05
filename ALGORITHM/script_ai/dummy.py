@@ -5,7 +5,7 @@ class DummyAlgConfig():
     reserve = ""
 
 class DummyAlgorithmBase():
-    def __init__(self, n_agent, n_thread, space, mcv):
+    def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from config import GlobalConfig
         self.n_agent = n_agent
         self.n_thread = n_thread

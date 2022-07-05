@@ -24,7 +24,7 @@ class env_pass:
 
 
 class BaselineFoundation():
-    def __init__(self, n_agent, n_thread, space, mcv):
+    def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         self.n_thread = n_thread
         self.n_agent = n_agent
         self.handler = [None for _  in range(self.n_thread)]

@@ -10,40 +10,42 @@ class ActionConvertLegacy():
 
     # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
     dictionary_args = [
-        ('N/A',     'N/A',              None, None, None, None, None, None),   # 0
-        ('Idle',    'DynamicGuard',     None, None, None, None, None, None),   # 1
-        ('Idle',    'StaticAlert',      None, None, None, None, None, None),   # 2
-        ('Idle',    'AggressivePersue', None, None, None, None, None, None),   # 3
-        ('SpecificMoving', 'Dir+X',     None, None, None, None, None, None),   # 4
-        ('SpecificMoving', 'Dir+Y',     None, None, None, None, None, None),   # 5
-        ('SpecificMoving', 'Dir-X',     None, None, None, None, None, None),   # 6
-        ('SpecificMoving', 'Dir-Y',     None, None, None, None, None, None),   # 7
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    0),      # 8
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    1),      # 9
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    2),      # 10
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    3),      # 11
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 1,    4),      # 12
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    0),      # 13
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    1),      # 14
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    2),      # 15
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    3),      # 16
-        ('SpecificAttacking', 'N/A',    None, None, None, None, 0,    4),      # 17
-        ('PatrolMoving', 'Dir+X',       None, None, None, None, None, None),   # 19
-        ('PatrolMoving', 'Dir+Y',       None, None, None, None, None, None),   # 20
-        ('PatrolMoving', 'Dir-X',       None, None, None, None, None, None),   # 21
-        ('PatrolMoving', 'Dir-Y',       None, None, None, None, None, None),   # 22
+        ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
+        ('Idle',        'DynamicGuard',     None, None, None, None, None, None),   # 1
+        ('Idle',        'StaticAlert',      None, None, None, None, None, None),   # 2
+        ('Idle',        'AggressivePersue', None, None, None, None, None, None),   # 3
+        ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 4
+        ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 5
+        ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 6
+        ('SpecificMoving',      'Dir-Y',    None, None, None, None, None, None),   # 7
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    0),      # 8
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    1),      # 9
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    2),      # 10
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    3),      # 11
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    4),      # 12
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    0),      # 13
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    1),      # 14
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    2),      # 15
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    3),      # 16
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    4),      # 17
+        ('PatrolMoving',        'Dir+X',    None, None, None, None, None, None),   # 19
+        ('PatrolMoving',        'Dir+Y',    None, None, None, None, None, None),   # 20
+        ('PatrolMoving',        'Dir-X',    None, None, None, None, None, None),   # 21
+        ('PatrolMoving',        'Dir-Y',    None, None, None, None, None, None),   # 22
     ]
 
 
     @staticmethod
     def convert_act_arr(a):
-        return(encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a]))
+        
+        return (encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a]))
         
 
 class ShellEnvWrapper(object):
-    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config, team):
         self.n_agent = n_agent
         self.n_thread = n_thread
+        self.team = team
         self.space = space
         self.mcv = mcv
         self.RL_functional = RL_functional
@@ -70,6 +72,12 @@ class ShellEnvWrapper(object):
         return arr
 
     def interact_with_env(self, State_Recall):
+        if not hasattr(self, 'agent_type'):
+            self.agent_uid = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[self.team]
+            self.agent_type = [agent_meta['type'] 
+                for agent_meta in State_Recall['Latest-Team-Info'][0]['dataArr']
+                if agent_meta['uId'] in self.agent_uid]
+
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         # read internal coop graph info
         obs = State_Recall['Latest-Obs']
@@ -102,7 +110,10 @@ class ShellEnvWrapper(object):
 
         act[~ENV_PAUSE] = act_active
 
-        act_converted = np.array([ActionConvertLegacy.convert_act_arr(a) for a in act.flatten()]).reshape(self.n_thread, self.n_agent,-1)
+        act_converted = np.array([
+            [
+                ActionConvertLegacy.convert_act_arr(agentid, act)  for agentid, act in enumerate(th) 
+            ] for th in act])
         actions_list = np.swapaxes(act_converted, 0, 1) # swap thread(batch) axis and agent axis
 
         # return necessary handles to main platform

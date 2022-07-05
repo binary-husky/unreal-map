@@ -9,7 +9,7 @@ class CoopAlgConfig():
     reserve = None
     
 class DummyAlgorithmFoundationHI3D():
-    def __init__(self, n_agent, n_thread, space, mcv):
+    def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from config import GlobalConfig
         super().__init__()
         self.n_agent = n_agent
@@ -109,7 +109,7 @@ class DummyAlgorithmFoundationHI3D():
                     invader_attack_target[i] = assigned_target
                 self.attack_target[thread] = np.array(invader_attack_target)
 class DummyAlgorithmFoundationHI3D_old():
-    def __init__(self, n_agent, n_thread, space, mcv):
+    def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from config import GlobalConfig
         super().__init__()
         self.n_agent = n_agent
@@ -254,7 +254,7 @@ class DummyAlgorithmFoundationHI3D_old():
 
 
 class IHDummyAlgorithmFoundation():
-    def __init__(self, n_agent, n_thread, space, mcv):
+    def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from config import GlobalConfig
         super().__init__()
         self.n_agent = n_agent
@@ -393,7 +393,7 @@ class IHDummyAlgorithmFoundation():
 
 
 class DummyAlgorithmFoundation():
-    def __init__(self, n_agent, n_thread, space, mcv):
+    def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         super().__init__()
         self.n_agent = n_agent
         self.n_thread = n_thread

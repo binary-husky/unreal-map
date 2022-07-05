@@ -32,7 +32,7 @@ class AlgorithmConfig:
     balance = 0.5
 
 class ReinforceAlgorithmFoundation(object):
-    def __init__(self, n_agent, n_thread, space, mcv=None):
+    def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         self.n_thread = n_thread
         self.n_agent = n_agent
         self.act_space = space['act_space']

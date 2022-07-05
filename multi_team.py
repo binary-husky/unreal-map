@@ -31,7 +31,7 @@ class MMPlatform(object):
             module_, class_ = self.t_name[t].split('->')
             init_f = getattr(importlib.import_module(module_), class_)
             self.algo_foundations.append(
-                init_f(n_agent=n_agents_each_t[t], n_thread=self.n_thread, space=space, mcv=mcv)
+                init_f(n_agent=n_agents_each_t[t], n_thread=self.n_thread, space=space, mcv=mcv, team=t)
             )
         pass
 
