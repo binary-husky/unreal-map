@@ -52,7 +52,7 @@ class PymarlFoundation():
         }
 
         subprocess.Popen(["python", 
-            "/home/fuqingxu/pymarl2/pymarl2src/main.py", 
+            "/home/hmp/pymarl2/pymarl2src/main.py", 
             "--force", 
             "--config=qmix", 
             "--env-config=HMP_compat",

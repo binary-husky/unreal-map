@@ -300,8 +300,8 @@ class UhmapBreakingBad(UhmapEnv):
 
         # temporary parameters
         OBS_RANGE_PYTHON_SIDE = 1500
-        MAX_NUM_OPP_OBS = 3
-        MAX_NUM_ALL_OBS = 3
+        MAX_NUM_OPP_OBS = 5
+        MAX_NUM_ALL_OBS = 4
         
         # get and calculate distance array
         pos3d_arr = np.zeros(shape=(self.n_agents, 3), dtype=np.float32)
@@ -421,7 +421,6 @@ class UhmapBreakingBad(UhmapEnv):
 
         # the last part of observation is the list of core game objects
         MAX_OBJ_NUM_ACCEPT = 5
-        OBJ_FEATURE_DIM = 12
         self.N_Obj = len(self.key_obj)
 
         OBJ_UID_OFFSET = 32768
