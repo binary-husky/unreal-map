@@ -66,7 +66,7 @@ class UhmapBreakingBad(UhmapEnv):
         agent_uid_cnt = 0
         for i in range(ScenarioConfig.n_team1agent-1):  # For attacking, drones on the ground
             x = 3254.0
-            y = 3891.0
+            y = 3891.0 + i *100
             z = 500 
             agent_property = copy.deepcopy(AgentPropertyDefaults)
             agent_property.update({
@@ -108,7 +108,7 @@ class UhmapBreakingBad(UhmapEnv):
         for i in range(ScenarioConfig.n_team2agent):
             x = 0 + 500*(i+1)  *  (-1)**(i+1)
             y = 0
-            z = 0 
+            z = 500
             agent_property = copy.deepcopy(AgentPropertyDefaults)
             agent_property.update({
                     'ClassName': 'RLA_CAR_RED',
