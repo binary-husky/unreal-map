@@ -213,6 +213,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 print('Cannot start Headless Server Or GUI Server!')
                 assert False, 'Cannot start Headless Server Or GUI Server!'
         else:
+            print('Trying to link to unreal editor ...')
             assert not ScenarioConfig.AutoPortOverride
 
         self.client = TcpClientP2PWithCompress(ipport)

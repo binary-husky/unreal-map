@@ -94,7 +94,7 @@ class UhmapBreakingBad(UhmapEnv):
                 'AgentTeam': 0,                 # int AgentTeam = 0;
                 'IndexInTeam': agent_uid_cnt,   # under most situations IndexInTeam=agent_uid_cnt for team 0
                 'UID': agent_uid_cnt,           # int UID = 0;
-                'MaxMoveSpeed': 1500,
+                'MaxMoveSpeed': 1000,
                 "DodgeProb": 0.5,
                 "ExplodeDmg": 10,
                 'AgentHp': 1,
