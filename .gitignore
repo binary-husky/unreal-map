@@ -45,6 +45,7 @@ checkpoint/
 
 PROFILE/
 RECYCLE/
+TEMP/
 test_only_*.py
 test_only_log
 test_only_profile.txt

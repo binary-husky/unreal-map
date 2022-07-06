@@ -86,13 +86,15 @@ def get_core_args(vb=True):
         override_config_file(core_group, json_data[core_group], vb)
     else:
         assert False
-        new_args = load_config_via_cmdline(vb)
 
     from config import GlobalConfig as cfg
     return cfg
 
 def prepare_recycle_folder():
+    import glob
     if not os.path.exists('./RECYCLE'): os.mkdir('./RECYCLE')
+    for tmp in glob.glob('./RECYCLE/find_free_ports_*'):
+        os.remove(tmp)
 
 def prepare_args(vb=True):
     prepare_recycle_folder()
@@ -101,16 +103,15 @@ def prepare_args(vb=True):
     parser.add_argument('-s', '--skip', action='store_true', help='skip logdir check')
     args, unknown = parser.parse_known_args()
     load_via_json = (hasattr(args, 'cfg') and args.cfg is not None)
+    assert load_via_json
     skip_logdir_check = (hasattr(args, 'skip') and (args.skip is not None) and args.skip) or (not vb)
-    if load_via_json:
-        if len(unknown) > 0 and vb: 
-            print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
-        import commentjson as json
-        with open(args.cfg, encoding='utf8') as f:
-            json_data = json.load(f)
-        new_args = load_config_via_json(json_data, vb)
-    else:
-        new_args = load_config_via_cmdline(vb)
+
+    if len(unknown) > 0 and vb: 
+        print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
+    import commentjson as json
+    with open(args.cfg, encoding='utf8') as f:
+        json_data = json.load(f)
+    new_args = load_config_via_json(json_data, vb)
 
     from config import GlobalConfig as cfg
     note_name_overide = None
@@ -119,7 +120,7 @@ def prepare_args(vb=True):
         if note_name_overide is not None: 
             override_config_file('config.py->GlobalConfig', {'note':note_name_overide}, vb)
     if not os.path.exists(cfg.logdir): os.makedirs(cfg.logdir)
-    if load_via_json and (not cfg.recall_previous_session): 
+    if not cfg.recall_previous_session: 
         copyfile(args.cfg, '%s/experiment.json'%cfg.logdir)
         backup_files(cfg.backup_files, cfg.logdir)
         cfg.machine_info = register_machine_info(cfg.logdir)
@@ -196,22 +197,6 @@ def arg_summary(config_class, modify_dict = {}, altered_cv = []):
         else: 
             print红(key.center(25), '-->', str(getattr(config_class,key)))
 
-def load_config_via_cmdline(vb):
-    parser = argparse.ArgumentParser(description='HMP')
-    # environment 
-    from config import GlobalConfig as cfg
-    for setting_name in cfg.__dict__:
-        if '__' in setting_name: continue
-        if setting_name.endswith('_cv'): continue
-        try:
-            parser.add_argument('--' + setting_name)
-        except:
-            if vb: print红('[config] 参数重复！ ', setting_name)
-    args = vars(parser.parse_args())
-    args = {key: args[key] for key in args if args[key] is not None}
-    override_config_file('config.py->GlobalConfig', args, vb)
-    if vb: arg_summary(cfg, args)
-    return args
 
 def my_setattr(conf_class, key, new_value, vb):
     assert hasattr(conf_class, key), (conf_class, 'has no such config item: **%s**'%key)

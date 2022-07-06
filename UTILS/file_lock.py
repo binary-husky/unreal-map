@@ -47,8 +47,8 @@ class FileLock(object):
                 if (time.time() - start_time) >= self.timeout:
                     raise FileLockException("Timeout occured.")
                 self.try_cnt += 1
-                if (self.try_cnt>3000):
-                    print('Retry too many times to get the lock, if deadlock here, remove *RECYCLE* fold and try again.')
+                if (self.try_cnt>30):
+                    print('Retry too many times to get lock, if deadlock here, try remove the *RECYCLE* fold.')
                 time.sleep(self.delay)
 
         self.try_cnt = 0

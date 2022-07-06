@@ -86,7 +86,7 @@ class UhmapBreakingBad(UhmapEnv):
 
 
         x = 4000.0
-        y = 4500.0
+        y = 4000.0
         z = 1000
         agent_property = copy.deepcopy(AgentPropertyDefaults)
         agent_property.update({
@@ -107,8 +107,8 @@ class UhmapBreakingBad(UhmapEnv):
 
         for i in range(ScenarioConfig.n_team2agent):
             x = 0 + 500*(i+1)  *  (-1)**(i+1)
-            y = -3000
-            z = 500 
+            y = 0
+            z = 0 
             agent_property = copy.deepcopy(AgentPropertyDefaults)
             agent_property.update({
                     'ClassName': 'RLA_CAR_RED',
@@ -138,7 +138,7 @@ class UhmapBreakingBad(UhmapEnv):
         resp = json.loads(resp)
         # make sure the map (level in UE) is correct
         assert resp['dataGlobal']['levelName'] == 'UhmapBreakingBad'
-
+        assert len(resp['dataArr']) == len(AgentSettingArray)
         return self.parse_response_ob_info(resp)
 
 
@@ -220,21 +220,7 @@ class UhmapBreakingBad(UhmapEnv):
                 EndReason = event_parsed['EndReason']
                 WinTeam = int(event_parsed['WinTeam'])
                 if WinTeam<0: # end due to timeout
-                    agents_left_each_team = [0 for _ in range(self.n_teams)]
-                    for a in self.agents:
-                        if a.alive: agents_left_each_team[a.team] += 1
-                    WinTeam = np.argmax(agents_left_each_team)
-
-                    # <<1>> The alive agent number is EQUAL
-                    if agents_left_each_team[WinTeam] == agents_left_each_team[1-WinTeam]:
-                        hp_each_team = [0 for _ in range(self.n_teams)]
-                        for a in self.agents:
-                            if a.alive: hp_each_team[a.team] += a.hp
-                        WinTeam = np.argmax(hp_each_team)
-
-                        # <<2>> The alive agent HP sum is EQUAL
-                        if hp_each_team[WinTeam] == hp_each_team[1-WinTeam]:
-                            WinTeam = -1
+                    WinTeam = 1
 
                 if WinTeam >= 0:
                     WinningResult = {
@@ -249,7 +235,7 @@ class UhmapBreakingBad(UhmapEnv):
                         "end_reason": EndReason
                     }
                     reward = [-DRAW_REWARD for _ in range(self.n_teams)]
-        print(reward)
+        # print(reward)
         return reward, WinningResult
 
     def step_skip(self):

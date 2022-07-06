@@ -1,9 +1,8 @@
 import json, os, subprocess, time, stat, platform
 import numpy as np
 from UTILS.colorful import print紫, print靛, print亮红
-from UTILS.network import TcpClientP2PWithCompress, find_free_port
+from UTILS.network import TcpClientP2PWithCompress, find_free_port_no_repeat
 from UTILS.config_args import ChainVar
-from UTILS.file_lock import FileLock
 from ..common.base_env import BaseEnv
 from .actset_lookup import binary_friendly, dictionary_n_actions
 from .agent import Agent
@@ -139,8 +138,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         
         self.simulation_life = self.max_simulation_life
         # with a lock, we can initialize UE side one by one (not necessary though)
-        with FileLock("./RECYCLE/unreal_engine_init_lock"):
-            self.activate_simulation(self.id)
+        self.activate_simulation(self.id)
 
     def __del__(self):
         self.terminate_simulation()
@@ -151,8 +149,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         self.render = ScenarioConfig.render #  and (rank==0)
         which_port = ScenarioConfig.UhmapPort
         if ScenarioConfig.AutoPortOverride:
-            which_port = find_free_port()   # port for hmp data exchanging
-        ue_networking = find_free_port()    # port for remote visualizing
+            which_port = find_free_port_no_repeat()   # port for hmp data exchanging
+        ue_networking = find_free_port_no_repeat()    # port for remote visualizing
         print('Port %d will be used by hmp, port %d will be used by UE internally'%(which_port, ue_networking))
 
         ipport = (ScenarioConfig.TcpAddr, which_port)
@@ -193,7 +191,6 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-LockGameDuringCom=True',
                 ], stdout=subprocess.DEVNULL)
                 print紫('UHMAP (Headless) started ...')
-                time.sleep(1)
             elif self.render and ScenarioConfig.UhmapRenderExe != '':
                 self.sim_thread = subprocess.Popen([
                     ScenarioConfig.UhmapRenderExe,
@@ -212,7 +209,6 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     "-WINDOWED"
                 ], stdout=subprocess.DEVNULL)
                 print紫('UHMAP (Render) started ...')
-                time.sleep(1)
             else:
                 print('Cannot start Headless Server Or GUI Server!')
                 assert False, 'Cannot start Headless Server Or GUI Server!'
@@ -227,11 +223,11 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 print('handshake complete %d'%rank)
                 break
             except: 
-                if i>3:
+                if i>50:
                     print('Thread %d: Trying to connect to uhmap simulation. Going to take a while when openning for the first time. Retry %d ...'%(rank, i))
                 else:
-                    print('Thread %d: Trying to connect to uhmap simulation. Retry %d ...'%(rank, i))
-                time.sleep(1)
+                    pass
+                time.sleep(0.1)
 
         self.t = 0
         print('thread %d initialize complete'%rank)
@@ -263,8 +259,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         if self.simulation_life < 0:
             self.terminate_simulation()
             self.simulation_life = self.max_simulation_life
-            with FileLock("./UTILS/file_lock.py"):
-                self.activate_simulation(self.id)
+            self.activate_simulation(self.id)
 
 
 
