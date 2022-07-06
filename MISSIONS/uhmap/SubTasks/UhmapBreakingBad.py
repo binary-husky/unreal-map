@@ -85,19 +85,19 @@ class UhmapBreakingBad(UhmapEnv):
             AgentSettingArray.append(agent_property); agent_uid_cnt += 1
 
 
-        x = 3254.0
-        y = 3891.0
-        z = 2000
+        x = 4000.0
+        y = 4500.0
+        z = 1000
         agent_property = copy.deepcopy(AgentPropertyDefaults)
         agent_property.update({
-                'ClassName': 'RLA_UAV',         # FString ClassName = "";
+                'ClassName': 'RLA_UAV_VIP',         # FString ClassName = "";
                 'AgentTeam': 0,                 # int AgentTeam = 0;
                 'IndexInTeam': agent_uid_cnt,   # under most situations IndexInTeam=agent_uid_cnt for team 0
                 'UID': agent_uid_cnt,           # int UID = 0;
-                'MaxMoveSpeed': 600,
-                "DodgeProb": 0.1,
+                'MaxMoveSpeed': 1500,
+                "DodgeProb": 0.5,
                 "ExplodeDmg": 10,
-                'AgentHp': 100,
+                'AgentHp': 1,
                 "WeaponCD": 10000000000,
                 'Color':'(R=0,G=1,B=0,A=1)',
                 'InitLocation': { 'x': x,  'y': y, 'z': z, },
@@ -249,7 +249,7 @@ class UhmapBreakingBad(UhmapEnv):
                         "end_reason": EndReason
                     }
                     reward = [-DRAW_REWARD for _ in range(self.n_teams)]
-
+        print(reward)
         return reward, WinningResult
 
     def step_skip(self):

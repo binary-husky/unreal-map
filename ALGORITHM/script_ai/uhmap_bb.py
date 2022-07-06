@@ -71,20 +71,23 @@ class DummyAlgorithmT2(DummyAlgorithmBase):
             #     self.attack_order[thread] = opp_uid_range
 
             AirCarrier = State_Recall['Latest-Team-Info'][thread]['dataArr'][AirCarrierUID]
-            assert AirCarrier['type'] == 'RLA_UAV'
-            landmarks = State_Recall['Latest-Team-Info'][thread]['dataGlobal']['keyObjArr']
+            if AirCarrier['agentAlive']:
+                assert 'RLA_UAV' in AirCarrier['type'] 
+                landmarks = State_Recall['Latest-Team-Info'][thread]['dataGlobal']['keyObjArr']
 
-            squredis = lambda a,b: sqrt(
-                (a['agentLocation']['x']-b['location']['x'])**2 + 
-                (a['agentLocation']['y']-b['location']['y'])**2 + 
-                (a['agentLocation']['z']-b['location']['z'])**2 )
-            AirCarrirSquareDisToEachLandmark = [squredis(AirCarrier, landmark) for landmark in landmarks]
-            nearLandmark = np.argmin(AirCarrirSquareDisToEachLandmark)
+                squredis = lambda a,b: sqrt(
+                    (a['agentLocation']['x']-b['location']['x'])**2 + 
+                    (a['agentLocation']['y']-b['location']['y'])**2 + 
+                    (a['agentLocation']['z']-b['location']['z'])**2 )
+                AirCarrirSquareDisToEachLandmark = [squredis(AirCarrier, landmark) for landmark in landmarks]
+                nearLandmark = np.argmin(AirCarrirSquareDisToEachLandmark)
 
-            px = landmarks[nearLandmark]['location']['x']
-            py = landmarks[nearLandmark]['location']['y']
-            pz = landmarks[nearLandmark]['location']['z']
-            actions[thread, :] = encode_action_as_digits('PatrolMoving', 'N/A', x=px, y=py, z=pz, UID=None, T=None, T_index=None)
+                px = landmarks[nearLandmark]['location']['x']
+                py = landmarks[nearLandmark]['location']['y']
+                pz = landmarks[nearLandmark]['location']['z']
+                actions[thread, :] = encode_action_as_digits('PatrolMoving', 'N/A', x=px, y=py, z=pz, UID=None, T=None, T_index=None)
+            else:
+                actions[thread, :] = encode_action_as_digits('N/A', 'N/A', x=None, y=None, z=None, UID=None, T=None, T_index=None)
 
 
 
@@ -111,8 +114,14 @@ class DummyAlgorithmT1(DummyAlgorithmBase):
         actions = np.zeros(shape=(self.n_thread, self.n_agent, 8 ))
 
         for thread in range(self.n_thread):
-
-            actions[thread, :] = encode_action_as_digits('N/A', 'N/A', x=None, y=None, z=None, UID=None, T=None, T_index=None)
+            landmarks = State_Recall['Latest-Team-Info'][thread]['dataGlobal']['keyObjArr']
+            px = landmarks[0]['location']['x']
+            py = landmarks[0]['location']['y']
+            for a in range(self.n_agent):
+                if not State_Recall['Latest-Team-Info'][thread]['dataArr'][a]['agentAlive']: continue
+                pz = State_Recall['Latest-Team-Info'][thread]['dataArr'][a]['agentLocation']['z']
+                
+                actions[thread, a] = encode_action_as_digits('SpecificMoving', 'N/A', x=px, y=py, z=pz, UID=None, T=None, T_index=None)
 
 
 
