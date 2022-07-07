@@ -1,3 +1,4 @@
+import numpy as np
 class BaseEnv(object):
     def __init__(self, rank) -> None:
         self.observation_space = None
@@ -26,3 +27,32 @@ class BaseEnv(object):
         return ob, info
 
 
+class RawObsArray(object):
+    raw_obs_size = {}   # shared
+    def __init__(self, key='default'):
+        self.key = key
+        if self.key not in self.raw_obs_size:
+            self.guards_group = []
+            self.nosize = True
+        else:
+            self.guards_group = np.zeros(shape=(self.raw_obs_size[self.key]), dtype=np.float32)
+            self.nosize = False
+            self.p = 0
+
+    def append(self, buf):
+        if self.nosize:
+            self.guards_group.append(buf)
+        else:
+            L = len(buf)
+            self.guards_group[self.p:self.p+L] = buf[:]
+            self.p += L
+
+    def get(self):
+        if self.nosize:
+            self.guards_group = np.concatenate(self.guards_group)
+            self.raw_obs_size[self.key] = len(self.guards_group)
+        return self.guards_group
+        
+    def get_raw_obs_size(self):
+        assert self.key in self.raw_obs_size > 0
+        return self.raw_obs_size[self.key]

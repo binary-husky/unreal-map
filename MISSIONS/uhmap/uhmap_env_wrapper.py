@@ -64,7 +64,7 @@ class ScenarioConfig(object):
 
     UhmapServerExe = 'F:/UHMP/Build/WindowsServer/UHMPServer.exe'
     UhmapRenderExe = ''
-    TimeDilation = 1    # engine calcualtion speed control
+    TimeDilation = 1.0    # engine calcualtion speed control
     FrameRate = 25.6 # must satisfy: (TimeDilation=1*n, FrameRate=25.6*n)
     FrameRate_cv = ChainVar(lambda TimeDilation: (TimeDilation/1 * 25.6), chained_with=['TimeDilation'])
     UhmapStartCmd = []

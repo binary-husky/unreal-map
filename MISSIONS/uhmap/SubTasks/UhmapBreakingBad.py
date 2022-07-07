@@ -3,43 +3,11 @@ import numpy as np
 from UTILS.colorful import print紫, print靛
 from UTILS.config_args import ChainVar
 from UTILS.tensor_ops import my_view, repeat_at, distance_matrix, distance_mat_between
-from ...common.base_env import BaseEnv
+from ...common.base_env import BaseEnv, RawObsArray
 from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
 from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
-
-DEBUG = True
-
-class RawObsArray(object):
-    raw_obs_size = {}   # shared
-    def __init__(self, key='default'):
-        self.key = key
-        if self.key not in self.raw_obs_size:
-            self.guards_group = []
-            self.nosize = True
-        else:
-            self.guards_group = np.zeros(shape=(self.raw_obs_size[self.key]), dtype=np.float32)
-            self.nosize = False
-            self.p = 0
-
-    def append(self, buf):
-        if self.nosize:
-            self.guards_group.append(buf)
-        else:
-            L = len(buf)
-            self.guards_group[self.p:self.p+L] = buf[:]
-            self.p += L
-
-    def get(self):
-        if self.nosize:
-            self.guards_group = np.concatenate(self.guards_group)
-            self.raw_obs_size[self.key] = len(self.guards_group)
-        return self.guards_group
-        
-    def get_raw_obs_size(self):
-        assert self.key in self.raw_obs_size > 0
-        return self.raw_obs_size[self.key]
 
 class UhmapBreakingBad(UhmapEnv):
     def __init__(self, rank) -> None:

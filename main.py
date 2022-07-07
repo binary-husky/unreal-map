@@ -19,7 +19,7 @@
         matlab logging/plotting bridge            -->   mcom.py & mcom_rec.py
         experiment batch executor                 -->   mprofile.py
 """
-import os, sys, atexit, platform
+import os, atexit, platform
 
 def SET_NUM_THREADS(internal_threads):
     os.environ['NUM_THREADS'] = str(internal_threads)
@@ -53,8 +53,7 @@ def pytorch_gpu_init(cfg):
 
 
 def register_daemon(cfg):
-    from threading import Timer
-    from UTILS.hmp_daemon import start_periodic_daemon, hmp_clean_up
+    from UTILS.hmp_daemon import start_periodic_daemon
     start_periodic_daemon(cfg)
 
 

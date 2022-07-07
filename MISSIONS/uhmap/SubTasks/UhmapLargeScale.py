@@ -1,45 +1,12 @@
 import json, os, subprocess, time, copy, re
 import numpy as np
 from UTILS.colorful import print紫, print靛
-from UTILS.config_args import ChainVar
 from UTILS.tensor_ops import my_view, repeat_at
-from ...common.base_env import BaseEnv
+from ...common.base_env import RawObsArray
 from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
 from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
-
-DEBUG = True
-
-class RawObsArray(object):
-    raw_obs_size = {}   # shared
-    def __init__(self, key='default'):
-        self.key = key
-        if self.key not in self.raw_obs_size:
-            self.guards_group = []
-            self.nosize = True
-        else:
-            self.guards_group = np.zeros(shape=(self.raw_obs_size[self.key]), dtype=np.float32)
-            self.nosize = False
-            self.p = 0
-
-    def append(self, buf):
-        if self.nosize:
-            self.guards_group.append(buf)
-        else:
-            L = len(buf)
-            self.guards_group[self.p:self.p+L] = buf[:]
-            self.p += L
-
-    def get(self):
-        if self.nosize:
-            self.guards_group = np.concatenate(self.guards_group)
-            self.raw_obs_size[self.key] = len(self.guards_group)
-        return self.guards_group
-        
-    def get_raw_obs_size(self):
-        assert self.key in self.raw_obs_size > 0
-        return self.raw_obs_size[self.key]
 
 class UhmapLargeScale(UhmapEnv):
     def __init__(self, rank) -> None:
@@ -48,19 +15,8 @@ class UhmapLargeScale(UhmapEnv):
 
     def reset(self):
         super().reset()
-        
         self.t = 0
 
-        AgentPropertyDefaults.update({
-            'AcceptRLControl': True, 
-            'MaxMoveSpeed': 600,
-            'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },     # also influence object mass, please change it with causion!
-            "DodgeProb": 0.0,           # probability of escaping dmg 闪避概率, test ok
-            "ExplodeDmg": 20,           # ms explode dmg. test ok
-        })
-
-        # 500 is slightly above the ground,
-        # but agent will be spawn to ground automatically
         ####################### spawn all ###########################
         AgentSettingArray = []
         agent_uid_cnt = 0
@@ -72,19 +28,40 @@ class UhmapLargeScale(UhmapEnv):
                 # x = 0 + 300*(i - n_team_agent//2) //N_COL
                 x = 0 + 800*(i - n_team_agent//2) //N_COL
                 y = (400* (i%N_COL) + 2000) * (-1)**(which_team+1)
-                z = 500
+                z = 500 # 500 is slightly above the ground
                 yaw = 90 if which_team==0 else -90
                 assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
                 agent_property = copy.deepcopy(AgentPropertyDefaults)
                 agent_property.update({
+                        # useless
+                        'AcceptRLControl': True,
+                        # max drive/fly speed
+                        'MaxMoveSpeed': 600,
+                        # also influence object mass, please change it with causion!
+                        'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
+                        # probability of escaping dmg 闪避
+                        "DodgeProb": 0.0,
+                        # ms explode dmg
+                        "ExplodeDmg": 20,           
+                        # team belonging
                         'AgentTeam': which_team,
+                        # choose ue class to init
                         'ClassName': 'RLA_CAR_Laser', # if i%2!=1 else 'RLA_CAR', 
+                        # open fire range
                         "FireRange": 700.0, # if i%2!=1 else 1250,
+                        # debugging
+                        'RSVD1': 'DEBUG:700|',
+                        # agent hp
                         'AgentHp':np.random.randint(low=90,high=110),
+                        # the rank of agent inside the team
                         'IndexInTeam': i, 
+                        # the unique identity of this agent in simulation system
                         'UID': agent_uid_cnt, 
+                        # show color
                         'Color':'(R=0,G=1,B=0,A=1)' if which_team==0 else '(R=0,G=0,B=1,A=1)',
+                        # initial location
                         'InitLocation': { 'x': x,  'y': y, 'z': z, },
+                        # initial facing direction et.al.
                         'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': yaw, },
                 }),
                 AgentSettingArray.append(agent_property); agent_uid_cnt += 1

@@ -158,6 +158,7 @@ def decode_action_as_string(digits):
         res = 'ActionSet2::N/A;N/A'
     else:
         print('指令错误无法解析')
+        assert False
     return res
 
 
