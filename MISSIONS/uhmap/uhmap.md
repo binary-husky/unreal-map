@@ -95,7 +95,6 @@ function:```reset```
 |  Field   | Value  | Explaination  | zh Explaination  |
 |  ----    | ----   | ----     |  ----  |
 |  ClassName     | ```str```   | Select Agent Class in unreal engine side     |    |
-|  AcceptRLControl     | ```bool```   | not used     |    |
 |  AgentTeam     | ```int```   | team belonging of an agent      | 智能体的队伍归属   |
 |  IndexInTeam     | ```int```   | team index of an agent      | 智能体在队伍中的编号   |
 |  UID     | ```int```   | index of an agent in the environment     | 智能体在虚幻仿真中的唯一编号   |

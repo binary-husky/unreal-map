@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Containers/UnrealString.h"
+#include "XtensorAPIBPLibrary.h"
 #include "DataStruct.generated.h"
 
 USTRUCT(BlueprintType)
@@ -22,7 +23,7 @@ struct FAgentProperty
 		int UID = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		bool AcceptRLControl = 0;
+		bool DebugAgent = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		float MaxMoveSpeed = 0;
@@ -32,6 +33,9 @@ struct FAgentProperty
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FVector InitRotation;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FRotator InitRotator;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FVector AgentScale;
@@ -68,6 +72,9 @@ struct FAgentProperty
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		float GuardRange = 1400.0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		float PerceptionRange = 1400.0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FString RSVD1 = "";
@@ -115,8 +122,6 @@ struct FParsedDataInput
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FString RSVD1 = "";
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		FString RSVD2 = "";
 };
 
 
@@ -124,9 +129,6 @@ struct FParsedDataInput
 USTRUCT(BlueprintType)
 struct FAgentDataOutput
 {
-	// please change lines in 
-	// bool AHMPLevelScriptActor::ParsedTcpInData()
-	// together with this struct
 
 	GENERATED_BODY()
 
@@ -146,16 +148,13 @@ struct FAgentDataOutput
 		int UID = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		bool AcceptRLControl = 0;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		float MaxMoveSpeed = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FVector AgentLocation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		FVector AgentRotation;
+		FRotator AgentRotation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FVector AgentScale;
@@ -168,9 +167,6 @@ struct FAgentDataOutput
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		float WeaponCD = 0;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		float MaxEpisodeStep = 999;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		int PreviousAction;
@@ -193,10 +189,52 @@ struct FAgentDataOutput
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FString RSVD1 = "";
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		FString RSVD2 = "";
+
 
 };
+
+
+
+USTRUCT(BlueprintType)
+struct FKeyObjDataOutput
+{
+
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		bool Valid = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		int UID;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString ClassName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FVector Location;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FRotator Rotation;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FVector Scale;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FVector Velocity;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		float Hp;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString RSVD1 = "";
+
+
+};
+
+
+
+
+
 
 USTRUCT(BlueprintType)
 struct FGlobalDataOutput
@@ -235,21 +273,30 @@ struct FGlobalDataOutput
 		bool EpisodeDone = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString EpisodeEndReason = "unknown";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		int TeamWin = -1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		TArray<FKeyObjDataOutput> KeyObjArr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FString LevelName = "";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		FXTensor DistanceMat;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		FString RSVD1 = "";
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		FString RSVD2 = "";
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-		FString RSVDJson = "";
+
 };
 
 USTRUCT(BlueprintType)
 struct FAgentDataOutputArr
 {
-	// please change lines in 
-	// bool AHMPLevelScriptActor::ParsedTcpInData()
-	// together with this struct
 
 	GENERATED_BODY()
 

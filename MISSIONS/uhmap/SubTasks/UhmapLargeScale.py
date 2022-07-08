@@ -22,9 +22,10 @@ class UhmapLargeScale(UhmapEnv):
         agent_uid_cnt = 0
         for which_team in range(2):
             n_team_agent = ScenarioConfig.n_team1agent if which_team==0 else ScenarioConfig.n_team2agent
-            for i in range(n_team_agent):
+            for i in range(n_team_agent - 1):
                 # N_COL = 1
                 N_COL = 2
+                agent_class = 'RLA_CAR_Laser'   if i%2!=1 else 'RLA_CAR'
                 # x = 0 + 300*(i - n_team_agent//2) //N_COL
                 x = 0 + 800*(i - n_team_agent//2) //N_COL
                 y = (400* (i%N_COL) + 2000) * (-1)**(which_team+1)
@@ -33,8 +34,7 @@ class UhmapLargeScale(UhmapEnv):
                 assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
                 agent_property = copy.deepcopy(AgentPropertyDefaults)
                 agent_property.update({
-                        # useless
-                        'AcceptRLControl': True,
+                        'DebugAgent': False,
                         # max drive/fly speed
                         'MaxMoveSpeed': 600,
                         # also influence object mass, please change it with causion!
@@ -46,11 +46,15 @@ class UhmapLargeScale(UhmapEnv):
                         # team belonging
                         'AgentTeam': which_team,
                         # choose ue class to init
-                        'ClassName': 'RLA_CAR_Laser', # if i%2!=1 else 'RLA_CAR', 
+                        'ClassName': agent_class,
+                        # Weapon CD
+                        'WeaponCD': 1,
                         # open fire range
-                        "FireRange": 700.0, # if i%2!=1 else 1250,
+                        "PerceptionRange":  2000       if agent_class == 'RLA_CAR_Laser' else 2500,
+                        "GuardRange":       1400       if agent_class == 'RLA_CAR_Laser' else 1700,
+                        "FireRange":        700        if agent_class == 'RLA_CAR_Laser' else 1200,
                         # debugging
-                        'RSVD1': 'DEBUG:700|',
+                        'RSVD1': '-ring1=2000 -ring2=1400 -ring3=700' if agent_class == 'RLA_CAR_Laser' else '-ring1=2500 -ring2=1700 -ring3=1200',
                         # agent hp
                         'AgentHp':np.random.randint(low=90,high=110),
                         # the rank of agent inside the team
@@ -65,6 +69,55 @@ class UhmapLargeScale(UhmapEnv):
                         'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': yaw, },
                 }),
                 AgentSettingArray.append(agent_property); agent_uid_cnt += 1
+
+            for i in range(n_team_agent - 1, n_team_agent):
+                # N_COL = 1
+                N_COL = 2
+                agent_class = 'RLA_UAV_Support'
+                # x = 0 + 300*(i - n_team_agent//2) //N_COL
+                x = 0 + 800*(i - n_team_agent//2) //N_COL
+                y = (400* (i%N_COL) + 2000) * (-1)**(which_team+1)
+                z = 1000 # 500 is slightly above the ground
+                yaw = 90 if which_team==0 else -90
+                assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
+                agent_property = copy.deepcopy(AgentPropertyDefaults)
+                agent_property.update({
+                        'DebugAgent': True,
+                        # max drive/fly speed
+                        'MaxMoveSpeed': 900,
+                        # also influence object mass, please change it with causion!
+                        'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
+                        # probability of escaping dmg 闪避
+                        "DodgeProb": 0.0,
+                        # ms explode dmg
+                        "ExplodeDmg": 10,           
+                        # team belonging
+                        'AgentTeam': which_team,
+                        # choose ue class to init
+                        'ClassName': agent_class,
+                        # Weapon CD
+                        'WeaponCD': 3,
+                        # open fire range
+                        "PerceptionRange": 2500,
+                        "GuardRange":      1800,
+                        "FireRange":       1700,
+                        # debugging
+                        'RSVD1': '-ring1=2000 -ring2=1400 -ring3=700' if agent_class == 'RLA_CAR_Laser' else '-ring1=2500 -ring2=1800 -ring3=1700',
+                        # agent hp
+                        'AgentHp': 50,
+                        # the rank of agent inside the team
+                        'IndexInTeam': i, 
+                        # the unique identity of this agent in simulation system
+                        'UID': agent_uid_cnt, 
+                        # show color
+                        'Color':'(R=0,G=1,B=0,A=1)' if which_team==0 else '(R=0,G=0,B=1,A=1)',
+                        # initial location
+                        'InitLocation': { 'x': x,  'y': y, 'z': z, },
+                        # initial facing direction et.al.
+                        'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': yaw, },
+                }),
+                AgentSettingArray.append(agent_property); agent_uid_cnt += 1
+
 
         # refer to struct.cpp, FParsedDataInput
         resp = self.client.send_and_wait_reply(json.dumps({

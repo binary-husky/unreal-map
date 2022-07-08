@@ -20,7 +20,6 @@ class UhmapBreakingBad(UhmapEnv):
         self.t = 0
 
         AgentPropertyDefaults.update({
-            'AcceptRLControl': True, 
             'MaxMoveSpeed': 600,
             'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },     # also influence object mass, please change it with causion!
             "DodgeProb": 0.0,           # probability of escaping dmg 闪避概率, test ok

@@ -52,7 +52,6 @@ agent_json2local_attrs = [
             ('agentTeam',               'team'),
             ('indexInTeam',             'index'),
             ('uId',                     'uid_remote'),
-            ('acceptRLControl',         'rl_agent'),
             ('maxMoveSpeed',            'max_speed'),
             ('agentLocation',           'location'),
             ('agentRotation',           'rotation'),
@@ -110,11 +109,11 @@ def decode_action_as_string(digits):
         4 :"N/A"                 , 
     }
     sub_cmd_decoder = {
-        0 :"DynamicGuard"             , 
-        1 :"StaticAlert"              , 
-        2 :"AggressivePersue"         , 
-        3 :"SpecificAttacking"        , 
-        4 :"N/A"                      , 
+        0 :"DynamicGuard"             ,
+        1 :"StaticAlert"              ,
+        2 :"AggressivePersue"         ,
+        3 :"SpecificAttacking"        ,
+        4 :"N/A"                      ,
         5 :'Dir+X'                    ,
         6 :'Dir+X+Y'                  ,
         7 :'Dir+Y'                    ,
@@ -168,7 +167,7 @@ def decode_action_as_string(digits):
 
 AgentPropertyDefaults = {
     'ClassName': 'RLA_CAR',     # FString ClassName = "";
-    'AcceptRLControl': True,    # bool AcceptRLControl = 0;
+    'DebugAgent': False,     
     'AgentTeam': 0,             # int AgentTeam = 0;
     'IndexInTeam': 0,           # int IndexInTeam = 0;
     'UID': 0,                   # int UID = 0;
@@ -185,6 +184,7 @@ AgentPropertyDefaults = {
     "ExplodeDmg": 25,           # ms explode dmg. test ok
     "FireRange": 1000.0,        # <= 1500
     "GuardRange": 1400.0,       # <= 1500
+    "PerceptionRange": 1500.0,       # <= 1500
     'Color':'(R=0,G=1,B=0,A=1)',    # color
     "FireRange": 1000,
     'RSVD1':'',
