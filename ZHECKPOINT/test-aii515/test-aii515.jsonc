@@ -2,7 +2,7 @@
     "config.py->GlobalConfig": {
         "note": "test-aii515",
         "env_name": "sr_tasks->hunter_invader3d_v2",
-        "env_path": "MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d_v2",
+        "env_path": "MISSION.sr_tasks.multiagent.scenarios.hunter_invader3d_v2",
         "draw_mode": "Img",
         "num_threads": "1",
         "report_reward_interval": "5120",                 // reporting interval
@@ -13,14 +13,14 @@
         "max_n_episode": 2e6,
         "test_only":true,
         "backup_files": [                               // backup files, pack them up
-           "ALGORITHM/conc", "MISSIONS/sr_tasks/multiagent"
+           "ALGORITHM/conc", "MISSION/sr_tasks/multiagent"
         ],
         "device": "cuda:0",                             // choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU) 
         "gpu_party": "off"                              // default is 'off', 
     },
 
 
-    "MISSIONS.sr_tasks.multiagent.scenarios.hunter_invader3d_v2.py->ScenarioConfig": {
+    "MISSION.sr_tasks.multiagent.scenarios.hunter_invader3d_v2.py->ScenarioConfig": {
         "hunter_num": 15,
         "invader_num": 5,
         "num_landmarks": 6,

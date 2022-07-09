@@ -1,14 +1,14 @@
 import os, time, torch, traceback
 import numpy as np
-from UTILS.colorful import *
+from UTIL.colorful import *
 from config import GlobalConfig
-from UTILS.tensor_ops import __hash__, repeat_at, __hashn__
+from UTIL.tensor_ops import __hash__, repeat_at, __hashn__
 
 class AlgorithmConfig:  
     '''
         AlgorithmConfig: This config class will be 'injected' with new settings from json.
         (E.g., override configs with ```python main.py --cfg example.jsonc```)
-        (please see UTILS.config_args to find out how this advanced trick works out.)
+        (please see UTIL.config_args to find out how this advanced trick works out.)
     '''
     # configuration, open to jsonc modification
     gamma = 0.99

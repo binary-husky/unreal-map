@@ -8,7 +8,7 @@
     If you are interested in something, you may continue to read:
         Handling parallel environment             -->   task_runner.py & shm_env.py
         Link between teams and diverse algorithms -->   multi_team.py
-        Adding new env                            -->   MISSIONS.env_router.py
+        Adding new env                            -->   MISSION.env_router.py
         Adding algorithm                          -->   ALGORITHM.example_foundation.py
         Configuring by writing py files           -->   config.py
         Configuring by json                       -->   xx.json
@@ -31,7 +31,7 @@ SET_NUM_THREADS(1)
 # do NOT edit this func
 def pytorch_gpu_init(cfg):
     import torch
-    from UTILS.auto_gpu import sel_gpu
+    from UTIL.auto_gpu import sel_gpu
     torch.set_num_threads(int(os.environ['NUM_THREADS']))
     seed = cfg.seed; device = cfg.device
     torch.manual_seed(seed)
@@ -53,16 +53,16 @@ def pytorch_gpu_init(cfg):
 
 
 def register_daemon(cfg):
-    from UTILS.hmp_daemon import start_periodic_daemon
+    from UTIL.hmp_daemon import start_periodic_daemon
     start_periodic_daemon(cfg)
 
 
 if __name__ == '__main__':
     import numpy
-    import pyximport; pyximport.install(build_dir='./RECYCLE/build/', inplace=True, language_level=3, setup_args={'include_dirs': numpy.get_include()})
-    from UTILS.colorful import *
-    from UTILS.config_args import prepare_args
-    from UTILS.shm_pool import SmartPool
+    import pyximport; pyximport.install(build_dir='./TEMP/build/', inplace=True, language_level=3, setup_args={'include_dirs': numpy.get_include()})
+    from UTIL.colorful import *
+    from UTIL.config_args import prepare_args
+    from UTIL.shm_pool import SmartPool
     cfg = prepare_args()
     register_daemon(cfg)
 
@@ -90,5 +90,5 @@ if __name__ == '__main__':
 
 elif platform.system()!="Linux":
     # Linux uses fork for multi-processing, but Windows does not, reload config for Windows
-    from UTILS.config_args import prepare_args
+    from UTIL.config_args import prepare_args
     cfg = prepare_args(vb=False)

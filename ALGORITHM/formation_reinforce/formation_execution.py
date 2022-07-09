@@ -1,5 +1,5 @@
 import numpy as np
-from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, repeat_at, np_softmax, gather_righthand
+from UTIL.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, repeat_at, np_softmax, gather_righthand
 from numba import njit, jit
 class main_formation(object):
     def __init__(self):
@@ -122,7 +122,7 @@ class main_formation(object):
         import numpy as np
         import time
         from config import GlobalConfig as cfg
-        from UTILS.tensor_ops import _2tensor, _2cpu2numpy
+        from UTIL.tensor_ops import _2tensor, _2cpu2numpy
 
         if cfg.matlab_logger is None:
             from VISUALIZE.mcom import mcom

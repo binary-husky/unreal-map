@@ -1,12 +1,12 @@
 import os, torch
 import numpy as np
 from numba import njit, jit
-from UTILS.colorful import *
+from UTIL.colorful import *
 from .gcortex import GNet
 from .ppo import PPO
 from .trajectory import BatchTrajManager
 from .my_utils import copy_clone, my_view, add_onehot_id_at_last_dim, add_obs_container_subject
-from UTILS.tensor_ops import __hash__
+from UTIL.tensor_ops import __hash__
 import pickle
 DEBUG = True
 

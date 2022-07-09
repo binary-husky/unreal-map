@@ -1,8 +1,8 @@
 import os, torch
 import numpy as np
 from numba import njit, jit
-from UTILS.colorful import *
-from UTILS.tensor_ops import copy_clone, my_view, add_onehot_id_at_last_dim, add_obs_container_subject
+from UTIL.colorful import *
+from UTIL.tensor_ops import copy_clone, my_view, add_onehot_id_at_last_dim, add_obs_container_subject
 import pickle
 from config import GlobalConfig
 from .formation_execution import main_formation

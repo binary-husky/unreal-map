@@ -1,5 +1,5 @@
 import numpy as np
-from UTILS.tensor_ops import my_view, copy_clone
+from UTIL.tensor_ops import my_view, copy_clone
 from numba import jit
 
 def to_cpu_numpy(x):

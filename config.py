@@ -1,7 +1,7 @@
 import time
 import numpy as np
-from UTILS.colorful import *
-from UTILS.config_args import ChainVar
+from UTIL.colorful import *
+from UTIL.config_args import ChainVar
 
 
 
@@ -10,7 +10,7 @@ from UTILS.config_args import ChainVar
     GlobalConfig: This config class will be 'injected' with new settings from JSONC.
     (E.g., override configs with ```python main.py --cfg example.jsonc```)
     (As the name indicated, ChainVars will change WITH vars it 'chained_with' during config injection)
-    (please see UTILS.config_args to find out how this advanced trick works out.)
+    (please see UTIL.config_args to find out how this advanced trick works out.)
 
     * Explaining a very important setting option: 
         - align_episode (True/False):
@@ -26,7 +26,7 @@ from UTILS.config_args import ChainVar
         
         - env_name:
             Which mission/environment/task to use, 
-            See ./MISSIONS/env_router.py for the dictionary of available envs.
+            See ./MISSION/env_router.py for the dictionary of available envs.
 
         - env_path:
             The path of selected mission. In fact, hmp do not need this setting at all,
@@ -39,7 +39,7 @@ from UTILS.config_args import ChainVar
             - mission selects algorithm(s).
         In fact, if you have two teams in env, 
         you can choose two different algorithms to fight each other in the same env!
-            - Please goto ./MISSIONS/env_router.py to find out where the ScenarioConfig of your env is written,
+            - Please goto ./MISSION/env_router.py to find out where the ScenarioConfig of your env is written,
             - Please set ```TEAM_NAMES``` to include the path of your favored algorithm(s)
 '''
 
@@ -47,8 +47,8 @@ from UTILS.config_args import ChainVar
 class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     align_episode = True                                # ! please try to understand this with TOP priority
 
-    env_name = 'sr_tasks->cargo'                        # which environment, see ./MISSIONS/env_router.py
-    env_path = 'MISSIONS.sr_tasks.multiagent.cargo'     # path of environment
+    env_name = 'sr_tasks->cargo'                        # which environment, see ./MISSION/env_router.py
+    env_path = 'MISSION.sr_tasks.multiagent.cargo'     # path of environment
     draw_mode = 'OFF'                                   # 'Web','Native','Img','Threejs' 
     activate_logger = True                              # activate data plotting (Tensorboard is not used because I do not like it)
     data_logger = 'auto load, do not change this var!'  # activate data plotting (Tensorboard is not used because I do not like it)
@@ -94,7 +94,7 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     test_epoch = 32 if num_threads <= 32 else num_threads    # test epoch
     test_epoch_cv = ChainVar(lambda num_threads: 32 if num_threads <= 32 else num_threads, chained_with=['num_threads'])
 
-    scenario_config = 'This scenario_config var will be automatically linked to task configuration later in ./MISSIONS/env_router.py'
+    scenario_config = 'This scenario_config var will be automatically linked to task configuration later in ./MISSION/env_router.py'
 
 
     backup_files = []                                   # a list of files that needs to be backed up at each run

@@ -1,8 +1,8 @@
 import numpy as np
 from config import GlobalConfig
-from UTILS.colorful import *
-from UTILS.tensor_ops import my_view, __hash__, repeat_at
-from MISSIONS.uhmap.actset_lookup import encode_action_as_digits
+from UTIL.colorful import *
+from UTIL.tensor_ops import my_view, __hash__, repeat_at
+from MISSION.uhmap.actset_lookup import encode_action_as_digits
 from .cython_func import roll_hisory
 DEBUG = True
 

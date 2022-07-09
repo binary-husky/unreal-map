@@ -1,10 +1,10 @@
 import os, torch, json, time
 import numpy as np
 from numba import njit, jit
-from UTILS.colorful import *
+from UTIL.colorful import *
 from .net import Net
 from config import GlobalConfig
-from UTILS.tensor_ops import __hash__, pad_vec_array, copy_clone, my_view
+from UTIL.tensor_ops import __hash__, pad_vec_array, copy_clone, my_view
 DEBUG = True
 
 class AlgorithmConfig:

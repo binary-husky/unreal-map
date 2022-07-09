@@ -8,8 +8,8 @@ from torch.nn.modules.linear import Linear
 from ..commom.attention import MultiHeadAttention
 from ..commom.norm import DynamicNorm
 from ..commom.mlp import LinearFinal, SimpleMLP, ResLinear
-from UTILS.colorful import print亮紫
-from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, repeat_at
+from UTIL.colorful import print亮紫
+from UTIL.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, repeat_at
 
 
 def weights_init(m):

@@ -2,7 +2,7 @@ import math
 import torch,time,random
 import torch.nn as nn
 import torch.nn.functional as F
-from UTILS.tensor_ops import my_view, __hash__, __hashn__, pad_at_dim, gather_righthand
+from UTIL.tensor_ops import my_view, __hash__, __hashn__, pad_at_dim, gather_righthand
 
 class Concentration(nn.Module):
     def __init__(self, n_focus_on, h_dim, skip_connect=False, skip_connect_dim=0, adopt_selfattn=False):

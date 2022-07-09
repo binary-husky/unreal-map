@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
-from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor
+from UTIL.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor
 
 
 

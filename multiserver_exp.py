@@ -42,7 +42,7 @@ conf_override = {
             "basic-ma-30-Run4",
             "basic-ma-40-Run4",
         ],
-    "MISSIONS.math_game.env.py->ScenarioConfig-->n_team1agent":
+    "MISSION.math_game.env.py->ScenarioConfig-->n_team1agent":
         [
             10,
             15,
@@ -87,7 +87,7 @@ base_conf = {
         # "train_time_testing": "False",                     # do not manage train time testing, pymarl env manage the testing itself
         # "heartbeat_on":"True",                             # just some fancy visual effect
         "env_name":"mathgame",                                   # starcraft 2
-        "env_path":"MISSIONS.math_game",    # starcraft 2
+        "env_path":"MISSION.math_game",    # starcraft 2
         # "interested_agent_num":100,                         # only for reward logging, **not needed because sc2 use uniform team reward
         "draw_mode": "Img",                                 # plot curlves as image
         # "test_only": "False",                                 # number of parallel envs
@@ -100,12 +100,12 @@ base_conf = {
         # "gpu_party": "CUDA0_P1",
         "fold": "4",                                        # each linux process handle x parallel envs
         "backup_files":[
-            "MISSIONS/math_game",
+            "MISSION/math_game",
             "ALGORITHM/ppo_ma_mathdb"
         ]
     },
 
-    "MISSIONS.math_game.env.py->ScenarioConfig": {
+    "MISSION.math_game.env.py->ScenarioConfig": {
         "n_team1agent": 9,
         "n_actions": 10,
         "show_details": False,
@@ -143,7 +143,7 @@ import threading
 import copy, os
 import time
 import json
-from UTILS.colorful import *
+from UTIL.colorful import *
 arg_base = ['python', 'main.py']
 time_mark = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
 log_dir = '%s/'%time_mark
@@ -220,7 +220,7 @@ def local_worker(ith_run):
 
 def remote_worker(ith_run):
     # step 1: transfer all files
-    from UTILS.exp_upload import get_ssh_sftp
+    from UTIL.exp_upload import get_ssh_sftp
     
     addr = n_run_mode[ith_run]['addr']
     if 'exe_here' in addr: 
@@ -239,7 +239,7 @@ def remote_worker(ith_run):
         src_path = '/home/%s/MultiServerMission/%s/src'%(usr, time_mark)
         try:
             sftp.mkdir(src_path, ignore_existing=False)
-            sftp.put_dir('./', src_path, ignore_list=['.vscode', '__pycache__','RECYCLE','ZHECKPOINT'])
+            sftp.put_dir('./', src_path, ignore_list=['.vscode', '__pycache__','TEMP','ZHECKPOINT'])
             sftp.close()
             print紫('upload complete')
         except:

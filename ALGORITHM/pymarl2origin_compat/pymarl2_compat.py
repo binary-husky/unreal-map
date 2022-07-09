@@ -6,8 +6,8 @@ import random
 import redis, pickle
 import subprocess
 # from subprocess import DEVNULL
-from UTILS.colorful import print亮紫
-from UTILS.hidden_print import HiddenPrints
+from UTIL.colorful import print亮紫
+from UTIL.hidden_print import HiddenPrints
 from config import GlobalConfig
 class AlgorithmConfig():
     load_checkpoint = False
@@ -16,7 +16,7 @@ class AlgorithmConfig():
 
 class PymarlFoundation():
     def init_pymarl(self):
-        fp = open('RECYCLE/unity.log', 'w+')
+        fp = open('TEMP/unity.log', 'w+')
         import uuid, atexit
         self.remote_uuid = uuid.uuid1().hex   # use uuid to identify threads
         # If code fails here, please install redis-server on ubuntu host (outside the docker container)

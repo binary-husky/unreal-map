@@ -5,11 +5,11 @@ import torch.optim as optim
 import numpy as np
 from random import randint, sample
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
-from UTILS.colorful import *
-from UTILS.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
-from UTILS.tensor_ops import my_view, scatter_with_nan, sample_balance
+from UTIL.colorful import *
+from UTIL.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
+from UTIL.tensor_ops import my_view, scatter_with_nan, sample_balance
 from config import GlobalConfig as cfg
-from UTILS.gpu_share import GpuShareUnit
+from UTIL.gpu_share import GpuShareUnit
 
 class TrajPoolSampler():
     def __init__(self, n_div, traj_pool, flag, fix_n_sample=False):

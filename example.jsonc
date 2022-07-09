@@ -2,8 +2,8 @@
     "config.py->GlobalConfig": {
         // please checkout config.py for information
         "note": "example experiment",                   // in case you forget the purpose of this trainning session, write a note
-        "env_name": "collective_assult",                // which environment, see ./MISSIONS/env_router.py
-        "env_path": "MISSIONS.collective_assult",       // path of environment
+        "env_name": "collective_assult",                // which environment, see ./MISSION/env_router.py
+        "env_path": "MISSION.collective_assult",       // path of environment
         "draw_mode": "Img",                             // activate data plotting (Tensorboard is not used because I do not like it)
         "num_threads": "64",                            // run N parallel envs, a 'env' is refered to as a 'thread'
         "report_reward_interval": "64",                 // reporting interval
@@ -13,7 +13,7 @@
         "backup_files": [                               // backup files, pack them up
             "example.jsonc",
             "ALGORITHM/conc",
-            "MISSIONS/collective_assult/envs/collective_assult_env.py"
+            "MISSION/collective_assult/envs/collective_assult_env.py"
         ],
         "device": "cuda:0",                             // choose from 'cpu' (no GPU), 'cuda' (auto select GPU), 'cuda:3' (manual select GPU) 
         // GPU memory is precious! assign multiple training process to a 'party', then they will share GPU memory 
@@ -21,8 +21,8 @@
     },
 
 
-    "MISSIONS.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
-        // please checkout ./MISSIONS/collective_assult/collective_assult_parallel_run.py for information
+    "MISSION.collective_assult.collective_assult_parallel_run.py->ScenarioConfig": {
+        // please checkout ./MISSION/collective_assult/collective_assult_parallel_run.py for information
         "size": "5",
         "random_jam_prob": 0.1,
         "introduce_terrain": "True",

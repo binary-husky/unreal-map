@@ -85,22 +85,22 @@ We discard the method of using the command line to control parameters; instead, 
 python main.py --cfg Json_Experiment_Config_File.jsonc
 ```
 ### <2> How to Add and Override A Parameter:
-Parameters assigned and overridden in the JSON file are NOT passed via init functions layer by layer as other frameworks usually do; instead, at the start of the ```main.py```, a special program defined in ```UTILS/config_args.py``` will directly INJECT the overridden parameters to the desired location.
+Parameters assigned and overridden in the JSON file are NOT passed via init functions layer by layer as other frameworks usually do; instead, at the start of the ```main.py```, a special program defined in ```UTIL/config_args.py``` will directly INJECT the overridden parameters to the desired location.
 
 We give an example to demonstrate how simple it is to add new parameters. 
 Suppose we want to introduce HP into DCA, then an initial HP, let say ```HP_MAX``` need to be defined as a parameter.
 Then:
-- Open ```MISSIONS/collective_assult/collective_assult_parallel_run.py```. (You can create new file if you wish so.)
+- Open ```MISSION/collective_assult/collective_assult_parallel_run.py```. (You can create new file if you wish so.)
 - (Step1, Define It !) In ```ScenarioConfig``` class add a new line writing ```HP_MAX=100```. (You can create another class if you wish so.)
 - (Step2, Use It !) Anywhere you want to use the ```HP_MAX```, first ```from xxx.collective_assult_parallel_run import ScenarioConfig```,
 then use the parameter by ```init_hp_of_some_agent = ScenarioConfig.HP_MAX```.
 - (Step3, Change It !) To override the default value ```HP_MAX=100``` in JSON (e.g., in ```./example_dca.jsonc```), 
-you just need to add a line in the field ```"MISSIONS.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig"```,
+you just need to add a line in the field ```"MISSION.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig"```,
 for example:
 ```Jsonc
 {
     ...... (other field)
-    "MISSIONS.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig": {
+    "MISSION.collective_assult_debug.collective_assult_parallel_run.py->ScenarioConfig": {
         "HP_MAX": 222,  # <------ add this!
         "random_jam_prob": 0.05,    # (other config override in ScenarioConfig)
         ......
@@ -135,7 +135,7 @@ After this, you can expect following override (JSON config override) behaviors:
 - Changing only ```test_interval``` in JSON, the Chain will not work, obay JSON override, nothing has higher priority than an explicit JSON override.
 - Changing both JSON, the Chain will not work, both obay JSON override, nothing has higher priority than an explicit JSON override.
 
-For details, please refer to ```config.py``` and ```UTILS/config_args.py```, 
+For details, please refer to ```config.py``` and ```UTIL/config_args.py```, 
 it is very easy to understand once you read any example of this.
 
 ### <4> How to Recover Configuration's Auto Backup:
@@ -158,7 +158,7 @@ self.info_runner = self.update_runner(done, obs, reward, info)
 - ```self.platform_controller.act```: Get action, block infomation access between teams (LINK to ```ARGORITHM```), handle algorithm internal state loopback.
 <img src="VISUALIZE/md_imgs/multi_team.jpg" width="700" >
 
-- ```self.envs.step```: Multi-thread environment step (LINK to ```MISSIONS```).
+- ```self.envs.step```: Multi-thread environment step (LINK to ```MISSION```).
 - ```self.update_runner```: Prepare obs (for decision making) and reward (for driving RL algorithms) for next step.
 
 
@@ -171,8 +171,8 @@ In general, HMP task runner can operate two ways:
 </div>
 
 
-## MISSIONS
-Please refer to [MISSIONS README](./MISSIONS/readme.md).
+## MISSION
+Please refer to [MISSION README](./MISSION/readme.md).
 
 ## Execution Pool
 Unfinished doc
@@ -296,7 +296,7 @@ If you are interested in something, you may continue to read:
 
     Link between teams and diverse algorithms -->   multi_team.py
 
-    Adding new env                            -->   MISSIONS.env_router.py
+    Adding new env                            -->   MISSION.env_router.py
 
     Adding algorithm                          -->   ALGORITHM.example_foundation.py
 
@@ -318,31 +318,31 @@ If you are interested in something, you may continue to read:
 ```
 
 # How to Add a New Environment (MISSION) in HMP
-Please refer to [MISSIONS README](./MISSIONS/readme.md) for more details.
+Please refer to [MISSION README](./MISSION/readme.md) for more details.
 
 
 - Make a new jsonc config file, using 'example.jsonc' as template
-- mkdir in MISSIONS, e.g. ./MISSIONS/bvr_sim, copy src code of the environment inside it.
-- Open ```MISSIONS/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:
+- mkdir in MISSION, e.g. ./MISSION/bvr_sim, copy src code of the environment inside it.
+- Open ```MISSION/env_router.py```, add the path of environment's init function in ```env_init_function_ref```, e.g.:
 ``` python
 env_init_function_ref = {
-    "bvr": ("MISSIONS.bvr_sim.init_env", "make_bvr_env"),
+    "bvr": ("MISSION.bvr_sim.init_env", "make_bvr_env"),
 }   
 # bvr is the final name that HMP recognize, 
-# MISSIONS.bvr_sim.init_env is a py file, 
+# MISSION.bvr_sim.init_env is a py file, 
 # ScenarioConfig is a class
 ```
-- Open ```MISSIONS/env_router.py```, add the path of environment's configuration in ```import_path_ref```
+- Open ```MISSION/env_router.py```, add the path of environment's configuration in ```import_path_ref```
 ``` python
 import_path_ref = {
-    "bvr": ("MISSIONS.bvr_sim.init_env", 'ScenarioConfig'),
+    "bvr": ("MISSION.bvr_sim.init_env", 'ScenarioConfig'),
 }   
 # bvr will be the final name that HMP recognize, 
-# MISSIONS.bvr_sim.init_env is a py file, 
+# MISSION.bvr_sim.init_env is a py file, 
 # make_bvr_env is a function
 ```
-- Write your own ScenarioConfig. (refer to ```MISSIONS.bvr_sim.init_env.ScenarioConfig```, as a template).
-- Write your own env init function. (refer to ```MISSIONS.bvr_sim.init_env.make_bvr_env```, as a template).
+- Write your own ScenarioConfig. (refer to ```MISSION.bvr_sim.init_env.ScenarioConfig```, as a template).
+- Write your own env init function. (refer to ```MISSION.bvr_sim.init_env.make_bvr_env```, as a template).
 
 
 

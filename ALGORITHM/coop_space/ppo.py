@@ -4,9 +4,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 import math
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
-from UTILS.colorful import *
+from UTIL.colorful import *
 import numpy as np
-from UTILS.tensor_ops import _2tensor
+from UTIL.tensor_ops import _2tensor
 
 
 class PPO():

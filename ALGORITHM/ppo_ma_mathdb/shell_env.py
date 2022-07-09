@@ -1,6 +1,6 @@
 import numpy as np
-from UTILS.colorful import *
-from UTILS.tensor_ops import my_view, __hash__, repeat_at
+from UTIL.colorful import *
+from UTIL.tensor_ops import my_view, __hash__, repeat_at
 from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
 DEBUG = True

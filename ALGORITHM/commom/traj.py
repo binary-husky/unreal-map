@@ -1,7 +1,7 @@
 # cython: language_level=3
 import numpy as np
-from UTILS.colorful import *
-from UTILS.tensor_ops import __hash__
+from UTIL.colorful import *
+from UTIL.tensor_ops import __hash__
 
 class TRAJ_BASE():
     key_data_type = {}

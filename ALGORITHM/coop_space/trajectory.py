@@ -1,7 +1,7 @@
 # cython: language_level=3
 import numpy as np
 import copy
-from UTILS.colorful import *
+from UTIL.colorful import *
 def _flatten_helper(T, N, _tensor):
     return _tensor.view(T * N, *_tensor.size()[2:])
 

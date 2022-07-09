@@ -1,12 +1,12 @@
 import numpy as np
 import random, time
 from scipy.integrate import ode
-from UTILS.tensor_ops import distance_matrix, repeat_at, delta_matrix
+from UTIL.tensor_ops import distance_matrix, repeat_at, delta_matrix
 from VISUALIZE.mcom import mcom
 PI = np.pi
 def run():
     # 可视化界面初始化
-    可视化桥 = mcom(path='RECYCLE/v2d_logger/', draw_mode='Threejs')
+    可视化桥 = mcom(path='TEMP/v2d_logger/', draw_mode='Threejs')
     可视化桥.初始化3D(); 可视化桥.设置样式('star')
     可视化桥.其他几何体之旋转缩放和平移('ball', 'SphereGeometry(1)',   0,0,0,  1,1,1, 0,0,0) # 球体   
     # 设置初始参数

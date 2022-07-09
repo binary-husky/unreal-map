@@ -7,7 +7,7 @@ import subprocess
 import json
 import os
 # from subprocess import DEVNULL
-from UTILS.hidden_print import HiddenPrints
+from UTIL.hidden_print import HiddenPrints
 from config import GlobalConfig
 
 class AlgorithmConfig():
@@ -62,8 +62,8 @@ class PymarlFoundation():
             "batch_size=%d"%AlgorithmConfig.batch_size,
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
         
-        from UTILS.network import UnixTcpServerP2P
-        unix_path = 'RECYCLE/Sockets/unix/%s'%self.remote_uuid
+        from UTIL.network import UnixTcpServerP2P
+        unix_path = 'TEMP/Sockets/unix/%s'%self.remote_uuid
         self.remote_link_server = UnixTcpServerP2P(unix_path, obj='pickle')
         atexit.register(lambda: self.__del__()) 
         time.sleep(5)

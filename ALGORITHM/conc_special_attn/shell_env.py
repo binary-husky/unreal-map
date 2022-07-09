@@ -1,8 +1,8 @@
 import os, torch
 import numpy as np
 from numba import njit, jit
-from UTILS.colorful import *
-from UTILS.tensor_ops import my_view, __hash__
+from UTIL.colorful import *
+from UTIL.tensor_ops import my_view, __hash__
 import pickle
 from config import GlobalConfig
 DEBUG = True

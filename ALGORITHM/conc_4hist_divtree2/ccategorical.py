@@ -1,7 +1,7 @@
 from torch.distributions.categorical import Categorical
 import torch
 from .foundation import AlgorithmConfig
-from UTILS.tensor_ops import repeat_at
+from UTIL.tensor_ops import repeat_at
 from torch.distributions import kl_divergence
 EPS = 1e-9
 # yita = p_hit = 0.14

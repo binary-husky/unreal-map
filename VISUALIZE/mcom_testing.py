@@ -2,8 +2,8 @@ import os, copy, atexit, time
 import numpy as np
 from colorama import init; init()
 from multiprocessing import Process
-from UTILS.colorful import *
-from UTILS.network import get_host_ip, find_free_port
+from UTIL.colorful import *
+from UTIL.network import get_host_ip, find_free_port
 
 mcom_fn_list_define = [
     "v2dx", "flash", "plot", "figure", "hold", "box", "pause", "clf", "xlim", "ylim", "xlabel", 

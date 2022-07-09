@@ -1,5 +1,5 @@
-from UTILS.exp_upload import get_ssh_sftp
-from UTILS.colorful import *
+from UTIL.exp_upload import get_ssh_sftp
+from UTIL.colorful import *
 import time,os
 
 '''

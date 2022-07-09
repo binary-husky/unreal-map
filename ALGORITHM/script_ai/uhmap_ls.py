@@ -1,7 +1,7 @@
 import copy
 import numpy as np
-from UTILS.tensor_ops import copy_clone
-from MISSIONS.uhmap.actset_lookup import encode_action_as_digits
+from UTIL.tensor_ops import copy_clone
+from MISSION.uhmap.actset_lookup import encode_action_as_digits
 from config import GlobalConfig
 
 class DummyAlgConfig():

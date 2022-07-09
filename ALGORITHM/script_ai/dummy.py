@@ -1,5 +1,5 @@
 import numpy as np
-from UTILS.tensor_ops import copy_clone
+from UTIL.tensor_ops import copy_clone
 
 class DummyAlgConfig():
     reserve = ""

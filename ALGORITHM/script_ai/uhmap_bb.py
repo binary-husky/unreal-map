@@ -1,7 +1,7 @@
 import copy
 from math import sqrt
 import numpy as np
-from MISSIONS.uhmap.actset_lookup import encode_action_as_digits
+from MISSION.uhmap.actset_lookup import encode_action_as_digits
 from config import GlobalConfig
 
 class DummyAlgConfig():

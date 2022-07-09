@@ -2,7 +2,7 @@
     "config.py->GlobalConfig": {
         "note": "test-cargo50",           
         "env_name": "sr_tasks->cargo",   
-        "env_path": "MISSIONS.sr_tasks.multiagent.scenarios.cargo",         
+        "env_path": "MISSION.sr_tasks.multiagent.scenarios.cargo",         
         "draw_mode": "Img",                            
         "num_threads": "1",                          
         "report_reward_interval": "1",
@@ -13,14 +13,14 @@
         "max_n_episode": 2e6,
         "backup_files": [
             "ALGORITHM/conc",
-            "MISSIONS/sr_tasks/multiagent"
+            "MISSION/sr_tasks/multiagent"
         ],
         "device": "cuda:0",
         "gpu_party": "off"
     },
 
 
-    "MISSIONS.sr_tasks.multiagent.scenarios.cargo.py->ScenarioConfig": {
+    "MISSION.sr_tasks.multiagent.scenarios.cargo.py->ScenarioConfig": {
         "MaxEpisodeStep": 150,
         "n_worker": 50,
         "weight_percent": 0.8,

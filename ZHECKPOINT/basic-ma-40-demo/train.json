@@ -2,7 +2,7 @@
     "config.py->GlobalConfig": {
         "note": "basic-ma-40-2phase-Run4",
         "env_name": "mathgame",
-        "env_path": "MISSIONS.math_game",
+        "env_path": "MISSION.math_game",
         "draw_mode": "Img",
         "num_threads": "64",
         "report_reward_interval": "64",
@@ -12,11 +12,11 @@
         "max_n_episode": 524288,
         "fold": "4",
         "backup_files": [
-            "MISSIONS/math_game",
+            "MISSION/math_game",
             "ALGORITHM/ppo_ma_mathdb"
         ]
     },
-    "MISSIONS.math_game.env.py->ScenarioConfig": {
+    "MISSION.math_game.env.py->ScenarioConfig": {
         "n_team1agent": 40,
         "n_actions": 10,
         "show_details": false,

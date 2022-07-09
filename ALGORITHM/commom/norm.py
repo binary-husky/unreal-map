@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
-# from UTILS.tensor_ops import Args2tensor_Return2numpy
+# from UTIL.tensor_ops import Args2tensor_Return2numpy
 
 class DynamicNorm(nn.Module):
     # ! warning! this module will mess with multi-gpu setting!!

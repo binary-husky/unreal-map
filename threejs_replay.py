@@ -2,12 +2,12 @@ import os, sys
 import argparse
 from VISUALIZE.mcom import *
 from VISUALIZE.mcom_replay import RecallProcessThreejs
-from UTILS.network import find_free_port
+from UTIL.network import find_free_port
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='HMP')
-    parser.add_argument('-f', '--file', help='Directory of chosen file', default='RECYCLE/v2d_logger/backup.dp.gz')
+    parser.add_argument('-f', '--file', help='Directory of chosen file', default='TEMP/v2d_logger/backup.dp.gz')
     parser.add_argument('-p', '--port', help='The port for web server')
     args, unknown = parser.parse_known_args()
     if hasattr(args, 'file'):

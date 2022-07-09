@@ -2,7 +2,7 @@ import os, sys
 import argparse
 from VISUALIZE.mcom import *
 from VISUALIZE.mcom_replay import RecallProcessThreejs
-from UTILS.network import find_free_port
+from UTIL.network import find_free_port
 
 
 if __name__ == '__main__':

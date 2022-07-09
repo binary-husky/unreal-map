@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
-from UTILS.tensor_ops import my_view
+from UTIL.tensor_ops import my_view
 
 class MultiHeadAttention(nn.Module):
     # taken from https://github.com/wouterkool/attention-tsp/blob/master/graph_encoder.py

@@ -5,11 +5,11 @@ import torch.optim as optim
 import numpy as np
 from random import randint, sample
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
-from UTILS.colorful import *
-from UTILS.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
-from UTILS.tensor_ops import my_view, scatter_with_nan, sample_balance
+from UTIL.colorful import *
+from UTIL.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
+from UTIL.tensor_ops import my_view, scatter_with_nan, sample_balance
 from config import GlobalConfig as cfg
-from UTILS.gpu_share import GpuShareUnit
+from UTIL.gpu_share import GpuShareUnit
 class TrajPoolSampler():
     def __init__(self, n_div, traj_pool, flag, fix_n_sample=False):
         self.n_pieces_batch_division = n_div
@@ -291,7 +291,7 @@ class PPO():
         entropy_loss = entropy.mean()
 
         if self.RecProb and n==0:
-            from UTILS.sync_exp import SynWorker
+            from UTIL.sync_exp import SynWorker
             sw = SynWorker('lead')
             filter_ = (obs[...,0]==obs[...,0].max()).all(-1)
             t = probs[filter_][0]

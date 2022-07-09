@@ -148,7 +148,7 @@ class v2d_family():
 
     @staticmethod
     def line(p1,p2, sep):
-        from UTILS.tensor_ops import repeat_at
+        from UTIL.tensor_ops import repeat_at
         lam = np.arange(start=0.7, stop=1. + 1e-5, step=0.05)
         p1s = repeat_at(p1, insert_dim=0, n_times=len(lam))
         p2s = repeat_at(p2, insert_dim=0, n_times=len(lam))
@@ -194,7 +194,7 @@ class v2d_family():
         # self.v_name_list = {  'char_index':{ 'color': ?,'pos':(x,y),'shape':(xxxx,yyyy) }   }
         # self.style_list = {'red': {'style_name_list':[], 'plot_handle':handle} }
 
-        # from UTILS.tensor_ops import my_view
+        # from UTIL.tensor_ops import my_view
         # X = np.arange(-6, 6, 0.1)
         # Y = np.arange(-6, 6, 0.1)
         # X, Y = np.meshgrid(X, Y)    # 100
@@ -207,7 +207,7 @@ class v2d_family():
         # Y = Y.reshape(d,d)
         # Z = Z.reshape(d,d)
         # plt.contourf(X, Y, Z)
-        from UTILS.tensor_ops import my_view
+        from UTIL.tensor_ops import my_view
         X = np.arange(-6, 6, 0.1)
         Y = np.arange(-6, 6, 0.1)
         X, Y = np.meshgrid(X, Y)    # 100

@@ -2,8 +2,8 @@ import os, copy, atexit, time, gzip, threading, zlib, asyncio
 import numpy as np
 from colorama import init
 from multiprocessing import Process
-from UTILS.colorful import *
-from UTILS.network import get_host_ip, find_free_port
+from UTIL.colorful import *
+from UTIL.network import get_host_ip, find_free_port
 
 mcom_fn_list_define = [
     "v2dx", "flash", "plot", "figure", "hold", "box", "pause", "clf", "xlim", "ylim", "xlabel", 
@@ -50,7 +50,7 @@ class mcom():
             DP = DrawProcess if draw_mode != 'Threejs' else DrawProcessThreejs
             self.draw_proc = DP(**kargs)
             self.draw_proc.start()
-            from UTILS.network import QueueOnTcpClient
+            from UTIL.network import QueueOnTcpClient
             self.draw_tcp_client = QueueOnTcpClient('localhost:%d'%port)
         else:
             print亮红('[mcom.py]: Draw process off! No plot will be done')
@@ -298,7 +298,7 @@ def find_where_to_log(path):
 class DrawProcessThreejs(Process):
     def __init__(self, draw_udp_port, draw_mode, **kargs):
         super(DrawProcessThreejs, self).__init__()
-        from UTILS.network import QueueOnTcpServer
+        from UTIL.network import QueueOnTcpServer
         self.draw_mode = draw_mode
         self.draw_udp_port = draw_udp_port
         self.tcp_connection = QueueOnTcpServer(self.draw_udp_port)
@@ -489,7 +489,7 @@ class DrawProcessThreejs(Process):
 
 class DrawProcess(Process):
     def __init__(self, draw_udp_port, draw_mode, **kargs):
-        from UTILS.network import QueueOnTcpServer
+        from UTIL.network import QueueOnTcpServer
         super(DrawProcess, self).__init__()
         self.draw_mode = draw_mode
         self.draw_udp_port = draw_udp_port

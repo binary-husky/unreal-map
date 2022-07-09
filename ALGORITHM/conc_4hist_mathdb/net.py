@@ -9,9 +9,9 @@ from torch.nn.modules.linear import Linear
 from ..commom.attention import MultiHeadAttention
 from ..commom.norm import DynamicNorm
 from ..commom.mlp import LinearFinal, SimpleMLP, ResLinear
-from UTILS.colorful import print亮紫
-from UTILS.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, __hashn__, pad_at_dim
-from UTILS.tensor_ops import repeat_at, one_hot_with_nan, gather_righthand, pt_inf, n_item
+from UTIL.colorful import print亮紫
+from UTIL.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, __hash__, __hashn__, pad_at_dim
+from UTIL.tensor_ops import repeat_at, one_hot_with_nan, gather_righthand, pt_inf, n_item
 from torch.distributions import kl_divergence
 
 

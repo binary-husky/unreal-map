@@ -9,11 +9,11 @@
 
 import time, os
 import numpy as np
-from UTILS.colorful import *
-from UTILS.exp_upload import upload_experiment_results
+from UTIL.colorful import *
+from UTIL.exp_upload import upload_experiment_results
 from multi_team import MMPlatform
 from config import GlobalConfig as cfg
-from MISSIONS.env_router import make_parallel_envs
+from MISSION.env_router import make_parallel_envs
 class Runner(object):
     def __init__(self, process_pool):
         self.process_pool = process_pool
@@ -56,7 +56,7 @@ class Runner(object):
             # line 1: get action, block infomation access between teams (LINK to ARGORITHM)
             # (The controller can also handle algorithm internal state loopback by following simple rules)
             actions_list, self.info_runner = self.platform_controller.act(self.info_runner)
-            # line 2: multi-thread environment step (LINK to MISSIONS)
+            # line 2: multi-thread environment step (LINK to MISSION)
             # (When thread align is needed, NaN actions will be used to make envs freeze for a step)
             obs, reward, done, info = self.envs.step(actions_list)
             # line 3: prepare obs and reward for next round 
