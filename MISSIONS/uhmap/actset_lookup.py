@@ -30,6 +30,9 @@ dictionary_items = [
     'ActionSet2::PatrolMoving;Dir-X'    ,
     'ActionSet2::PatrolMoving;Dir-Y'    ,
 
+    'ActionSet2::Idle;AsFarAsPossible',  
+    'ActionSet2::Idle;StayWhenTargetInRange',  
+    'ActionSet2::Idle;StayWhenTargetInHalfRange' ,  
 ]
 
 dictionary_n_actions = len(dictionary_items)
@@ -64,6 +67,9 @@ agent_json2local_attrs = [
 ]
 
 
+    # 'ActionSet2::Idle;AsFarAsPossible',  
+    # 'ActionSet2::Idle;StayWhenTargetInRange',  
+    # 'ActionSet2::Idle;StayWhenTargetInHalfRange' ,  
 
 def encode_action_as_digits(main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None):
     main_cmd_encoder = {
@@ -74,19 +80,22 @@ def encode_action_as_digits(main_cmd, sub_cmd, x=None, y=None, z=None, UID=None,
         "N/A"                   : 4, 
     }
     sub_cmd_encoder = {
-        "DynamicGuard"              : 0, 
-        "StaticAlert"               : 1, 
-        "AggressivePersue"          : 2, 
-        "SpecificAttacking"         : 3, 
-        "N/A"                       : 4, 
-        'Dir+X'                     : 5,
-        'Dir+X+Y'                   : 6,
-        'Dir+Y'                     : 7,
-        'Dir-X+Y'                   : 8,
-        'Dir-X'                     : 9,
-        'Dir-X-Y'                   : 10,
-        'Dir-Y'                     : 11,
-        'Dir+X-Y'                   : 12, 
+        "DynamicGuard"              : 0 , 
+        "StaticAlert"               : 1 , 
+        "AggressivePersue"          : 2 , 
+        "SpecificAttacking"         : 3 , 
+        "AsFarAsPossible"           : 4 , 
+        "StayWhenTargetInRange"     : 5 , 
+        "StayWhenTargetInHalfRange" : 6 , 
+        "N/A"                       : 7 , 
+        'Dir+X'                     : 8 , 
+        'Dir+X+Y'                   : 9 , 
+        'Dir+Y'                     : 10,
+        'Dir-X+Y'                   : 11,
+        'Dir-X'                     : 12,
+        'Dir-X-Y'                   : 13,
+        'Dir-Y'                     : 14,
+        'Dir+X-Y'                   : 15,
     }
     return np.array([
         main_cmd_encoder[main_cmd],
@@ -108,20 +117,23 @@ def decode_action_as_string(digits):
         3 :"SpecificAttacking"   , 
         4 :"N/A"                 , 
     }
-    sub_cmd_decoder = {
-        0 :"DynamicGuard"             ,
-        1 :"StaticAlert"              ,
-        2 :"AggressivePersue"         ,
-        3 :"SpecificAttacking"        ,
-        4 :"N/A"                      ,
-        5 :'Dir+X'                    ,
-        6 :'Dir+X+Y'                  ,
-        7 :'Dir+Y'                    ,
-        8 :'Dir-X+Y'                  ,
-        9 :'Dir-X'                    ,
-        10:'Dir-X-Y'                  ,
-        11:'Dir-Y'                    ,
-        12:'Dir+X-Y'                  , 
+    sub_cmd_decoder =  {
+        0  : "DynamicGuard"              , 
+        1  : "StaticAlert"               , 
+        2  : "AggressivePersue"          , 
+        3  : "SpecificAttacking"         , 
+        4  : "AsFarAsPossible"           , 
+        5  : "StayWhenTargetInRange"     , 
+        6  : "StayWhenTargetInHalfRange" , 
+        7  : "N/A"                       , 
+        8  : 'Dir+X'                     , 
+        9  : 'Dir+X+Y'                   , 
+        10 : 'Dir+Y'                     ,
+        11 : 'Dir-X+Y'                   ,
+        12 : 'Dir-X'                     ,
+        13 : 'Dir-X-Y'                   ,
+        14 : 'Dir-Y'                     ,
+        15 : 'Dir+X-Y'                   ,
     }
     main_cmd = main_cmd_decoder[digits[0]]
     sub_cmd = sub_cmd_decoder[digits[1]]

@@ -36,7 +36,7 @@ class UhmapLargeScale(UhmapEnv):
                 agent_property.update({
                         'DebugAgent': False,
                         # max drive/fly speed
-                        'MaxMoveSpeed': 600,
+                        'MaxMoveSpeed':  720          if agent_class == 'RLA_CAR_Laser' else 600,
                         # also influence object mass, please change it with causion!
                         'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
                         # probability of escaping dmg 闪避
@@ -52,11 +52,13 @@ class UhmapLargeScale(UhmapEnv):
                         # open fire range
                         "PerceptionRange":  2000       if agent_class == 'RLA_CAR_Laser' else 2500,
                         "GuardRange":       1400       if agent_class == 'RLA_CAR_Laser' else 1700,
-                        "FireRange":        700        if agent_class == 'RLA_CAR_Laser' else 1200,
+                        "FireRange":        750        if agent_class == 'RLA_CAR_Laser' else 1400,
                         # debugging
-                        'RSVD1': '-ring1=2000 -ring2=1400 -ring3=700' if agent_class == 'RLA_CAR_Laser' else '-ring1=2500 -ring2=1700 -ring3=1200',
+                        'RSVD1': '-Ring1=2000 -Ring2=1400 -Ring3=750' if agent_class == 'RLA_CAR_Laser' else '-Ring1=2500 -Ring2=1700 -Ring3=1400',
+                        # regular
+                        'RSVD2': '-InitAct=ActionSet2::Idle;AsFarAsPossible',
                         # agent hp
-                        'AgentHp':np.random.randint(low=90,high=110),
+                        'AgentHp':np.random.randint(low=95,high=105) if agent_class == 'RLA_CAR_Laser' else np.random.randint(low=145,high=155),
                         # the rank of agent inside the team
                         'IndexInTeam': i, 
                         # the unique identity of this agent in simulation system
@@ -82,7 +84,7 @@ class UhmapLargeScale(UhmapEnv):
                 assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
                 agent_property = copy.deepcopy(AgentPropertyDefaults)
                 agent_property.update({
-                        'DebugAgent': True,
+                        'DebugAgent': False,
                         # max drive/fly speed
                         'MaxMoveSpeed': 900,
                         # also influence object mass, please change it with causion!
@@ -103,6 +105,8 @@ class UhmapLargeScale(UhmapEnv):
                         "FireRange":       1700,
                         # debugging
                         'RSVD1': '-ring1=2000 -ring2=1400 -ring3=700' if agent_class == 'RLA_CAR_Laser' else '-ring1=2500 -ring2=1800 -ring3=1700',
+                        # regular
+                        'RSVD2': '-InitAct=ActionSet2::Idle;StayWhenTargetInRange',
                         # agent hp
                         'AgentHp': 50,
                         # the rank of agent inside the team

@@ -11,6 +11,7 @@ class DummyAlgorithmBase():
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         self.n_agent = n_agent
         self.n_thread = n_thread
+        self.team = team
         self.scenario_config = GlobalConfig.scenario_config
         self.attack_order = {}
         self.team_agent_uid = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[team]
@@ -43,7 +44,7 @@ class DummyAlgorithmBase():
         return actions, {}
 
 
-class DummyAlgorithmT2(DummyAlgorithmBase):
+class DummyAlgorithmSeqFire(DummyAlgorithmBase):
     def interact_with_env(self, State_Recall):
         assert State_Recall['Latest-Obs'] is not None, ('make sure obs is ok')
         
@@ -66,8 +67,8 @@ class DummyAlgorithmT2(DummyAlgorithmBase):
             # 如果,该线程没有停止
             if State_Recall['Env-Suffered-Reset'][thread]:
                 # 如果该线程刚刚reset
-                uid_range = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM
-                opp_uid_range = list(copy.deepcopy(uid_range[0]))
+                opp_uid_range = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[1-self.team]
+                opp_uid_range = list(copy.deepcopy(opp_uid_range))
                 np.random.shuffle(opp_uid_range)
                 self.attack_order[thread] = opp_uid_range
             # 当前的Episode步数
