@@ -1,6 +1,5 @@
 import json, os, subprocess, time, copy, re
 import numpy as np
-from UTILS.colorful import print紫, print靛
 from UTILS.tensor_ops import my_view, repeat_at
 from ...common.base_env import RawObsArray
 from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
@@ -122,7 +121,6 @@ class UhmapLargeScale(UhmapEnv):
                 }),
                 AgentSettingArray.append(agent_property); agent_uid_cnt += 1
 
-
         # refer to struct.cpp, FParsedDataInput
         resp = self.client.send_and_wait_reply(json.dumps({
             'valid': True,
@@ -137,6 +135,7 @@ class UhmapLargeScale(UhmapEnv):
         # make sure the map (level in UE) is correct
         # assert resp['dataGlobal']['levelName'] == 'UhmapLargeScale'
 
+        assert len(resp['dataArr']) == len(AgentSettingArray)
         return self.parse_response_ob_info(resp)
 
 
@@ -229,7 +228,7 @@ class UhmapLargeScale(UhmapEnv):
                         "end_reason": EndReason
                     }
                     reward = [-1 for _ in range(self.n_teams)]
-
+        # print(reward)
         return reward, WinningResult
 
     def step_skip(self):
@@ -384,6 +383,11 @@ class UhmapLargeScale(UhmapEnv):
             h_msk = np.concatenate((h_vis_index<0, h_invis_index>=0)) # "<0" project to False; ">=0" project to True
             a2h_feature_sort = h_feature[h_ind]
             a2h_feature_sort[h_msk] = 0
+            if len(a2h_feature_sort)<MAX_NUM_OPP_OBS:
+                a2h_feature_sort = np.concatenate((
+                    a2h_feature_sort, 
+                    np.ones(shape=(MAX_NUM_OPP_OBS-len(a2h_feature_sort), CORE_DIM))+np.nan
+                ), axis=0)
 
             # scope <ally/friend>
             a2f_dis = dis2all[is_ally]
@@ -404,13 +408,16 @@ class UhmapLargeScale(UhmapEnv):
             f_msk = np.concatenate((self_vis_index<0, f_vis_index<0, f_invis_index>=0)) # "<0" project to False; ">=0" project to True
             self_ally_feature_sort = f_feature[f_ind]
             self_ally_feature_sort[f_msk] = 0
-
+            if len(self_ally_feature_sort)<MAX_NUM_ALL_OBS:
+                self_ally_feature_sort = np.concatenate((
+                    self_ally_feature_sort, 
+                    np.ones(shape=(MAX_NUM_ALL_OBS-len(self_ally_feature_sort), CORE_DIM))+np.nan
+                ), axis=0)
             OBS_ALL_AGENTS[i,:] = np.concatenate((self_ally_feature_sort, a2h_feature_sort), axis = 0)
 
 
         # the last part of observation is the list of core game objects
         MAX_OBJ_NUM_ACCEPT = 1
-        OBJ_FEATURE_DIM = 12
         self.N_Obj = len(self.key_obj)
 
         OBJ_UID_OFFSET = 32768

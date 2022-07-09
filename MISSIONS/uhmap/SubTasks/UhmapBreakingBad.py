@@ -1,9 +1,7 @@
 import json, os, subprocess, time, copy, re
 import numpy as np
-from UTILS.colorful import print紫, print靛
-from UTILS.config_args import ChainVar
-from UTILS.tensor_ops import my_view, repeat_at, distance_matrix, distance_mat_between
-from ...common.base_env import BaseEnv, RawObsArray
+from UTILS.tensor_ops import my_view, repeat_at, distance_mat_between
+from ...common.base_env import RawObsArray
 from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
 from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent

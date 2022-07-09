@@ -14,6 +14,9 @@ class ActionConvertLegacy():
         ('Idle',        'DynamicGuard',     None, None, None, None, None, None),   # 1
         ('Idle',        'StaticAlert',      None, None, None, None, None, None),   # 2
         ('Idle',        'AggressivePersue', None, None, None, None, None, None),   # 3
+        ('Idle',        'AsFarAsPossible',              None, None, None, None, None, None),   # 1
+        ('Idle',        'StayWhenTargetInRange',        None, None, None, None, None, None),   # 2
+        ('Idle',        'StayWhenTargetInHalfRange',    None, None, None, None, None, None),   # 3
         ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 4
         ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 5
         ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 6

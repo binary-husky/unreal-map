@@ -49,13 +49,12 @@ class AlgorithmConfig:
 
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
+        from .shell_env import ShellEnvWrapper, ActionConvertLegacy
         self.n_thread = n_thread
         self.n_agent = n_agent
         self.team = team
-        # self.act_space = space['act_space']   # please use GlobalConfig.scenario_config.n_actions
-        # self.obs_space = space['obs_space']   # please use GlobalConfig.scenario_config.obs_vec_length
-        n_actions = GlobalConfig.scenario_config.n_actions
-        from .shell_env import ShellEnvWrapper
+        
+        n_actions = len(ActionConvertLegacy.dictionary_args)
         self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.scenario_config, self.team)
         if 'm-cuda' in GlobalConfig.device:
             assert False, ('not support anymore')
