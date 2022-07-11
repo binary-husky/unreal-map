@@ -5,34 +5,6 @@ from UTIL.colorful import *
 from UTIL.tensor_ops import copy_clone, my_view, add_onehot_id_at_last_dim, add_obs_container_subject
 import pickle
 from config import GlobalConfig
-DEBUG = True
-
-# @njit
-def distance_matrix(A):
-    assert A.shape[-1] == 2 # assert 2D situation
-    n_subject = A.shape[-2] # is 2
-    A = np.repeat(np.expand_dims(A,-2), n_subject, axis=-2) # =>(64, 100, 100, 2)
-    At = np.swapaxes(A,-2,-3) # =>(64, 100, 100, 2)
-    dis = At-A # =>(64, 100, 100, 2)
-    dis = np.linalg.norm(dis, axis=-1)
-    return dis
-
-def stack_padding(l):
-    import itertools
-    return np.column_stack((itertools.zip_longest(*l, fillvalue=0)))
-
-def dir_to_rad_angle(delta_pos):
-    result = np.empty(delta_pos.shape[:-1], dtype=complex)
-    result.real = delta_pos[...,0]; result.imag = delta_pos[...,1]
-    rad_angle = np.angle(result) 
-    return rad_angle
-
-def reg_angle_deg(deg):
-    return (deg + 180)%360 -180
-
-def reg_angle(rad):
-    # it's OK to show "RuntimeWarning: invalid value encountered in remainder"
-    return (rad + np.pi)%(2*np.pi) -np.pi
 
 class ShellEnvWrapper(object):
     def __init__(self, n_agent, n_thread, space, mcv, RL_functional, 

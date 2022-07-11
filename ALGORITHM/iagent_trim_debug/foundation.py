@@ -5,7 +5,6 @@ from UTIL.colorful import *
 from .net import Net
 from config import GlobalConfig
 from UTIL.tensor_ops import __hash__, pad_vec_array, copy_clone, my_view
-DEBUG = True
 
 class AlgorithmConfig:
     gamma = 0.99

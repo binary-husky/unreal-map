@@ -3,7 +3,6 @@ from UTIL.colorful import *
 from UTIL.tensor_ops import my_view, __hash__, repeat_at
 from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
-DEBUG = True
 
 class ShellEnvWrapper(object):
     """

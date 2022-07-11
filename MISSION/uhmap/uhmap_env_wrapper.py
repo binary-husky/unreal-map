@@ -71,14 +71,13 @@ class ScenarioConfig(object):
     # <Part 3> Needed by some ALGORITHM #
     StateProvided = False
     AvailActProvided = False
-    EntityOriented = False
+    EntityOriented = True
 
     ActionFormat = 'Multi-Digit'    # 'Single-Digit'
 
     n_actions = dictionary_n_actions
     obs_vec_length = 23
 
-DEBUG = False
 
 
 

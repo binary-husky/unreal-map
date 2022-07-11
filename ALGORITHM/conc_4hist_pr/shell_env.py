@@ -1,46 +1,68 @@
 import numpy as np
-from UTILS.colorful import *
-from UTILS.tensor_ops import my_view, __hash__, repeat_at
+from config import GlobalConfig
+from UTIL.colorful import *
+from UTIL.tensor_ops import my_view, __hash__, repeat_at
+from MISSION.uhmap.actset_lookup import encode_action_as_digits
 from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
-DEBUG = True
 
-def distance_matrix(A):
-    assert A.shape[-1] == 2 # assert 2D situation
-    n_subject = A.shape[-2] # is 2
-    A = np.repeat(np.expand_dims(A,-2), n_subject, axis=-2) # =>(64, 100, 100, 2)
-    At = np.swapaxes(A,-2,-3) # =>(64, 100, 100, 2)
-    dis = At-A # =>(64, 100, 100, 2)
-    dis = np.linalg.norm(dis, axis=-1)
-    return dis
+class ActionConvertLegacy():
 
-def stack_padding(l):
-    import itertools
-    return np.column_stack((itertools.zip_longest(*l, fillvalue=0)))
+    # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
+    dictionary_args = [
+        ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
+        ('Idle',        'DynamicGuard',     None, None, None, None, None, None),   # 1
+        ('Idle',        'StaticAlert',      None, None, None, None, None, None),   # 2
+        ('Idle',        'AggressivePersue', None, None, None, None, None, None),   # 3
+        ('Idle',        'AsFarAsPossible',              None, None, None, None, None, None),   # 1
+        ('Idle',        'StayWhenTargetInRange',        None, None, None, None, None, None),   # 2
+        ('Idle',        'StayWhenTargetInHalfRange',    None, None, None, None, None, None),   # 3
+        ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 4
+        ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 5
+        ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 6
+        ('SpecificMoving',      'Dir-Y',    None, None, None, None, None, None),   # 7
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    0),      # 8
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    1),      # 9
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    2),      # 10
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    3),      # 11
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    4),      # 12
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    0),      # 13
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    1),      # 14
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    2),      # 15
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    3),      # 16
+        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    4),      # 17
+        ('PatrolMoving',        'Dir+X',    None, None, None, None, None, None),   # 19
+        ('PatrolMoving',        'Dir+Y',    None, None, None, None, None, None),   # 20
+        ('PatrolMoving',        'Dir-X',    None, None, None, None, None, None),   # 21
+        ('PatrolMoving',        'Dir-Y',    None, None, None, None, None, None),   # 22
+    ]
 
-def dir_to_rad_angle(delta_pos):
-    result = np.empty(delta_pos.shape[:-1], dtype=complex)
-    result.real = delta_pos[...,0]; result.imag = delta_pos[...,1]
-    rad_angle = np.angle(result) 
-    return rad_angle
 
-def reg_angle_deg(deg):
-    return (deg + 180)%360 -180
-
-def reg_angle(rad):
-    # it's OK to show "RuntimeWarning: invalid value encountered in remainder"
-    return (rad + np.pi)%(2*np.pi) -np.pi
+    @staticmethod
+    def convert_act_arr(type, a):
+        if 'RLA_UAV' in type:
+            args = ActionConvertLegacy.dictionary_args[a]
+            # override wrong actions
+            if args[0] == 'SpecificAttacking':
+                return encode_action_as_digits('N/A',         'N/A',              None, None, None, None, None, None)
+            # override incorrect actions
+            if args[0] == 'Idle':
+                return encode_action_as_digits('Idle',        'StaticAlert',      None, None, None, None, None, None)
+            return encode_action_as_digits(*args)
+        else:
+            return encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a])
+ 
 
 class ShellEnvWrapper(object):
-    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config, team):
         self.n_agent = n_agent
         self.n_thread = n_thread
+        self.team = team
         self.space = space
         self.mcv = mcv
         self.RL_functional = RL_functional
-        self.scenario_config = scenario_config
-        if self.scenario_config.EntityOriented:
-            self.core_dim = self.scenario_config.obs_vec_length
+        if GlobalConfig.scenario_config.EntityOriented:
+            self.core_dim = GlobalConfig.scenario_config.obs_vec_length
         else:
             self.core_dim = space['obs_space']['obs_shape']
         self.n_entity_placeholder = alg_config.n_entity_placeholder
@@ -48,8 +70,8 @@ class ShellEnvWrapper(object):
 
         # whether to use avail_act to block forbiden actions
         self.AvailActProvided = False
-        if hasattr(self.scenario_config, 'AvailActProvided'):
-            self.AvailActProvided = self.scenario_config.AvailActProvided 
+        if hasattr(scenario_config, 'AvailActProvided'):
+            self.AvailActProvided = scenario_config.AvailActProvided 
 
         # whether to load previously saved checkpoint
         self.load_checkpoint = alg_config.load_checkpoint
@@ -67,8 +89,17 @@ class ShellEnvWrapper(object):
         return arr
 
     def interact_with_env(self, State_Recall):
+        if not hasattr(self, 'agent_type'):
+            self.agent_uid = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[self.team]
+            self.agent_type = [agent_meta['type'] 
+                for agent_meta in State_Recall['Latest-Team-Info'][0]['dataArr']
+                if agent_meta['uId'] in self.agent_uid]
+
+        act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
+        # read internal coop graph info
         obs = State_Recall['Latest-Obs']
-        if not self.scenario_config.EntityOriented:    # 如果环境观测非EntityOriented，可以额外创生一个维度，具体细节需要斟酌
+        if not GlobalConfig.scenario_config.EntityOriented:    
+            # 如果环境观测非EntityOriented，可以额外创生一个维度，具体细节需要斟酌
             obs = repeat_at(obs, insert_dim=-2, n_times=self.n_entity_placeholder//2, copy_mem=True)
             obs[:,:,2:] = np.nan    # 0 is self; 1 is repeated self; 2,3,... is NaN
         P = State_Recall['ENV-PAUSE']
@@ -81,7 +112,6 @@ class ShellEnvWrapper(object):
             State_Recall['_FixMax_'] = FixMax
             # print(FixMax)
 
-        act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         his_pool_obs = State_Recall['_Histpool_Obs_'] if '_Histpool_Obs_' in State_Recall \
             else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])
         his_pool_obs[RST] = 0
@@ -105,7 +135,12 @@ class ShellEnvWrapper(object):
         act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_State_Recall)
 
         act[~P] = act_active
-        actions_list = np.swapaxes(act, 0, 1) # swap thread(batch) axis and agent axis
+
+        act_converted = np.array([
+            [
+                ActionConvertLegacy.convert_act_arr(self.agent_type[agentid], act)  for agentid, act in enumerate(th) 
+            ] for th in act])
+        actions_list = np.swapaxes(act_converted, 0, 1) # swap thread(batch) axis and agent axis
 
         # return necessary handles to main platform
         if self.cold_start: self.cold_start = False
@@ -140,24 +175,13 @@ class ShellEnvWrapper(object):
 
         # alloc mem for next_his_pool
         next_his_pool = np.zeros_like(prev_obs_feed) # twice size  ( threads,  agents,  subjects)
+
         # fill next_his_pool
         next_his_pool = roll_hisory(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool)
+
         # a very important assumption: if an agent observe itself as NaN *When and Only When* it is dead
         alive_mask = ~np.isnan(obs_feed_new[:,:,0]).any(-1) 
-        if (~alive_mask).any(): obs_feed[~alive_mask] = np.nan
-
+        if (~alive_mask).any():
+            obs_feed[~alive_mask] = np.nan
         return obs_feed, next_his_pool
-
-
-
-    def get_mask_id(self, obs_feed):
-        mask_and_id = np.zeros_like(obs_feed)[:,:,:, 0] # thread,agent,agent_obs
-        binary = obs_feed[...,-8:]
-        alive = obs_feed[..., 0]
-        for i in range(8):
-            mask_and_id += binary[..., i]* 2**i
-        # print(mask_and_id)
-        mask_and_id = np.where(alive==1, mask_and_id, np.nan)
-        return mask_and_id
-
 

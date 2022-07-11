@@ -3,33 +3,8 @@ from UTIL.colorful import *
 from UTIL.tensor_ops import my_view, __hash__, repeat_at
 from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
-DEBUG = True
 
-def distance_matrix(A):
-    assert A.shape[-1] == 2 # assert 2D situation
-    n_subject = A.shape[-2] # is 2
-    A = np.repeat(np.expand_dims(A,-2), n_subject, axis=-2) # =>(64, 100, 100, 2)
-    At = np.swapaxes(A,-2,-3) # =>(64, 100, 100, 2)
-    dis = At-A # =>(64, 100, 100, 2)
-    dis = np.linalg.norm(dis, axis=-1)
-    return dis
 
-def stack_padding(l):
-    import itertools
-    return np.column_stack((itertools.zip_longest(*l, fillvalue=0)))
-
-def dir_to_rad_angle(delta_pos):
-    result = np.empty(delta_pos.shape[:-1], dtype=complex)
-    result.real = delta_pos[...,0]; result.imag = delta_pos[...,1]
-    rad_angle = np.angle(result) 
-    return rad_angle
-
-def reg_angle_deg(deg):
-    return (deg + 180)%360 -180
-
-def reg_angle(rad):
-    # it's OK to show "RuntimeWarning: invalid value encountered in remainder"
-    return (rad + np.pi)%(2*np.pi) -np.pi
 
 class ShellEnvWrapper(object):
     def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config):
@@ -147,17 +122,5 @@ class ShellEnvWrapper(object):
         if (~alive_mask).any(): obs_feed[~alive_mask] = np.nan
 
         return obs_feed, next_his_pool
-
-
-
-    def get_mask_id(self, obs_feed):
-        mask_and_id = np.zeros_like(obs_feed)[:,:,:, 0] # thread,agent,agent_obs
-        binary = obs_feed[...,-8:]
-        alive = obs_feed[..., 0]
-        for i in range(8):
-            mask_and_id += binary[..., i]* 2**i
-        # print(mask_and_id)
-        mask_and_id = np.where(alive==1, mask_and_id, np.nan)
-        return mask_and_id
 
 
