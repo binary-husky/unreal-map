@@ -65,7 +65,6 @@ class ReinforceAlgorithmFoundation(object):
                           n_action = n_actions, 
                           use_normalization=AlgorithmConfig.use_normalization,
                           n_focus_on = AlgorithmConfig.n_focus_on, 
-                          actor_attn_mod=AlgorithmConfig.actor_attn_mod,
                           dual_conc=AlgorithmConfig.dual_conc)
         self.policy = self.policy.to(self.device)
 
@@ -79,8 +78,8 @@ class ReinforceAlgorithmFoundation(object):
             trainer_hook=self.trainer.train_on_traj)
 
         # confirm that reward method is correct
-        if self.scenario_config.RewardAsUnity != AlgorithmConfig.take_reward_as_unity:
-            assert self.scenario_config.RewardAsUnity
+        if GlobalConfig.scenario_config.RewardAsUnity != AlgorithmConfig.take_reward_as_unity:
+            assert GlobalConfig.scenario_config.RewardAsUnity
             assert not AlgorithmConfig.take_reward_as_unity
             print亮紫(
                 'Warning, the scenario (MISSION) provide `RewardAsUnity`, but AlgorithmConfig does not `take_reward_as_unity` !')

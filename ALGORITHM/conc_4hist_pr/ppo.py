@@ -148,7 +148,6 @@ class PPO():
         self.prevent_batchsize_oom = ppo_config.prevent_batchsize_oom
         self.only_train_div_tree_and_ct = ppo_config.only_train_div_tree_and_ct
         self.lr = ppo_config.lr
-        self.extral_train_loop = ppo_config.extral_train_loop
         self.all_parameter = list(policy_and_critic.named_parameters())
         self.at_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'AT_' in p_name]
         self.ct_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'CT_' in p_name]

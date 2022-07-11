@@ -150,7 +150,6 @@ class Net(nn.Module):
                     use_m_gpu=None, 
                     use_normalization=True, 
                     n_focus_on=None, 
-                    actor_attn_mod=False,
                     dual_conc=True):
         super().__init__()
         h_dim = 16
@@ -159,7 +158,6 @@ class Net(nn.Module):
         assert use_m_gpu is None
         self.use_normalization = use_normalization
         self.n_focus_on = n_focus_on
-        self.adopt_selfattn = actor_attn_mod
         self.dual_conc = dual_conc
         from .foundation import AlgorithmConfig
         # observation normalization
@@ -173,18 +171,18 @@ class Net(nn.Module):
                             n_focus_on=self.n_focus_on-1, h_dim=h_dim, 
                             skip_connect=self.skip_connect, 
                             skip_connect_dim=rawob_dim, 
-                            adopt_selfattn=actor_attn_mod)
+                            adopt_selfattn=False)
             self.MIX_conc_core_h = Concentration(
                             n_focus_on=self.n_focus_on, h_dim=h_dim, 
                             skip_connect=self.skip_connect, 
                             skip_connect_dim=rawob_dim, 
-                            adopt_selfattn=actor_attn_mod)
+                            adopt_selfattn=False)
         else:
             self.MIX_conc_core = Concentration(
                             n_focus_on=self.n_focus_on, h_dim=h_dim, 
                             skip_connect=self.skip_connect, 
                             skip_connect_dim=rawob_dim, 
-                            adopt_selfattn=actor_attn_mod)
+                            adopt_selfattn=False)
 
         tmp_dim = h_dim if not self.dual_conc else h_dim*2
         self.CT_get_value = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))

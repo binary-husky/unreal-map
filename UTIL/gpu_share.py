@@ -2,7 +2,7 @@ import platform, os, torch, uuid, time
 from atexit import register
 IsLinux = platform.system()=="Linux"
 if IsLinux: 
-    print('system is not Linux, flock module not available!')
+    print('system is Linux, using flock module')
     import flock # flock is Linux only
 
 class GpuShareUnit():

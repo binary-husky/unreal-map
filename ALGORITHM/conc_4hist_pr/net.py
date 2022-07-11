@@ -184,10 +184,10 @@ class Net(nn.Module):
 
     # div entity for DualConc models, distincting friend or hostile (present or history)
     def div_entity(self, mat, type=[(0,), # self
-                                    (1, 2, 3, 4, 5, 6,  7, 8, 9, 10, 11),     # current
-                                    (12,13,14,15,16,17, 18,19,20,21,22,23),   # history
+                                        (1, 2, 3, 4, 5, 6, 7, 8, 9,10),  # current
+                                    (11,12,13,14,15,16,17,18,19,20,21),  # history
                                     ],
-                                    n=24):
+                                    n=22):
         assert n == self.n_entity_placeholder
         if mat.shape[-2]==n:
             tmp = (mat[..., t, :] for t in type)
@@ -195,6 +195,8 @@ class Net(nn.Module):
         elif mat.shape[-1]==n:
             tmp = (mat[..., t] for t in type)
             assert mat.shape[-2]!=n
+        else:
+            assert False, "please make sure that the number of entities is correct, should be %d"%mat.shape[-2]
         return tmp
 
 
