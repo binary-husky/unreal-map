@@ -33,7 +33,7 @@ http://cloud.fuqingxu.top:11601/
 
 ```
 git pull && python main.py -c ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
-(Trained in https://www.bilibili.com/video/BV1vF411M7N9/)
+(Also see https://www.bilibili.com/video/BV1vF411M7N9/)
 ```
 
 ## Anti-Invasion Interception

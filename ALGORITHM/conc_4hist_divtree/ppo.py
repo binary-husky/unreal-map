@@ -12,11 +12,11 @@ from config import GlobalConfig as cfg
 from UTIL.gpu_share import GpuShareUnit
 
 class TrajPoolSampler():
-    def __init__(self, n_div, traj_pool, flag, fix_n_sample=False):
+    def __init__(self, n_div, traj_pool, flag, prevent_batchsize_oom=False):
         self.n_pieces_batch_division = n_div
-        self.fix_n_sample = fix_n_sample    
+        self.prevent_batchsize_oom = prevent_batchsize_oom    
 
-        if self.fix_n_sample:
+        if self.prevent_batchsize_oom:
             assert self.n_pieces_batch_division==1, ('?')
 
         self.num_batch = None
@@ -67,7 +67,7 @@ class TrajPoolSampler():
         return self.n_pieces_batch_division
 
     def reset_and_get_iter(self):
-        if not self.fix_n_sample:
+        if not self.prevent_batchsize_oom:
             self.sampler = BatchSampler(SubsetRandomSampler(range(self.big_batch_size)), self.mini_batch_size, drop_last=False)
         else:
             if not hasattr(TrajPoolSampler,'MaxSampleNum'):
@@ -140,7 +140,7 @@ class PPO():
         self.entropy_coef = ppo_config.entropy_coef
         self.max_grad_norm = ppo_config.max_grad_norm
         self.add_prob_loss = ppo_config.add_prob_loss
-        self.fix_n_sample = ppo_config.fix_n_sample
+        self.prevent_batchsize_oom = ppo_config.prevent_batchsize_oom
         self.only_train_div_tree = ppo_config.only_train_div_tree
         self.lr = ppo_config.lr
         self.extral_train_loop = ppo_config.extral_train_loop
@@ -195,7 +195,7 @@ class PPO():
                     self.train_on_traj_(traj_pool, task) 
                 break # 运行到这说明显存充足
             except RuntimeError as err:
-                if self.fix_n_sample:
+                if self.prevent_batchsize_oom:
                     if TrajPoolSampler.MaxSampleNum[-1] < 0:
                         TrajPoolSampler.MaxSampleNum.pop(-1)
                         
@@ -211,7 +211,7 @@ class PPO():
     def train_on_traj_(self, traj_pool, task):
 
         ppo_valid_percent_list = []
-        sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task, fix_n_sample=self.fix_n_sample)
+        sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task, prevent_batchsize_oom=self.prevent_batchsize_oom)
         assert self.n_div == len(sampler)
         for e in range(self.ppo_epoch):
             # print亮紫('pulse')

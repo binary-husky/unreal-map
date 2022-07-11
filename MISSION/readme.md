@@ -200,7 +200,7 @@ copy and paste following content, and please pay attention to lines marked with 
     // config ALGORITHMs
     "ALGORITHM.conc_4hist.foundation.py->AlgorithmConfig": { // must kiss with "TEAM_NAMES"
         "train_traj_needed": "16",
-        "fix_n_sample": "True",
+        "prevent_batchsize_oom": "True",
         "n_focus_on": 3,
         "lr": 0.0005,
         "ppo_epoch": 24,

@@ -40,7 +40,7 @@ class AlgorithmConfig:
     # resulting in more samples and causing GPU OOM,
     # prevent this by fixing the number of samples to initial
     # by randomly sampling and droping
-    fix_n_sample = False
+    prevent_batchsize_oom = False
     gamma_in_reward_forwarding = False
     gamma_in_reward_forwarding_value = 0.99
 

@@ -1,29 +1,28 @@
-import os, time, torch
+import os, time, torch, traceback
 import numpy as np
 from UTIL.colorful import *
+from .net import Net
 from config import GlobalConfig
 from UTIL.tensor_ops import __hash__, repeat_at
 
-'''
-    AlgorithmConfig: This config class will be 'injected' with new settings from json.
-    (E.g., override configs with ```python main.py --cfg example.jsonc```)
-    (please see UTIL.config_args to find out how this advanced trick works out.)
-'''
 class AlgorithmConfig:  
+    '''
+        AlgorithmConfig: This config class will be 'injected' with new settings from json.
+        (E.g., override configs with ```python main.py --cfg example.jsonc```)
+        (please see UTIL.config_args to find out how this advanced trick works out.)
+    '''
     # configuration, open to jsonc modification
     gamma = 0.99
     tau = 0.95
     train_traj_needed = 512
     upper_training_epoch = 4
     load_checkpoint = False
+    checkpoint_reload_cuda = False
     take_reward_as_unity = False
     use_normalization = True
     add_prob_loss = False
-    alternative_critic = False
-
     n_focus_on = 2
-    n_entity_placeholder = 10
-    turn_off_threat_est = False
+    n_entity_placeholder = 24
 
     # PPO part
     clip_param = 0.2
@@ -45,30 +44,43 @@ class AlgorithmConfig:
     gamma_in_reward_forwarding_value = 0.99
 
     # extral
-    extral_train_loop = False
-    actor_attn_mod = False
     load_specific_checkpoint = ''
     dual_conc = True
     use_my_attn = True
     alternative_critic = False
+    # ignore_test_mode = False
 
     # net
-    net_hdim = 32
+    net_hdim = 48
+    n_agent = 'auto load, do not change'
+    only_train_div_tree_and_ct = False
+    yita = 0.
+    div_tree_init_level = 0
+    yita_min_prob = 0.15
+    PolicyResonance = False
+    ConfigOnTheFly = True
+    UseDivTree = True
+    RecProbs = False
+
+
+    # personality reinforcement dynamic
+    personality_reinforcement_start_at_update = -1
+    _div_tree_level_inc_per_update = 0.0 # (30 updates per inc)
+    yita_max = 0.75
+    _yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
 
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
+        from .shell_env import ShellEnvWrapper, ActionConvertLegacy
         self.n_thread = n_thread
-        self.n_agent = n_agent
+        self.n_agent = AlgorithmConfig.n_agent = n_agent
+        self.team = team
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
         self.scenario_config = GlobalConfig.scenario_config
-        n_actions = GlobalConfig.scenario_config.n_actions
-
-        from .shell_env import ShellEnvWrapper
-        self.shell_env = ShellEnvWrapper(
-            n_agent, n_thread, space, mcv, self, AlgorithmConfig, self.scenario_config)
-            
-        from .net import Net
+        self.mcv = mcv
+        n_actions = len(ActionConvertLegacy.dictionary_args)
+        self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.scenario_config, self.team)
         self.device = GlobalConfig.device
         if self.scenario_config.EntityOriented :
             rawob_dim = self.scenario_config.obs_vec_length
@@ -77,14 +89,15 @@ class ReinforceAlgorithmFoundation(object):
         self.policy = Net(rawob_dim=rawob_dim, n_action=n_actions)
         self.policy = self.policy.to(self.device)
 
+        self.AvgRewardAgentWise = AlgorithmConfig.take_reward_as_unity
         # initialize policy network and traj memory manager
         from .ppo import PPO
         from .trajectory import BatchTrajManager
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         self.batch_traj_manager = BatchTrajManager(
-            n_env=n_thread, traj_limit=int(self.scenario_config.MaxEpisodeStep),
+            n_env=n_thread, traj_limit=int(GlobalConfig.scenario_config.MaxEpisodeStep),
             trainer_hook=self.trainer.train_on_traj)
-                    
+
         # confirm that reward method is correct
         if self.scenario_config.RewardAsUnity != AlgorithmConfig.take_reward_as_unity:
             assert self.scenario_config.RewardAsUnity
@@ -101,18 +114,26 @@ class ReinforceAlgorithmFoundation(object):
         # makedirs if not exists
         if not os.path.exists('%s/history_cpt/' % logdir):
             os.makedirs('%s/history_cpt/' % logdir)
+
+        self.input_file_dir = '%s/cmd_io.txt' % logdir
+        if not os.path.exists(self.input_file_dir):
+            with open(self.input_file_dir, 'w+', encoding='utf8') as f: f.writelines(["# Write cmd at next line: ", ""])
+
         if self.load_checkpoint:
             manual_dir = AlgorithmConfig.load_specific_checkpoint
             ckpt_dir = '%s/model.pt' % logdir if manual_dir == '' else '%s/%s' % (logdir, manual_dir)
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
-            self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n))
+            strict = not AlgorithmConfig.only_train_div_tree_and_ct
+            self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n), strict=strict)
+            if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=False)
             print黄('loaded checkpoint:', ckpt_dir)
-
+        else:
+            if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=True)
         # data integraty check
         self._unfi_frag_ = None
         # Skip currupt data integraty check after this patience is exhausted
         self.patience = 1000
-
+        self.disable_train = False
 
     def action_making(self, StateRecall, test_mode):
         assert StateRecall['obs'] is not None, ('Make sure obs is ok')
@@ -122,8 +143,8 @@ class ReinforceAlgorithmFoundation(object):
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
 
         with torch.no_grad():
-            action, value, action_log_prob = self.policy.act(
-                obs, test_mode=test_mode, avail_act=avail_act)
+            if AlgorithmConfig.PolicyResonance: self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
+            action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act)
 
         # Warning! vars named like _x_ are aligned, others are not!
         traj_frag = {
@@ -133,43 +154,114 @@ class ReinforceAlgorithmFoundation(object):
             "obs":           obs,
             "action":        action,
         }
-        if avail_act is not None:
-            traj_frag.update({'avail_act':  avail_act})
-        hook = self.commit_frag(traj_frag, req_hook=True) if not test_mode else self._no_hook
+        if avail_act is not None: traj_frag.update({'avail_act':  avail_act})
+        hook = self.commit_frag(traj_frag, req_hook = True) if not test_mode else self._no_hook
 
         # deal with rollout later when the reward is ready, leave a hook as a callback here
         StateRecall['_hook_'] = hook
         return action.copy(), StateRecall
 
-    '''
-        Interfacing with marl, standard method that you must implement
-        (redirect to shell_env to help with history rolling)
-    '''
+
     def interact_with_env(self, StateRecall):
+        '''
+            Interfacing with marl, standard method that you must implement
+            (redirect to shell_env to help with history rolling)
+        '''
         return self.shell_env.interact_with_env(StateRecall)
 
-    '''
-        When shell_env finish the preparation, interact_with_env_genuine is called
-        (Determine whether or not to do a training routinue)
-    '''
+
     def interact_with_env_genuine(self, StateRecall):
-        if not StateRecall['Test-Flag']: self.train()  # when needed, train!
+        '''
+            When shell_env finish the preparation, interact_with_env_genuine is called
+            (Determine whether or not to do a training routinue)
+        '''
+        if not StateRecall['Test-Flag'] and (not self.disable_train): self.train()  # when needed, train!
         return self.action_making(StateRecall, StateRecall['Test-Flag'])
 
-    '''
-        Get event from hmp task runner, save model now!
-    '''
+
     def train(self):
+        '''
+            Get event from hmp task runner, save model now!
+        '''
         if self.batch_traj_manager.can_exec_training():
             # time to start a training routine
             self.batch_traj_manager.train_and_clear_traj_pool()
+            if AlgorithmConfig.ConfigOnTheFly: self._process_input()
+
+            if (not AlgorithmConfig.PolicyResonance) \
+                and AlgorithmConfig.personality_reinforcement_start_at_update > 0 \
+                and self.batch_traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
+                    AlgorithmConfig.PolicyResonance = True
+                    AlgorithmConfig.only_train_div_tree_and_ct = True
+                    self.trainer.fn_only_train_div_tree_and_ct()
+
+            if AlgorithmConfig.PolicyResonance:
+                self._update_yita()
+                self._update_personality_division()
+
+            PolicyResonance = 1 if AlgorithmConfig.PolicyResonance else 0
+            self.mcv.rec(PolicyResonance, 'PolicyResonance')
+            self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
+            self.mcv.rec(AlgorithmConfig.yita, 'yita')
+
+    def _update_personality_division(self):
+        '''
+            increase personality tree level @_div_tree_level_inc_per_update per fn call, 
+            when floating break int threshold, the tree enters next level
+        '''
+        personality_tree = self.policy.AT_div_tree
+        personality_tree.current_level_floating += AlgorithmConfig._div_tree_level_inc_per_update
+        if personality_tree.current_level_floating > personality_tree.max_level:
+            personality_tree.current_level_floating = personality_tree.max_level
+
+        expected_level = int(personality_tree.current_level_floating)
+        if expected_level == personality_tree.current_level: return
+        personality_tree.change_div_tree_level(expected_level, auto_transfer=True)
+        print('[div_tree]: change_div_tree_level, ', personality_tree.current_level)
+
+
+    def _update_yita(self):
+        '''
+            increase yita by @_yita_inc_per_update per function call
+        '''
+        AlgorithmConfig.yita += AlgorithmConfig._yita_inc_per_update
+        if AlgorithmConfig.yita > AlgorithmConfig.yita_max:
+            AlgorithmConfig.yita = AlgorithmConfig.yita_max
+        print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)
+
+    def _process_input(self):
+        if not os.path.exists(self.input_file_dir): return
+
+        with open(self.input_file_dir, 'r', encoding='utf8') as f:
+            cmdlines = f.readlines()
+
+        cmdlines_writeback = []
+        any_change = False
+
+        for cmdline in cmdlines:
+            if cmdline.startswith('#') or cmdline=="\n" or cmdline==" \n":
+                cmdlines_writeback.append(cmdline)
+            else:
+                any_change = True
+                try:
+                    print亮绿('[foundation.py] ------- executing: %s ------'%cmdline)
+                    exec(cmdline)
+                    cmdlines_writeback.append('# [execute successfully]\t'+cmdline)
+                except:
+                    print红(traceback.format_exc())
+                    cmdlines_writeback.append('# [execute failed]\t'+cmdline)
+
+        if any_change:
+            with open(self.input_file_dir, 'w+', encoding='utf8') as f:
+                f.writelines(cmdlines_writeback)
+
 
     '''
         Get event from hmp task runner, save model now!
     '''
     def on_notify(self, message, **kargs):
         self.save_model(
-            update_cnt=self.batch_traj_manager.update_cnt,
+            update_cnt = self.batch_traj_manager.update_cnt,
             info=str(kargs)
         )
 

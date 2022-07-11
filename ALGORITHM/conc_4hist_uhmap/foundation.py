@@ -38,12 +38,11 @@ class AlgorithmConfig:
     # resulting in more samples and causing GPU OOM,
     # prevent this by fixing the number of samples to initial
     # by randomly sampling and droping
-    fix_n_sample = False
+    prevent_batchsize_oom = False
     gamma_in_reward_forwarding = False
     gamma_in_reward_forwarding_value = 0.99
 
     # extral
-    actor_attn_mod = False
     load_specific_checkpoint = ''
     dual_conc = True
 
@@ -71,11 +70,25 @@ class ReinforceAlgorithmFoundation(object):
         self.policy = self.policy.to(self.device)
 
         self.AvgRewardAgentWise = AlgorithmConfig.take_reward_as_unity
+        # initialize policy network and traj memory manager
         from .ppo import PPO
-        self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         from .trajectory import BatchTrajManager
-        self.batch_traj_manager = BatchTrajManager(n_env=n_thread, traj_limit=int(GlobalConfig.scenario_config.MaxEpisodeStep), 
-                                                   trainer_hook=self.trainer.train_on_traj)
+        self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
+        self.batch_traj_manager = BatchTrajManager(
+            n_env=n_thread, traj_limit=int(GlobalConfig.scenario_config.MaxEpisodeStep),
+            trainer_hook=self.trainer.train_on_traj)
+
+        # confirm that reward method is correct
+        if self.scenario_config.RewardAsUnity != AlgorithmConfig.take_reward_as_unity:
+            assert self.scenario_config.RewardAsUnity
+            assert not AlgorithmConfig.take_reward_as_unity
+            print亮紫(
+                'Warning, the scenario (MISSION) provide `RewardAsUnity`, but AlgorithmConfig does not `take_reward_as_unity` !')
+            print亮紫(
+                'If you continue, team reward will be duplicated to serve as individual rewards, wait 3s to proceed...')
+            time.sleep(3)
+
+        # load checkpoints
         self.load_checkpoint = AlgorithmConfig.load_checkpoint
         logdir = GlobalConfig.logdir
         # makedirs if not exists
@@ -94,11 +107,11 @@ class ReinforceAlgorithmFoundation(object):
         self.patience = 1000
 
     # interfacing with marl
-    def interact_with_env(self, State_Recall):
-        return self.shell_env.interact_with_env(State_Recall) # redirect to shell_env to help with history rolling
+    def interact_with_env(self, StateRecall):
+        return self.shell_env.interact_with_env(StateRecall) # redirect to shell_env to help with history rolling
 
-    def interact_with_env_genuine(self, State_Recall):
-        if not State_Recall['Test-Flag']: 
+    def interact_with_env_genuine(self, StateRecall):
+        if not StateRecall['Test-Flag']: 
             if not self.policy.training: 
                 self.policy.train()
             self.train()  # when needed, train!
@@ -106,36 +119,36 @@ class ReinforceAlgorithmFoundation(object):
             if self.policy.training: 
                 self.policy.eval()
 
-        return self.action_making(State_Recall, State_Recall['Test-Flag'])
+        return self.action_making(StateRecall, StateRecall['Test-Flag'])
 
     def train(self):
         if self.batch_traj_manager.can_exec_training():  
             self.batch_traj_manager.train_and_clear_traj_pool() # time to start a training routine
 
-    def action_making(self, State_Recall, test_mode):
-        assert State_Recall['obs'] is not None, ('Make sure obs is ok')
+    def action_making(self, StateRecall, test_mode):
+        assert StateRecall['obs'] is not None, ('Make sure obs is ok')
 
-        obs, threads_active_flag = State_Recall['obs'], State_Recall['threads_active_flag']
+        obs, threads_active_flag = StateRecall['obs'], StateRecall['threads_active_flag']
         assert len(obs) == sum(threads_active_flag), ('Make sure the right batch of obs!')
-        avail_act = State_Recall['avail_act'] if 'avail_act' in State_Recall else None
+        avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
 
         with torch.no_grad():
             action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act)
 
         # Warning! vars named like _x_ are aligned, others are not!
         traj_frag = {
-            "_SKIP_":        ~threads_active_flag, 
+            "_SKIP_":        ~threads_active_flag,
             "value":         value,
             "actionLogProb": action_log_prob,
             "obs":           obs,
             "action":        action,
         }
-        if avail_act: traj_frag.update({'avail_act':  avail_act})
+        if avail_act is not None: traj_frag.update({'avail_act':  avail_act})
         hook = self.commit_frag(traj_frag, req_hook = True) if not test_mode else self._no_hook
-        
+
         # deal with rollout later when the reward is ready, leave a hook as a callback here
-        State_Recall['_hook_'] = hook
-        return action.copy(), State_Recall
+        StateRecall['_hook_'] = hook
+        return action.copy(), StateRecall
 
     '''
         Get event from hmp task runner, save model now!
@@ -145,7 +158,7 @@ class ReinforceAlgorithmFoundation(object):
             update_cnt = self.batch_traj_manager.update_cnt,
             info=str(kargs)
         )
-        
+
     '''
         save model now!
         save if triggered when:
