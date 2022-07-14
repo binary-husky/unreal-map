@@ -30,7 +30,7 @@ class mcom():
         self.path = path
 
         if draw_mode in ['Web', 'Native', 'Img', 'Threejs']:
-            self.draw_process = True; print亮红('[mcom.py]: draw process active!')
+            self.draw_process = True; print红('[mcom.py]: draw process active!')
             port = find_free_port()
             self.draw_tcp_port = ('localhost', port)
             kargs = {

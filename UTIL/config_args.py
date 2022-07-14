@@ -41,7 +41,7 @@ def prepare_args(vb=True):
             override_config_file('config.py->GlobalConfig', {'note':note_name_overide}, vb)
     if not os.path.exists(cfg.logdir): os.makedirs(cfg.logdir)
     if not cfg.recall_previous_session: 
-        copyfile(args.cfg, '%s/experiment.json'%cfg.logdir)
+        copyfile(args.cfg, '%s/experiment.jsonc'%cfg.logdir)
         backup_files(cfg.backup_files, cfg.logdir)
         cfg.machine_info = register_machine_info(cfg.logdir)
     cfg.cfg_ready = True

@@ -39,7 +39,7 @@ class mcom():
         if draw_mode in ['Web', 'Native', 'Img', 'Threejs']:
             self.draw_process = True
             port = find_free_port()
-            print亮红('[mcom.py]: draw process active!')
+            print红('[mcom.py]: draw process active!')
             self.draw_tcp_port = ('localhost', port)
             kargs.update({
                 'draw_mode': draw_mode,

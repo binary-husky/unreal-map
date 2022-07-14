@@ -35,7 +35,7 @@ class mcom():
         # rapid_flush 当数据流不大时，及时倾倒文件缓存内容 (set 'False' if you'd like your SSD to survive longer)
         self.draw_mode = draw_mode
         if draw_mode in ['Web', 'Native', 'Img', 'pyqtgraph']:
-            self.draw_process = True; print亮红('draw process active!')
+            self.draw_process = True; print红('draw process active!')
             port = find_free_port()
             self.draw_udp_client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.draw_udp_port = ('localhost', port)
