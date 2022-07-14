@@ -18,7 +18,7 @@ class AlgorithmConfig:
     upper_training_epoch = 4
     load_checkpoint = False
     checkpoint_reload_cuda = False
-    take_reward_as_unity = False
+    TakeRewardAsUnity = False
     use_normalization = True
     add_prob_loss = False
     n_focus_on = 2
@@ -68,7 +68,7 @@ class ReinforceAlgorithmFoundation(object):
                           dual_conc=AlgorithmConfig.dual_conc)
         self.policy = self.policy.to(self.device)
 
-        self.AvgRewardAgentWise = AlgorithmConfig.take_reward_as_unity
+        self.AvgRewardAgentWise = AlgorithmConfig.TakeRewardAsUnity
         # initialize policy network and traj memory manager
         from .ppo import PPO
         from .trajectory import BatchTrajManager
@@ -78,11 +78,11 @@ class ReinforceAlgorithmFoundation(object):
             trainer_hook=self.trainer.train_on_traj)
 
         # confirm that reward method is correct
-        if GlobalConfig.scenario_config.RewardAsUnity != AlgorithmConfig.take_reward_as_unity:
+        if GlobalConfig.scenario_config.RewardAsUnity != AlgorithmConfig.TakeRewardAsUnity:
             assert GlobalConfig.scenario_config.RewardAsUnity
-            assert not AlgorithmConfig.take_reward_as_unity
+            assert not AlgorithmConfig.TakeRewardAsUnity
             print亮紫(
-                'Warning, the scenario (MISSION) provide `RewardAsUnity`, but AlgorithmConfig does not `take_reward_as_unity` !')
+                'Warning, the scenario (MISSION) provide `RewardAsUnity`, but AlgorithmConfig does not `TakeRewardAsUnity` !')
             print亮紫(
                 'If you continue, team reward will be duplicated to serve as individual rewards, wait 3s to proceed...')
             time.sleep(3)

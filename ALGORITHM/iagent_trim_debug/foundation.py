@@ -13,7 +13,7 @@ class AlgorithmConfig:
     upper_training_epoch = 4
     load_checkpoint = False
     checkpoint_reload_cuda = False
-    take_reward_as_unity = False
+    TakeRewardAsUnity = False
     use_normalization = True
     seperate_critic = False
 
@@ -64,7 +64,7 @@ class ReinforceAlgorithmFoundation(object):
         self.device = device
         self.policy = self.policy.to(self.device)
 
-        self.AvgRewardAgentWise = alg_config.take_reward_as_unity
+        self.AvgRewardAgentWise = alg_config.TakeRewardAsUnity
         from .ppo import PPO
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         from .trajectory import BatchTrajManager

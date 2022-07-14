@@ -1,4 +1,3 @@
-from scipy.optimize import linear_sum_assignment
 import numpy as np
 import copy
 import math

@@ -110,11 +110,14 @@ class MMPlatform(object):
             # otherwise t_name in key
             s_key = key.replace(t_name, '')
             t_intel_basic[s_key] = runner_info[key]
-            if not ('_hook_' in s_key): continue
+            if (s_key != '_hook_'): continue
             # otherwise deal with _hook_
-            self.deal_with_hook(t_intel_basic[s_key], t_intel_basic)
-            runner_info[key] = t_intel_basic[s_key] = None
-
+            if t_intel_basic['_hook_'] is not None:
+                self.deal_with_hook(t_intel_basic['_hook_'], t_intel_basic)
+                runner_info[key] = t_intel_basic['_hook_'] = None
+            # remove _hook_ key
+            t_intel_basic.pop('_hook_') and runner_info.pop(key)
+            
         # t_intel_basic = self.filter_running(t_intel_basic, RUNNING)
         return t_intel_basic
 
