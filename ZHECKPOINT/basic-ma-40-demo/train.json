@@ -27,9 +27,9 @@
     },
     "ALGORITHM.ppo_ma_mathdb.foundation.py->AlgorithmConfig": {
         "personality_reinforcement_start_at_update": 512,
-        "_div_tree_level_inc_per_update": 0.1,
+        "div_tree_level_inc_per_update": 0.1,
         "yita_max": 0.75,
-        "_yita_inc_per_update": 0.0075,
+        "yita_inc_per_update": 0.0075,
         "load_checkpoint": false,
         "only_train_div_tree_and_ct": false,
         "train_traj_needed": "512",
