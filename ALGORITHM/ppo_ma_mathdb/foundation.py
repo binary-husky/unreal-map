@@ -69,9 +69,9 @@ class AlgorithmConfig:
 
     # personality reinforcement
     personality_reinforcement_start_at_update = -1
-    _div_tree_level_inc_per_update = 1/10 # (30 updates per inc)
+    div_tree_level_inc_per_update = 1/10 # (30 updates per inc)
     yita_max = 0.75
-    _yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
+    yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
 
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
@@ -216,7 +216,7 @@ class ReinforceAlgorithmFoundation(object):
 
     def _update_personality_division(self):
         personality_tree = self.policy.AT_div_tree
-        personality_tree.current_level_floating += AlgorithmConfig._div_tree_level_inc_per_update
+        personality_tree.current_level_floating += AlgorithmConfig.div_tree_level_inc_per_update
         if personality_tree.current_level_floating > personality_tree.max_level:
             personality_tree.current_level_floating = personality_tree.max_level
 
@@ -229,7 +229,7 @@ class ReinforceAlgorithmFoundation(object):
 
 
     def _update_yita(self):
-        AlgorithmConfig.yita += AlgorithmConfig._yita_inc_per_update
+        AlgorithmConfig.yita += AlgorithmConfig.yita_inc_per_update
         if AlgorithmConfig.yita > AlgorithmConfig.yita_max:
             AlgorithmConfig.yita = AlgorithmConfig.yita_max
         print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)

@@ -245,7 +245,7 @@ class Net(nn.Module):
         if eval_mode: threat = self.CT_get_threat(v_M_fuse)
 
 
-        logit2act = self.logit2act if AlgorithmConfig.PolicyResonance else self.logit2act_old
+        logit2act = self.logit2act if AlgorithmConfig.PR_ACTIVATE else self.logit2act_old
         act, actLogProbs, distEntropy, probs = logit2act(logits, eval_mode=eval_mode, 
                                                             test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 

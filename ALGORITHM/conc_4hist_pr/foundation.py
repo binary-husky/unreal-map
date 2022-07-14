@@ -50,23 +50,25 @@ class AlgorithmConfig:
     # ignore_test_mode = False
 
     # net
-    net_hdim = 48
+    net_hdim = 24
     n_agent = 'auto load, do not change'
     only_train_div_tree_and_ct = False
     yita = 0.
-    div_tree_init_level = 0
-    yita_min_prob = 0.15
-    PolicyResonance = False
+    div_tree_init_level = 0 # set to -1 means max level
+    yita_min_prob = 0.15  #  should be >= (1/n_action)
     ConfigOnTheFly = True
     UseDivTree = True
     RecProbs = False
 
 
     # personality reinforcement dynamic
+    # 0 means activiting PR at beginning, -1 means never activate PR, >0 means activiting PR after some updates
     personality_reinforcement_start_at_update = -1
-    _div_tree_level_inc_per_update = 0.0 # (30 updates per inc)
+    div_tree_level_inc_per_update = 0.0 # (30 updates per inc)
     yita_max = 0.75
-    _yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
+    yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
+
+    PR_ACTIVATE = False # please always init to False
 
 class ReinforceAlgorithmFoundation(object):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
@@ -94,7 +96,7 @@ class ReinforceAlgorithmFoundation(object):
         from .ppo import PPO
         from .trajectory import BatchTrajManager
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
-        self.batch_traj_manager = BatchTrajManager(
+        self.traj_manager = BatchTrajManager(
             n_env=n_thread, traj_limit=int(GlobalConfig.scenario_config.MaxEpisodeStep),
             trainer_hook=self.trainer.train_on_traj)
 
@@ -134,6 +136,7 @@ class ReinforceAlgorithmFoundation(object):
         # Skip currupt data integraty check after this patience is exhausted
         self.patience = 1000
         self.disable_train = False
+        assert AlgorithmConfig.personality_reinforcement_start_at_update>=0, "?"
 
     def action_making(self, StateRecall, test_mode):
         assert StateRecall['obs'] is not None, ('Make sure obs is ok')
@@ -143,7 +146,7 @@ class ReinforceAlgorithmFoundation(object):
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
 
         with torch.no_grad():
-            if AlgorithmConfig.PolicyResonance: self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
+            if AlgorithmConfig.PR_ACTIVATE: self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
             action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act)
 
         # Warning! vars named like _x_ are aligned, others are not!
@@ -179,38 +182,59 @@ class ReinforceAlgorithmFoundation(object):
         return self.action_making(StateRecall, StateRecall['Test-Flag'])
 
 
+    def activate_pr(self):
+        AlgorithmConfig.PR_ACTIVATE = True
+        AlgorithmConfig.only_train_div_tree_and_ct = True
+        self.trainer.fn_only_train_div_tree_and_ct()
+
+    def when_pr_inactive(self):
+        assert not AlgorithmConfig.PR_ACTIVATE
+        if AlgorithmConfig.personality_reinforcement_start_at_update >= 0:
+            # mean need to activate pr later
+            if self.traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
+                # time is up, activate pr
+                self.activate_pr()
+
+        # log
+        PR_ACTIVATE = 1 if AlgorithmConfig.PR_ACTIVATE else 0
+        self.mcv.rec(PR_ACTIVATE, 'PR_ACTIVATE')
+        self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
+        self.mcv.rec(AlgorithmConfig.yita, 'yita')
+
+    def when_pr_active(self):
+        assert AlgorithmConfig.PR_ACTIVATE
+        self._update_yita()
+        self._update_personality_division()
+
+        # log
+        PR_ACTIVATE = 1 if AlgorithmConfig.PR_ACTIVATE else 0
+        self.mcv.rec(PR_ACTIVATE, 'PR_ACTIVATE')
+        self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
+        self.mcv.rec(AlgorithmConfig.yita, 'yita')
+
     def train(self):
         '''
             Get event from hmp task runner, save model now!
         '''
-        if self.batch_traj_manager.can_exec_training():
+        if self.traj_manager.can_exec_training():
             # time to start a training routine
-            self.batch_traj_manager.train_and_clear_traj_pool()
-            if AlgorithmConfig.ConfigOnTheFly: self._process_input()
+            self.traj_manager.train_and_clear_traj_pool()
+            # read configuration
+            if AlgorithmConfig.ConfigOnTheFly:
+                self._config_on_fly()
+            if AlgorithmConfig.PR_ACTIVATE:
+                self.when_pr_active()
+            elif not AlgorithmConfig.PR_ACTIVATE:
+                self.when_pr_inactive()
 
-            if (not AlgorithmConfig.PolicyResonance) \
-                and AlgorithmConfig.personality_reinforcement_start_at_update > 0 \
-                and self.batch_traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
-                    AlgorithmConfig.PolicyResonance = True
-                    AlgorithmConfig.only_train_div_tree_and_ct = True
-                    self.trainer.fn_only_train_div_tree_and_ct()
-
-            if AlgorithmConfig.PolicyResonance:
-                self._update_yita()
-                self._update_personality_division()
-
-            PolicyResonance = 1 if AlgorithmConfig.PolicyResonance else 0
-            self.mcv.rec(PolicyResonance, 'PolicyResonance')
-            self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
-            self.mcv.rec(AlgorithmConfig.yita, 'yita')
 
     def _update_personality_division(self):
         '''
-            increase personality tree level @_div_tree_level_inc_per_update per fn call, 
+            increase personality tree level @div_tree_level_inc_per_update per fn call, 
             when floating break int threshold, the tree enters next level
         '''
         personality_tree = self.policy.AT_div_tree
-        personality_tree.current_level_floating += AlgorithmConfig._div_tree_level_inc_per_update
+        personality_tree.current_level_floating += AlgorithmConfig.div_tree_level_inc_per_update
         if personality_tree.current_level_floating > personality_tree.max_level:
             personality_tree.current_level_floating = personality_tree.max_level
 
@@ -222,14 +246,14 @@ class ReinforceAlgorithmFoundation(object):
 
     def _update_yita(self):
         '''
-            increase yita by @_yita_inc_per_update per function call
+            increase yita by @yita_inc_per_update per function call
         '''
-        AlgorithmConfig.yita += AlgorithmConfig._yita_inc_per_update
+        AlgorithmConfig.yita += AlgorithmConfig.yita_inc_per_update
         if AlgorithmConfig.yita > AlgorithmConfig.yita_max:
             AlgorithmConfig.yita = AlgorithmConfig.yita_max
         print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)
 
-    def _process_input(self):
+    def _config_on_fly(self):
         if not os.path.exists(self.input_file_dir): return
 
         with open(self.input_file_dir, 'r', encoding='utf8') as f:
@@ -261,7 +285,7 @@ class ReinforceAlgorithmFoundation(object):
     '''
     def on_notify(self, message, **kargs):
         self.save_model(
-            update_cnt = self.batch_traj_manager.update_cnt,
+            update_cnt = self.traj_manager.update_cnt,
             info=str(kargs)
         )
 
@@ -330,7 +354,7 @@ class ReinforceAlgorithmFoundation(object):
         self._unfi_frag_.update(new_frag)
         self.__completed_frag = self.mask_paused_env(self._unfi_frag_)
         # put the frag into memory
-        self.batch_traj_manager.feed_traj(self.__completed_frag)
+        self.traj_manager.feed_traj(self.__completed_frag)
         self._unfi_frag_ = None
 
     def mask_paused_env(self, frag):

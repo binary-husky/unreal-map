@@ -190,8 +190,8 @@ class ReinforceAlgorithmFoundation(object):
 
     def _update_yita(self, update_cnt):
         max_yita = 0.75
-        _yita_inc_per_update = max_yita/500
-        AlgorithmConfig.yita += _yita_inc_per_update
+        yita_inc_per_update = max_yita/500
+        AlgorithmConfig.yita += yita_inc_per_update
         if AlgorithmConfig.yita > 0.75:
             AlgorithmConfig.yita = 0.75
         print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)

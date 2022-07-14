@@ -1,6 +1,6 @@
 import json, os, subprocess, time, stat, platform
 import numpy as np
-from UTIL.colorful import print紫, print靛, print亮红
+from UTIL.colorful import print蓝, print靛, print亮红
 from UTIL.network import TcpClientP2PWithCompress, find_free_port_no_repeat
 from UTIL.config_args import ChainVar
 from ..common.base_env import BaseEnv
@@ -150,7 +150,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         if ScenarioConfig.AutoPortOverride:
             which_port = find_free_port_no_repeat()   # port for hmp data exchanging
         ue_networking = find_free_port_no_repeat()    # port for remote visualizing
-        print('Port %d will be used by hmp, port %d will be used by UE internally'%(which_port, ue_networking))
+        print蓝('Port %d will be used by hmp, port %d will be used by UE internally'%(which_port, ue_networking))
 
         ipport = (ScenarioConfig.TcpAddr, which_port)
         # os.system()
@@ -161,7 +161,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             # causing some error calcualtion dt = 1/FrameRate
             # which will be enlarged due to Butterfly Effect
             # therefore we have to make sure that FrameRate = 16,32,64,...
-            print亮红('checking ScenarioConfig args problems ...') 
+            print('checking ScenarioConfig args problems ...') 
             assert binary_friendly(1/ScenarioConfig.FrameRate), "* A Butterfly Effect problem *"
             assert binary_friendly(ScenarioConfig.TimeDilation/256), "* A Butterfly Effect problem *"
             real_step_time = np.floor(ScenarioConfig.StepGameTime/ScenarioConfig.TimeDilation*ScenarioConfig.FrameRate)*ScenarioConfig.TimeDilation/ScenarioConfig.FrameRate
@@ -189,7 +189,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-DebugMod=False',
                     '-LockGameDuringCom=True',
                 ], stdout=subprocess.DEVNULL)
-                print紫('UHMAP (Headless) started ...')
+                print('UHMAP (Headless) started ...')
             elif self.render and ScenarioConfig.UhmapRenderExe != '':
                 self.sim_thread = subprocess.Popen([
                     ScenarioConfig.UhmapRenderExe,
@@ -207,7 +207,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     "-ResY=720",
                     "-WINDOWED"
                 ], stdout=subprocess.DEVNULL)
-                print紫('UHMAP (Render) started ...')
+                print('UHMAP (Render) started ...')
             else:
                 print('Cannot start Headless Server Or GUI Server!')
                 assert False, 'Cannot start Headless Server Or GUI Server!'

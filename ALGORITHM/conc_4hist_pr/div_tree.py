@@ -18,6 +18,8 @@ class DivTree(nn.Module): # merge by MLP version
         self.max_level = len(self.div_tree) - 1
         self.current_level = 0
         self.init_level = AlgorithmConfig.div_tree_init_level
+        if self.init_level < 0:
+            self.init_level = self.max_level
         self.current_level_floating = 0.0
 
         get_net = lambda: nn.Sequential(
@@ -41,6 +43,7 @@ class DivTree(nn.Module): # merge by MLP version
     def change_div_tree_level(self, level, auto_transfer=True):
         print('performing div tree level change (%d -> %d/%d) \n'%(self.current_level, level, self.max_level))
         self.current_level = level
+        self.current_level_floating = level
         assert len(self.div_tree) > self.current_level, ('Reach max level already!')
         if not auto_transfer: return
         transfer_list = []

@@ -1,4 +1,5 @@
 import argparse, os, time, func_timeout
+from ast import Global
 from shutil import copyfile, copytree, ignore_patterns
 from .colorful import *
 
@@ -11,6 +12,73 @@ class ChainVar(object):
     def __init__(self, chain_func, chained_with):
         self.chain_func = chain_func
         self.chained_with = chained_with
+
+
+'''
+    Load all parameters in place
+'''
+def prepare_args(vb=True):
+    prepare_recycle_folder()
+    parser = argparse.ArgumentParser(description='HMP')
+    parser.add_argument('-c', '--cfg', help='Path of the configuration file')
+    parser.add_argument('-s', '--skip', action='store_true', help='skip logdir check')
+    args, unknown = parser.parse_known_args()
+    load_via_json = (hasattr(args, 'cfg') and args.cfg is not None)
+    assert load_via_json
+    skip_logdir_check = (hasattr(args, 'skip') and (args.skip is not None) and args.skip) or (not vb)
+
+    if len(unknown) > 0 and vb: print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
+    import commentjson as json
+    with open(args.cfg, encoding='utf8') as f:
+        json_data = json.load(f)
+    new_args = load_config_via_json(json_data, vb)
+
+    from config import GlobalConfig as cfg
+    note_name_overide = None
+    if not skip_logdir_check: 
+        note_name_overide = check_experiment_log_path(cfg.logdir)
+        if note_name_overide is not None: 
+            override_config_file('config.py->GlobalConfig', {'note':note_name_overide}, vb)
+    if not os.path.exists(cfg.logdir): os.makedirs(cfg.logdir)
+    if not cfg.recall_previous_session: 
+        copyfile(args.cfg, '%s/experiment.json'%cfg.logdir)
+        backup_files(cfg.backup_files, cfg.logdir)
+        cfg.machine_info = register_machine_info(cfg.logdir)
+    cfg.cfg_ready = True
+    return cfg
+
+def load_config_via_json(json_data, vb):
+    for cfg_group in json_data:
+        if cfg_group == 'config.py->GlobalConfig': random_seed_warning(json_data[cfg_group])
+        dependency = override_config_file(cfg_group, json_data[cfg_group], vb)
+        if dependency is not None:
+            for dep in dependency:
+                assert any([dep in k for k in json_data.keys()]), 'Arg check failure, There is something missing!'
+    check_config_relevence(json_data)
+    return None
+
+
+def override_config_file(cfg_group, new_cfg, vb):
+    import importlib
+    assert '->' in cfg_group
+    str_pro = '------------- %s -------------'%cfg_group
+    if vb:  print绿(str_pro)
+    file_, class_ = cfg_group.split('->')
+    if '.py' in file_: 
+        # replace it with removesuffix('.py') if you have python>=3.9
+        if file_.endswith('.py'): file_ = file_[:-3]    
+    default_configs = getattr(importlib.import_module(file_), class_)
+    for key in new_cfg:
+        if new_cfg[key] is None: continue
+        my_setattr(conf_class=default_configs, key=key, new_value=new_cfg[key], vb=vb)
+    altered_cv = secure_chained_vars(default_configs, new_cfg, vb)
+    if vb:
+        print绿(''.join(['-']*len(str_pro)),)
+        arg_summary(default_configs, new_cfg, altered_cv)
+        print绿(''.join(['-']*len(str_pro)),'\n\n\n')
+    if 'TEAM_NAMES' in new_cfg:
+        return [item.split('->')[0] for item in new_cfg['TEAM_NAMES']]
+    return None
 
 def secure_chained_vars(default_cfg, new_cfg, vb):
     default_cfg_dict = default_cfg.__dict__
@@ -34,98 +102,29 @@ def secure_chained_vars(default_cfg, new_cfg, vb):
         altered_cv.append(o_key)
     return altered_cv
 
-def override_config_file(cfg_group, new_cfg, vb):
-    import importlib
-    assert '->' in cfg_group
-    str_pro = '------------- %s -------------'%cfg_group
-    if vb:  print绿(str_pro)
-    file_, class_ = cfg_group.split('->')
-    if '.py' in file_: 
-        # replace it with removesuffix('.py') if you have python>=3.9
-        if file_.endswith('.py'): file_ = file_[:-3]    
-    default_configs = getattr(importlib.import_module(file_), class_)
-    for key in new_cfg:
-        if new_cfg[key] is None: continue
-        my_setattr(conf_class=default_configs, key=key, new_value=new_cfg[key], vb=vb)
-    altered_cv = secure_chained_vars(default_configs, new_cfg, vb)
-    if vb:
-        print绿(''.join(['-']*len(str_pro)),)
-        arg_summary(default_configs, new_cfg, altered_cv)
-        print绿(''.join(['-']*len(str_pro)),'\n\n\n')
-    if 'TEAM_NAMES' in new_cfg:
-        return [item.split('->')[0] for item in new_cfg['TEAM_NAMES']]
-    return None
-        
+"""
+    make sure that env selection Matches env configuration
+"""
 def check_config_relevence(json_data):
     env_name = json_data['config.py->GlobalConfig']['env_name']
     env_path = json_data['config.py->GlobalConfig']['env_path']
     for key in json_data.keys():
         if 'MISSION' in key: assert env_path in key, ('configering wrong env!')
 
-def load_config_via_json(json_data, vb):
-    for cfg_group in json_data:
-        dependency = override_config_file(cfg_group, json_data[cfg_group], vb)
-        if dependency is not None:
-            for dep in dependency:
-                assert any([dep in k for k in json_data.keys()]), 'Arg check failure, There is something missing!'
-    check_config_relevence(json_data)
-    return None
-
-def get_core_args(vb=True):
-    parser = argparse.ArgumentParser(description='HMP')
-    parser.add_argument('-c', '--cfg', help='Path of the configuration file')
-    parser.add_argument('-s', '--skip', action='store_true', help='skip logdir check')
-    args, unknown = parser.parse_known_args()
-    load_via_json = (hasattr(args, 'cfg') and args.cfg is not None)
-    if load_via_json:
-        if len(unknown) > 0 and vb:  
-            print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
-        import commentjson as json
-        with open(args.cfg) as f: json_data = json.load(f)
-        core_group = 'config.py->GlobalConfig'
-        override_config_file(core_group, json_data[core_group], vb)
-    else:
-        assert False
-
-    from config import GlobalConfig as cfg
-    return cfg
+"""
+    Warn user if the random seed is not given
+"""
+def random_seed_warning(json_data):
+    if 'seed' not in json_data:
+        from config import GlobalConfig as cfg
+        print亮红('Random seed not given, using %d'%cfg.seed)
+        time.sleep(5)
 
 def prepare_recycle_folder():
     import glob
     if not os.path.exists('./TEMP'): os.mkdir('./TEMP')
     for tmp in glob.glob('./TEMP/find_free_ports_*'):
         os.remove(tmp)
-
-def prepare_args(vb=True):
-    prepare_recycle_folder()
-    parser = argparse.ArgumentParser(description='HMP')
-    parser.add_argument('-c', '--cfg', help='Path of the configuration file')
-    parser.add_argument('-s', '--skip', action='store_true', help='skip logdir check')
-    args, unknown = parser.parse_known_args()
-    load_via_json = (hasattr(args, 'cfg') and args.cfg is not None)
-    assert load_via_json
-    skip_logdir_check = (hasattr(args, 'skip') and (args.skip is not None) and args.skip) or (not vb)
-
-    if len(unknown) > 0 and vb: 
-        print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
-    import commentjson as json
-    with open(args.cfg, encoding='utf8') as f:
-        json_data = json.load(f)
-    new_args = load_config_via_json(json_data, vb)
-
-    from config import GlobalConfig as cfg
-    note_name_overide = None
-    if not skip_logdir_check: 
-        note_name_overide = check_experiment_log_path(cfg.logdir)
-        if note_name_overide is not None: 
-            override_config_file('config.py->GlobalConfig', {'note':note_name_overide}, vb)
-    if not os.path.exists(cfg.logdir): os.makedirs(cfg.logdir)
-    if not cfg.recall_previous_session: 
-        copyfile(args.cfg, '%s/experiment.json'%cfg.logdir)
-        backup_files(cfg.backup_files, cfg.logdir)
-        cfg.machine_info = register_machine_info(cfg.logdir)
-    cfg.cfg_ready = True
-    return cfg
 
 def register_machine_info(logdir):
     import socket, json, subprocess, uuid
@@ -156,7 +155,6 @@ def backup_files(files, logdir):
             assert os.path.isdir(file), ('cannot find', file)
             copytree(file, '%s/backup_files/%s'%(logdir, os.path.basename(file)), 
                 dirs_exist_ok=True, ignore=ignore_patterns("__pycache__"))
-
     return 
 
 def check_experiment_log_path(logdir):
@@ -173,17 +171,9 @@ def check_experiment_log_path(logdir):
             res = None
     return res
 
-
 @func_timeout.func_set_timeout(60)
 def askChoice():
     return input('>>')
-
-
-
-# def input_or_timeout(timeout):
-#     for i in range(30):
-#         time.sleep(1)
-#     return
 
 def arg_summary(config_class, modify_dict = {}, altered_cv = []):
     for key in config_class.__dict__: 
@@ -196,7 +186,6 @@ def arg_summary(config_class, modify_dict = {}, altered_cv = []):
                 print靛(key.center(25), '-->', str(getattr(config_class,key)))
         else: 
             print红(key.center(25), '-->', str(getattr(config_class,key)))
-
 
 def my_setattr(conf_class, key, new_value, vb):
     assert hasattr(conf_class, key), (conf_class, 'has no such config item: **%s**'%key)
