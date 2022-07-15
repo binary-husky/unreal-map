@@ -88,31 +88,31 @@ class ShellEnvWrapper(object):
             if n == 0: break
         return arr
 
-    def interact_with_env(self, State_Recall):
+    def interact_with_env(self, StateRecall):
         if not hasattr(self, 'agent_type'):
             self.agent_uid = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[self.team]
             self.agent_type = [agent_meta['type'] 
-                for agent_meta in State_Recall['Latest-Team-Info'][0]['dataArr']
+                for agent_meta in StateRecall['Latest-Team-Info'][0]['dataArr']
                 if agent_meta['uId'] in self.agent_uid]
 
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         # read internal coop graph info
-        obs = State_Recall['Latest-Obs']
+        obs = StateRecall['Latest-Obs']
         if not GlobalConfig.scenario_config.EntityOriented:    
             # 如果环境观测非EntityOriented，可以额外创生一个维度，具体细节需要斟酌
             obs = repeat_at(obs, insert_dim=-2, n_times=self.n_entity_placeholder//2, copy_mem=True)
             obs[:,:,2:] = np.nan    # 0 is self; 1 is repeated self; 2,3,... is NaN
-        P = State_Recall['ENV-PAUSE']
-        RST = State_Recall['Env-Suffered-Reset']
+        P = StateRecall['ENV-PAUSE']
+        RST = StateRecall['Env-Suffered-Reset']
         
         if RST.all(): # just experienced full reset on all episode, this is the first step of all env threads
             yita = AlgorithmConfig.yita
             # randomly pick threads
             FixMax = np.random.rand(self.n_thread) < yita
-            State_Recall['_FixMax_'] = FixMax
+            StateRecall['_FixMax_'] = FixMax
             # print(FixMax)
 
-        his_pool_obs = State_Recall['_Histpool_Obs_'] if '_Histpool_Obs_' in State_Recall \
+        his_pool_obs = StateRecall['_history_pool_obs_'] if '_history_pool_obs_' in StateRecall \
             else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])
         his_pool_obs[RST] = 0
 
@@ -122,17 +122,17 @@ class ShellEnvWrapper(object):
         his_pool_obs[~P] = his_pool_next
         his_pool_obs[P] = 0
 
-        I_State_Recall = {'obs':obs_feed_in, 
-            'Test-Flag':State_Recall['Test-Flag'], 
-            '_FixMax_':State_Recall['_FixMax_'][~P], 
+        I_StateRecall = {'obs':obs_feed_in, 
+            'Test-Flag':StateRecall['Test-Flag'], 
+            '_FixMax_':StateRecall['_FixMax_'][~P], 
             'threads_active_flag':~P, 
-            'Latest-Team-Info':State_Recall['Latest-Team-Info'][~P],
+            'Latest-Team-Info':StateRecall['Latest-Team-Info'][~P],
             }
         if self.AvailActProvided:
-            avail_act = np.array([info['avail-act'] for info in np.array(State_Recall['Latest-Team-Info'][~P], dtype=object)])
-            I_State_Recall.update({'avail_act':avail_act})
+            avail_act = np.array([info['avail-act'] for info in np.array(StateRecall['Latest-Team-Info'][~P], dtype=object)])
+            I_StateRecall.update({'avail_act':avail_act})
 
-        act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_State_Recall)
+        act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_StateRecall)
 
         act[~P] = act_active
 
@@ -145,13 +145,11 @@ class ShellEnvWrapper(object):
         # return necessary handles to main platform
         if self.cold_start: self.cold_start = False
 
-        # <2> call a empty frame to gather reward
-        # State_Recall['_Previous_Obs_'] = obs
-        State_Recall['_Histpool_Obs_'] = his_pool_obs
-        
-        State_Recall['_hook_'] = internal_recall['_hook_']
-        assert State_Recall['_hook_'] is not None
-        return actions_list, State_Recall 
+        StateRecall['_history_pool_obs_'] = his_pool_obs
+        if not StateRecall['Test-Flag']:
+            StateRecall['_hook_'] = internal_recall['_hook_']
+            assert StateRecall['_hook_'] is not None
+        return actions_list, StateRecall 
 
     def solve_duplicate(self, obs_feed_new, prev_his_pool):
         #  input might be (n_thread, n_agent, n_entity, basic_dim), or (n_thread, n_agent, n_entity*basic_dim)

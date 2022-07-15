@@ -71,9 +71,7 @@ class Extraction_Module(nn.Module): # merge by MLP version
         super().__init__()
         h_dim = hidden_dim
         from .foundation import AlgorithmConfig
-        if AlgorithmConfig.use_my_attn:
-            self.attn = SimpleAttention(h_dim=h_dim)
-            print('use my attn')
+        self.attn = SimpleAttention(h_dim=h_dim)
 
         if activate_output:
             self.MLP = nn.Sequential(nn.Linear(h_dim * 2, h_dim), nn.ReLU(inplace=True))

@@ -262,7 +262,7 @@ class BatchTrajManager(TrajManagerBase):
         return
 
     # 函数入口
-    def feed_traj(self, traj_frag, require_hook=False):
+    def feed_traj_framedata(self, traj_frag, require_hook=False):
         # an unlock hook must be executed before new trajectory feed in
         assert self._traj_lock_buf is None
         if require_hook: 
