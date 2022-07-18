@@ -8,15 +8,15 @@ class ShellEnvWrapper(object):
     """
         A wrapper of env on ALG side to provide flexibility, e.g. achieving episode level resonance
     """
-    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, ScenarioConfig):
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.space = space
         self.mcv = mcv
         self.RL_functional = RL_functional
-        self.scenario_config = scenario_config
-        if self.scenario_config.EntityOriented:
-            self.core_dim = self.scenario_config.obs_vec_length
+        self.ScenarioConfig = ScenarioConfig
+        if self.ScenarioConfig.EntityOriented:
+            self.core_dim = self.ScenarioConfig.obs_vec_length
         else:
             self.core_dim = space['obs_space']['obs_shape']
         self.n_entity_placeholder = alg_config.n_entity_placeholder
@@ -24,8 +24,8 @@ class ShellEnvWrapper(object):
 
         # whether to use avail_act to block forbiden actions
         self.AvailActProvided = False
-        if hasattr(self.scenario_config, 'AvailActProvided'):
-            self.AvailActProvided = self.scenario_config.AvailActProvided 
+        if hasattr(self.ScenarioConfig, 'AvailActProvided'):
+            self.AvailActProvided = self.ScenarioConfig.AvailActProvided 
 
         # whether to load previously saved checkpoint
         self.load_checkpoint = alg_config.load_checkpoint

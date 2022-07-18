@@ -25,6 +25,7 @@ class rec_family(object):
         self.image_num = -1
         self.draw_mode = draw_mode
         self.vis_95percent = True
+        self.enable_percentile_clamp = True
         logdir = GlobalConfig.logdir
         self.plt = None
         if not os.path.exists(logdir):
@@ -46,6 +47,12 @@ class rec_family(object):
                 self.img_to_write = image_path
         else:
             assert False
+            
+    def rec_disable_percentile_clamp(self):
+        self.enable_percentile_clamp = False
+
+    def rec_enable_percentile_clamp(self):
+        self.enable_percentile_clamp = True
 
     def rec_init(self, colorC=None):
         if colorC is not None: self.colorC = colorC
@@ -286,9 +293,9 @@ class rec_family(object):
             limy1 = _ydata_.min() #min(self.line_list[index])
             limy2 = _ydata_.max() #max(self.line_list[index])
 
-            if len(_ydata_)>220 and self.vis_95percent:
-                limy1 = np.percentile(_ydata_, 3, interpolation='midpoint') # 5%
-                limy2 = np.percentile(_ydata_, 97, interpolation='midpoint') # 95%
+            if self.enable_percentile_clamp and len(_ydata_)>220 and self.vis_95percent:
+                limy1 = np.percentile(_ydata_, 3, interpolation='midpoint') # 3%
+                limy2 = np.percentile(_ydata_, 97, interpolation='midpoint') # 97%
 
             if limx1 != limx2 and limy1!=limy2:
                     # limx1,limy1,limx2,limy2 = target_subplot.dataLim

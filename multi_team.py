@@ -6,21 +6,21 @@ class MMPlatform(object):
 
     def __init__(self, mcv, envs):
         from config import GlobalConfig
-        self.n_t =           GlobalConfig.scenario_config.N_TEAM                # n_t => n_teams
-        n_agents_each_t =    GlobalConfig.scenario_config.N_AGENT_EACH_TEAM     # n_agents_each_t => n_agents_each_team
-        self.t_member_list = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM
-        self.t_name =        GlobalConfig.scenario_config.TEAM_NAMES
+        self.n_t =           GlobalConfig.ScenarioConfig.N_TEAM                # n_t => n_teams
+        n_agents_each_t =    GlobalConfig.ScenarioConfig.N_AGENT_EACH_TEAM     # n_agents_each_t => n_agents_each_team
+        self.t_member_list = GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM
+        self.t_name =        GlobalConfig.ScenarioConfig.TEAM_NAMES
         self.align_episode = GlobalConfig.align_episode
         self.n_thread =      GlobalConfig.num_threads
         self.RewardAsUnity = False # env give reward of each team instead of agent
-        if hasattr(GlobalConfig.scenario_config, 'RewardAsUnity'):
-            self.RewardAsUnity = GlobalConfig.scenario_config.RewardAsUnity 
+        if hasattr(GlobalConfig.ScenarioConfig, 'RewardAsUnity'):
+            self.RewardAsUnity = GlobalConfig.ScenarioConfig.RewardAsUnity 
         self.ActAsUnity = False
-        if hasattr(GlobalConfig.scenario_config, 'ActAsUnity'):
-            self.ActAsUnity = GlobalConfig.scenario_config.ActAsUnity
+        if hasattr(GlobalConfig.ScenarioConfig, 'ActAsUnity'):
+            self.ActAsUnity = GlobalConfig.ScenarioConfig.ActAsUnity
         self.ObsAsUnity = False
-        if hasattr(GlobalConfig.scenario_config, 'ObsAsUnity'):
-            self.ObsAsUnity = GlobalConfig.scenario_config.ObsAsUnity
+        if hasattr(GlobalConfig.ScenarioConfig, 'ObsAsUnity'):
+            self.ObsAsUnity = GlobalConfig.ScenarioConfig.ObsAsUnity
 
         space = envs.get_space()    # get observation space and action space
 

@@ -5,18 +5,18 @@ from .cython_func import roll_hisory
 
 
 class ShellEnvWrapper(object):
-    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, ScenarioConfig):
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.space = space
         self.mcv = mcv
         self.RL_functional = RL_functional
-        self.core_dim = scenario_config.obs_vec_length
+        self.core_dim = ScenarioConfig.obs_vec_length
 
         # whether to use avail_act to block forbiden actions
         self.AvailActProvided = False
-        if hasattr(scenario_config, 'AvailActProvided'):
-            self.AvailActProvided = scenario_config.AvailActProvided 
+        if hasattr(ScenarioConfig, 'AvailActProvided'):
+            self.AvailActProvided = ScenarioConfig.AvailActProvided 
 
         # whether to load previously saved checkpoint
         self.load_checkpoint = alg_config.load_checkpoint

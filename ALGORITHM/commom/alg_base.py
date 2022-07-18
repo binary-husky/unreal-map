@@ -10,7 +10,7 @@ class AlgorithmBase():
         self.team = team
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
-        self.scenario_config = GlobalConfig.scenario_config
+        self.ScenarioConfig = GlobalConfig.ScenarioConfig
         self.mcv = mcv
         self.device = GlobalConfig.device
 

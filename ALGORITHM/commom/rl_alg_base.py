@@ -26,8 +26,8 @@ class RLAlgorithmBase(AlgorithmBase):
         raise NotImplementedError
 
     def check_reward_type(self, AlgorithmConfig):
-        if self.scenario_config.RewardAsUnity != AlgorithmConfig.TakeRewardAsUnity:
-            assert self.scenario_config.RewardAsUnity
+        if self.ScenarioConfig.RewardAsUnity != AlgorithmConfig.TakeRewardAsUnity:
+            assert self.ScenarioConfig.RewardAsUnity
             assert not AlgorithmConfig.TakeRewardAsUnity
             print亮紫(
                 'Warning, the scenario (MISSION) provide `RewardAsUnity`, but AlgorithmConfig does not `TakeRewardAsUnity` !')

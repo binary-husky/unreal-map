@@ -165,7 +165,7 @@ class PymarlFoundation():
         self.current_actions = [None for _ in range(self.n_thread)]
         self.previous_action = None
         self.previous_ENV_PAUSE = None
-        self.scenario_config = GlobalConfig.scenario_config
+        self.ScenarioConfig = GlobalConfig.ScenarioConfig
         self.init_pymarl()
 
 
@@ -210,9 +210,9 @@ class PymarlFoundation():
             self.n_actions = self.space['act_space']['n_actions']
             return self.space['act_space']['n_actions']
         except:
-            assert self.scenario_config.use_simple_action_space
-            self.n_actions = self.scenario_config.n_actions
-            return self.scenario_config.n_actions # self.scenario_config.str_action_description
+            assert self.ScenarioConfig.use_simple_action_space
+            self.n_actions = self.ScenarioConfig.n_actions
+            return self.ScenarioConfig.n_actions # self.ScenarioConfig.str_action_description
 
     # @basic_io_call
     def confirm_reset(self):

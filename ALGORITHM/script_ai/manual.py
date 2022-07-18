@@ -13,19 +13,19 @@ class DummyAlgorithmFoundationHI3D():
         from config import GlobalConfig
         super().__init__()
         self.n_agent = n_agent
-        scenario_config = GlobalConfig.scenario_config
-        self.num_entity = scenario_config.num_entity
-        self.landmark_uid = scenario_config.uid_dictionary['landmark_uid']
-        self.agent_uid = scenario_config.uid_dictionary['agent_uid']
-        self.entity_uid = scenario_config.uid_dictionary['entity_uid']
-        self.pos_decs = scenario_config.obs_vec_dictionary['pos']
-        self.vel_decs = scenario_config.obs_vec_dictionary['vel']
+        ScenarioConfig = GlobalConfig.ScenarioConfig
+        self.num_entity = ScenarioConfig.num_entity
+        self.landmark_uid = ScenarioConfig.uid_dictionary['landmark_uid']
+        self.agent_uid = ScenarioConfig.uid_dictionary['agent_uid']
+        self.entity_uid = ScenarioConfig.uid_dictionary['entity_uid']
+        self.pos_decs = ScenarioConfig.obs_vec_dictionary['pos']
+        self.vel_decs = ScenarioConfig.obs_vec_dictionary['vel']
         self.num_landmarks = len(self.landmark_uid)
 
-        self.invader_uid = scenario_config.uid_dictionary['invader_uid']
+        self.invader_uid = ScenarioConfig.uid_dictionary['invader_uid']
 
-        self.n_entity = scenario_config.num_entity
-        self.n_basic_dim = scenario_config.obs_vec_length
+        self.n_entity = ScenarioConfig.num_entity
+        self.n_basic_dim = ScenarioConfig.obs_vec_length
         self.n_thread = n_thread
         self.attack_target = [None] * self.n_thread
 
@@ -113,19 +113,19 @@ class DummyAlgorithmFoundationHI3D_old():
         from config import GlobalConfig
         super().__init__()
         self.n_agent = n_agent
-        scenario_config = GlobalConfig.scenario_config
-        self.num_entity = scenario_config.num_entity
-        self.landmark_uid = scenario_config.uid_dictionary['landmark_uid']
-        self.agent_uid = scenario_config.uid_dictionary['agent_uid']
-        self.entity_uid = scenario_config.uid_dictionary['entity_uid']
-        self.pos_decs = scenario_config.obs_vec_dictionary['pos']
-        self.vel_decs = scenario_config.obs_vec_dictionary['vel']
+        ScenarioConfig = GlobalConfig.ScenarioConfig
+        self.num_entity = ScenarioConfig.num_entity
+        self.landmark_uid = ScenarioConfig.uid_dictionary['landmark_uid']
+        self.agent_uid = ScenarioConfig.uid_dictionary['agent_uid']
+        self.entity_uid = ScenarioConfig.uid_dictionary['entity_uid']
+        self.pos_decs = ScenarioConfig.obs_vec_dictionary['pos']
+        self.vel_decs = ScenarioConfig.obs_vec_dictionary['vel']
         self.num_landmarks = len(self.landmark_uid)
 
-        self.invader_uid = scenario_config.uid_dictionary['invader_uid']
+        self.invader_uid = ScenarioConfig.uid_dictionary['invader_uid']
 
-        self.n_entity = scenario_config.num_entity
-        self.n_basic_dim = scenario_config.obs_vec_length
+        self.n_entity = ScenarioConfig.num_entity
+        self.n_basic_dim = ScenarioConfig.obs_vec_length
         self.n_thread = n_thread
         self.attack_target = [None] * self.n_thread
 
@@ -258,16 +258,16 @@ class IHDummyAlgorithmFoundation():
         from config import GlobalConfig
         super().__init__()
         self.n_agent = n_agent
-        scenario_config = GlobalConfig.scenario_config
-        self.num_entity = scenario_config.num_entity
-        self.landmark_uid = scenario_config.uid_dictionary['landmark_uid']
-        self.agent_uid = scenario_config.uid_dictionary['agent_uid']
-        self.invader_uid = scenario_config.uid_dictionary['invader_uid']
-        self.n_entity = scenario_config.num_entity
-        self.n_basic_dim = scenario_config.obs_vec_length
-        self.n_object = scenario_config.num_object
+        ScenarioConfig = GlobalConfig.ScenarioConfig
+        self.num_entity = ScenarioConfig.num_entity
+        self.landmark_uid = ScenarioConfig.uid_dictionary['landmark_uid']
+        self.agent_uid = ScenarioConfig.uid_dictionary['agent_uid']
+        self.invader_uid = ScenarioConfig.uid_dictionary['invader_uid']
+        self.n_entity = ScenarioConfig.num_entity
+        self.n_basic_dim = ScenarioConfig.obs_vec_length
+        self.n_object = ScenarioConfig.num_object
         self.n_thread = n_thread
-        self.num_landmarks = scenario_config.num_landmarks
+        self.num_landmarks = ScenarioConfig.num_landmarks
         self.attack_target = [None] * self.n_thread
 
     def forward(self, inp, state, mask=None):
@@ -401,15 +401,15 @@ class DummyAlgorithmFoundation():
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
 
-        self.n_cargo = GlobalConfig.scenario_config.n_cargo
+        self.n_cargo = GlobalConfig.ScenarioConfig.n_cargo
 
-        self.worker_uid = GlobalConfig.scenario_config.uid_dictionary['agent_uid']
-        self.cargo_uid = GlobalConfig.scenario_config.uid_dictionary['entity_uid']
+        self.worker_uid = GlobalConfig.ScenarioConfig.uid_dictionary['agent_uid']
+        self.cargo_uid = GlobalConfig.ScenarioConfig.uid_dictionary['entity_uid']
 
-        self.dec_pos = GlobalConfig.scenario_config.obs_vec_dictionary['pos']
-        self.dec_vel = GlobalConfig.scenario_config.obs_vec_dictionary['vel']
-        self.dec_other = GlobalConfig.scenario_config.obs_vec_dictionary['mass']
-        self.vec_len = GlobalConfig.scenario_config.obs_vec_length
+        self.dec_pos = GlobalConfig.ScenarioConfig.obs_vec_dictionary['pos']
+        self.dec_vel = GlobalConfig.ScenarioConfig.obs_vec_dictionary['vel']
+        self.dec_other = GlobalConfig.ScenarioConfig.obs_vec_dictionary['mass']
+        self.vec_len = GlobalConfig.ScenarioConfig.obs_vec_length
 
 
     def interact_with_env(self, team_intel):

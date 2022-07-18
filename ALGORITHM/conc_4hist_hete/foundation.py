@@ -54,7 +54,7 @@ class AlgorithmConfig:
     div_tree_init_level = 0 # set to -1 means max level
     yita_min_prob = 0.15  #  should be >= (1/n_action)
     ConfigOnTheFly = True
-    UseDivTree = True
+    UseDivTree = False
     RecProbs = False
 
 
@@ -66,21 +66,31 @@ class AlgorithmConfig:
     yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
 
     PR_ACTIVATE = False # please always init to False
+    
+    #####
+    n_policy_groups = 5
+    #####
 
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from .shell_env import ShellEnvWrapper, ActionConvertLegacy
-        from .net import Net
+        from .net import HeteNet
         super().__init__(n_agent, n_thread, space, mcv, team)
         AlgorithmConfig.n_agent = n_agent
         n_actions = len(ActionConvertLegacy.dictionary_args)
 
-        self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.scenario_config, self.team)
-        if self.scenario_config.EntityOriented :
-            rawob_dim = self.scenario_config.obs_vec_length
+        self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.ScenarioConfig, self.team)
+        if self.ScenarioConfig.EntityOriented :
+            rawob_dim = self.ScenarioConfig.obs_vec_length
         else:
             rawob_dim = space['obs_space']['obs_shape']
-        self.policy = Net(rawob_dim=rawob_dim, n_action=n_actions)
+            
+            
+        # hete agent policy
+        assert self.ScenarioConfig.HeteAgents
+        self.HeteAgentType = self.ScenarioConfig.HeteAgentType
+        hete_type = np.array(self.HeteAgentType)[self.ScenarioConfig.AGENT_ID_EACH_TEAM[team]]
+        self.policy = HeteNet(rawob_dim=rawob_dim, n_action=n_actions, hete_type=hete_type)
         self.policy = self.policy.to(self.device)
 
         self.AvgRewardAgentWise = AlgorithmConfig.TakeRewardAsUnity
@@ -89,7 +99,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         from .trajectory import BatchTrajManager
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         self.traj_manager = BatchTrajManager(
-            n_env=n_thread, traj_limit=int(GlobalConfig.scenario_config.MaxEpisodeStep),
+            n_env=n_thread, traj_limit=int(GlobalConfig.ScenarioConfig.MaxEpisodeStep),
             trainer_hook=self.trainer.train_on_traj)
 
         # confirm that reward method is correct
@@ -112,23 +122,24 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         obs, threads_active_flag = StateRecall['obs'], StateRecall['threads_active_flag']
         assert len(obs) == sum(threads_active_flag), ('Make sure the right batch of obs!')
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
-
+        hete_pick = StateRecall['_Type_']
         with torch.no_grad():
-            if AlgorithmConfig.PR_ACTIVATE:  self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
-            action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act)
+            # if AlgorithmConfig.PR_ACTIVATE:  self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
+            action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act, hete_pick=hete_pick)
 
         # Warning! vars named like _x_ are aligned, others are not!
-        traj_frag = {
+        traj_framefrag = {
             "_SKIP_":        ~threads_active_flag,
             "value":         value,
+            "hete_pick":     hete_pick,
             "actionLogProb": action_log_prob,
             "obs":           obs,
             "action":        action,
         }
-        if avail_act is not None: traj_frag.update({'avail_act':  avail_act})
+        if avail_act is not None: traj_framefrag.update({'avail_act':  avail_act})
         
         # deal with rollout later when the reward is ready, leave a hook as a callback here
-        if not test_mode: StateRecall['_hook_'] = self.commit_traj_frag(traj_frag, req_hook = True)
+        if not test_mode: StateRecall['_hook_'] = self.commit_traj_frag(traj_framefrag, req_hook = True)
         return action.copy(), StateRecall
 
 
@@ -154,30 +165,30 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         AlgorithmConfig.only_train_div_tree_and_ct = True
         self.trainer.fn_only_train_div_tree_and_ct()
 
-    def when_pr_inactive(self):
-        assert not AlgorithmConfig.PR_ACTIVATE
-        if AlgorithmConfig.personality_reinforcement_start_at_update >= 0:
-            # mean need to activate pr later
-            if self.traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
-                # time is up, activate pr
-                self.activate_pr()
+    # def when_pr_inactive(self):
+    #     assert not AlgorithmConfig.PR_ACTIVATE
+    #     if AlgorithmConfig.personality_reinforcement_start_at_update >= 0:
+    #         # mean need to activate pr later
+    #         if self.traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
+    #             # time is up, activate pr
+    #             self.activate_pr()
 
-        # log
-        PR_ACTIVATE = 1 if AlgorithmConfig.PR_ACTIVATE else 0
-        self.mcv.rec(PR_ACTIVATE, 'PR_ACTIVATE')
-        self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
-        self.mcv.rec(AlgorithmConfig.yita, 'yita')
+    #     # log
+    #     PR_ACTIVATE = 1 if AlgorithmConfig.PR_ACTIVATE else 0
+    #     self.mcv.rec(PR_ACTIVATE, 'PR_ACTIVATE')
+    #     self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
+    #     self.mcv.rec(AlgorithmConfig.yita, 'yita')
 
-    def when_pr_active(self):
-        assert AlgorithmConfig.PR_ACTIVATE
-        self._update_yita()
-        self._update_personality_division()
+    # def when_pr_active(self):
+    #     assert AlgorithmConfig.PR_ACTIVATE
+    #     self._update_yita()
+    #     self._update_personality_division()
 
-        # log
-        PR_ACTIVATE = 1 if AlgorithmConfig.PR_ACTIVATE else 0
-        self.mcv.rec(PR_ACTIVATE, 'PR_ACTIVATE')
-        self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
-        self.mcv.rec(AlgorithmConfig.yita, 'yita')
+    #     # log
+    #     PR_ACTIVATE = 1 if AlgorithmConfig.PR_ACTIVATE else 0
+    #     self.mcv.rec(PR_ACTIVATE, 'PR_ACTIVATE')
+    #     self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
+    #     self.mcv.rec(AlgorithmConfig.yita, 'yita')
 
     def train(self):
         '''
@@ -189,36 +200,36 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             # read configuration
             if AlgorithmConfig.ConfigOnTheFly:
                 self._config_on_fly()
-            if AlgorithmConfig.PR_ACTIVATE:
-                self.when_pr_active()
-            elif not AlgorithmConfig.PR_ACTIVATE:
-                self.when_pr_inactive()
+            # if AlgorithmConfig.PR_ACTIVATE:
+            #     self.when_pr_active()
+            # elif not AlgorithmConfig.PR_ACTIVATE:
+            #     self.when_pr_inactive()
 
 
-    def _update_personality_division(self):
-        '''
-            increase personality tree level @div_tree_level_inc_per_update per fn call, 
-            when floating break int threshold, the tree enters next level
-        '''
-        personality_tree = self.policy.AT_div_tree
-        personality_tree.current_level_floating += AlgorithmConfig.div_tree_level_inc_per_update
-        if personality_tree.current_level_floating > personality_tree.max_level:
-            personality_tree.current_level_floating = personality_tree.max_level
+    # def _update_personality_division(self):
+    #     '''
+    #         increase personality tree level @div_tree_level_inc_per_update per fn call, 
+    #         when floating break int threshold, the tree enters next level
+    #     '''
+    #     personality_tree = self.policy.AT_div_tree
+    #     personality_tree.current_level_floating += AlgorithmConfig.div_tree_level_inc_per_update
+    #     if personality_tree.current_level_floating > personality_tree.max_level:
+    #         personality_tree.current_level_floating = personality_tree.max_level
 
-        expected_level = int(personality_tree.current_level_floating)
-        if expected_level == personality_tree.current_level: return
-        personality_tree.change_div_tree_level(expected_level, auto_transfer=True)
-        print('[div_tree]: change_div_tree_level, ', personality_tree.current_level)
+    #     expected_level = int(personality_tree.current_level_floating)
+    #     if expected_level == personality_tree.current_level: return
+    #     personality_tree.change_div_tree_level(expected_level, auto_transfer=True)
+    #     print('[div_tree]: change_div_tree_level, ', personality_tree.current_level)
 
 
-    def _update_yita(self):
-        '''
-            increase yita by @yita_inc_per_update per function call
-        '''
-        AlgorithmConfig.yita += AlgorithmConfig.yita_inc_per_update
-        if AlgorithmConfig.yita > AlgorithmConfig.yita_max:
-            AlgorithmConfig.yita = AlgorithmConfig.yita_max
-        print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)
+    # def _update_yita(self):
+    #     '''
+    #         increase yita by @yita_inc_per_update per function call
+    #     '''
+    #     AlgorithmConfig.yita += AlgorithmConfig.yita_inc_per_update
+    #     if AlgorithmConfig.yita > AlgorithmConfig.yita_max:
+    #         AlgorithmConfig.yita = AlgorithmConfig.yita_max
+    #     print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)
 
 
 
@@ -271,10 +282,13 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
             strict = not AlgorithmConfig.only_train_div_tree_and_ct
             self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n), strict=strict)
-            if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=False)
             print黄('loaded checkpoint:', ckpt_dir)
-        else:
-            if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=True)
+            
+            
+        # if self.load_checkpoint:
+        #     if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=False)
+        # else:
+        #     if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=True)
 
         
 
@@ -294,7 +308,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             if k in traj_framedata:
                 traj_framedata.pop(k)
         # the agent-wise reward is supposed to be the same, so averge them
-        if self.scenario_config.RewardAsUnity:
+        if self.ScenarioConfig.RewardAsUnity:
             traj_framedata['reward'] = repeat_at(traj_framedata['reward'], insert_dim=-1, n_times=self.n_agent)
         # change the name of done to be recognised (by trajectory manager)
         traj_framedata['_DONE_'] = traj_framedata.pop('done')

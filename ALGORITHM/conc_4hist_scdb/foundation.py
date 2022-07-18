@@ -61,17 +61,17 @@ class ReinforceAlgorithmFoundation(object):
         self.n_agent = n_agent
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
-        self.scenario_config = GlobalConfig.scenario_config
-        n_actions = GlobalConfig.scenario_config.n_actions
+        self.ScenarioConfig = GlobalConfig.ScenarioConfig
+        n_actions = GlobalConfig.ScenarioConfig.n_actions
 
         from .shell_env import ShellEnvWrapper
         self.shell_env = ShellEnvWrapper(
-            n_agent, n_thread, space, mcv, self, AlgorithmConfig, self.scenario_config)
+            n_agent, n_thread, space, mcv, self, AlgorithmConfig, self.ScenarioConfig)
             
         from .net import Net
         self.device = GlobalConfig.device
-        if self.scenario_config.EntityOriented :
-            rawob_dim = self.scenario_config.obs_vec_length
+        if self.ScenarioConfig.EntityOriented :
+            rawob_dim = self.ScenarioConfig.obs_vec_length
         else:
             rawob_dim = space['obs_space']['obs_shape']
         self.policy = Net(rawob_dim=rawob_dim, n_action=n_actions)
@@ -82,12 +82,12 @@ class ReinforceAlgorithmFoundation(object):
         from .trajectory import BatchTrajManager
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         self.batch_traj_manager = BatchTrajManager(
-            n_env=n_thread, traj_limit=int(self.scenario_config.MaxEpisodeStep),
+            n_env=n_thread, traj_limit=int(self.ScenarioConfig.MaxEpisodeStep),
             trainer_hook=self.trainer.train_on_traj)
                     
         # confirm that reward method is correct
-        if self.scenario_config.RewardAsUnity != AlgorithmConfig.TakeRewardAsUnity:
-            assert self.scenario_config.RewardAsUnity
+        if self.ScenarioConfig.RewardAsUnity != AlgorithmConfig.TakeRewardAsUnity:
+            assert self.ScenarioConfig.RewardAsUnity
             assert not AlgorithmConfig.TakeRewardAsUnity
             print亮紫(
                 'Warning, the scenario (MISSION) provide `RewardAsUnity`, but AlgorithmConfig does not `TakeRewardAsUnity` !')
@@ -228,7 +228,7 @@ class ReinforceAlgorithmFoundation(object):
             if k in new_frag:
                 new_frag.pop(k)
         # the agent-wise reward is supposed to be the same, so averge them
-        if self.scenario_config.RewardAsUnity:
+        if self.ScenarioConfig.RewardAsUnity:
             new_frag['reward'] = repeat_at(new_frag['reward'], insert_dim=-1, n_times=self.n_agent)
         # change the name of done to be recognised (by trajectory manager)
         new_frag['_DONE_'] = new_frag.pop('done')

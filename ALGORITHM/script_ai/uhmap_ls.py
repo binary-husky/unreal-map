@@ -12,9 +12,9 @@ class DummyAlgorithmBase():
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.team = team
-        self.scenario_config = GlobalConfig.scenario_config
+        self.ScenarioConfig = GlobalConfig.ScenarioConfig
         self.attack_order = {}
-        self.team_agent_uid = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[team]
+        self.team_agent_uid = GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[team]
 
     def forward(self, inp, state, mask=None):
         raise NotImplementedError
@@ -67,7 +67,7 @@ class DummyAlgorithmSeqFire(DummyAlgorithmBase):
             # 如果,该线程没有停止
             if State_Recall['Env-Suffered-Reset'][thread]:
                 # 如果该线程刚刚reset
-                opp_uid_range = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[1-self.team]
+                opp_uid_range = GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[1-self.team]
                 opp_uid_range = list(copy.deepcopy(opp_uid_range))
                 np.random.shuffle(opp_uid_range)
                 self.attack_order[thread] = opp_uid_range

@@ -8,18 +8,18 @@ from config import GlobalConfig
 
 class ShellEnvWrapper(object):
     def __init__(self, n_agent, n_thread, space, mcv, RL_functional, 
-                                          alg_config, scenario_config):
+                                          alg_config, ScenarioConfig):
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.space = space
         self.mcv = mcv
         self.RL_functional = RL_functional
-        self.n_basic_dim = scenario_config.obs_vec_length
-        self.n_entity = scenario_config.num_entity
-        self.agent_uid = scenario_config.uid_dictionary['agent_uid']
-        self.entity_uid = scenario_config.uid_dictionary['entity_uid']
-        self.dec = scenario_config.dec_dictionary
-        self.n_object = scenario_config.num_object
+        self.n_basic_dim = ScenarioConfig.obs_vec_length
+        self.n_entity = ScenarioConfig.num_entity
+        self.agent_uid = ScenarioConfig.uid_dictionary['agent_uid']
+        self.entity_uid = ScenarioConfig.uid_dictionary['entity_uid']
+        self.dec = ScenarioConfig.dec_dictionary
+        self.n_object = ScenarioConfig.num_object
         self.load_checkpoint = alg_config.load_checkpoint
         self.cold_start = True
         self._division_obsR_init = None

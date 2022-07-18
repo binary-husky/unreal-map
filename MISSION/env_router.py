@@ -39,8 +39,8 @@ from UTIL.colorful import print亮蓝
 def make_parallel_envs(process_pool, marker=''):
     from UTIL.shm_env import SuperpoolEnv
     from config import GlobalConfig
-    from MISSION.env_router import load_scenario_config
-    load_scenario_config()
+    from MISSION.env_router import load_ScenarioConfig
+    load_ScenarioConfig()
     
     env_args_dict_list = [({
         'env_name':GlobalConfig.env_name, 
@@ -81,15 +81,15 @@ def make_parallel_envs(process_pool, marker=''):
 
 
 
-def load_scenario_config():
+def load_ScenarioConfig():
     if GlobalConfig.env_name not in import_path_ref:
         assert False, ('need to find path of ScenarioConfig')
     import_path, ScenarioConfig = import_path_ref[GlobalConfig.env_name]
-    GlobalConfig.scenario_config = getattr(importlib.import_module(import_path), ScenarioConfig)
+    GlobalConfig.ScenarioConfig = getattr(importlib.import_module(import_path), ScenarioConfig)
 
 
 def make_env_function(env_name, rank):
-    load_scenario_config()
+    load_ScenarioConfig()
     ref_env_name = env_name
 
     if 'native_gym' in env_name:

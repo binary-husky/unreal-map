@@ -54,15 +54,15 @@ class ActionConvertLegacy():
  
 
 class ShellEnvWrapper(object):
-    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config, team):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, ScenarioConfig, team):
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.team = team
         self.space = space
         self.mcv = mcv
         self.RL_functional = RL_functional
-        if GlobalConfig.scenario_config.EntityOriented:
-            self.core_dim = GlobalConfig.scenario_config.obs_vec_length
+        if GlobalConfig.ScenarioConfig.EntityOriented:
+            self.core_dim = GlobalConfig.ScenarioConfig.obs_vec_length
         else:
             self.core_dim = space['obs_space']['obs_shape']
         self.n_entity_placeholder = alg_config.n_entity_placeholder
@@ -70,8 +70,8 @@ class ShellEnvWrapper(object):
 
         # whether to use avail_act to block forbiden actions
         self.AvailActProvided = False
-        if hasattr(scenario_config, 'AvailActProvided'):
-            self.AvailActProvided = scenario_config.AvailActProvided 
+        if hasattr(ScenarioConfig, 'AvailActProvided'):
+            self.AvailActProvided = ScenarioConfig.AvailActProvided 
 
         # whether to load previously saved checkpoint
         self.load_checkpoint = alg_config.load_checkpoint
@@ -90,7 +90,7 @@ class ShellEnvWrapper(object):
 
     def interact_with_env(self, StateRecall):
         if not hasattr(self, 'agent_type'):
-            self.agent_uid = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[self.team]
+            self.agent_uid = GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[self.team]
             self.agent_type = [agent_meta['type'] 
                 for agent_meta in StateRecall['Latest-Team-Info'][0]['dataArr']
                 if agent_meta['uId'] in self.agent_uid]
@@ -98,7 +98,7 @@ class ShellEnvWrapper(object):
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         # read internal coop graph info
         obs = StateRecall['Latest-Obs']
-        if not GlobalConfig.scenario_config.EntityOriented:    
+        if not GlobalConfig.ScenarioConfig.EntityOriented:    
             # 如果环境观测非EntityOriented，可以额外创生一个维度，具体细节需要斟酌
             obs = repeat_at(obs, insert_dim=-2, n_times=self.n_entity_placeholder//2, copy_mem=True)
             obs[:,:,2:] = np.nan    # 0 is self; 1 is repeated self; 2,3,... is NaN

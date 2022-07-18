@@ -75,9 +75,9 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         AlgorithmConfig.n_agent = n_agent
         n_actions = len(ActionConvertLegacy.dictionary_args)
 
-        self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.scenario_config, self.team)
-        if self.scenario_config.EntityOriented :
-            rawob_dim = self.scenario_config.obs_vec_length
+        self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.ScenarioConfig, self.team)
+        if self.ScenarioConfig.EntityOriented :
+            rawob_dim = self.ScenarioConfig.obs_vec_length
         else:
             rawob_dim = space['obs_space']['obs_shape']
         self.policy = Net(rawob_dim=rawob_dim, n_action=n_actions)
@@ -89,7 +89,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         from .trajectory import BatchTrajManager
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         self.traj_manager = BatchTrajManager(
-            n_env=n_thread, traj_limit=int(GlobalConfig.scenario_config.MaxEpisodeStep),
+            n_env=n_thread, traj_limit=int(GlobalConfig.ScenarioConfig.MaxEpisodeStep),
             trainer_hook=self.trainer.train_on_traj)
 
         # confirm that reward method is correct
@@ -294,7 +294,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             if k in traj_framedata:
                 traj_framedata.pop(k)
         # the agent-wise reward is supposed to be the same, so averge them
-        if self.scenario_config.RewardAsUnity:
+        if self.ScenarioConfig.RewardAsUnity:
             traj_framedata['reward'] = repeat_at(traj_framedata['reward'], insert_dim=-1, n_times=self.n_agent)
         # change the name of done to be recognised (by trajectory manager)
         traj_framedata['_DONE_'] = traj_framedata.pop('done')

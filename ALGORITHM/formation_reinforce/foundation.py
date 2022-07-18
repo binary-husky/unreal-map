@@ -36,11 +36,11 @@ class ReinforceAlgorithmFoundation(object):
         self.n_agent = n_agent
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
-        scenario_config = GlobalConfig.scenario_config
+        ScenarioConfig = GlobalConfig.ScenarioConfig
         alg_config = AlgorithmConfig
         from .shell_env import ShellEnvWrapper
         self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, 
-                                        alg_config, scenario_config)
+                                        alg_config, ScenarioConfig)
         # if 'm-cuda' in GlobalConfig.device:
         #     gpu_id = json.loads(GlobalConfig.device.split('->')[-1])
         #     device = 'cuda:%d'%gpu_id[0]
@@ -49,7 +49,7 @@ class ReinforceAlgorithmFoundation(object):
         #     gpu_id = None
         #     device = GlobalConfig.device
         #     cuda_n = 'cpu' if 'cpu' in device else GlobalConfig.device
-        # self.policy = Net(num_agents=self.n_agent, n_basic_dim=scenario_config.obs_vec_length,
+        # self.policy = Net(num_agents=self.n_agent, n_basic_dim=ScenarioConfig.obs_vec_length,
         #                   obs_dim = 15*6*2, n_action = 7, use_m_gpu=gpu_id, 
         #                   use_normalization=alg_config.use_normalization,
         #                   seperate_critic=alg_config.seperate_critic)
@@ -62,7 +62,7 @@ class ReinforceAlgorithmFoundation(object):
         # self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         # from .trajectory import BatchTrajManager
         # self.batch_traj_manager = BatchTrajManager(n_env=n_thread,
-        #                                            traj_limit=int(scenario_config.MaxEpisodeStep), 
+        #                                            traj_limit=int(ScenarioConfig.MaxEpisodeStep), 
         #                                            trainer_hook=self.trainer.train_on_traj,
         #                                            mcv=mcv)
         # self.load_checkpoint = AlgorithmConfig.load_checkpoint

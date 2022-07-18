@@ -9,6 +9,7 @@ mcom_fn_list_define = [
     "v2dx", "flash", "plot", "figure", "hold", "box", "pause", "clf", "xlim", "ylim", "xlabel", 
     "ylabel", "drawnow", "v2d", "v2d_init", "v3d_init", "v2L", "title", "plot3", "grid", "v3dx", "v2d_show", 
     "v2d_pop", "v2d_line_object", "v2d_clear", "v2d_add_terrain", "set_style", "set_env", "use_geometry", 
+    "rec_disable_percentile_clamp", "rec_enable_percentile_clamp",
     "geometry_rotate_scale_translate", "test_function_terrain", 'line3d', 'advanced_geometry_rotate_scale_translate',
     "advanced_geometry_material", "skip"
 ]
@@ -27,8 +28,8 @@ mcom_fn_list_define = [
 
 # The Design Principle: Under No Circumstance should this program Interrupt the main program!
 class mcom():
-    def __init__(self, path=None, digit=8, rapid_flush=True, draw_mode=False, tag='default', resume_mod=False, **kargs):
-        # digit 默认8，可选4,16，越小程序负担越轻 (All data is float, you do not need anything else)
+    def __init__(self, path=None, digit=-1, rapid_flush=True, draw_mode=False, tag='default', resume_mod=False, **kargs):
+        # digit 默认-1(自动)，可选4,8,16，越小程序负担越轻 (All data is float, you do not need anything else)
         # rapid_flush 当数据流不大时，及时倾倒文件缓存内容 (set 'False' if you'd like your SSD to survive longer)
         self.draw_mode = draw_mode
         self.path = path
@@ -172,6 +173,9 @@ class mcom():
             str_tmp = '>>rec(%.8e,"%s")\n' % (value, name)
         elif self.digit == 4:
             str_tmp = '>>rec(%.4e,"%s")\n' % (value, name)
+        elif self.digit == -1:
+            str_tmp = '>>rec(%.16g,"%s")\n' % (value, name)
+        
         self.send(str_tmp)
 
     def 发送虚幻4数据流(self, x, y, z, pitch, yaw, roll):
@@ -230,6 +234,7 @@ class mcom():
             if self.digit == 16:  strlist.append("%.16e" % arg)
             elif self.digit == 8: strlist.append("%.8e" % arg)
             elif self.digit == 4: strlist.append("%.4e" % arg)
+            elif self.digit == -1: strlist.append("%.16g" % arg)
             strlist.append(",")
         elif isinstance(arg, str):
             assert '$' not in arg
@@ -244,6 +249,7 @@ class mcom():
             if self.digit == 16:  strlist.append("%.16e" % arg)
             elif self.digit == 8: strlist.append("%.8e" % arg)
             elif self.digit == 4: strlist.append("%.4e" % arg)
+            elif self.digit == -1: strlist.append("%.16g" % arg)
             strlist.append(",")
         else:
             print('输入的参数类型不能处理',arg.__class__)
@@ -480,7 +486,9 @@ class DrawProcess(Process):
             my_http = MyHttp('%s/html.html'%logdir, self.avail_port)
             my_http.daemon = True
             my_http.start()
+    
         self.libs_family = {
+            "rec_disable_percentile_clamp": 'rec', "rec_enable_percentile_clamp": 'rec',
             'rec_init': 'rec', 'rec': 'rec', 'rec_show': 'rec',
             'v2d_init': 'v2d', 'v2dx':'v2d', 'v2d_show': 'v2d', 'v2d_pop':'v2d',
             'v2d_line_object':'v2d', 'v2d_clear':'v2d', 'v2d_add_terrain': 'v2d',

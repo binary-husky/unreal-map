@@ -53,16 +53,25 @@ class ActionConvertLegacy():
             return encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a])
  
 
+def count_list_type(x):
+    type_cnt = {}
+    for xx in x:
+        if xx not in type_cnt: type_cnt[xx] = 0
+        type_cnt[xx] += 1
+    return len(type_cnt)
+
+ 
+
 class ShellEnvWrapper(object):
-    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config, team):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, ScenarioConfig, team):
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.team = team
         self.space = space
         self.mcv = mcv
         self.RL_functional = RL_functional
-        if GlobalConfig.scenario_config.EntityOriented:
-            self.core_dim = GlobalConfig.scenario_config.obs_vec_length
+        if GlobalConfig.ScenarioConfig.EntityOriented:
+            self.core_dim = GlobalConfig.ScenarioConfig.obs_vec_length
         else:
             self.core_dim = space['obs_space']['obs_shape']
         self.n_entity_placeholder = alg_config.n_entity_placeholder
@@ -70,12 +79,14 @@ class ShellEnvWrapper(object):
 
         # whether to use avail_act to block forbiden actions
         self.AvailActProvided = False
-        if hasattr(scenario_config, 'AvailActProvided'):
-            self.AvailActProvided = scenario_config.AvailActProvided 
+        if hasattr(ScenarioConfig, 'AvailActProvided'):
+            self.AvailActProvided = ScenarioConfig.AvailActProvided 
 
-        # whether to load previously saved checkpoint
-        self.load_checkpoint = alg_config.load_checkpoint
-        self.cold_start = True
+        # heterogeneous agent types
+        assert GlobalConfig.ScenarioConfig.HeteAgents
+        self.HeteAgentType = np.array(GlobalConfig.ScenarioConfig.HeteAgentType)
+        self.hete_type = np.array(self.HeteAgentType)[GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[team]]
+        self.n_hete_types = count_list_type(self.hete_type)
 
     @staticmethod
     def get_binary_array(n, n_bits, dtype=np.float32):
@@ -90,7 +101,7 @@ class ShellEnvWrapper(object):
 
     def interact_with_env(self, StateRecall):
         if not hasattr(self, 'agent_type'):
-            self.agent_uid = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[self.team]
+            self.agent_uid = GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[self.team]
             self.agent_type = [agent_meta['type'] 
                 for agent_meta in StateRecall['Latest-Team-Info'][0]['dataArr']
                 if agent_meta['uId'] in self.agent_uid]
@@ -98,7 +109,7 @@ class ShellEnvWrapper(object):
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         # read internal coop graph info
         obs = StateRecall['Latest-Obs']
-        if not GlobalConfig.scenario_config.EntityOriented:    
+        if not GlobalConfig.ScenarioConfig.EntityOriented:    
             # 如果环境观测非EntityOriented，可以额外创生一个维度，具体细节需要斟酌
             obs = repeat_at(obs, insert_dim=-2, n_times=self.n_entity_placeholder//2, copy_mem=True)
             obs[:,:,2:] = np.nan    # 0 is self; 1 is repeated self; 2,3,... is NaN
@@ -106,10 +117,27 @@ class ShellEnvWrapper(object):
         RST = StateRecall['Env-Suffered-Reset']
         
         if RST.all(): # just experienced full reset on all episode, this is the first step of all env threads
-            yita = AlgorithmConfig.yita
-            # randomly pick threads
-            FixMax = np.random.rand(self.n_thread) < yita
-            StateRecall['_FixMax_'] = FixMax
+            # yita = AlgorithmConfig.yita
+            ## randomly pick threads
+            # FixMax = np.random.rand(self.n_thread) < yita
+            # StateRecall['_FixMax_'] = FixMax
+            
+            n_types = self.n_hete_types
+            selected_type = np.random.randint(low=0, high=n_types, size=())
+            selected_agent_bool = (self.hete_type==selected_type)
+            selected_agent_bool = repeat_at(selected_agent_bool, 0, self.n_thread)
+            
+            group_sel_arr = np.random.randint(low=0, high=AlgorithmConfig.n_policy_groups, size=(self.n_thread, self.n_agent))
+            hete_type_arr = repeat_at(self.hete_type, 0, self.n_thread)
+            
+            n_tp = n_types
+            n_gp = AlgorithmConfig.n_policy_groups
+            get_placeholder = lambda type, group: group*n_tp + type
+            get_type_group = lambda ph: (ph%n_tp, ph//n_tp)
+            
+            
+            StateRecall['_Type_'] = get_placeholder(type=hete_type_arr, group=group_sel_arr)
+            StateRecall['_Type_'][selected_agent_bool] = (selected_type) # 
             # print(FixMax)
 
         his_pool_obs = StateRecall['_history_pool_obs_'] if '_history_pool_obs_' in StateRecall \
@@ -124,7 +152,8 @@ class ShellEnvWrapper(object):
 
         I_StateRecall = {'obs':obs_feed_in, 
             'Test-Flag':StateRecall['Test-Flag'], 
-            '_FixMax_':StateRecall['_FixMax_'][~P], 
+            # '_FixMax_':StateRecall['_FixMax_'][~P], 
+            '_Type_':StateRecall['_Type_'][~P], 
             'threads_active_flag':~P, 
             'Latest-Team-Info':StateRecall['Latest-Team-Info'][~P],
             }
@@ -142,8 +171,6 @@ class ShellEnvWrapper(object):
             ] for th in act])
         actions_list = np.swapaxes(act_converted, 0, 1) # swap thread(batch) axis and agent axis
 
-        # return necessary handles to main platform
-        if self.cold_start: self.cold_start = False
 
         StateRecall['_history_pool_obs_'] = his_pool_obs
         if not StateRecall['Test-Flag']:

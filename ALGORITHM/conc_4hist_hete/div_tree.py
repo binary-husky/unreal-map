@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from ..commom.mlp import LinearFinal
-from UTIL.tensor_ops import add_onehot_id_at_last_dim, repeat_at, _2tensor, gather_righthand, scatter_righthand
+from UTIL.tensor_ops import add_onehot_id_at_last_dim, add_onehot_id_at_last_dim_fixlen, repeat_at, _2tensor, gather_righthand, scatter_righthand
 
 
     
@@ -61,13 +61,13 @@ class DivTree(nn.Module): # merge by MLP version
             print('transfering model parameters from %d-th net to %d-th net'%(from_which_net, to_which_net))
         return 
 
-    def forward(self, x_in, req_confact_info):  # x0: shape = (?,...,?, n_agent, core_dim)
+    def forward(self, x_in, agent_ids):  # x0: shape = (?,...,?, n_agent, core_dim)
         if self.current_level == 0:
-            x0 = add_onehot_id_at_last_dim(x_in)
+            x0 = add_onehot_id_at_last_dim_fixlen(x_in, fixlen=self.n_agent, agent_ids=agent_ids)
             x2 = self.nets[0](x0)
             return x2, None
         else:
-            x0 = add_onehot_id_at_last_dim(x_in)
+            x0 = add_onehot_id_at_last_dim_fixlen(x_in, fixlen=self.n_agent, agent_ids=agent_ids)
             res = []
             for i in range(self.n_agent):
                 use_which_net = self.div_tree[self.current_level, i]

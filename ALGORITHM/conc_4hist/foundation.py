@@ -60,18 +60,18 @@ class ReinforceAlgorithmFoundation(object):
         self.n_agent = n_agent
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
-        scenario_config = GlobalConfig.scenario_config
-        n_actions = GlobalConfig.scenario_config.n_actions
+        ScenarioConfig = GlobalConfig.ScenarioConfig
+        n_actions = GlobalConfig.ScenarioConfig.n_actions
         alg_config = AlgorithmConfig
         from .shell_env import ShellEnvWrapper
-        self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, alg_config, scenario_config)
+        self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, alg_config, ScenarioConfig)
         if 'm-cuda' in GlobalConfig.device:
             assert False, ('not support anymore')
         else:
             device = GlobalConfig.device
             cuda_n = 'cpu' if 'cpu' in device else GlobalConfig.device
         self.device = device
-        self.policy = Net(rawob_dim=scenario_config.obs_vec_length, n_action = n_actions, 
+        self.policy = Net(rawob_dim=ScenarioConfig.obs_vec_length, n_action = n_actions, 
                           use_normalization=alg_config.use_normalization,
                           n_focus_on = AlgorithmConfig.n_focus_on, 
                           actor_attn_mod=AlgorithmConfig.actor_attn_mod,
@@ -82,7 +82,7 @@ class ReinforceAlgorithmFoundation(object):
         from .ppo import PPO
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         from .trajectory import BatchTrajManager
-        self.batch_traj_manager = BatchTrajManager(n_env=n_thread, traj_limit=int(scenario_config.MaxEpisodeStep), 
+        self.batch_traj_manager = BatchTrajManager(n_env=n_thread, traj_limit=int(ScenarioConfig.MaxEpisodeStep), 
                                                    trainer_hook=self.trainer.train_on_traj)
         self.load_checkpoint = AlgorithmConfig.load_checkpoint
         logdir = GlobalConfig.logdir

@@ -11,7 +11,7 @@ class DummyAlgorithmBase():
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         self.n_agent = n_agent
         self.n_thread = n_thread
-        self.scenario_config = GlobalConfig.scenario_config
+        self.ScenarioConfig = GlobalConfig.ScenarioConfig
         self.attack_order = {}
 
     def forward(self, inp, state, mask=None):

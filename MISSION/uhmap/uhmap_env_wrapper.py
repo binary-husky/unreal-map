@@ -26,6 +26,11 @@ class ScenarioConfig(object):
     AGENT_ID_EACH_TEAM = [range(0,n_team1agent), range(n_team1agent,n_team1agent+n_team2agent)]
     AGENT_ID_EACH_TEAM_cv = ChainVar(lambda  n1, n2: [range(0,n1),range(n1,n1+n2)], chained_with=['n_team1agent', 'n_team2agent'])
 
+    # Hete agents
+    HeteAgents = False
+    HeteAgentType = []
+
+
     TEAM_NAMES = ['ALGORITHM.None->None',]
 
     '''
@@ -83,38 +88,11 @@ class ScenarioConfig(object):
 
 
 class UhmapEnvParseHelper:
-
     def parse_response_ob_info(self, response):
-        assert response['valid']
-        if len(response['dataGlobal']['events'])>0:
-            tmp = [kv.split('>') for kv in response['dataGlobal']['events'][0].split('<') if kv]
-            info_parse = {t[0]:t[1] for t in tmp}
-            # print('pass')
-        info_dict = response
-        info = response['dataArr']
-        for i, agent_info in enumerate(info):
-            self.agents[i].update_agent_attrs(agent_info)
-        # return ob, info
-        return self.make_obs(), info_dict
+        raise NotImplementedError
 
     def make_obs(self):
-        encoded_obs = np.zeros(shape=(self.n_agents, 10), dtype=np.float32); p=0
-        for i, agent in enumerate(self.agents):
-            if agent.location['x'] is None:
-                print('??')
-            part_1 = np.array([
-                agent.index,
-                agent.location['x'],
-                agent.location['y'],
-                agent.location['z'],
-                agent.hp,
-                agent.weapon_cd,
-            ])
-            length = part_1.shape[0]
-            encoded_obs[i,:length] = part_1[:]
-        from UTIL.tensor_ops import repeat_at
-        encoded_obs_all_agent = repeat_at(encoded_obs, insert_dim=0, n_times=self.n_agents)
-        return encoded_obs_all_agent
+        raise NotImplementedError
 
 
 class UhmapEnv(BaseEnv, UhmapEnvParseHelper):

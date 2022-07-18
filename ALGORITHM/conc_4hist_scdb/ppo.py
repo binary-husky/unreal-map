@@ -23,7 +23,7 @@ class TrajPoolSampler():
         self.container = {}
         self.warned = False
         assert flag=='train'
-        if cfg.scenario_config.AvailActProvided:
+        if cfg.ScenarioConfig.AvailActProvided:
             req_dict =        ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'value']
             req_dict_rename = ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'state_value']
         else:

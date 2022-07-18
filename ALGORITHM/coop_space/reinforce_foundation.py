@@ -58,19 +58,19 @@ class ReinforceAlgorithmFoundation(object):
         self.act_space = space['act_space']
         self.obs_space = space['obs_space']
         self.n_cluster = CoopAlgConfig.g_num
-        scenario_config = GlobalConfig.scenario_config
+        ScenarioConfig = GlobalConfig.ScenarioConfig
         self.note = GlobalConfig.note
 
-        self.n_basic_dim = scenario_config.obs_vec_length
-        self.n_entity = scenario_config.num_entity
+        self.n_basic_dim = ScenarioConfig.obs_vec_length
+        self.n_entity = ScenarioConfig.num_entity
         self.ObsAsUnity = False
-        if hasattr(scenario_config, 'ObsAsUnity'):
-            self.ObsAsUnity = scenario_config.ObsAsUnity
-        self.agent_uid = scenario_config.uid_dictionary['agent_uid']
-        self.entity_uid = scenario_config.uid_dictionary['entity_uid']
+        if hasattr(ScenarioConfig, 'ObsAsUnity'):
+            self.ObsAsUnity = ScenarioConfig.ObsAsUnity
+        self.agent_uid = ScenarioConfig.uid_dictionary['agent_uid']
+        self.entity_uid = ScenarioConfig.uid_dictionary['entity_uid']
 
-        self.pos_decs = scenario_config.obs_vec_dictionary['pos']
-        self.vel_decs = scenario_config.obs_vec_dictionary['vel']
+        self.pos_decs = ScenarioConfig.obs_vec_dictionary['pos']
+        self.vel_decs = ScenarioConfig.obs_vec_dictionary['vel']
         self.max_internal_step = CoopAlgConfig.max_internal_step
         self.head_start_cnt = CoopAlgConfig.head_start_cnt
         self.decision_interval = CoopAlgConfig.decision_interval
@@ -82,7 +82,7 @@ class ReinforceAlgorithmFoundation(object):
         self.policy = GNet(num_agents=self.n_agent, num_entities=self.n_entity, basic_vec_len=self.n_basic_dim).to(self.device)
         self.trainer = PPO(self.policy, mcv=mcv)
 
-        self.batch_traj_manager = BatchTrajManager(n_env=n_thread, traj_limit=scenario_config.MaxEpisodeStep*3, trainer_hook=self.trainer.train_on_traj)
+        self.batch_traj_manager = BatchTrajManager(n_env=n_thread, traj_limit=ScenarioConfig.MaxEpisodeStep*3, trainer_hook=self.trainer.train_on_traj)
 
         self._division_obsR_init = None
         self._division_obsL_init = None

@@ -7,6 +7,26 @@ from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
 
+'''
+"HeteAgentType": [
+    "RLA_CAR", 
+    "RLA_CAR_Laser", 
+    "RLA_CAR", 
+    "RLA_CAR_Laser", 
+    "RLA_CAR", 
+    "RLA_UAV_Support",
+
+    "RLA_CAR", 
+    "RLA_CAR_Laser", 
+    "RLA_CAR", 
+    "RLA_CAR_Laser", 
+    "RLA_CAR", 
+    "RLA_CAR_Laser", 
+    "RLA_UAV_Support",
+],
+'''
+
+
 class UhmapLargeScale(UhmapEnv):
     def __init__(self, rank) -> None:
         super().__init__(rank)

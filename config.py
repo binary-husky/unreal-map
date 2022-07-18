@@ -94,7 +94,7 @@ class GlobalConfig(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comment//
     test_epoch = 32 if num_threads <= 32 else num_threads    # test epoch
     test_epoch_cv = ChainVar(lambda num_threads: 32 if num_threads <= 32 else num_threads, chained_with=['num_threads'])
 
-    scenario_config = 'This scenario_config var will be automatically linked to task configuration later in ./MISSION/env_router.py'
+    ScenarioConfig = 'This ScenarioConfig var will be automatically linked to task configuration later in ./MISSION/env_router.py'
 
 
     backup_files = []                                   # a list of files that needs to be backed up at each run

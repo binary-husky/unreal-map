@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from .ccategorical import CCategorical
 from torch.distributions.categorical import Categorical
 from torch.nn.modules.linear import Linear
-from ..commom.norm import DynamicNormFix
+from ..commom.norm import DynamicNorm
 from UTIL.tensor_ops import Args2tensor_Return2numpy, Args2tensor, _2cpu2numpy, __hashn__
 from UTIL.tensor_ops import pt_inf
 from .foundation import AlgorithmConfig
@@ -14,33 +14,8 @@ from ..commom.conc import Concentration
 from ..commom.net_manifest import weights_init
 
 
-class UniqueList():
-    def __init__(self, list_input=None):
-        self._list = []
-        if list_input is not None:
-            self.extend_unique(list_input)
-    
-    def append_unique(self, item):
-        if item in self._list:
-            return False
-        else:
-            self._list.append(item)
-    
-    def extend_unique(self, list_input):
-        for item in list_input:
-            self.append_unique(item)
-    
-    def has(self, item):
-        return (item in self._list)
-    
-    def len(self):
-        return len(self._list)
-
-    def get(self):
-        return self._list
-
 class PolicyGroupRollBuffer():
-    def __init__(self, n_hete_types, n_rollbuffer_size):
+    def __init__(self, n_hete_types, n_rollbuffer_size) -> None:
         super().__init__()
         self.n_rollbuffer_size = n_rollbuffer_size
         self.n_hete_types = n_hete_types
@@ -84,113 +59,6 @@ def _list_type(x):
         type_cnt[xx] += 1
     return type_cnt.keys()
 
-'''
-test
-x = [torch.ones(3,4,4), torch.ones(3,4,8)]
-mask = (torch.ones(3,4)==1)
-access = [None]
-access_index = 0
-n_threads = 3
-n_agents = 4
-'''
-
-def align_item(x, mask, access, access_index, n_threads, n_agents):
-    if access[access_index] is None:
-        if isinstance(x, tuple) or isinstance(x, list):
-            access[access_index] = [None for item in x]
-            for i, item in enumerate(x):
-                align_item(item, mask, access[access_index], i, n_threads, n_agents)
-        elif isinstance(x, dict):
-            access[access_index] = {key:None for key in x}
-            for key in x:
-                align_item(x[key], mask, access[access_index], key, n_threads, n_agents)
-        elif isinstance(x, torch.Tensor):
-            access[access_index] = torch.zeros(size=(n_threads*n_agents, *x.shape[2:]), device=x.device, dtype=x.dtype)
-            access[access_index][mask] = x.squeeze(0)
-            access[access_index] = access[access_index].view(n_threads, n_agents, *x.shape[2:])
-        else:
-            assert False
-            
-    else:
-        if isinstance(x, tuple) or isinstance(x, list):
-            for i, item in enumerate(x):
-                align_item(item, mask, access[access_index], i, n_threads, n_agents)
-        elif isinstance(x, dict):
-            for key in x:
-                align_item(x[key], mask, access[access_index], key, n_threads, n_agents)
-        elif isinstance(x, torch.Tensor):
-            access[access_index] = access[access_index].view(n_threads*n_agents, *x.shape[2:])
-            access[access_index][mask] = x.squeeze(0)
-            access[access_index] = access[access_index].view(n_threads, n_agents, *x.shape[2:])
-        else:
-            assert False
-
-
-
-
-# def _register_g_out(i, x, mask, g_out, n_threads, n_agents):
-#     if len(g_out) < (i+1):
-#         g_out.append(None)
-#         assert len(g_out)==(i+1)
-#     if g_out[i] is None:
-#         if isinstance(x, torch.Tensor):
-#             g_out[i] = torch.zeros(size=(n_threads, n_agents, *x.shape[2:]), device=x.device, dtype=x.dtype)
-#         elif isinstance(x, dict):
-#             # g_out[i] = {key:_register_g_out(i, x[key], mask, g_out, n_threads, n_agents) for key in x}???
-#         else:
-#             assert False
-#     g_out[i][mask] = x.squeeze(0)
-
-def _deal_single(i, x, mask, g_out, n_threads, n_agents):
-    if hasattr(x, '__len__'):
-        align_item(x, mask, g_out, i, n_threads, n_agents)
-        # _register_g_out(i, x, mask, g_out, n_threads, n_agents)
-    else:
-        assert False
-    return x
-
-def _deal_single_in(x, mask_flatten):
-    if isinstance(x, torch.Tensor):
-        # collapse first two dims
-        return x.view(-1, *x.shape[2:])[mask_flatten].unsqueeze(0)
-    else:
-        return x
-
-def distribute_compute(fn_arr, mask_arr, *args, **kwargs):
-    # python don't have pointers, 
-    # however, a list is a mutable type in python, that's all we need
-    g_out = [None]  
-    
-    n_threads = mask_arr[0].shape[0]
-    n_agents = mask_arr[0].shape[1]
-    
-    for fn, mask in zip(fn_arr, mask_arr):
-        assert mask.dim()==2
-        mask_flatten = mask.flatten()
-        agent_ids = torch.where(mask)[1]
-        agent_ids = agent_ids.unsqueeze(0) # fake an extral dimension
-       
-        _args = list(_deal_single_in(arg, mask_flatten) for arg in args)
-        _kwargs = {key:_deal_single_in(kwargs[key], mask_flatten) for key in kwargs}
-        
-        ret_tuple = fn(*_args, **_kwargs, agent_ids=agent_ids)
-        align_item(ret_tuple, mask_flatten, g_out, 0, n_threads, n_agents)
-        # if isinstance(ret_tuple, tuple):
-        #     for i, ret in enumerate(ret_tuple):
-        #         _deal_single(i, ret, mask_flatten, g_out, n_threads, n_agents)
-        # else:
-        #     _deal_single(0, ret_tuple, mask_flatten, g_out, n_threads, n_agents)
-
-    return tuple(g_out[0])
-
-
-
-
-
-
-
-
-
 
 class HeteNet(nn.Module):
     def __init__(self, rawob_dim, n_action, hete_type):
@@ -204,26 +72,25 @@ class HeteNet(nn.Module):
         self.pgrb = PolicyGroupRollBuffer(self.n_hete_types, self.n_rollbuffer_size)
         self.use_normalization = AlgorithmConfig.use_normalization
 
-        n_tp = self.n_hete_types
-        n_gp = self.n_policy_groups
-        get_placeholder = lambda type, group: group*n_tp + type
-        get_type_group = lambda ph: (ph%n_tp, ph//n_tp)
-        
-        self._nets_flat_placeholder_ = torch.nn.ModuleList(modules=[
+        self.frontend_nets = torch.nn.ModuleList(modules=[
             Net(rawob_dim, n_action) for _ in range(
-                n_tp * n_gp
+                self.n_hete_types * 1
             )  
         ])
-        
-        self.nets = [[self._nets_flat_placeholder_[get_placeholder(type=tp, group=gp)] for tp in range(n_tp)] for gp in range(n_gp)]
-        for gp, n_arr in enumerate(self.nets): 
-            for tp, n in enumerate(n_arr):
-                n.hete_valid = True
-                if gp!=0: n.hete_valid = False
-                if gp!=0: n.eval()
-                n.hete_tag = 'group:%d,type:%d,valid:%s,training:%s'%(gp, tp, str(n.hete_valid), str(n.training))
+        self.static_nets = torch.nn.ModuleList(modules=[
+            Net(rawob_dim, n_action) for _ in range(
+                self.n_hete_types * (self.n_policy_groups - 1)
+            )  
+        ])
 
-        print('')
+        
+    def acquire_net(self, i):
+        if i < self.n_hete_types:
+            return self.frontend_nets[i]
+        else:
+            assert i < self.n_hete_types * self.n_policy_groups
+            return self.static_nets[i-self.n_hete_types]
+
 
         # self.pgrb.push_policy_group( self.frontend_nets )
         # self.pgrb.link_policy_group( 
@@ -231,57 +98,71 @@ class HeteNet(nn.Module):
         #     n_sample_point = self.n_types * (self.n_policy_group - 1)
         # )
 
-    def redirect_ph(self, i):
-        n_tp = self.n_hete_types
-        n_gp = self.n_policy_groups
-        get_placeholder = lambda type, group: group*n_tp + type
-        get_type_group = lambda ph: (ph%n_tp, ph//n_tp)
-        type, group = get_type_group(i)
-        net = self._nets_flat_placeholder_[get_placeholder(type=type, group=group)]
-        
-        if group==0:
-            return get_placeholder(type=type, group=group)
-        else:
-            if net.hete_valid:
-                return get_placeholder(type=type, group=group)
-            else:
-                return get_placeholder(type=type, group=0)
+    def access_net(self, nth_type, nth_policy_group):
+        assert False
+        index = nth_type * self.n_policy_group + nth_policy_group
+        return self.nets[index]
 
 
-    def acquire_net(self, i):
-        return self._nets_flat_placeholder_[self.redirect_ph(i)]
+    # def distribute_computation(bool_mask, fn, *args, **kargs):
         
 
-    def validate_and_replace(self, hete_pick):
-        hete_pick = hete_pick.cpu().apply_(self.redirect_ph)
-        return hete_pick
 
-    def act_lowlevel(self, obs, test_mode=False, eval_actions=None, avail_act=None, hete_pick=None, eval_mode=False):
+    def act_ll(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None, hete_pick=None):
         eval_act = eval_actions if eval_mode else None
-        hete_pick = self.validate_and_replace(hete_pick)
-        invo_hete_types = UniqueList([k.item() for k in hete_pick.flatten()]).get()
+        invo_hete_types = _list_type(_2cpu2numpy(hete_pick.flatten()))
+        g_out = []
+        n_threads = obs.shape[0]
+        n_agents = obs.shape[1]
+        print(hete_pick)
+        print('*********************')
+        for hete_type in invo_hete_types:
+            self.acquire_net(hete_type).eval()
+            ret_tuple = self.acquire_net(hete_type).act(obs, test_mode, eval_mode, eval_actions, avail_act, agent_ids=None)
+            print(ret_tuple[1].squeeze(-1))
+        print('*********************')
         
+        for hete_type in invo_hete_types:
+            sel_bool = (hete_pick == hete_type)
+            obs_tmp = obs[sel_bool] # shape (thread, agent, ...) --> (composed, ...)
+            obs_tmp = obs_tmp.unsqueeze(0)# shape (composed, ...) --> (1, composed, ...)
+            agent_ids = torch.where(sel_bool)[1]
+            agent_ids = agent_ids.unsqueeze(0)
+            ret_tuple = self.acquire_net(hete_type).act(obs_tmp, test_mode, eval_mode, eval_actions, avail_act, agent_ids)
+            
+            def register_g_out(i, x, sel_bool):
+                if len(g_out) < (i+1):
+                    g_out.append(None)
+                    assert len(g_out)==(i+1)
+                if g_out[i] is None:
+                    g_out[i] = torch.zeros(size=(n_threads, n_agents, *x.shape[2:]), device=x.device, dtype=x.dtype)
+                g_out[i][sel_bool] = x.squeeze(0)
+            
+            def deal_single(i, x):
+                if hasattr(x, '__len__'):
+                    register_g_out(i, x, sel_bool)
+                else:
+                    assert False
+                return x
+            
+            if isinstance(ret_tuple, tuple):
+                for i, ret in enumerate(ret_tuple):
+                    deal_single(i, ret)
+            else:
+                deal_single(0, ret_tuple)
+                
+        print(g_out[1].squeeze(-1))
 
-        # for hete_type in invo_hete_types:
-        #     self.acquire_net(hete_type).eval()
-
-        # [self.acquire_net(hete_type).hete_tag for hete_type in invo_hete_types]
-        g_out2 = distribute_compute(
-            [self.acquire_net(hete_type)._act for hete_type in invo_hete_types],
-            [(hete_pick == hete_type) for hete_type in invo_hete_types],
-            obs,
-            test_mode, eval_mode, eval_act, avail_act
-        )
-        return tuple(g_out2)
+        return tuple(g_out)
 
 
     @Args2tensor_Return2numpy
     def act(self, *args, **kargs):
-        return self.act_lowlevel(*args, **kargs)
+        return self.act_ll(*args, **kargs)
 
     @Args2tensor
     def evaluate_actions(self, *args, **kargs):
-        return self.act_lowlevel(*args, **kargs, eval_mode=True)
+        return self.act_ll(*args, **kargs, eval_mode=True)
 
 
 
@@ -306,7 +187,7 @@ class Net(nn.Module):
 
         # observation normalization
         if self.use_normalization:
-            self._batch_norm = DynamicNormFix(rawob_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
+            self._batch_norm = DynamicNorm(rawob_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
 
         self.AT_obs_encoder = nn.Sequential(nn.Linear(rawob_dim, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
 
@@ -425,7 +306,7 @@ class Net(nn.Module):
 
 
         logit2act = self.logit2act if AlgorithmConfig.PR_ACTIVATE else self.logit2act_old
-        act, actLogProbs, distEntropy, probs = logit2act(logits, eval_mode=eval_mode,
+        act, actLogProbs, distEntropy, probs = logit2act(logits, eval_mode=eval_mode, 
                                                             test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 
         if eval_mode: others['threat'] = self.re_scale(threat, limit=12)

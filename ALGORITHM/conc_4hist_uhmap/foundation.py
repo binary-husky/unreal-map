@@ -54,14 +54,14 @@ class ReinforceAlgorithmFoundation(object):
         self.team = team
         
         n_actions = len(ActionConvertLegacy.dictionary_args)
-        self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.scenario_config, self.team)
+        self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.ScenarioConfig, self.team)
         if 'm-cuda' in GlobalConfig.device:
             assert False, ('not support anymore')
         else:
             device = GlobalConfig.device
             cuda_n = 'cpu' if 'cpu' in device else GlobalConfig.device
         self.device = device
-        self.policy = Net(rawob_dim=GlobalConfig.scenario_config.obs_vec_length, 
+        self.policy = Net(rawob_dim=GlobalConfig.ScenarioConfig.obs_vec_length, 
                           n_action = n_actions, 
                           use_normalization=AlgorithmConfig.use_normalization,
                           n_focus_on = AlgorithmConfig.n_focus_on, 
@@ -74,12 +74,12 @@ class ReinforceAlgorithmFoundation(object):
         from .trajectory import BatchTrajManager
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
         self.batch_traj_manager = BatchTrajManager(
-            n_env=n_thread, traj_limit=int(GlobalConfig.scenario_config.MaxEpisodeStep),
+            n_env=n_thread, traj_limit=int(GlobalConfig.ScenarioConfig.MaxEpisodeStep),
             trainer_hook=self.trainer.train_on_traj)
 
         # confirm that reward method is correct
-        if GlobalConfig.scenario_config.RewardAsUnity != AlgorithmConfig.TakeRewardAsUnity:
-            assert GlobalConfig.scenario_config.RewardAsUnity
+        if GlobalConfig.ScenarioConfig.RewardAsUnity != AlgorithmConfig.TakeRewardAsUnity:
+            assert GlobalConfig.ScenarioConfig.RewardAsUnity
             assert not AlgorithmConfig.TakeRewardAsUnity
             print亮紫(
                 'Warning, the scenario (MISSION) provide `RewardAsUnity`, but AlgorithmConfig does not `TakeRewardAsUnity` !')
@@ -209,7 +209,7 @@ class ReinforceAlgorithmFoundation(object):
         for k in items_to_pop:
             if k in new_frag: new_frag.pop(k)
         # using team reward, copy team reward to each individual
-        if GlobalConfig.scenario_config.RewardAsUnity:
+        if GlobalConfig.ScenarioConfig.RewardAsUnity:
             new_frag['reward'] = repeat_at(new_frag['reward'], insert_dim=-1, n_times=self.n_agent)
         # change the name of done to be recognised (by trajectory manager)
         new_frag['_DONE_'] = new_frag.pop('done')

@@ -164,6 +164,24 @@ def np_add_onehot_id_at_last_dim(x):
     return np.concatenate((x, _identity), -1)
 
 
+# x. shape = (..., core_dim)
+# agent_ids.shape = (..., null)
+# output. shape = (..., core_dim+fixlen)
+def add_onehot_id_at_last_dim_fixlen(x, fixlen, agent_ids):
+    if agent_ids is None:
+        return add_onehot_id_at_last_dim(x)
+    # if isinstance(x, np.ndarray):
+        # return np_add_onehot_id_at_last_dim_fixlen(x, fixlen)
+    # manually control output vector length
+    # or
+    # adjust output vector length according to -2 dim
+    _identity = torch.eye(fixlen, device=x.device)[agent_ids]
+    return torch.cat((x, _identity), -1)
+
+# def np_add_onehot_id_at_last_dim_fixlen(x, fixlen, agent_ids):
+#     _identity = np.tile(np.eye(fixlen), (*x.shape[:-2], 1, 1))
+#     return np.concatenate((x, _identity[..., :x.shape[-2], :]), -1)
+
 
 
 

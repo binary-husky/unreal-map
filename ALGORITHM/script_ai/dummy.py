@@ -9,7 +9,7 @@ class DummyAlgorithmBase():
         from config import GlobalConfig
         self.n_agent = n_agent
         self.n_thread = n_thread
-        self.scenario_config = GlobalConfig.scenario_config
+        self.ScenarioConfig = GlobalConfig.ScenarioConfig
 
     def forward(self, inp, state, mask=None):
         raise NotImplementedError

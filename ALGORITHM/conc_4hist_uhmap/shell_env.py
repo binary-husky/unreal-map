@@ -53,19 +53,19 @@ class ActionConvertLegacy():
  
 
 class ShellEnvWrapper(object):
-    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, scenario_config, team):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, ScenarioConfig, team):
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.team = team
         self.space = space
         self.mcv = mcv
         self.RL_functional = RL_functional
-        self.core_dim = GlobalConfig.scenario_config.obs_vec_length
+        self.core_dim = GlobalConfig.ScenarioConfig.obs_vec_length
 
         # whether to use avail_act to block forbiden actions
         self.AvailActProvided = False
-        if hasattr(scenario_config, 'AvailActProvided'):
-            self.AvailActProvided = scenario_config.AvailActProvided 
+        if hasattr(ScenarioConfig, 'AvailActProvided'):
+            self.AvailActProvided = ScenarioConfig.AvailActProvided 
 
         # whether to load previously saved checkpoint
         self.load_checkpoint = alg_config.load_checkpoint
@@ -84,7 +84,7 @@ class ShellEnvWrapper(object):
 
     def interact_with_env(self, State_Recall):
         if not hasattr(self, 'agent_type'):
-            self.agent_uid = GlobalConfig.scenario_config.AGENT_ID_EACH_TEAM[self.team]
+            self.agent_uid = GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[self.team]
             self.agent_type = [agent_meta['type'] 
                 for agent_meta in State_Recall['Latest-Team-Info'][0]['dataArr']
                 if agent_meta['uId'] in self.agent_uid]

@@ -22,12 +22,12 @@ class TrajPoolSampler():
         self.container = {}
         self.warned = False
         assert flag=='train'
-        if cfg.scenario_config.AvailActProvided:
-            req_dict =        ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'value']
-            req_dict_rename = ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'state_value']
+        if cfg.ScenarioConfig.AvailActProvided:
+            req_dict =        ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'value']
+            req_dict_rename = ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'state_value']
         else:
-            req_dict =        ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'value']
-            req_dict_rename = ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'state_value']
+            req_dict =        ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'value']
+            req_dict_rename = ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'state_value']
         return_rename = "return"
         value_rename =  "state_value"
         advantage_rename = "advantage"
@@ -290,13 +290,14 @@ class PPO():
         oldPi_actionLogProb = _2tensor(sample['actionLogProb'])
         real_value = _2tensor(sample['return'])
         real_threat = _2tensor(sample['threat'])
+        hete_pick = _2tensor(sample['hete_pick'])
         avail_act = _2tensor(sample['avail_act']) if 'avail_act' in sample else None
 
         batchsize = advantage.shape[0]#; print亮紫(batchsize)
         batch_agent_size = advantage.shape[0]*advantage.shape[1]
 
         assert flag == 'train'
-        newPi_value, newPi_actionLogProb, entropy, probs, others = self.policy_and_critic.evaluate_actions(obs, eval_actions=action, test_mode=False, avail_act=avail_act)
+        newPi_value, newPi_actionLogProb, entropy, probs, others = self.policy_and_critic.evaluate_actions(obs, eval_actions=action, test_mode=False, avail_act=avail_act, hete_pick=hete_pick)
         entropy_loss = entropy.mean()
 
 

@@ -21,12 +21,12 @@ class Runner(object):
         self.mcv = self.get_a_logger(cfg.note)                # MATLAB silent logging bridge active
         self.platform_controller = MMPlatform(self.mcv, self.envs)  # block infomation access between teams
         self.info_runner = {}                                       # dict of realtime obs, reward, reward, info et.al.
-        self.n_agent  =  sum(cfg.scenario_config.N_AGENT_EACH_TEAM)
-        self.n_team  =   len(cfg.scenario_config.N_AGENT_EACH_TEAM)
+        self.n_agent  =  sum(cfg.ScenarioConfig.N_AGENT_EACH_TEAM)
+        self.n_team  =   len(cfg.ScenarioConfig.N_AGENT_EACH_TEAM)
         # please specify: env gives reward of each team instead of agent ?
         self.RewardAsUnity = False  
-        if hasattr(cfg.scenario_config, 'RewardAsUnity'):
-            self.RewardAsUnity = cfg.scenario_config.RewardAsUnity
+        if hasattr(cfg.ScenarioConfig, 'RewardAsUnity'):
+            self.RewardAsUnity = cfg.ScenarioConfig.RewardAsUnity
         self.n_thread = cfg.num_threads
         self.n_frame =  cfg.n_parallel_frame
         self.test_epoch=cfg.test_epoch
