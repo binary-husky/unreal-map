@@ -71,7 +71,11 @@ def make_parallel_envs(process_pool, marker=''):
         # This particular env has a cython file that needs to be compiled in main process
         # that must be loaded in main process
         from MISSION.collective_assult_debug.cython_func import laser_hit_improve3
-
+    if GlobalConfig.env_name == 'uhmap':
+        # This particular env has a cython file that needs to be compiled in main process
+        # that must be loaded in main process
+        from MISSION.uhmap.SubTasks.cython_func import tear_number_apart
+    
     if GlobalConfig.num_threads > 1:
         envs = SuperpoolEnv(process_pool, env_args_dict_list)
     else:

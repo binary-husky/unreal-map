@@ -7,7 +7,6 @@ from random import randint, sample
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 from UTIL.colorful import *
 from UTIL.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
-from UTIL.tensor_ops import my_view, scatter_with_nan, sample_balance
 from config import GlobalConfig as cfg
 from UTIL.gpu_share import GpuShareUnit
 class TrajPoolSampler():
@@ -146,7 +145,7 @@ class PPO():
         self.max_grad_norm = ppo_config.max_grad_norm
         self.add_prob_loss = ppo_config.add_prob_loss
         self.prevent_batchsize_oom = ppo_config.prevent_batchsize_oom
-        self.only_train_div_tree_and_ct = ppo_config.only_train_div_tree_and_ct
+        # self.only_train_div_tree_and_ct = ppo_config.only_train_div_tree_and_ct
         self.lr = ppo_config.lr
         self.all_parameter = list(policy_and_critic.named_parameters())
         self.at_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'AT_' in p_name]
@@ -165,17 +164,17 @@ class PPO():
         assert len(self.cross_parameter)==0,('a parameter must belong to either CriTic or AcTor, not both')
 
 
-        if not self.only_train_div_tree_and_ct:
-            self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_' in p_name]
-            self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
+        # if not self.only_train_div_tree_and_ct:
+        self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_' in p_name]
+        self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
 
-            self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
-            self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
-        else:
-            self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_div_tree' in p_name]
-            self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
-            self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
-            self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
+        self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
+        self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
+        # else:
+        #     self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_div_tree' in p_name]
+        #     self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
+        #     self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
+        #     self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
 
 
         self.g_update_delayer = 0
@@ -183,7 +182,6 @@ class PPO():
         # 轮流训练式
         self.mcv = mcv
         self.ppo_update_cnt = 0
-        self.loss_bias =  ppo_config.balance
         self.batch_size_reminder = True
         self.trivial_dict = {}
 
@@ -193,13 +191,13 @@ class PPO():
 
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
-    def fn_only_train_div_tree_and_ct(self):
-        self.only_train_div_tree_and_ct = True
-        self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_div_tree' in p_name]
-        self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
-        self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
-        self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
-        print('change train object')
+    # def fn_only_train_div_tree_and_ct(self):
+    #     self.only_train_div_tree_and_ct = True
+    #     self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_div_tree' in p_name]
+    #     self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
+    #     self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
+    #     self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
+    #     print('change train object')
 
     def train_on_traj(self, traj_pool, task):
         while True:

@@ -81,7 +81,7 @@ class ScenarioConfig(object):
     ActionFormat = 'Multi-Digit'    # 'Single-Digit'
 
     n_actions = dictionary_n_actions
-    obs_vec_length = 23
+    obs_vec_length = 38
 
 
 

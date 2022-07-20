@@ -14,7 +14,6 @@ class AlgorithmConfig:
     gamma = 0.99
     tau = 0.95
     train_traj_needed = 512
-    upper_training_epoch = 4
     TakeRewardAsUnity = False
     use_normalization = True
     add_prob_loss = False
@@ -34,7 +33,6 @@ class AlgorithmConfig:
     max_grad_norm = 0.5
     clip_param = 0.2
     lr = 1e-4
-    balance = 0.5
 
     # sometimes the episode length gets longer,
     # resulting in more samples and causing GPU OOM,
@@ -49,27 +47,27 @@ class AlgorithmConfig:
     dual_conc = True
 
     n_agent = 'auto load, do not change'
-    only_train_div_tree_and_ct = False
-    yita = 0.
-    div_tree_init_level = 0 # set to -1 means max level
-    yita_min_prob = 0.15  #  should be >= (1/n_action)
+    # yita = 0.
+    # div_tree_init_level = 0 # set to -1 means max level
+    # yita_min_prob = 0.15  #  should be >= (1/n_action)
     ConfigOnTheFly = True
-    UseDivTree = False
-    RecProbs = False
-
+    # UseDivTree = False
+    hete_type_trainable = [False, False, True]
 
     # personality reinforcement dynamic
     # 0 means activiting PR at beginning, -1 means never activate PR, >0 means activiting PR after some updates
-    personality_reinforcement_start_at_update = -1
-    div_tree_level_inc_per_update = 0.0 # (30 updates per inc)
-    yita_max = 0.75
-    yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
+    # personality_reinforcement_start_at_update = -1
+    # div_tree_level_inc_per_update = 0.0 # (30 updates per inc)
+    # yita_max = 0.75
+    # yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
 
-    PR_ACTIVATE = False # please always init to False
+    # PR_ACTIVATE = False # please always init to False
     
     #####
     n_policy_groups = 5
     #####
+
+    entity_distinct = 'auto load, do not change'
 
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
@@ -112,7 +110,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         if AlgorithmConfig.ConfigOnTheFly:
             self._create_config_fly()
 
-        assert AlgorithmConfig.personality_reinforcement_start_at_update>=0, "?"
+        # assert AlgorithmConfig.personality_reinforcement_start_at_update>=0, "?"
 
 
     def action_making(self, StateRecall, test_mode):
@@ -160,10 +158,10 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         return self.action_making(StateRecall, StateRecall['Test-Flag'])
 
 
-    def activate_pr(self):
-        AlgorithmConfig.PR_ACTIVATE = True
-        AlgorithmConfig.only_train_div_tree_and_ct = True
-        self.trainer.fn_only_train_div_tree_and_ct()
+    # def activate_pr(self):
+    #     AlgorithmConfig.PR_ACTIVATE = True
+    #     AlgorithmConfig.only_train_div_tree_and_ct = True
+    #     self.trainer.fn_only_train_div_tree_and_ct()
 
     # def when_pr_inactive(self):
     #     assert not AlgorithmConfig.PR_ACTIVATE
@@ -280,7 +278,8 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             manual_dir = AlgorithmConfig.load_specific_checkpoint
             ckpt_dir = '%s/model.pt' % logdir if manual_dir == '' else '%s/%s' % (logdir, manual_dir)
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
-            strict = not AlgorithmConfig.only_train_div_tree_and_ct
+            # strict = not AlgorithmConfig.only_train_div_tree_and_ct
+            strict = True
             self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n), strict=strict)
             print黄('loaded checkpoint:', ckpt_dir)
             

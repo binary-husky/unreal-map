@@ -144,8 +144,7 @@ class trajectory(TRAJ_BASE):
 
 
 class TrajPoolManager(object):
-    def __init__(self, n_pool):
-        self.n_pool =  n_pool
+    def __init__(self):
         self.cnt = 0
 
     def absorb_finalize_pool(self, pool):
@@ -240,8 +239,7 @@ class BatchTrajManager(TrajManagerBase):
         self.trainer_hook = trainer_hook
         self.traj_limit = traj_limit
         self.train_traj_needed = AlgorithmConfig.train_traj_needed
-        self.upper_training_epoch = AlgorithmConfig.upper_training_epoch
-        self.pool_manager = TrajPoolManager(n_pool=self.upper_training_epoch)
+        self.pool_manager = TrajPoolManager()
 
     def update(self, traj_frag, index):
         assert traj_frag is not None

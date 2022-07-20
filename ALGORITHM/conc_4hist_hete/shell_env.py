@@ -113,6 +113,10 @@ class ShellEnvWrapper(object):
             # 如果环境观测非EntityOriented，可以额外创生一个维度，具体细节需要斟酌
             obs = repeat_at(obs, insert_dim=-2, n_times=self.n_entity_placeholder//2, copy_mem=True)
             obs[:,:,2:] = np.nan    # 0 is self; 1 is repeated self; 2,3,... is NaN
+            
+        n_entity_raw = obs.shape[-2]
+        AlgorithmConfig.entity_distinct = [list(range(1)), list(range(1,n_entity_raw)), list(range(n_entity_raw,2*n_entity_raw))]
+        
         P = StateRecall['ENV-PAUSE']
         RST = StateRecall['Env-Suffered-Reset']
         

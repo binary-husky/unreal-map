@@ -1,18 +1,43 @@
-import torch, math
+from attr import has
+import torch, math, threading, time
 import numpy as np
 import torch.nn as nn
-from torch.distributions.categorical import Categorical
-from UTIL.tensor_ops import Args2tensor_Return2numpy, Args2tensor, __hashn__
-from UTIL.tensor_ops import pt_inf
-from UTIL.data_struct import UniqueList
+import torch.nn.functional as F
 from .ccategorical import CCategorical
-from .foundation import AlgorithmConfig
+from torch.distributions.categorical import Categorical
+from torch.nn.modules.linear import Linear
 from ..commom.norm import DynamicNormFix
+from UTIL.tensor_ops import Args2tensor_Return2numpy, Args2tensor, _2cpu2numpy, __hashn__
+from UTIL.tensor_ops import pt_inf
+from .foundation import AlgorithmConfig
 from ..commom.conc import Concentration
 from ..commom.net_manifest import weights_init
 
 
+class UniqueList():
+    def __init__(self, list_input=None):
+        self._list = []
+        if list_input is not None:
+            self.extend_unique(list_input)
+    
+    def append_unique(self, item):
+        if item in self._list:
+            return False
+        else:
+            self._list.append(item)
+    
+    def extend_unique(self, list_input):
+        for item in list_input:
+            self.append_unique(item)
+    
+    def has(self, item):
+        return (item in self._list)
+    
+    def len(self):
+        return len(self._list)
 
+    def get(self):
+        return self._list
     
 class no_context():
     def __enter__(self):
@@ -146,6 +171,56 @@ def distribute_compute(fn_arr, mask_arr, *args, **kwargs):
 
 
 
+def new_func(mask_flatten, multi_thread_out, i, fn, agent_ids, _args, _kwargs):
+    # time.sleep(i)
+    # print('new_func', i, mask_flatten.sum())
+    # print(id(mask_flatten), id(multi_thread_out), id(i), id(fn), id(agent_ids))
+    with torch.no_grad() if fn.static else no_context() as gs:
+        multi_thread_out[i] = fn._act(*_args, **_kwargs, agent_ids=agent_ids) # g_out[0][1].squeeze()
+
+
+def distribute_compute_multi_thread(fn_arr, mask_arr, *args, **kwargs):
+    # python don't have pointers, 
+    # however, a list is a mutable type in python, that's all we need
+    g_out = [None]  
+    
+    n_threads = mask_arr[0].shape[0]
+    n_agents = mask_arr[0].shape[1]
+    
+    multi_thread_out = [None for _ in mask_arr]
+    threads = []
+    
+    for i, fn, mask in zip(range(len(fn_arr)), fn_arr, mask_arr):
+        assert mask.dim()==2
+        mask_flatten = mask.flatten()
+        agent_ids = torch.where(mask)[1]
+        agent_ids = agent_ids.unsqueeze(0) # fake an extral dimension
+       
+        _args = list(_deal_single_in(arg, mask_flatten) for arg in args)
+        _kwargs = {key:_deal_single_in(kwargs[key], mask_flatten) for key in kwargs}
+        
+        # print(i, mask_flatten.sum())
+        # print(id(mask_flatten), id(multi_thread_out), id(i), id(fn), id(agent_ids))
+        threads.append(threading.Thread(target=new_func, args=(mask_flatten, multi_thread_out, i, fn, agent_ids, _args, _kwargs)))
+        
+
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    for i, fn, mask in zip(range(len(fn_arr)), fn_arr, mask_arr):
+        mask_flatten = mask.flatten()
+        dfs_create_and_fn(multi_thread_out[i], g_out, 0, _create_tensor_ph_or_fill_, n_threads, n_agents, mask_flatten)
+        
+    dfs_create_and_fn(None, g_out, 0, _tensor_expand_thread_dim_v2_, n_threads, n_agents)
+    return tuple(g_out[0]) 
+
+
+
+
+
+
 class HeteNet(nn.Module):
     def __init__(self, rawob_dim, n_action, hete_type):
         super().__init__()
@@ -172,12 +247,11 @@ class HeteNet(nn.Module):
         self.nets = [[self._nets_flat_placeholder_[get_placeholder(type=tp, group=gp)] for tp in range(n_tp)] for gp in range(n_gp)]
         for gp, n_arr in enumerate(self.nets): 
             for tp, n in enumerate(n_arr):
-                n.hete_valid = True                                     # hete_valid 指历史节点已经就绪
-                n.static = not AlgorithmConfig.hete_type_trainable[tp]  # static 即静态网络，不可以训练，torch.no_grad()
+                n.hete_valid = True
+                n.static = False
                 if gp!=0: n.hete_valid = False
+                if gp!=0: n.eval()
                 if gp!=0: n.static = True
-                if n.static:
-                    n.eval()
                 n.hete_tag = 'group:%d,type:%d,valid:%s,training:%s'%(gp, tp, str(n.hete_valid), str(n.training))
 
         print('')
@@ -214,9 +288,6 @@ class HeteNet(nn.Module):
         return hete_pick
 
     def act_lowlevel(self, obs, test_mode=False, eval_actions=None, avail_act=None, hete_pick=None, eval_mode=False):
-        # if eval_mode:
-        #     for net in self._nets_flat_placeholder_:
-        #         print(__hashn__(net.parameters()))
         eval_act = eval_actions if eval_mode else None
         hete_pick = self.validate_and_replace(hete_pick)
         invo_hete_types = UniqueList([k.item() for k in hete_pick.flatten()]).get()
@@ -263,6 +334,7 @@ class Net(nn.Module):
 
         self.skip_connect = True
         self.n_action = n_action
+        self.UseDivTree = AlgorithmConfig.UseDivTree
 
         # observation normalization
         if self.use_normalization:
@@ -289,15 +361,23 @@ class Net(nn.Module):
                             adopt_selfattn=False)
 
         tmp_dim = h_dim if not self.dual_conc else h_dim*2
-        self.CT_get_value = nn.Sequential(nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
-        self.CT_get_threat = nn.Sequential(nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
+        self.CT_get_value = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
+        self.CT_get_threat = nn.Sequential(Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),Linear(h_dim, 1))
 
 
-
-        self.AT_get_logit_db = nn.Sequential(
-            nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),
-            nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
-            nn.Linear(h_dim//2, self.n_action))
+        # part
+        if self.UseDivTree:
+            self.AT_get_logit_db = nn.Sequential(
+                nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),
+                nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True),
+                nn.Linear(h_dim, h_dim))
+            from .div_tree import DivTree
+            self.AT_div_tree = DivTree(input_dim=h_dim, h_dim=h_dim, n_action=self.n_action)
+        else:
+            self.AT_get_logit_db = nn.Sequential(
+                nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),
+                nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
+                nn.Linear(h_dim//2, self.n_action))
 
         self.ccategorical = CCategorical()
 
@@ -362,7 +442,11 @@ class Net(nn.Module):
 
         # fuse forward path
         v_C_fuse = torch.cat((vf_C, vh_C), dim=-1)  # (vs + vs + check_n + check_n)
-        logits = self.AT_get_logit_db(v_C_fuse)
+        if self.UseDivTree:
+            pre_logits = self.AT_get_logit_db(v_C_fuse)
+            logits, confact_info = self.AT_div_tree(pre_logits, agent_ids)   # ($thread, $agent, $coredim)
+        else:
+            logits = self.AT_get_logit_db(v_C_fuse)
 
         # motivation encoding fusion
         v_M_fuse = torch.cat((vf_M, vh_M), dim=-1)
@@ -372,7 +456,7 @@ class Net(nn.Module):
         if eval_mode: threat = self.CT_get_threat(v_M_fuse)
 
 
-        logit2act = self.logit2act_old
+        logit2act = self.logit2act if AlgorithmConfig.PR_ACTIVATE else self.logit2act_old
         act, actLogProbs, distEntropy, probs = logit2act(logits, eval_mode=eval_mode,
                                                             test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 

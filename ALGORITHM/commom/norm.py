@@ -91,8 +91,8 @@ class DynamicNormFix(nn.Module):
         self.var_fix_wait = 1000
         
         # var fixing, T2 is maximum x abs value after normalization
-        self.T1 = 8
-        self.T2 = 16
+        self.T1 = 5
+        self.T2 = 10
         self.TD = (self.T2**2 - self.T1**2)/self.T2**2
         self.first_run = True
         self.debug = True
@@ -150,6 +150,7 @@ class DynamicNormFix(nn.Module):
                     self.first_run = False
                     self.max.data = torch.maximum(max_tmp, self.max)
                     self.min.data = torch.minimum(min_tmp, self.min)
+
                 else:
                     # self.max.data = torch.maximum(max_tmp, self.max)
                     # self.min.data = torch.minimum(min_tmp, self.min)
@@ -171,7 +172,7 @@ class DynamicNormFix(nn.Module):
                 leak = self.TD * self.var + var2    # leak = (var1 - var2)/(var1) *self.var + var2
                 new_var_fix = torch.maximum(self.var, leak)
                 self.var_fix.data = torch.where(self.one_hot_filter, self.var_fix, new_var_fix) if self.exclude_one_hot else new_var_fix
-                qq = self.var_fix.data-self.var.data
+                
                 # if self.debug: self.mcv.rec(self.var.data, 'var')
                 # if self.debug: self.mcv.rec(self.var_fix.data, 'var fix')
                 # if self.debug: self.mcv.rec(self.var_fix.data-self.var.data, 'delta var')
@@ -179,14 +180,20 @@ class DynamicNormFix(nn.Module):
                 # if self.debug: self.mcv.rec((-1 - self.mean) / torch.sqrt_(self.var_fix + 1e-8), 'base line -1')
                 # if self.debug: self.mcv.rec((10 - self.mean) / torch.sqrt_(self.var_fix + 1e-8), 'base line +10')
                 # if self.debug: self.mcv.rec((-10 - self.mean) / torch.sqrt_(self.var_fix + 1e-8), 'base line -10')
-
+                
+                
+                
+                # !!! qq = self.var_fix.data-self.var.data
+                # !!! if self.patience > 0 and self.patience < 800 and (not (qq==0).all()):
+                # !!!     print('[norm.py] Input issue: cannot be well expressed by normal distribution', torch.where(qq!=0))
+                    
+                    
                 self.n_sample.data = tot_count
                 
                 
         # t = (_2dx_view - self.mean) / torch.sqrt_(self.var_fix + 1e-8)
         if get_mu_var:
             return self.mean, self.var_fix
-        
         return (x - self.mean) / torch.sqrt_(self.var_fix + 1e-8)
 
     # def check_errors(self, _2dx, new_var):
