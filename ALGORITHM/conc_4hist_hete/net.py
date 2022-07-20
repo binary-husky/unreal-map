@@ -117,7 +117,8 @@ def _deal_single_in(x, mask_flatten):
     else:
         return x
 
-def distribute_compute(fn_arr, mask_arr, *args, **kwargs):
+# todo: https://pytorch.org/tutorials/advanced/torch-script-parallelism.html?highlight=parallel
+def distribute_compute(fn_arr, mask_arr, **kwargs):
     # python don't have pointers, 
     # however, a list is a mutable type in python, that's all we need
     g_out = [None]  
@@ -132,11 +133,11 @@ def distribute_compute(fn_arr, mask_arr, *args, **kwargs):
         agent_ids = torch.where(mask)[1]
         agent_ids = agent_ids.unsqueeze(0) # fake an extral dimension
        
-        _args = list(_deal_single_in(arg, mask_flatten) for arg in args)
         _kwargs = {key:_deal_single_in(kwargs[key], mask_flatten) for key in kwargs}
         
+        # def _act(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None):
         with torch.no_grad() if fn.static else no_context() as gs:
-            ret_tuple = fn._act(*_args, **_kwargs, agent_ids=agent_ids)
+            ret_tuple = fn._act(agent_ids=agent_ids, **_kwargs)
             
         dfs_create_and_fn(ret_tuple, g_out, 0, _create_tensor_ph_or_fill_, n_threads, n_agents, mask_flatten)
 
@@ -191,58 +192,55 @@ class HeteNet(nn.Module):
     def redirect_ph(self, i):
         n_tp = self.n_hete_types
         n_gp = self.n_policy_groups
-        get_placeholder = lambda type, group: group*n_tp + type
-        get_type_group = lambda ph: (ph%n_tp, ph//n_tp)
-        type, group = get_type_group(i)
-        net = self._nets_flat_placeholder_[get_placeholder(type=type, group=group)]
+        # get_placeholder = lambda type, group: group*n_tp + type
         
+        # <get type and group>
+        # get_type_group = lambda ph: (ph%n_tp, ph//n_tp)
+        # type, group = get_type_group(i)
+        
+        type, group = (i%n_tp, i//n_tp)
+        assert group < n_gp
+        # net = self._nets_flat_placeholder_[get_placeholder(type=type, group=group)]
+        net = self._nets_flat_placeholder_[group*n_tp + type]
+
         if group==0:
-            return get_placeholder(type=type, group=group)
+            return group*n_tp + type
+            # return get_placeholder(type=type, group=group)
         else:
             if net.hete_valid:
-                return get_placeholder(type=type, group=group)
+                return group*n_tp + type
+                # return get_placeholder(type=type, group=group)
             else:
-                return get_placeholder(type=type, group=0)
+                return 0*n_tp + type
+                # return get_placeholder(type=type, group=0)
 
 
     def acquire_net(self, i):
         return self._nets_flat_placeholder_[self.redirect_ph(i)]
         
 
-    def validate_and_replace(self, hete_pick):
-        hete_pick = hete_pick.cpu().apply_(self.redirect_ph)
-        return hete_pick
-
-    def act_lowlevel(self, obs, test_mode=False, eval_actions=None, avail_act=None, hete_pick=None, eval_mode=False):
+    def act_lowlevel(self, hete_pick=None, **kargs):
         # if eval_mode:
         #     for net in self._nets_flat_placeholder_:
         #         print(__hashn__(net.parameters()))
-        eval_act = eval_actions if eval_mode else None
-        hete_pick = self.validate_and_replace(hete_pick)
-        invo_hete_types = UniqueList([k.item() for k in hete_pick.flatten()]).get()
+        hete_pick = hete_pick.cpu().apply_(self.redirect_ph)    # map policy selection
+        invo_hete_types = [i for i in range(self.n_hete_types*self.n_hete_types) if (i in hete_pick)]
         
-
-        # for hete_type in invo_hete_types:
-        #     self.acquire_net(hete_type).eval()
-
-        # [self.acquire_net(hete_type).hete_tag for hete_type in invo_hete_types]
-        g_out2 = distribute_compute(
-            [self.acquire_net(hete_type) for hete_type in invo_hete_types],
+        return distribute_compute(
+            fn_arr = [self.acquire_net(hete_type) for hete_type in invo_hete_types],
             # [self.acquire_net(hete_type)._act for hete_type in invo_hete_types],
-            [(hete_pick == hete_type) for hete_type in invo_hete_types],
-            obs,
-            test_mode, eval_mode, eval_act, avail_act
+            mask_arr = [(hete_pick == hete_type) for hete_type in invo_hete_types],
+            **kargs
         )
-        return tuple(g_out2)
 
 
     @Args2tensor_Return2numpy
-    def act(self, *args, **kargs):
-        return self.act_lowlevel(*args, **kargs)
+    def act(self, **kargs):
+        return self.act_lowlevel(**kargs)
 
     @Args2tensor
-    def evaluate_actions(self, *args, **kargs):
-        return self.act_lowlevel(*args, **kargs, eval_mode=True)
+    def evaluate_actions(self, **kargs):
+        return self.act_lowlevel(**kargs, eval_mode=True)
 
 
 
@@ -307,7 +305,8 @@ class Net(nn.Module):
 
     # two ways to support avail_act, but which one is better?
     def logit2act_old(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
-        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
+        if avail_act is not None: 
+            logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
         act_dist = Categorical(logits = logits_agent_cluster)
         if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions
         else:              act = torch.argmax(act_dist.probs, axis=2)
@@ -339,7 +338,7 @@ class Net(nn.Module):
         return tmp
 
 
-    def _act(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None):
+    def _act(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None):
 
         eval_act = eval_actions if eval_mode else None
         others = {}
@@ -389,23 +388,23 @@ class Net(nn.Module):
 
 
 
-    def logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
-        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
+    # def logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+    #     if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
 
-        act_dist = self.ccategorical.feed_logits(logits_agent_cluster)
+    #     act_dist = self.ccategorical.feed_logits(logits_agent_cluster)
 
-        if not test_mode:  
-            act = self.ccategorical.sample(act_dist) if not eval_mode else eval_actions
-        else:              
-            act = torch.argmax(act_dist.probs, axis=2)
+    #     if not test_mode:  
+    #         act = self.ccategorical.sample(act_dist) if not eval_mode else eval_actions
+    #     else:              
+    #         act = torch.argmax(act_dist.probs, axis=2)
 
-        # the policy gradient loss will feedback from here
-        actLogProbs = self._get_act_log_probs(act_dist, act) 
+    #     # the policy gradient loss will feedback from here
+    #     actLogProbs = self._get_act_log_probs(act_dist, act) 
 
-        # sum up the log prob of all agents
-        distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
+    #     # sum up the log prob of all agents
+    #     distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
         
-        return act, actLogProbs, distEntropy, act_dist.probs
+    #     return act, actLogProbs, distEntropy, act_dist.probs
 
 
 

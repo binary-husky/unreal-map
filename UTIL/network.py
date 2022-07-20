@@ -252,7 +252,7 @@ class StreamingPackageSep:
     def lower_recv(self, connection, expect_single=True):
         buff_list = self.lowest_recv(connection)
         if expect_single:
-            assert len(buff_list) == 1, ('一次拿到了多帧数据, 但expect_single=True, 触发错误.')
+            assert len(buff_list) == 1, ('一次拿到了多帧数据, 但expect_single=True, 触发错误.', buff_list)
             return buff_list[0], connection
         else:
             return buff_list, connection

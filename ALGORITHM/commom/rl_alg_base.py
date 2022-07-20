@@ -36,11 +36,11 @@ class RLAlgorithmBase(AlgorithmBase):
             time.sleep(3)
 
     '''
-        Get event from hmp task runner, save model now!
+        Get event from hmp task runner, called when each test rotinue is complete.
     '''
     def on_notify(self, message, **kargs):
         self.save_model(
-            update_cnt = self.traj_manager.update_cnt,
+            update_cnt=self.traj_manager.update_cnt,
             info=str(kargs)
         )
 

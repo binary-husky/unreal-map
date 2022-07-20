@@ -1,46 +1,49 @@
 import numpy as np
 from config import GlobalConfig
 from UTIL.colorful import *
-from UTIL.tensor_ops import my_view, __hash__, repeat_at
+from UTIL.tensor_ops import my_view, __hash__, repeat_at, gather_righthand
 from MISSION.uhmap.actset_lookup import encode_action_as_digits
 from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
 
-class ActionConvertLegacy():
 
+class ShellEnvConfig:
+    add_avail_act = False
+    
+class ActionConvertLegacy():
+    SELF_TEAM_ASSUME = 0
+    OPP_TEAM_ASSUME = 1
+    OPP_NUM_ASSUME = 7
     # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
     dictionary_args = [
         ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
         ('Idle',        'DynamicGuard',     None, None, None, None, None, None),   # 1
         ('Idle',        'StaticAlert',      None, None, None, None, None, None),   # 2
         ('Idle',        'AggressivePersue', None, None, None, None, None, None),   # 3
-        ('Idle',        'AsFarAsPossible',              None, None, None, None, None, None),   # 1
-        ('Idle',        'StayWhenTargetInRange',        None, None, None, None, None, None),   # 2
-        ('Idle',        'StayWhenTargetInHalfRange',    None, None, None, None, None, None),   # 3
-        ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 4
-        ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 5
-        ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 6
-        ('SpecificMoving',      'Dir-Y',    None, None, None, None, None, None),   # 7
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    0),      # 8
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    1),      # 9
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    2),      # 10
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    3),      # 11
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 1,    4),      # 12
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    0),      # 13
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    1),      # 14
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    2),      # 15
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    3),      # 16
-        ('SpecificAttacking',   'N/A',      None, None, None, None, 0,    4),      # 17
-        ('PatrolMoving',        'Dir+X',    None, None, None, None, None, None),   # 19
-        ('PatrolMoving',        'Dir+Y',    None, None, None, None, None, None),   # 20
-        ('PatrolMoving',        'Dir-X',    None, None, None, None, None, None),   # 21
-        ('PatrolMoving',        'Dir-Y',    None, None, None, None, None, None),   # 22
+        ('Idle',        'AsFarAsPossible',              None, None, None, None, None, None),   # 4
+        ('Idle',        'StayWhenTargetInRange',        None, None, None, None, None, None),   # 5
+        ('Idle',        'StayWhenTargetInHalfRange',    None, None, None, None, None, None),   # 6
+        ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 7
+        ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 8
+        ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 9
+        ('SpecificMoving',      'Dir-Y',    None, None, None, None, None, None),   # 10
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    0),      # 11
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    1),      # 12
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    2),      # 13
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    3),      # 14
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    4),      # 15
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    5),      # 16
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    6),      # 17
+        ('PatrolMoving',        'Dir+X',    None, None, None, None, None, None),   # 18
+        ('PatrolMoving',        'Dir+Y',    None, None, None, None, None, None),   # 19
+        ('PatrolMoving',        'Dir-X',    None, None, None, None, None, None),   # 20
+        ('PatrolMoving',        'Dir-Y',    None, None, None, None, None, None),   # 21
     ]
 
 
     @staticmethod
     def convert_act_arr(type, a):
-        if 'RLA_UAV' in type:
+        if type == 'RLA_UAV_Support':
             args = ActionConvertLegacy.dictionary_args[a]
             # override wrong actions
             if args[0] == 'SpecificAttacking':
@@ -51,8 +54,34 @@ class ActionConvertLegacy():
             return encode_action_as_digits(*args)
         else:
             return encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a])
- 
 
+    @staticmethod
+    def get_tp_avail_act(type):
+        DISABLE = 0
+        ENABLE = 1
+        n_act = len(ActionConvertLegacy.dictionary_args)
+        ret = np.zeros(n_act) + ENABLE
+        for i in range(n_act):
+            args = ActionConvertLegacy.dictionary_args[i]
+            
+            # for all kind of agents
+            if args[0] == 'PatrolMoving':       ret[i] = DISABLE
+            
+            if type == 'RLA_UAV_Support':
+                if args[0] == 'PatrolMoving':       ret[i] = DISABLE
+                if args[0] == 'SpecificAttacking':  ret[i] = DISABLE
+                if args[0] == 'Idle':               ret[i] = DISABLE
+                if args[1] == 'StaticAlert':        ret[i] = ENABLE
+        return ret
+    
+    @staticmethod
+    def confirm_parameters_are_correct(team, agent_num, opp_agent_num):
+        assert team == ActionConvertLegacy.SELF_TEAM_ASSUME
+        assert ActionConvertLegacy.SELF_TEAM_ASSUME + ActionConvertLegacy.OPP_TEAM_ASSUME == 1
+        assert ActionConvertLegacy.SELF_TEAM_ASSUME + ActionConvertLegacy.OPP_TEAM_ASSUME == 1
+        assert opp_agent_num == ActionConvertLegacy.OPP_NUM_ASSUME
+    
+    
 def count_list_type(x):
     type_cnt = {}
     for xx in x:
@@ -87,7 +116,12 @@ class ShellEnvWrapper(object):
         self.HeteAgentType = np.array(GlobalConfig.ScenarioConfig.HeteAgentType)
         self.hete_type = np.array(self.HeteAgentType)[GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[team]]
         self.n_hete_types = count_list_type(self.hete_type)
-
+        
+        # check parameters
+        assert self.n_agent == GlobalConfig.ScenarioConfig.n_team1agent
+        ActionConvertLegacy.confirm_parameters_are_correct(team, self.n_agent, GlobalConfig.ScenarioConfig.n_team2agent)
+        self.patience = 2000
+        
     @staticmethod
     def get_binary_array(n, n_bits, dtype=np.float32):
         arr = np.zeros(n_bits, dtype=dtype)
@@ -105,6 +139,9 @@ class ShellEnvWrapper(object):
             self.agent_type = [agent_meta['type'] 
                 for agent_meta in StateRecall['Latest-Team-Info'][0]['dataArr']
                 if agent_meta['uId'] in self.agent_uid]
+            if ShellEnvConfig.add_avail_act:
+                self.avail_act = np.stack((ActionConvertLegacy.get_tp_avail_act(tp) for tp in self.agent_type))
+                self.avail_act = repeat_at(self.avail_act, insert_dim=0, n_times=self.n_thread)
 
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
         # read internal coop graph info
@@ -117,7 +154,8 @@ class ShellEnvWrapper(object):
         n_entity_raw = obs.shape[-2]
         AlgorithmConfig.entity_distinct = [list(range(1)), list(range(1,n_entity_raw)), list(range(n_entity_raw,2*n_entity_raw))]
         
-        P = StateRecall['ENV-PAUSE']
+        P  =  StateRecall['ENV-PAUSE']
+        R  = ~StateRecall['ENV-PAUSE']
         RST = StateRecall['Env-Suffered-Reset']
         
         if RST.all(): # just experienced full reset on all episode, this is the first step of all env threads
@@ -148,31 +186,36 @@ class ShellEnvWrapper(object):
             else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])
         his_pool_obs[RST] = 0
 
-        obs_feed = obs[~P]
-        his_pool_obs_feed = his_pool_obs[~P]
+        obs_feed = obs[R]
+        his_pool_obs_feed = his_pool_obs[R]
         obs_feed_in, his_pool_next = self.solve_duplicate(obs_feed.copy(), his_pool_obs_feed.copy())
-        his_pool_obs[~P] = his_pool_next
+        his_pool_obs[R] = his_pool_next
         his_pool_obs[P] = 0
 
-        I_StateRecall = {'obs':obs_feed_in, 
+        I_StateRecall = {
+            'obs':obs_feed_in, 
+            'avail_act':self.avail_act[R],
             'Test-Flag':StateRecall['Test-Flag'], 
-            # '_FixMax_':StateRecall['_FixMax_'][~P], 
-            '_Type_':StateRecall['_Type_'][~P], 
-            'threads_active_flag':~P, 
-            'Latest-Team-Info':StateRecall['Latest-Team-Info'][~P],
-            }
+            # '_FixMax_':StateRecall['_FixMax_'][R], 
+            '_Type_':StateRecall['_Type_'][R], 
+            'threads_active_flag':R, 
+            'Latest-Team-Info':StateRecall['Latest-Team-Info'][R],
+        }
         if self.AvailActProvided:
-            avail_act = np.array([info['avail-act'] for info in np.array(StateRecall['Latest-Team-Info'][~P], dtype=object)])
+            avail_act = np.array([info['avail-act'] for info in np.array(StateRecall['Latest-Team-Info'][R], dtype=object)])
             I_StateRecall.update({'avail_act':avail_act})
 
         act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_StateRecall)
 
-        act[~P] = act_active
+        act[R] = act_active
+        
+        if ShellEnvConfig.add_avail_act and self.patience>0:
+            self.patience -= 1
+            assert (gather_righthand(self.avail_act, repeat_at(act, -1, 1), check=False)[R]==1).all()
+            
 
-        act_converted = np.array([
-            [
-                ActionConvertLegacy.convert_act_arr(self.agent_type[agentid], act)  for agentid, act in enumerate(th) 
-            ] for th in act])
+        # translate action into ue4 tuple action
+        act_converted = np.array([[ ActionConvertLegacy.convert_act_arr(self.agent_type[agentid], act) for agentid, act in enumerate(th) ] for th in act])
         actions_list = np.swapaxes(act_converted, 0, 1) # swap thread(batch) axis and agent axis
 
 

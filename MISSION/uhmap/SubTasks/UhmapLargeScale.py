@@ -6,7 +6,7 @@ from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
 from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
-
+from .cython_func import tear_num_arr
 '''
 "HeteAgentType": [
     "RLA_CAR", 
@@ -310,7 +310,7 @@ class UhmapLargeScale(UhmapEnv):
 
 
     def make_obs(self, resp=None, get_shape=False):
-        CORE_DIM = 23
+        CORE_DIM = 38
         assert ScenarioConfig.obs_vec_length == CORE_DIM
         if get_shape:
             return CORE_DIM
@@ -345,16 +345,17 @@ class UhmapLargeScale(UhmapEnv):
             assert agent.uid == i
 
             obs_arr.append(
-                self.uid_binary[i]
+                self.uid_binary[i]  # 0~9
             )
             obs_arr.append([
-                agent.index,
-                agent.team,
-                agent.alive,
-                agent.uid_remote,
+                agent.index,    # 10
+                agent.team,     # 11
+                agent.alive,    # 12
+                agent.uid_remote, # 13
             ])
-            obs_arr.append(
-                agent.pos3d
+            obs_arr.append( #[14,15,16,17,18,19]
+                # tear_num_arr(agent.pos3d, n_digits=6, base=10, mv_left=0)
+                tear_num_arr(agent.pos3d, 6, 10, 0) # 3 -- > 3*6 = 18 , 18-3=15, 23+15 = 38
             )
             obs_arr.append(
                 agent.vel3d
@@ -454,11 +455,15 @@ class UhmapLargeScale(UhmapEnv):
                 -1,                             #agent.team,
                 True,                           #agent.alive,
                 obj['uId'] - OBJ_UID_OFFSET,    #agent.uid_remote,
-            ]+
-            [
-                obj['location']['x'], obj['location']['y'], obj['location']['z']  # agent.pos3d
-            ]+
-            [
+            ])
+            # tear_num_arr(agent.pos3d, n_digits=6, base=10, mv_left=0)
+            obs_arr.append(
+                    tear_num_arr([
+                    obj['location']['x'], obj['location']['y'], obj['location']['z']  # agent.pos3d
+                ], 6, 10, 0)
+            )
+            
+            obs_arr.append([
                 obj['velocity']['x'], obj['velocity']['y'], obj['velocity']['z']  # agent.vel3d
             ]+
             [

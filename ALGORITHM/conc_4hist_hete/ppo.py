@@ -295,7 +295,8 @@ class PPO():
         batch_agent_size = advantage.shape[0]*advantage.shape[1]
 
         assert flag == 'train'
-        newPi_value, newPi_actionLogProb, entropy, probs, others = self.policy_and_critic.evaluate_actions(obs, eval_actions=action, test_mode=False, avail_act=avail_act, hete_pick=hete_pick)
+        newPi_value, newPi_actionLogProb, entropy, probs, others = \
+            self.policy_and_critic.evaluate_actions(obs=obs, eval_actions=action, test_mode=False, avail_act=avail_act, hete_pick=hete_pick)
         entropy_loss = entropy.mean()
 
 

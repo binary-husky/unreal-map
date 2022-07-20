@@ -1,10 +1,10 @@
-import os, time, torch, traceback
+import os, time, torch, traceback, shutil
 import numpy as np
 from UTIL.colorful import *
 from config import GlobalConfig
 from UTIL.tensor_ops import repeat_at
 from ..commom.rl_alg_base import RLAlgorithmBase
-class AlgorithmConfig:  
+class AlgorithmConfig:
     '''
         AlgorithmConfig: This config class will be 'injected' with new settings from json.
         (E.g., override configs with ```python main.py --cfg example.jsonc```)
@@ -69,6 +69,7 @@ class AlgorithmConfig:
 
     entity_distinct = 'auto load, do not change'
 
+
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from .shell_env import ShellEnvWrapper, ActionConvertLegacy
@@ -123,7 +124,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         hete_pick = StateRecall['_Type_']
         with torch.no_grad():
             # if AlgorithmConfig.PR_ACTIVATE:  self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
-            action, value, action_log_prob = self.policy.act(obs, test_mode=test_mode, avail_act=avail_act, hete_pick=hete_pick)
+            action, value, action_log_prob = self.policy.act(obs=obs, test_mode=test_mode, avail_act=avail_act, hete_pick=hete_pick)
 
         # Warning! vars named like _x_ are aligned, others are not!
         traj_framefrag = {
@@ -243,23 +244,23 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             2. Given info, indicating a hmp command
             3. A flag file is detected, indicating a save command from human
         '''
-        logdir = GlobalConfig.logdir
-        flag = '%s/save_now' % logdir
-        if update_cnt % 50 == 0 or (info is not None) or os.path.exists(flag):
-            # dir 1
-            pt_path = '%s/model.pt' % logdir
-            print绿('saving model to %s' % pt_path)
-            torch.save(self.policy.state_dict(), pt_path)
+        if not os.path.exists('%s/history_cpt/' % GlobalConfig.logdir): os.makedirs('%s/history_cpt/' % GlobalConfig.logdir)
 
-            # dir 2
-            info = str(update_cnt) if info is None else ''.join([str(update_cnt), '_', info])
-            pt_path = '%s/history_cpt/model_%s.pt' % (logdir, info)
-            torch.save(self.policy.state_dict(), pt_path)
-            try:
-                os.remove(flag)
-            except:
-                pass
-            print绿('save_model fin')
+        # dir 1
+        pt_path = '%s/model.pt' % GlobalConfig.logdir
+        print绿('saving model to %s' % pt_path)
+        torch.save({
+            'policy': self.policy.state_dict(),
+            'at_optimizer': self.trainer.at_optimizer.state_dict(),
+            'ct_optimizer': self.trainer.ct_optimizer.state_dict(),
+        }, pt_path)
+
+        # dir 2
+        info = str(update_cnt) if info is None else ''.join([str(update_cnt), '_', info])
+        pt_path2 = '%s/history_cpt/model_%s.pt' % (GlobalConfig.logdir, info)
+        shutil.copyfile(pt_path, pt_path2)
+
+        print绿('save_model fin')
 
 
 
@@ -267,30 +268,20 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         '''
             load model now
         '''
-        self.load_checkpoint = AlgorithmConfig.load_checkpoint
-        logdir = GlobalConfig.logdir
 
-        # makedirs if not exists
-        if not os.path.exists('%s/history_cpt/' % logdir):
-            os.makedirs('%s/history_cpt/' % logdir)
-
-        if self.load_checkpoint:
+        if AlgorithmConfig.load_checkpoint:
             manual_dir = AlgorithmConfig.load_specific_checkpoint
-            ckpt_dir = '%s/model.pt' % logdir if manual_dir == '' else '%s/%s' % (logdir, manual_dir)
+            ckpt_dir = '%s/model.pt' % GlobalConfig.logdir if manual_dir == '' else '%s/%s' % (GlobalConfig.logdir, manual_dir)
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
-            # strict = not AlgorithmConfig.only_train_div_tree_and_ct
             strict = True
-            self.policy.load_state_dict(torch.load(ckpt_dir, map_location=cuda_n), strict=strict)
+            
+            cpt = torch.load(ckpt_dir, map_location=cuda_n)
+            self.policy.load_state_dict(cpt['policy'], strict=strict)
+            # https://github.com/pytorch/pytorch/issues/3852
+            self.trainer.at_optimizer.load_state_dict(cpt['at_optimizer'])
+            self.trainer.ct_optimizer.load_state_dict(cpt['ct_optimizer'])
+
             print黄('loaded checkpoint:', ckpt_dir)
-            
-            
-        # if self.load_checkpoint:
-        #     if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=False)
-        # else:
-        #     if AlgorithmConfig.UseDivTree: self.policy.AT_div_tree.set_to_init_level(auto_transfer=True)
-
-        
-
 
 
 

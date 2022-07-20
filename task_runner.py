@@ -134,9 +134,9 @@ class Runner(object):
 
 
 
-    # ----------------------------------------------------------------------------------------------------------------------------------------------------
-    # ----------------------------------------------- About TEST RUN routine, almost a Mirror of above ---------------------------------------------------
-    # ----------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------ About TEST RUN routine, almost a Mirror of above ----------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------
     # -- I know these code below might merge with above for simplicity --
     # -- But I decide not, in order to make it easier to read and debug --
     if cfg.train_time_testing:
@@ -151,6 +151,8 @@ class Runner(object):
                 actions_list, self.test_info_runner = self.platform_controller.act(self.test_info_runner)
                 obs, reward, done, info = self.test_envs.step(actions_list)
                 self.test_info_runner = self.update_test_runner(done, obs, reward, info)
+                if self.hb_on: print('\r [task runner]: testing %s  '%self.heartbeat(
+                    style=3, beat=self.test_info_runner['Current-Obs-Step']), end='', flush=True)
                 # If the test run reach its end, record the reward and win-rate:
                 if (self.test_info_runner['Thread-Episode-Cnt']>=ntimesthread).all():
                     # get the reward average
@@ -282,16 +284,16 @@ class Runner(object):
         mcv.rec_init(color='b')
         return mcv
 
-    def heartbeat(self):
+    def heartbeat(self, style=0, beat=None):
+        # default ⠁⠈⠐⠠⢀⡀⠄⠂
         width = os.get_terminal_size().columns
-        # sym = ['◐ ','◓ ','◑ ','◒ ','▂ ','▃ ','▅ ','▆ ']
-        # sym = ['▁','▂','▃','▄','▅','▆','▇','█']
-        sym = ['⠁','⠈','⠐','⠠','⢀','⡀','⠄','⠂',]  # ⠁⠈⠐⠠⢀⡀⠄⠂
-        # sym = ['💐','🌷','🌸','🌹','🌺','🌻','🌼',]
-        res = self.info_runner['Current-Obs-Step']
-        res = res % len(sym)
-        # print(width)
-        res = res[:int(width*0.2)]
-        res.astype(np.int)
-        res = [sym[t] for t in res]
-        return ''.join(res)
+        if style==0: sym = ['⠁','⠈','⠐','⠠','⢀','⡀','⠄','⠂',]
+        elif style==1: sym = ['◐ ','◓ ','◑ ','◒ ']
+        elif style==2: sym = ['▁','▂','▃','▄','▅','▆','▇','█']
+        elif style==3: sym = ['💐','🌷','🌸','🌹','🌺','🌻','🌼',]
+        if beat is None: beat = self.info_runner['Current-Obs-Step']
+        beat = beat % len(sym)
+        beat = beat[:int(width*0.2)]
+        beat.astype(np.int)
+        beat = [sym[t] for t in beat]
+        return ''.join(beat)
