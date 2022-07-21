@@ -9,12 +9,11 @@
     Note: 
         SHARE_BUF_SIZE: shared memory size, 10MB per process
 """
-import time, pickle, platform, datetime
+import time, pickle, platform
 import numpy as np
 from multiprocessing import Process, RawValue, Semaphore
 from multiprocessing import shared_memory
-from ctypes import c_char, c_uint16, c_bool, c_uint32, c_byte
-from time import sleep as _sleep
+from ctypes import c_bool, c_uint32
 from .hmp_daemon import kill_process_and_its_children
 SHARE_BUF_SIZE = 10485760
 def print_red(*kw,**kargs):
@@ -113,7 +112,9 @@ class SuperProc(Process):
         self.shared_memory.close()
         for target_name in self.target_tracker: 
             setattr(self, target_name, None)    # GC by clearing the pointer.
-        return
+        # force terminate all child process
+        try: kill_process_and_its_children(self)
+        except Exception as e: print_red('[shm_pool]: error occur when kill_process_and_its_children:\n', e)
 
     def automatic_generation(self, name, gen_fn, *arg):
         setattr(self, name, gen_fn(*arg))

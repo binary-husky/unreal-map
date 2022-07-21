@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
 '''
 
-note=uhmp-dev-ls_6v7-Pr-Run2-startPR
+note=z-uhmp-LS-6v7-hete-train-normbase10000-run2
 cp -r ./ZHECKPOINT/$note ./ZHECKPOINT/$note-bk
 cp -r ./ZHECKPOINT/$note/experiment.jsonc ./ZHECKPOINT/$note/experiment-bk.jsonc
 cp -r ./ZHECKPOINT/$note/experiment.jsonc ./ZHECKPOINT/$note/train.jsonc
@@ -45,7 +45,7 @@ with open(file, encoding='utf8') as f:
 json_data["config.py->GlobalConfig"]["num_threads"] = 1
 json_data["config.py->GlobalConfig"]["test_only"] = True
 json_data["MISSION.uhmap.uhmap_env_wrapper.py->ScenarioConfig"]["TimeDilation"] = 1
-json_data["ALGORITHM.conc_4hist_pr.foundation.py->AlgorithmConfig"]["load_checkpoint"] = True
+json_data["ALGORITHM.conc_4hist_hete.foundation.py->AlgorithmConfig"]["load_checkpoint"] = True
 with open(file, 'w') as f:
     json.dump(json_data, f, indent=4)
 __EOF__

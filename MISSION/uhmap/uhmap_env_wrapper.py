@@ -82,6 +82,7 @@ class ScenarioConfig(object):
 
     n_actions = dictionary_n_actions
     obs_vec_length = 38
+    ObsBreakBase = 10
 
 
 

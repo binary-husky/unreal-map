@@ -355,7 +355,7 @@ class UhmapLargeScale(UhmapEnv):
             ])
             obs_arr.append( #[14,15,16,17,18,19]
                 # tear_num_arr(agent.pos3d, n_digits=6, base=10, mv_left=0)
-                tear_num_arr(agent.pos3d, 6, 10, 0) # 3 -- > 3*6 = 18 , 18-3=15, 23+15 = 38
+                tear_num_arr(agent.pos3d, 6, ScenarioConfig.ObsBreakBase, 0) # 3 -- > 3*6 = 18 , 18-3=15, 23+15 = 38
             )
             obs_arr.append(
                 agent.vel3d
@@ -458,9 +458,9 @@ class UhmapLargeScale(UhmapEnv):
             ])
             # tear_num_arr(agent.pos3d, n_digits=6, base=10, mv_left=0)
             obs_arr.append(
-                    tear_num_arr([
+                tear_num_arr([
                     obj['location']['x'], obj['location']['y'], obj['location']['z']  # agent.pos3d
-                ], 6, 10, 0)
+                ], 6, ScenarioConfig.ObsBreakBase, 0)
             )
             
             obs_arr.append([

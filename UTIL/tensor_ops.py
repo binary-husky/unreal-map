@@ -117,30 +117,29 @@ def copy_clone(x):
             y = my_view(x, new_shape)
             y.shape = [3, 2, 2, 5, 6]
 
-
+    Error eg.1
+            x.shape = (3, 4, 5, 6); new_shape = [0, 2, 0, -1, 0]
+            Error: 2(!=4) and -1 must stick together!
+            Fix 1: new_shape   = [0,  2,  2,  0,  0]
+            Fix 2: new_shape   = [0,  2, -1,  0,  0]
+            Fix 3: new_shape   = [0, -1,  2,  0,  0]
+            After Fix: y.shape = [3,  2,  2,  5,  6]
+            
+    Error eg.2
+            x.shape = (3, 4, 5, 6); new_shape = [12, 0, -1]
+            Error: 12(!=3) and -1 must stick together!
+            Fix 1: new_shape   = [12,  0, 0]
+            Fix 2: new_shape   = [12, -1, 6]
+            Fix 3: new_shape   = [12, -1, 0]
+            Fix 4: new_shape   = [-1,  0, 0]
+            After Fix: y.shape = [12,  5, 6]
 """
 def my_view(x, shape):
-    if -1 in shape[1:-1]: return my_view_test(x, shape)
-    reverse_lookup = True if shape[0] == -1 else False
-    if not reverse_lookup:
-        for i, dim in enumerate(shape):
-            if dim == 0:
-                shape[i] = x.shape[i]
-    else:
-        for i in range(len(shape)):
-            ni = -(i + 1)  # iter -1,-2,-3,...
-            dim = shape[ni]
-            if dim == 0:
-                shape[ni] = x.shape[ni]
-    if isinstance(x, np.ndarray):
-        return x.reshape(*shape)
-    return x.view(*shape)
-
-def my_view_test(x, shape):
     # fill both way until meet -1 
     for i, dim in enumerate(shape):
         if dim == 0: shape[i] = x.shape[i]
         elif dim == -1: break
+        elif dim != x.shape[i]: break
     for i in range(len(shape)):
         ni = -(i + 1); dim = shape[ni]
         if dim == 0: shape[ni] = x.shape[ni]

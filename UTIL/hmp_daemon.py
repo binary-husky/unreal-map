@@ -6,9 +6,9 @@ def kill_process(p):
     try:
         # print('正在发送terminate命令到进程:', os.getpid(), '-->', p.pid)
         p.terminate()
-        _, alive = psutil.wait_procs([p,], timeout=0.1)    # 先等 100ms
+        _, alive = psutil.wait_procs([p,], timeout=0.01)    # 先等 10ms
         if len(alive):
-            _, alive = psutil.wait_procs(alive, timeout=3.0)  # 再等 3s
+            _, alive = psutil.wait_procs(alive, timeout=0.10)  # 再等 100ms
             if len(alive):
                 # print('\t (R1) 很遗憾, 进程不服从terminate信号, 正在发送kill-9命令到进程:', os.getpid(), '-->', p.pid)
                 for p in alive: p.kill()

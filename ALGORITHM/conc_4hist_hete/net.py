@@ -156,7 +156,7 @@ class HeteNet(nn.Module):
         self.n_hete_types = _count_list_type(self.hete_type)
         self.n_policy_groups = AlgorithmConfig.n_policy_groups
         self.n_rollbuffer_size = 100
-        self.pgrb = PolicyGroupRollBuffer(self.n_hete_types, self.n_rollbuffer_size)
+        # self.pgrb = PolicyGroupRollBuffer(self.n_hete_types, self.n_rollbuffer_size)
         self.use_normalization = AlgorithmConfig.use_normalization
 
         n_tp = self.n_hete_types
