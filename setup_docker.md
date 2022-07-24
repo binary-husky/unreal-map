@@ -149,6 +149,7 @@ cython
 waitress
 colorama
 func_timeout
+setproctitle
 commentjson
 matplotlib
 psutil

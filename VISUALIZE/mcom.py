@@ -1,4 +1,4 @@
-import os, copy, atexit, time, gzip, threading, zlib, asyncio
+import os, copy, atexit, time, gzip, threading, setproctitle
 import numpy as np
 from colorama import init
 from multiprocessing import Process
@@ -344,6 +344,8 @@ class DrawProcessThreejs(Process):
             self.tflush.start()
 
     def run(self):
+        setproctitle.setproctitle('ThreejsVisualWorker')
+        
         self.init_threejs()
         try:
             from queue import Empty
@@ -499,6 +501,7 @@ class DrawProcess(Process):
         }
 
     def run(self):
+        setproctitle.setproctitle('HmapPlotProcess')
         self.init_matplot_lib()
         try:
             # self.tcp_connection.set_handler(self.run_handler)

@@ -1,6 +1,5 @@
-import time, requests, threading, os, atexit
+import time, requests, threading, os, atexit, psutil
 from UTIL.colorful import *
-import psutil
 
 def kill_process(p):
     try:

@@ -1,7 +1,7 @@
 import json, os, subprocess, time, stat, platform
 import numpy as np
 from UTIL.colorful import print蓝, print靛, print亮红
-from UTIL.network import TcpClientP2PWithCompress, find_free_port_no_repeat
+from UTIL.network import TcpClientP2PWithCompress, find_free_port_no_repeat_new
 from UTIL.config_args import ChainVar
 from ..common.base_env import BaseEnv
 from .actset_lookup import binary_friendly, dictionary_n_actions
@@ -127,9 +127,9 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         self.render = ScenarioConfig.render #  and (rank==0)
         which_port = ScenarioConfig.UhmapPort
         if ScenarioConfig.AutoPortOverride:
-            which_port = find_free_port_no_repeat()   # port for hmp data exchanging
-        ue_networking = find_free_port_no_repeat()    # port for remote visualizing
-        print蓝('Port %d will be used by hmp, port %d will be used by UE internally'%(which_port, ue_networking))
+            which_port, release_port_fn = find_free_port_no_repeat_new()   # port for hmp data exchanging
+        ue_visual_port, release_port_fn = find_free_port_no_repeat_new()    # port for remote visualizing
+        print蓝('Port %d will be used by hmp, port %d will be used by UE internally'%(which_port, ue_visual_port))
 
         ipport = (ScenarioConfig.TcpAddr, which_port)
         # os.system()
@@ -159,7 +159,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     ScenarioConfig.UhmapServerExe,
                     # '-log', 
                     '-TcpPort=%d'%which_port,   # port for hmp data exchanging
-                    '-Port=%d'%ue_networking,   # port for remote visualizing
+                    '-Port=%d'%ue_visual_port,   # port for remote visualizing
                     '-OpenLevel=%s'%ScenarioConfig.UnrealLevel, 
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
@@ -174,7 +174,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     ScenarioConfig.UhmapRenderExe,
                     # '-log', 
                     '-TcpPort=%d'%which_port,   # port for hmp data exchanging
-                    '-Port=%d'%ue_networking,   # port for remote visualizing
+                    '-Port=%d'%ue_visual_port,   # port for remote visualizing
                     '-OpenLevel=%s'%ScenarioConfig.UnrealLevel, 
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
@@ -207,7 +207,9 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 else:
                     pass
                 time.sleep(0.1)
-
+        # now that port is bind, no need to hold them anymore
+        release_port_fn(which_port)
+        release_port_fn(ue_visual_port)
         self.t = 0
         print('thread %d initialize complete'%rank)
 
