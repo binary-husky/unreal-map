@@ -1,7 +1,7 @@
 import json, os, subprocess, time, stat, platform
 import numpy as np
 from UTIL.colorful import print蓝, print靛, print亮红
-from UTIL.network import TcpClientP2PWithCompress, find_free_port_no_repeat_new
+from UTIL.network import TcpClientP2PWithCompress, find_free_port_no_repeat
 from UTIL.config_args import ChainVar
 from ..common.base_env import BaseEnv
 from .actset_lookup import binary_friendly, dictionary_n_actions
@@ -25,6 +25,8 @@ class ScenarioConfig(object):
 
     AGENT_ID_EACH_TEAM = [range(0,n_team1agent), range(n_team1agent,n_team1agent+n_team2agent)]
     AGENT_ID_EACH_TEAM_cv = ChainVar(lambda  n1, n2: [range(0,n1),range(n1,n1+n2)], chained_with=['n_team1agent', 'n_team2agent'])
+
+    CanTurnOff = False
 
     # Hete agents
     HeteAgents = False
@@ -82,7 +84,7 @@ class ScenarioConfig(object):
 
     n_actions = dictionary_n_actions
     obs_vec_length = 38
-    ObsBreakBase = 10
+    ObsBreakBase = 1e4
 
 
 
@@ -127,8 +129,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         self.render = ScenarioConfig.render #  and (rank==0)
         which_port = ScenarioConfig.UhmapPort
         if ScenarioConfig.AutoPortOverride:
-            which_port, release_port_fn = find_free_port_no_repeat_new()   # port for hmp data exchanging
-        ue_visual_port, release_port_fn = find_free_port_no_repeat_new()    # port for remote visualizing
+            which_port, release_port_fn = find_free_port_no_repeat()   # port for hmp data exchanging
+        ue_visual_port, release_port_fn = find_free_port_no_repeat()    # port for remote visualizing
         print蓝('Port %d will be used by hmp, port %d will be used by UE internally'%(which_port, ue_visual_port))
 
         ipport = (ScenarioConfig.TcpAddr, which_port)
@@ -194,6 +196,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             print('Trying to link to unreal editor ...')
             assert not ScenarioConfig.AutoPortOverride
 
+        time.sleep(1+np.abs(self.id)/100)
         self.client = TcpClientP2PWithCompress(ipport)
         MAX_RETRY = 100
         for i in range(MAX_RETRY):
@@ -206,7 +209,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     print('Thread %d: Trying to connect to uhmap simulation. Going to take a while when openning for the first time. Retry %d ...'%(rank, i))
                 else:
                     pass
-                time.sleep(0.1)
+                time.sleep(1)
         # now that port is bind, no need to hold them anymore
         release_port_fn(which_port)
         release_port_fn(ue_visual_port)
@@ -215,7 +218,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
 
 
     def terminate_simulation(self):
-        if hasattr(self, 'sim_thread'):
+        if hasattr(self, 'sim_thread') and self.sim_thread is not None:
             # self.sim_thread.terminate()
             
             self.client.send_dgram_to_target(json.dumps({
@@ -227,6 +230,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 'Actions': None,
             }))
             self.client.close()
+            self.sim_thread = None
             # json_to_send = json.dumps({
             #     'valid': True,
             #     'DataCmd': 'end_unreal_engine',
@@ -238,18 +242,20 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
     def reset(self):
         self.simulation_life -= 1
         if self.simulation_life < 0:
+            print('restarting simutation')
             self.terminate_simulation()
             self.simulation_life = self.max_simulation_life
             self.activate_simulation(self.id)
 
-
+    def sleep(self):
+        self.simulation_life = -1
+        self.terminate_simulation()
 
     # override step function
     def step(self, act):
         raise NotImplementedError
         # return (ob, RewardForAllTeams,  done, info)  # choose this if RewardAsUnity
         
-
 
 # please register this into MISSION/env_router.py
 def make_uhmap_env(env_id, rank):

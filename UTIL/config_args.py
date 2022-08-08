@@ -18,7 +18,7 @@ class ChainVar(object):
     Load all parameters in place
 '''
 def prepare_args(vb=True):
-    prepare_recycle_folder()
+    prepare_tmp_folder()
     parser = argparse.ArgumentParser(description='HMP')
     parser.add_argument('-c', '--cfg', help='Path of the configuration file')
     parser.add_argument('-s', '--skip', action='store_true', help='skip logdir check')
@@ -120,11 +120,41 @@ def random_seed_warning(json_data):
         print亮红('Random seed not given, using %d'%cfg.seed)
         time.sleep(5)
 
-def prepare_recycle_folder():
+def prepare_tmp_folder():
+    def is_file_empty(file_path):
+        with open(file_path, 'r') as f: 
+            file_content = f.read()
+        if file_content == '' or file_content == '\n': 
+            return True
+        else:
+            return False
+    def init_dir(dir):
+        if not os.path.exists(dir):  os.makedirs(dir)
+
+
+
+
     import glob
-    if not os.path.exists('./TEMP'): os.mkdir('./TEMP')
-    for tmp in glob.glob('./TEMP/find_free_ports_*'):
-        os.remove(tmp)
+    local_temp_folder = './TEMP'
+    global_temp_folder = os.path.expanduser('~/HmapTemp')
+    init_dir(local_temp_folder)
+    init_dir(global_temp_folder+'/GpuLock'   )
+    init_dir(global_temp_folder+'/PortFinder')
+    
+
+    _tmp_files_to_investigate = \
+          glob.glob(global_temp_folder+'/GpuLock/*'    ) \
+        + glob.glob(global_temp_folder+'/PortFinder/*' )
+    
+    for tmp in _tmp_files_to_investigate:
+        if not is_file_empty(tmp):
+            print亮红('Warning, find temp file which is not empty: %s !'%tmp)
+            time.sleep(10)
+
+
+                
+                
+    # done checking trash folder
 
 def register_machine_info(logdir):
     import socket, json, subprocess, uuid

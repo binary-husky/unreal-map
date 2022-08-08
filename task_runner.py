@@ -27,6 +27,10 @@ class Runner(object):
         self.RewardAsUnity = False  
         if hasattr(cfg.ScenarioConfig, 'RewardAsUnity'):
             self.RewardAsUnity = cfg.ScenarioConfig.RewardAsUnity
+        # let test env sleep (when not used) to save memory ?
+        self.test_env_sleepy = False
+        if hasattr(cfg.ScenarioConfig, 'CanTurnOff'):
+            self.test_env_sleepy = cfg.ScenarioConfig.CanTurnOff
         self.n_thread = cfg.num_threads
         self.n_frame =  cfg.n_parallel_frame
         self.test_epoch=cfg.test_epoch
@@ -35,7 +39,7 @@ class Runner(object):
         self.current_n_frame = 0
         self.current_n_episode = 0
         self.max_n_episode = cfg.max_n_episode
-        # leave a backdoor here to monitor rewards for some specific agents
+        # Reward monitoring for agents of your interest
         self.train_time_testing = cfg.train_time_testing
         self.test_interval = cfg.test_interval
         self.test_only = cfg.test_only
@@ -176,6 +180,8 @@ class Runner(object):
                     print靛('\r[task runner]: test finished, %s'%print_info )
                     if cfg.upload_after_test: upload_experiment_results(cfg)
                     self.platform_controller.notify_teams(message='test done:%s', win_rate=win_rate, mean_reward=reward_avg_itr_agent)
+                    # close all
+                    if self.test_env_sleepy: self.test_envs.sleep()
                     return
         def init_test_runner(self):
             if not hasattr(self, 'test_envs'):

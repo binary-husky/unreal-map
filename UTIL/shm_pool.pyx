@@ -9,12 +9,13 @@
     Note: 
         SHARE_BUF_SIZE: shared memory size, 10MB per process
 """
-import time, pickle, platform
+import time, pickle, platform, setproctitle
 import numpy as np
 from multiprocessing import Process, RawValue, Semaphore
 from multiprocessing import shared_memory
 from ctypes import c_bool, c_uint32
 from .hmp_daemon import kill_process_and_its_children
+
 SHARE_BUF_SIZE = 10485760
 def print_red(*kw,**kargs):
     print("\033[1;31m",*kw,"\033[0m",**kargs)
@@ -105,6 +106,7 @@ class SuperProc(Process):
         self.sem_push = sem_push
         self.sem_pull = sem_pull
         self.target_tracker = []
+        
 
     def __del__(self):
         if hasattr(self,'_deleted_'): return    # avoid exit twice
@@ -156,6 +158,7 @@ class SuperProc(Process):
     def run(self):
         import numpy, platform
         numpy.random.seed(self.local_seed)
+        setproctitle.setproctitle('HmapShmPoolWorker_%d'%self.index)
         # linux uses fork, but windows does not, reload config for windows
         # if not platform.system()=="Linux":  child_process_load_config()   # disable, move to main.py
         try:
@@ -224,6 +227,7 @@ class SmartPool(object):
         CC_DEF_SHARED_OBJ_BUF_SIZE = SHARE_BUF_SIZE # 10 MB for parameter buffer
         self.buf_size_limit = CC_DEF_SHARED_OBJ_BUF_SIZE
         print('Multi-env using share memory')
+        setproctitle.setproctitle('HmapRootProcess')
         self.shared_memory_io_buffer_handle = [shared_memory.SharedMemory(create=True, size=SHARE_BUF_SIZE) for _ in range(proc_num)]
         self.shared_memory_io_buffer_len_indicator = [RawValue(c_uint32, 0) for _ in range(proc_num)]
         self.shared_memory_traffic_light = [RawValue(c_bool, False) for _ in range(proc_num)] # time to work flag

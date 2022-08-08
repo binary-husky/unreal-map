@@ -318,15 +318,16 @@ class collective_assultGlobalEnv(gym.Env):
         if any(terminate_cond):
             guard_win = (self.world.numAliveAttackers*self.world.numGuards <= self.world.numAliveGuards*self.world.numAttackers)
             if self.world.numGuards != self.world.numAttackers:
-                with open('./test_only_profilex.txt','a+') as f:
-                    f.write(str(guard_win) + 'init_theta%.2f@%d: AliveGuards %d, AliveAttackers %d, orig: %d-%d \n'%(
-                    self.world.init_theta,
-                    self.world.time_step,
-                    self.world.numAliveGuards,
-                    self.world.numAliveAttackers,
-                    self.world.numGuards,
-                    self.world.numAttackers
-                    ))
+                pass
+                # with open('./test_only_profilex.txt','a+') as f:
+                #     f.write(str(guard_win) + 'init_theta%.2f@%d: AliveGuards %d, AliveAttackers %d, orig: %d-%d \n'%(
+                #     self.world.init_theta,
+                #     self.world.time_step,
+                #     self.world.numAliveGuards,
+                #     self.world.numAliveAttackers,
+                #     self.world.numGuards,
+                #     self.world.numAttackers
+                #     ))
             if terminate_cond[0]:
                 self.world.gameResult[0] = 1
                 return True, {'win': True}

@@ -9,33 +9,7 @@ def find_free_port():
 
 def find_free_port_no_repeat():
     from UTIL.file_lock import FileLock
-    from config import GlobalConfig as cfg
-    fp = './TEMP/find_free_ports_no_repeat_%s'%cfg.machine_info['ExpUUID']
-
-    with FileLock(fp):
-        if not os.path.exists(fp):
-            with open(fp, "w") as f: pass
-
-        with open(fp, "r+") as f:
-            ports_to_be_taken = [int(p) for p in f.readlines()]
-        while True:
-            new_port = find_free_port()
-            if new_port not in ports_to_be_taken:
-                break
-            else:
-                print('port taken, change another')
-
-        ports_to_be_taken.append(new_port)
-        with open(fp, "w") as f:
-            f.writelines([str(p)+'\n' for p in ports_to_be_taken])
-
-        print('new port:', new_port)
-    return new_port
-
-
-def find_free_port_no_repeat_new():
-    from UTIL.file_lock import FileLock
-    fp = './TEMP/find_free_ports_no_repeat__.list'
+    fp = os.path.expanduser('~/HmapTemp') + '/PortFinder/find_free_ports.txt'
 
     with FileLock(fp):
         if not os.path.exists(fp):
@@ -59,7 +33,7 @@ def find_free_port_no_repeat_new():
 
 def release_fn(port):
     from UTIL.file_lock import FileLock
-    fp = './TEMP/find_free_ports_no_repeat__.list'
+    fp = os.path.expanduser('~/HmapTemp/PortFinder/find_free_ports.txt')
 
     with FileLock(fp):
         if not os.path.exists(fp):

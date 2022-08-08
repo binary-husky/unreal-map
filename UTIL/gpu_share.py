@@ -16,7 +16,7 @@ class GpuShareUnit():
         if gpu_party == 'off':
             self.manual_gpu_ctl = False
         if self.lock_path is None: 
-            self.lock_path = os.path.expanduser('~/GpuLock')
+            self.lock_path = os.path.expanduser('~/HmapTemp/GpuLock')
         if not os.path.exists(self.lock_path): os.makedirs(self.lock_path)
         register(self.__del__)
         

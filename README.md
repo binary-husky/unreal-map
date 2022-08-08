@@ -165,7 +165,7 @@ self.info_runner = self.update_runner(done, obs, reward, info)
 ## The Time Sequence of HMP
 In general, HMP task runner can operate two ways:
 - (Deprecated due) self.align_episode = False: threads immediately restart at terminal state, threads do not wait each other
-- self.align_episode = True: threads pause at terminal state, waiting until all threads terminate, then reset
+- self.align_episode = True: threads pause at terminal state, waiting until all threads terminate, then reset. Please refer to [Hmp Time Sequence](./VISUALIZE/md_imgs/hmp2g_timeline.svg). 
 <div align="center">
 <img src="VISUALIZE/md_imgs/timeline.jpg" width="700" >
 </div>

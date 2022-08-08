@@ -75,6 +75,9 @@ class EnvWithRay(object):
     def reset(self):
         return self.env.reset()
 
+    def sleep(self):
+        return self.env.sleep()
+
     def render(self):
         return self.env.render()
 
@@ -140,18 +143,5 @@ class SuperpoolEnv(object):
         else:
             return np.stack(results)
 
-    # def stack(self, ENV_PAUSE, *args):
-    #     sample_index = ENV_PAUSE.index(False)
-    #     args = list(args)
-    #     for k in range(len(args)):
-    #         args[k] = list(args[k])
-    #         arg = args[k]
-    #         sample = arg[sample_index]
-    #         for thread_index in range(self.num_envs):
-    #             if arg[thread_index] is not None: continue
-    #             if isinstance(sample, np.ndarray):
-    #                 arg[thread_index] = np.zeros_like(sample) + np.nan
-    #             else:
-    #                 assert False
-    #         args[k] = np.stack(args[k])
-    #     return args
+    def sleep(self):
+        self.SuperPool.exec_target(name=self.env, dowhat='sleep')

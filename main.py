@@ -2,8 +2,8 @@
 """
     Author: Fu Qingxu,CASIA
     Description: Enterance for everything in HMP
-    In file you can find:
-        1.Config-Parsing; 2.Multiprocess-Init
+    In this file you can find:
+        1.Config-Parsing; 2.Multiprocess-Initilization
         3.GPU-Selection;  4.Seed-Setting
     If you are interested in something, you may continue to read:
         Handling parallel environment             -->   task_runner.py & shm_env.py
