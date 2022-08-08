@@ -664,12 +664,12 @@ class OrbitControls extends EventDispatcher {
 
 				case scope.keys.SlowLeft:
 					scope.autoRotate = true;
-					scope.autoRotateSpeed = 0.05;
+					scope.autoRotateSpeed = 0.15;
 					break;
 
 				case scope.keys.SlowRight:
 					scope.autoRotate = true;
-					scope.autoRotateSpeed = -0.05;
+					scope.autoRotateSpeed = -0.15;
 					break;
 			}
 
