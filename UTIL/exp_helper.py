@@ -1,5 +1,16 @@
 import paramiko, os, time
 from UTIL.colorful import print亮紫, print亮靛
+
+def singleton(cls):
+    _instance = {}
+
+    def inner(*args, **kwargs):
+        if cls not in _instance:
+            _instance[cls] = cls(*args, **kwargs)
+        return _instance[cls]
+    
+    return inner
+
 class ChainVar(object):
     def __init__(self, chain_func, chained_with):
         self.chain_func = chain_func
@@ -78,11 +89,11 @@ def get_ssh_sftp(addr, usr, pwd):
     return ssh, sftp
 
 
-def upload_experiment_results(cfg): # shell it to catch error
-    try: upload_experiment_results_(cfg)
+def upload_exp(cfg): # shell it to catch error
+    try: upload_exp_(cfg)
     except: pass
 
-def upload_experiment_results_(cfg):
+def upload_exp_(cfg):
     path = cfg.logdir
     name = cfg.note
     try:

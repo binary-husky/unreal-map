@@ -54,10 +54,10 @@ def clean_child_process(pid):
 
 
 def hmp_clean_up():
-    from UTIL.exp_upload import upload_experiment_results
+    from UTIL.exp_helper import upload_exp
     from config import GlobalConfig as cfg
     print亮黄('[main.py] upload results to storage server via SSH')
-    if cfg.allow_res_upload: upload_experiment_results(cfg)
+    if cfg.allow_res_upload: upload_exp(cfg)
     print亮黄('[main.py] kill all children process, then self-terminate.')
 
     clean_child_process(os.getpid())

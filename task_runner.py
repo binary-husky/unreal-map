@@ -10,7 +10,7 @@
 import time, os
 import numpy as np
 from UTIL.colorful import *
-from UTIL.exp_upload import upload_experiment_results
+from UTIL.exp_helper import upload_exp
 from multi_team import MMPlatform
 from config import GlobalConfig as cfg
 from MISSION.env_router import make_parallel_envs
@@ -178,7 +178,7 @@ class Runner(object):
                     self.mcv.rec_show()
                     print_info = 'average reward: %.2f, win rate: %.2f'%(reward_avg_itr_agent, win_rate)
                     print靛('\r[task runner]: test finished, %s'%print_info )
-                    if cfg.upload_after_test: upload_experiment_results(cfg)
+                    if cfg.upload_after_test: upload_exp(cfg)
                     self.platform_controller.notify_teams(message='test done:%s', win_rate=win_rate, mean_reward=reward_avg_itr_agent)
                     # close all
                     if self.test_env_sleepy: self.test_envs.sleep()

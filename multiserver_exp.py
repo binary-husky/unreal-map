@@ -220,7 +220,7 @@ def local_worker(ith_run):
 
 def remote_worker(ith_run):
     # step 1: transfer all files
-    from UTIL.exp_upload import get_ssh_sftp
+    from UTIL.exp_helper import get_ssh_sftp
     
     addr = n_run_mode[ith_run]['addr']
     if 'exe_here' in addr: 

@@ -1,16 +1,9 @@
-from UTIL.colorful import print亮红
-from .tensor_ops import __hash__
 import torch, time
 import pickle, os
 
-def singleton(cls):
-    _instance = {}
-
-    def inner(mod):
-        if cls not in _instance:
-            _instance[cls] = cls(mod)
-        return _instance[cls]
-    return inner
+from UTIL.colorful import print亮红
+from .tensor_ops import __hash__
+from UTIL.exp_helper import singleton
 
 @singleton
 class SynWorker:
