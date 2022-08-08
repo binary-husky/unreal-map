@@ -113,8 +113,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             # self.observation_space['state_shape'] = ?
             pass
 
-        # Restart env, this is very fast, can be a failsave if there is memory leaking away on UE side
-        self.max_simulation_life = 1024
+        # Restart env, this is very fast, can be a failsafe if there is memory leaking away on UE side
+        self.max_simulation_life = 512
         
         self.simulation_life = self.max_simulation_life
         # with a lock, we can initialize UE side one by one (not necessary though)

@@ -13,7 +13,7 @@ class ShellEnvConfig:
 class ActionConvertLegacy():
     SELF_TEAM_ASSUME = 0
     OPP_TEAM_ASSUME = 1
-    OPP_NUM_ASSUME = 7
+    OPP_NUM_ASSUME = 10
     # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
     dictionary_args = [
         ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
@@ -33,11 +33,14 @@ class ActionConvertLegacy():
         ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    3),      # 14
         ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    4),      # 15
         ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    5),      # 16
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    6),      # 17
-        ('PatrolMoving',        'Dir+X',    None, None, None, None, None, None),   # 18
-        ('PatrolMoving',        'Dir+Y',    None, None, None, None, None, None),   # 19
-        ('PatrolMoving',        'Dir-X',    None, None, None, None, None, None),   # 20
-        ('PatrolMoving',        'Dir-Y',    None, None, None, None, None, None),   # 21
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    6),      # 17        
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    7),      # 
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    8),      # 
+        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    9),      # 
+        ('PatrolMoving',        'Dir+X',    None, None, None, None, None, None),   # 
+        ('PatrolMoving',        'Dir+Y',    None, None, None, None, None, None),   # 
+        ('PatrolMoving',        'Dir-X',    None, None, None, None, None, None),   # 
+        ('PatrolMoving',        'Dir-Y',    None, None, None, None, None, None),   # 
     ]
 
 
