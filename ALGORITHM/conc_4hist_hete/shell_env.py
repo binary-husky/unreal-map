@@ -19,10 +19,8 @@ class ActionConvertLegacy():
         ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
         ('Idle',        'DynamicGuard',     None, None, None, None, None, None),   # 1
         ('Idle',        'StaticAlert',      None, None, None, None, None, None),   # 2
-        ('Idle',        'AggressivePersue', None, None, None, None, None, None),   # 3
         ('Idle',        'AsFarAsPossible',              None, None, None, None, None, None),   # 4
         ('Idle',        'StayWhenTargetInRange',        None, None, None, None, None, None),   # 5
-        ('Idle',        'StayWhenTargetInHalfRange',    None, None, None, None, None, None),   # 6
         ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 7
         ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 8
         ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 9
@@ -37,10 +35,7 @@ class ActionConvertLegacy():
         ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    7),      # 
         ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    8),      # 
         ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    9),      # 
-        ('PatrolMoving',        'Dir+X',    None, None, None, None, None, None),   # 
-        ('PatrolMoving',        'Dir+Y',    None, None, None, None, None, None),   # 
-        ('PatrolMoving',        'Dir-X',    None, None, None, None, None, None),   # 
-        ('PatrolMoving',        'Dir-Y',    None, None, None, None, None, None),   # 
+
     ]
 
 

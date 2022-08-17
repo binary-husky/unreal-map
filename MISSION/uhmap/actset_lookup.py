@@ -56,13 +56,12 @@ agent_json2local_attrs = [
             ('indexInTeam',             'index'),
             ('uId',                     'uid_remote'),
             ('maxMoveSpeed',            'max_speed'),
-            ('agentLocation',           'location'),
-            ('agentRotation',           'rotation'),
-            ('agentScale',              'scale3'),
-            ('agentVelocity',           'velocity'),
+            ('agentLocationArr',        'location'),
+            ('agentRotationArr',        'rotation'),
+            ('agentScaleArr',           'scale3'),
+            ('agentVelocityArr',        'velocity'),
             ('agentHp',                 'hp'),
             ('weaponCD',                'weapon_cd'),
-            ('interaction',             'interaction'), 
             ('type',                    'type'),
 ]
 

@@ -1,76 +1,32 @@
-
+import numpy as np
 # ubuntu command to kill process: kill -9 $(ps -ef | grep python | grep fuqingxu | grep -v grep | awk '{print $ 2}')
 
-n_run = 24
+n_run = 3
 n_run_mode = [
     {
-        "addr": "localhost:2266",
-        "usr": "fuqingxu",
-        "pwd": "clara"
+        "addr": "exe_here=>localhost:2266",
+        "usr": "hmp",
+        "pwd": "hmp"
     },
-]*24
+]*3
 assert len(n_run_mode)==n_run
 
 conf_override = {
+    "config.py->GlobalConfig-->seed":       
+        [
+            np.random.randint(0, 10000) for _ in range(n_run)
+        ],
     "config.py->GlobalConfig-->note":       
         [
-            "basic-ma-10-Run1",
-            "basic-ma-15-Run1",
-            "basic-ma-20-Run1",
-            "basic-ma-25-Run1",
-            "basic-ma-30-Run1",
-            "basic-ma-40-Run1",
-
-            "basic-ma-10-Run2",
-            "basic-ma-15-Run2",
-            "basic-ma-20-Run2",
-            "basic-ma-25-Run2",
-            "basic-ma-30-Run2",
-            "basic-ma-40-Run2",
-
-            "basic-ma-10-Run3",
-            "basic-ma-15-Run3",
-            "basic-ma-20-Run3",
-            "basic-ma-25-Run3",
-            "basic-ma-30-Run3",
-            "basic-ma-40-Run3",
-
-            "basic-ma-10-Run4",
-            "basic-ma-15-Run4",
-            "basic-ma-20-Run4",
-            "basic-ma-25-Run4",
-            "basic-ma-30-Run4",
-            "basic-ma-40-Run4",
+            "RVE-drone=0",
+            "RVE-drone=1",
+            "RVE-drone=2",
         ],
     "MISSION.math_game.env.py->ScenarioConfig-->n_team1agent":
         [
-            10,
-            15,
-            20,
-            25,
-            30,
-            40,
-
-            10,
-            15,
-            20,
-            25,
-            30,
-            40,
-
-            10,
-            15,
-            20,
-            25,
-            30,
-            40,
-
-            10,
-            15,
-            20,
-            25,
-            30,
-            40,
+            0,
+            1,
+            2,
         ]
 
 
@@ -78,61 +34,90 @@ conf_override = {
 }
 
 
-
+true = True
+false = False
 
 base_conf = {
-    # 第1阶段， div_tree_init_level是0
+    # step to convert test mod:
+
+    # <1> num_threads -> 1
+    # <2> test_only -> true
+    # <3> TimeDilation -> 1
+    # <4> load_checkpoint -> true
+
+    # config HMP core
     "config.py->GlobalConfig": {
-        "note": "z_mathgame_X_Conc_Trim_phase1",               # experiment note, also means the log saving directory
-        # "train_time_testing": "False",                     # do not manage train time testing, pymarl env manage the testing itself
-        # "heartbeat_on":"True",                             # just some fancy visual effect
-        "env_name":"mathgame",                                   # starcraft 2
-        "env_path":"MISSION.math_game",    # starcraft 2
-        # "interested_agent_num":100,                         # only for reward logging, **not needed because sc2 use uniform team reward
-        "draw_mode": "Img",                                 # plot curlves as image
-        # "test_only": "False",                                 # number of parallel envs
-        "num_threads": "64",                                 # number of parallel envs
-        "report_reward_interval": "64",                      # report the reward averaging x episodes
-        "test_interval": "1024",                             # begin a test run every x episodes, test run is managed by pymarl side
-        "test_epoch": "192",                                 # begin a test run every x episodes, test run is managed by pymarl side
+        "note": "z-obsbreak-RVE-drone=0",
+        "env_name": "uhmap",
+        "env_path": "MISSION.uhmap",
+        "draw_mode": "Img",
+        "num_threads": 32,
+        "report_reward_interval": 128,
+        "test_interval": 5120,
+        "test_epoch": 512,
+        "interested_team": 0,
+        "seed": 10088,
         "device": "cuda",
-        "max_n_episode": 524288, # 1.706
-        # "gpu_party": "CUDA0_P1",
-        "fold": "4",                                        # each linux process handle x parallel envs
-        "backup_files":[
-            "MISSION/math_game",
-            "ALGORITHM/ppo_ma_mathdb"
+        "max_n_episode": 5000000,
+        "fold": 4,
+        "backup_files": [
+            "ALGORITHM/conc_4hist_uhmap"
         ]
     },
-
-    "MISSION.math_game.env.py->ScenarioConfig": {
-        "n_team1agent": 9,
-        "n_actions": 10,
-        "show_details": False,
-        "StateProvided": False,
+    "MISSION.uhmap.uhmap_env_wrapper.py->ScenarioConfig": {
+        "n_team1agent": 10,
+        "n_team2agent": 10,
+        "MaxEpisodeStep": 125,
+        "StepGameTime": 0.5,
+        "StateProvided": false,
+        "render": false, # note: random seed has different impact on renderer and server
+        "UElink2editor": false,
+        "AutoPortOverride": true,
+        "HeteAgents": true,
+        "HeteAgentType": [0,1,0,1,0,2,    0,1,0,1,0,1,2],
+        "UnrealLevel": "UhmapLargeScale",
+        "SubTaskSelection": "UhmapLargeScale",
+        # "UhmapRenderExe": "./../../WindowsNoEditor/UHMP.exe",
+        # "UhmapServerExe": "./../../WindowsServer/UHMPServer.exe",
+        "UhmapRenderExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxNoEditor/UHMP.sh",
+        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer/UHMPServer.sh",
+        "TimeDilation": 64, # simulation time speed up, larger is faster
+        "ObsBreakBase": 10000,
         "TEAM_NAMES": [
-            "ALGORITHM.ppo_ma_mathdb.foundation->ReinforceAlgorithmFoundation"
+            # "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack",
+            "ALGORITHM.conc_4hist_hete.foundation->ReinforceAlgorithmFoundation",
+            "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack"
         ]
     },
 
-    "ALGORITHM.ppo_ma_mathdb.foundation.py->AlgorithmConfig": {
-        "load_checkpoint": False,
-        # "load_specific_checkpoint": "../z_mathgame_X_Conc/model_bk.pt",
-        "only_train_div_tree_and_ct": False,
-        "train_traj_needed": "512",
-        "div_tree_init_level":0,
-        "UseDivTree": True,
-        "ppo_epoch": 24,
-        "FixDoR": False,
+    "MISSION.uhmap.SubTasks.UhmapLargeScale.py->UhmapLargeScaleConfig":{
+        "n_air_drone": 1
+    },
+
+    # config ALGORITHMs
+    "ALGORITHM.script_ai.uhmap_ls.py->DummyAlgConfig": {
+        "reserve": ""
+    },
+
+    "ALGORITHM.conc_4hist_hete.shell_env.py->ShellEnvConfig": {
+        "add_avail_act": true
+    },
+
+    "ALGORITHM.conc_4hist_hete.foundation.py->AlgorithmConfig": {
+        "train_traj_needed": 128,
+        "hete_type_trainable": [true, true, true],
+        "load_checkpoint": false,
+        "load_specific_checkpoint": "",
+        "n_focus_on": 3,
         "gamma": 0.99,
-        # "yita": 0.05,
-        "lr": 0.0005,
-        "RecProbs": False,
+        "gamma_in_reward_forwarding": "True",
+        "gamma_in_reward_forwarding_value": 0.95,
+        "prevent_batchsize_oom": "True",
+        "lr": 0.0001,
+        "ppo_epoch": 24,
+        "n_entity_placeholder": 22
     }
-
 }
-
-
 
 ##############################################################################
 ##############################################################################
