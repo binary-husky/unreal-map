@@ -276,7 +276,7 @@ class DummyAlgorithmLinedAttack(DummyAlgorithmBase):
 
                 leader_uid = self_air_uid_range[group]
                 agent_team_index = raw_info[leader_uid]['indexInTeam']
-                z_leader = raw_info[leader_uid]['agentLocation']['z']
+                z_leader = raw_info[leader_uid]['agentLocationArr'][2]
                 if len(group_member_uids) > 0:
                     team_center_pos = pos_arr_2d[group_member_uid]
                     act_each_agent[agent_team_index] = encode_action_as_digits('PatrolMoving', 'N/A', x=team_center_pos[0], y=team_center_pos[1], z=z_leader, UID=None, T=None, T_index=None)

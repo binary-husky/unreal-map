@@ -6,13 +6,13 @@ from torch.distributions import kl_divergence
 EPS = 1e-9
 # yita = p_hit = 0.14
 
-def random_process(probs, hit):
+def random_process(probs, rsn_flag):
     yita = AlgorithmConfig.yita
     with torch.no_grad():
         max_place = probs.argmax(-1, keepdims=True)
         mask_max = torch.zeros_like(probs).scatter_(-1, max_place, 1).bool()
         pmax = probs[mask_max]
-        if hit:
+        if rsn_flag:
             assert max_place.shape[-1] == 1
             return max_place.squeeze(-1)
         else:
@@ -29,13 +29,13 @@ def random_process(probs, hit):
             assert samp.shape[-1] != 1
             return samp
 
-def random_process_allow_big_yita(probs, hit):
+def random_process_allow_big_yita(probs, rsn_flag):
     yita = AlgorithmConfig.yita
     with torch.no_grad():
         max_place = probs.argmax(-1, keepdims=True)
         mask_max = torch.zeros_like(probs).scatter_(-1, max_place, 1).bool()
         pmax = probs[mask_max].reshape(max_place.shape) #probs[max_place].clone()
-        if hit:
+        if rsn_flag:
             assert max_place.shape[-1] == 1
             return max_place.squeeze(-1)
         else:
@@ -57,7 +57,7 @@ def random_process_allow_big_yita(probs, hit):
 
 
 
-def random_process_with_clamp3(probs, hit):
+def random_process_with_clamp3(probs, rsn_flag):
     yita = AlgorithmConfig.yita
     min_prob = AlgorithmConfig.yita_min_prob
 
@@ -65,11 +65,9 @@ def random_process_with_clamp3(probs, hit):
         max_place = probs.argmax(-1, keepdims=True)
         mask_max = torch.zeros_like(probs).scatter_(dim=-1, index=max_place, value=1).bool()
         pmax = probs[mask_max].reshape(max_place.shape) #probs[max_place].clone()
-
         # act max
         assert max_place.shape[-1] == 1
         act_max = max_place.squeeze(-1)
-
         # act samp
         yita_arr = torch.ones_like(pmax)*yita
         # p_hat = pmax + (pmax-1) / (1/yita_arr_clip-1) + 1e-10
@@ -81,9 +79,7 @@ def random_process_with_clamp3(probs, hit):
         dist = Categorical(probs=probs)
         act_samp = dist.sample()
         assert act_samp.shape[-1] != 1
-
-        hit_e = repeat_at(_2tensor(hit), -1, act_max.shape[-1])
-
+        hit_e = repeat_at(_2tensor(rsn_flag), -1, act_max.shape[-1])
         return torch.where(hit_e, act_max, act_samp)
 
 
@@ -96,44 +92,14 @@ class CCategorical():
         # print('AlgorithmConfig.yita', AlgorithmConfig.yita)
         probs = dist.probs.clone()
         # assert 1/probs.shape[-1] > yita, ('yita is too big, please set it less than', 1/probs.shape[-1])
-        # hit = True if torch.rand(()) < p_hit else False
-        return random_process_with_clamp3(probs, self.fix_max)
-        # return random_process_allow_big_yita(probs, hit)
+        # rsn_flag = True if torch.rand(()) < p_hit else False
+        return random_process_with_clamp3(probs, self.rsn_flag)
 
-    def register_fixmax(self, fix_max):
-        self.fix_max = fix_max
-
-
-
-
-    def sample_small_yita(self, dist):
-        p_hit = AlgorithmConfig.yita
-        probs = dist.probs.clone()
-        assert 1/probs.shape[-1] > yita, ('yita is too big, please set it less than', 1/probs.shape[-1])
-        hit = True if torch.rand(()) < p_hit else False
-        return random_process(probs, hit)
+    def register_rsn(self, rsn_flag):
+        self.rsn_flag = rsn_flag
 
     def feed_logits(self, logits):
         try:
             return Categorical(logits=logits)
         except:
             print('error')
-
-    def get_inter_agent_kl_divergence(self, act_dist, logits_agent_cluster):
-        # probs = act_dist.probs
-        n_agent = logits_agent_cluster.shape[-2]
-        # probs_rep = repeat_at(tensor=probs, insert_dim=-2, n_times=n_agent)
-        # # probs_rep.S # (?, n_agent, n_agent, n_action)
-        # probs_rep_transpose = probs_rep.swapaxes(-2,-3)
-        # mat = (probs_rep*probs_rep.log()-probs_rep*probs_rep_transpose.log()).sum(-1)
-        
-        logits_agent_cluster_expanded = repeat_at(tensor=logits_agent_cluster, insert_dim=-2, n_times=n_agent)
-        logits_agent_cluster_expanded_transpose = logits_agent_cluster_expanded.swapaxes(-2,-3)
-        cat1 = Categorical(logits=logits_agent_cluster_expanded)
-        cat2 = Categorical(logits=logits_agent_cluster_expanded_transpose)
-        divergence = kl_divergence(cat1, cat2)
-        # assert not torch.isnan(mat).any()
-        assert not torch.isnan(divergence).any()
-
-        # return mat
-        return divergence

@@ -31,8 +31,7 @@ class UhmapLargeScale(UhmapEnv):
             # for each team
             if which_team==0: n_team_agent = ScenarioConfig.n_team1agent
             if which_team==1: n_team_agent = ScenarioConfig.n_team2agent
-            UhmapLargeScaleConfig.n_air_drone = 0
-
+            
             for i in range(n_team_agent - UhmapLargeScaleConfig.n_air_drone):
                 AgentSettingArray.append(init_ground_drone(i, uid_cnt, which_team, n_team_agent, pos_ro))
                 uid_cnt += 1

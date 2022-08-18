@@ -22,7 +22,7 @@ conf_override = {
             "RVE-drone=1",
             "RVE-drone=2",
         ],
-    "MISSION.math_game.env.py->ScenarioConfig-->n_team1agent":
+    "MISSION.uhmap.SubTasks.UhmapLargeScale.py->UhmapLargeScaleConfig-->n_air_drone":
         [
             0,
             1,

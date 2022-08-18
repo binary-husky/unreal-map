@@ -157,11 +157,10 @@ class ShellEnvWrapper(object):
         RST = StateRecall['Env-Suffered-Reset']
         
         if RST.all(): # just experienced full reset on all episode, this is the first step of all env threads
-            # yita = AlgorithmConfig.yita
-            ## randomly pick threads
-            # FixMax = np.random.rand(self.n_thread) < yita
-            # StateRecall['_FixMax_'] = FixMax
-            
+            # randomly pick threads
+            EpRsn = np.random.rand(self.n_thread) < AlgorithmConfig.yita
+            StateRecall['_EpRsn_'] = EpRsn
+                
             n_types = self.n_hete_types
             selected_type = np.random.randint(low=0, high=n_types, size=())
             selected_agent_bool = (self.hete_type==selected_type)
@@ -175,10 +174,8 @@ class ShellEnvWrapper(object):
             get_placeholder = lambda type, group: group*n_tp + type
             get_type_group = lambda ph: (ph%n_tp, ph//n_tp)
             
-            
             StateRecall['_Type_'] = get_placeholder(type=hete_type_arr, group=group_sel_arr)
             StateRecall['_Type_'][selected_agent_bool] = (selected_type) # 
-            # print(FixMax)
 
         his_pool_obs = StateRecall['_history_pool_obs_'] if '_history_pool_obs_' in StateRecall \
             else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])
@@ -194,7 +191,6 @@ class ShellEnvWrapper(object):
             'obs':obs_feed_in, 
             'avail_act':self.avail_act[R],
             'Test-Flag':StateRecall['Test-Flag'], 
-            # '_FixMax_':StateRecall['_FixMax_'][R], 
             '_Type_':StateRecall['_Type_'][R], 
             'threads_active_flag':R, 
             'Latest-Team-Info':StateRecall['Latest-Team-Info'][R],
@@ -202,6 +198,9 @@ class ShellEnvWrapper(object):
         if self.AvailActProvided:
             avail_act = np.array([info['avail-act'] for info in np.array(StateRecall['Latest-Team-Info'][R], dtype=object)])
             I_StateRecall.update({'avail_act':avail_act})
+
+        if AlgorithmConfig.PR_ACTIVATE:
+            self.RL_functional.ccategorical.register_rsn(rsn_flag=StateRecall['_EpRsn_'][R])
 
         act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_StateRecall)
 
@@ -214,7 +213,8 @@ class ShellEnvWrapper(object):
 
         # translate action into ue4 tuple action
         act_converted = np.array([[ ActionConvertLegacy.convert_act_arr(self.agent_type[agentid], act) for agentid, act in enumerate(th) ] for th in act])
-        actions_list = np.swapaxes(act_converted, 0, 1) # swap thread(batch) axis and agent axis
+        # swap thread(batch) axis and agent axis
+        actions_list = np.swapaxes(act_converted, 0, 1)
 
 
         StateRecall['_history_pool_obs_'] = his_pool_obs

@@ -16,13 +16,13 @@ class AlgorithmConfig:
     train_traj_needed = 512
     TakeRewardAsUnity = False
     use_normalization = True
+    wait_norm_stable = True
     add_prob_loss = False
     n_focus_on = 2
     n_entity_placeholder = 24
 
     load_checkpoint = False
     load_specific_checkpoint = ''
-
 
     # PPO part
     clip_param = 0.2
@@ -42,33 +42,21 @@ class AlgorithmConfig:
     gamma_in_reward_forwarding = False
     gamma_in_reward_forwarding_value = 0.99
 
-    # net
     net_hdim = 24
+    
     dual_conc = True
 
     n_agent = 'auto load, do not change'
-    # yita = 0.
-    # div_tree_init_level = 0 # set to -1 means max level
-    # yita_min_prob = 0.15  #  should be >= (1/n_action)
+
     ConfigOnTheFly = True
-    # UseDivTree = False
+
     hete_type_trainable = [False, False, True]
 
-    # personality reinforcement dynamic
-    # 0 means activiting PR at beginning, -1 means never activate PR, >0 means activiting PR after some updates
-    # personality_reinforcement_start_at_update = -1
-    # div_tree_level_inc_per_update = 0.0 # (30 updates per inc)
-    # yita_max = 0.75
-    # yita_inc_per_update = 0.75/100 # (increase to 0.75 in 500 updates)
-
-    # PR_ACTIVATE = False # please always init to False
-    
-    #####
     n_policy_groups = 5
-    #####
 
     entity_distinct = 'auto load, do not change'
 
+    policy_resonance = False
 
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
@@ -84,12 +72,15 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         else:
             rawob_dim = space['obs_space']['obs_shape']
             
-            
+        # self.StagePlanner
+        from .stage_planner import StagePlanner
+        self.stage_planner = StagePlanner()
+        
         # hete agent policy
         assert self.ScenarioConfig.HeteAgents
         self.HeteAgentType = self.ScenarioConfig.HeteAgentType
         hete_type = np.array(self.HeteAgentType)[self.ScenarioConfig.AGENT_ID_EACH_TEAM[team]]
-        self.policy = HeteNet(rawob_dim=rawob_dim, n_action=n_actions, hete_type=hete_type)
+        self.policy = HeteNet(rawob_dim=rawob_dim, n_action=n_actions, hete_type=hete_type, stage_planner=self.stage_planner)
         self.policy = self.policy.to(self.device)
 
         self.AvgRewardAgentWise = AlgorithmConfig.TakeRewardAsUnity
@@ -101,6 +92,8 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             n_env=n_thread, traj_limit=int(GlobalConfig.ScenarioConfig.MaxEpisodeStep),
             trainer_hook=self.trainer.train_on_traj)
 
+
+        
         # confirm that reward method is correct
         self.check_reward_type(AlgorithmConfig)
 
@@ -111,22 +104,20 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         if AlgorithmConfig.ConfigOnTheFly:
             self._create_config_fly()
 
-        # assert AlgorithmConfig.personality_reinforcement_start_at_update>=0, "?"
-
 
     def action_making(self, StateRecall, test_mode):
         assert StateRecall['obs'] is not None, ('Make sure obs is ok')
         assert ('_hook_' not in StateRecall)
 
         obs, threads_active_flag = StateRecall['obs'], StateRecall['threads_active_flag']
-        assert len(obs) == sum(threads_active_flag), ('Make sure the right batch of obs!')
+        assert len(obs) == sum(threads_active_flag), ('check batch size')
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
         hete_pick = StateRecall['_Type_']
         with torch.no_grad():
-            # if AlgorithmConfig.PR_ACTIVATE:  self.policy.ccategorical.register_fixmax(StateRecall['_FixMax_'])
-            action, value, action_log_prob = self.policy.act(obs=obs, test_mode=test_mode, avail_act=avail_act, hete_pick=hete_pick)
-
-        # Warning! vars named like _x_ are aligned, others are not!
+            action, value, action_log_prob = self.policy.act(obs=obs, test_mode=test_mode, 
+                                                             avail_act=avail_act, hete_pick=hete_pick)
+            
+        # vars named like _x_ are aligned, others are not!
         traj_framefrag = {
             "_SKIP_":        ~threads_active_flag,
             "value":         value,
@@ -158,80 +149,21 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         if not StateRecall['Test-Flag']: self.train()  # when needed, train!
         return self.action_making(StateRecall, StateRecall['Test-Flag'])
 
-
-    # def activate_pr(self):
-    #     AlgorithmConfig.PR_ACTIVATE = True
-    #     AlgorithmConfig.only_train_div_tree_and_ct = True
-    #     self.trainer.fn_only_train_div_tree_and_ct()
-
-    # def when_pr_inactive(self):
-    #     assert not AlgorithmConfig.PR_ACTIVATE
-    #     if AlgorithmConfig.personality_reinforcement_start_at_update >= 0:
-    #         # mean need to activate pr later
-    #         if self.traj_manager.update_cnt > AlgorithmConfig.personality_reinforcement_start_at_update:
-    #             # time is up, activate pr
-    #             self.activate_pr()
-
-    #     # log
-    #     PR_ACTIVATE = 1 if AlgorithmConfig.PR_ACTIVATE else 0
-    #     self.mcv.rec(PR_ACTIVATE, 'PR_ACTIVATE')
-    #     self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
-    #     self.mcv.rec(AlgorithmConfig.yita, 'yita')
-
-    # def when_pr_active(self):
-    #     assert AlgorithmConfig.PR_ACTIVATE
-    #     self._update_yita()
-    #     self._update_personality_division()
-
-    #     # log
-    #     PR_ACTIVATE = 1 if AlgorithmConfig.PR_ACTIVATE else 0
-    #     self.mcv.rec(PR_ACTIVATE, 'PR_ACTIVATE')
-    #     self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
-    #     self.mcv.rec(AlgorithmConfig.yita, 'yita')
-
     def train(self):
         '''
             Get event from hmp task runner, save model now!
         '''
         if self.traj_manager.can_exec_training():
-            # time to start a training routine
-            self.traj_manager.train_and_clear_traj_pool()
+            if self.stage_planner.can_exec_trainning():
+                self.traj_manager.train_and_clear_traj_pool()
+            else:
+                self.traj_manager.clear_traj_pool()
+                
             # read configuration
-            if AlgorithmConfig.ConfigOnTheFly:
-                self._config_on_fly()
-            # if AlgorithmConfig.PR_ACTIVATE:
-            #     self.when_pr_active()
-            # elif not AlgorithmConfig.PR_ACTIVATE:
-            #     self.when_pr_inactive()
-
-
-    # def _update_personality_division(self):
-    #     '''
-    #         increase personality tree level @div_tree_level_inc_per_update per fn call, 
-    #         when floating break int threshold, the tree enters next level
-    #     '''
-    #     personality_tree = self.policy.AT_div_tree
-    #     personality_tree.current_level_floating += AlgorithmConfig.div_tree_level_inc_per_update
-    #     if personality_tree.current_level_floating > personality_tree.max_level:
-    #         personality_tree.current_level_floating = personality_tree.max_level
-
-    #     expected_level = int(personality_tree.current_level_floating)
-    #     if expected_level == personality_tree.current_level: return
-    #     personality_tree.change_div_tree_level(expected_level, auto_transfer=True)
-    #     print('[div_tree]: change_div_tree_level, ', personality_tree.current_level)
-
-
-    # def _update_yita(self):
-    #     '''
-    #         increase yita by @yita_inc_per_update per function call
-    #     '''
-    #     AlgorithmConfig.yita += AlgorithmConfig.yita_inc_per_update
-    #     if AlgorithmConfig.yita > AlgorithmConfig.yita_max:
-    #         AlgorithmConfig.yita = AlgorithmConfig.yita_max
-    #     print亮绿('AlgorithmConfig.yita update:', AlgorithmConfig.yita)
-
-
-
+            if AlgorithmConfig.ConfigOnTheFly: self._config_on_fly()
+            
+            # 
+            self.stage_planner.update_plan()
 
 
 
@@ -244,7 +176,8 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             2. Given info, indicating a hmp command
             3. A flag file is detected, indicating a save command from human
         '''
-        if not os.path.exists('%s/history_cpt/' % GlobalConfig.logdir): os.makedirs('%s/history_cpt/' % GlobalConfig.logdir)
+        if not os.path.exists('%s/history_cpt/' % GlobalConfig.logdir): 
+            os.makedirs('%s/history_cpt/' % GlobalConfig.logdir)
 
         # dir 1
         pt_path = '%s/model.pt' % GlobalConfig.logdir
@@ -282,7 +215,6 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             self.trainer.ct_optimizer.load_state_dict(cpt['ct_optimizer'])
 
             print黄('loaded checkpoint:', ckpt_dir)
-
 
 
     def process_framedata(self, traj_framedata):

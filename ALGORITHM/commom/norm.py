@@ -108,7 +108,7 @@ class DynamicNormFix(nn.Module):
             # self.mcv.rec_disable_percentile_clamp()
          
                 
-    def forward(self, x, get_mu_var=False):
+    def forward(self, x, freeze=False, get_mu_var=False):
         assert self.input_size == x.shape[-1], ('self.input_size',self.input_size,'x.shape[-1]',x.shape[-1])
         _2dx = x.detach().reshape(-1, self.input_size)
         if self.exclude_nan: _2dx = _2dx[~torch.isnan(_2dx).any(axis=-1)]
@@ -120,7 +120,7 @@ class DynamicNormFix(nn.Module):
             x = torch.clip_((x - self.mean) / torch.sqrt_(self.var_fix + 1e-8), -10, 10)
             return x
             
-        if self.training:
+        if self.training and (not freeze):
             with torch.no_grad():
                 this_batch_mean = torch.mean(_2dx, dim=0)
                 this_batch_var = torch.var(_2dx, dim=0, unbiased=False)

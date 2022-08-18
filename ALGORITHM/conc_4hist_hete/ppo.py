@@ -6,7 +6,7 @@ import numpy as np
 from random import randint, sample
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 from UTIL.colorful import *
-from UTIL.tensor_ops import _2tensor, _2cpu2numpy, repeat_at
+from UTIL.tensor_ops import _2tensor, __hash__, repeat_at
 from config import GlobalConfig as cfg
 from UTIL.gpu_share import GpuShareUnit
 class TrajPoolSampler():

@@ -148,7 +148,7 @@ def distribute_compute(fn_arr, mask_arr, **kwargs):
 
 
 class HeteNet(nn.Module):
-    def __init__(self, rawob_dim, n_action, hete_type):
+    def __init__(self, rawob_dim, n_action, hete_type, **kwargs):
         super().__init__()
         self.rawob_dim = rawob_dim
         self.n_action = n_action
@@ -165,7 +165,7 @@ class HeteNet(nn.Module):
         get_type_group = lambda ph: (ph%n_tp, ph//n_tp)
         
         self._nets_flat_placeholder_ = torch.nn.ModuleList(modules=[
-            Net(rawob_dim, n_action) for _ in range(
+            Net(rawob_dim, n_action, **kwargs) for _ in range(
                 n_tp * n_gp
             )  
         ])
@@ -249,11 +249,12 @@ class HeteNet(nn.Module):
     network initialize
 """
 class Net(nn.Module):
-    def __init__(self, rawob_dim, n_action):
+    def __init__(self, rawob_dim, n_action, **kwargs):
         super().__init__()
 
 
         self.use_normalization = AlgorithmConfig.use_normalization
+        self.use_policy_resonance = AlgorithmConfig.policy_resonance
         self.n_focus_on = AlgorithmConfig.n_focus_on
         self.dual_conc = AlgorithmConfig.dual_conc
         self.n_entity_placeholder = AlgorithmConfig.n_entity_placeholder
@@ -297,23 +298,14 @@ class Net(nn.Module):
             nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
             nn.Linear(h_dim//2, self.n_action))
 
-        self.ccategorical = CCategorical()
+        if self.use_policy_resonance:
+            self.ccategorical = CCategorical()
+            self.is_resonance_active = lambda: kwargs['stage_planner'].is_resonance_active()
 
         self.is_recurrent = False
         self.apply(weights_init)
         return
 
-    # two ways to support avail_act, but which one is better?
-    def logit2act_old(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
-        if avail_act is not None: 
-            logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
-        act_dist = Categorical(logits = logits_agent_cluster)
-        if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions
-        else:              act = torch.argmax(act_dist.probs, axis=2)
-        actLogProbs = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
-        # sum up the log prob of all agents
-        distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
-        return act, actLogProbs, distEntropy, act_dist.probs
 
 
     def act(self, *args, **kargs):
@@ -346,7 +338,9 @@ class Net(nn.Module):
             if torch.isnan(obs).all():
                 pass # 某一种类型的智能体全体阵亡
             else:
-                obs = self._batch_norm(obs)
+                obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
+
+
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
         v = self.AT_obs_encoder(obs)
@@ -370,8 +364,10 @@ class Net(nn.Module):
         value = self.CT_get_value(v_M_fuse)
         if eval_mode: threat = self.CT_get_threat(v_M_fuse)
 
-
-        logit2act = self.logit2act_old
+        logit2act = self._logit2act
+        if self.use_policy_resonance and self.is_resonance_active():
+            logit2act = self._logit2act_rsn
+            
         act, actLogProbs, distEntropy, probs = logit2act(logits, eval_mode=eval_mode,
                                                             test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
 
@@ -380,33 +376,31 @@ class Net(nn.Module):
         if not eval_mode: return act, value, actLogProbs
         else:             return value, actLogProbs, distEntropy, probs, others
 
-
     @staticmethod
     def re_scale(t, limit):
         r = 1. /2. * limit
         return (torch.tanh_(t/r) + 1.) * r
 
+    def _logit2act_rsn(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
+        act_dist = self.ccategorical.feed_logits(logits_agent_cluster)
+        if not test_mode: act = self.ccategorical.sample(act_dist) if not eval_mode else eval_actions
+        else:             act = torch.argmax(act_dist.probs, axis=2)
+        # the policy gradient loss will feedback from here
+        actLogProbs = self._get_act_log_probs(act_dist, act) 
+        # sum up the log prob of all agents
+        distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
+        return act, actLogProbs, distEntropy, act_dist.probs
 
-
-    # def logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
-    #     if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
-
-    #     act_dist = self.ccategorical.feed_logits(logits_agent_cluster)
-
-    #     if not test_mode:  
-    #         act = self.ccategorical.sample(act_dist) if not eval_mode else eval_actions
-    #     else:              
-    #         act = torch.argmax(act_dist.probs, axis=2)
-
-    #     # the policy gradient loss will feedback from here
-    #     actLogProbs = self._get_act_log_probs(act_dist, act) 
-
-    #     # sum up the log prob of all agents
-    #     distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
-        
-    #     return act, actLogProbs, distEntropy, act_dist.probs
-
-
+    def _logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+        if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
+        act_dist = Categorical(logits = logits_agent_cluster)
+        if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions
+        else:              act = torch.argmax(act_dist.probs, axis=2)
+        actLogProbs = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
+        # sum up the log prob of all agents
+        distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
+        return act, actLogProbs, distEntropy, act_dist.probs
 
     @staticmethod
     def _get_act_log_probs(distribution, action):

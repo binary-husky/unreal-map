@@ -54,10 +54,7 @@ class MMPlatform(object):
                     self._update_runner(runner_info, runner_info['ENV-PAUSE'], t_name, key, _t_intel_[key])
         pass
 
-        # swapaxes:
-        #   [n_agent(n_teams if ActAsUnity), n_thread] 
-        #                       --> 
-        #   [n_thread, $n_agent(n_teams if ActAsUnity)]
+        # swapaxes:  [n_agent(n_teams if ActAsUnity), n_thread] --> [n_thread, $n_agent(n_teams if ActAsUnity)]
         actions_list = np.swapaxes(np.array(actions_list, dtype=np.double), 0, 1) 
 
         # in align_episode mod, threads that are paused are forced to give NaN action

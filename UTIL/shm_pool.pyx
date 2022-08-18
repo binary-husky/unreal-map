@@ -9,14 +9,13 @@
     Note: 
         SHARE_BUF_SIZE: shared memory size, 10MB per process
 """
-import time, pickle, platform, setproctitle
-import numpy as np
+import time, pickle, platform, setproctitle, numpy
 from multiprocessing import Process, RawValue, Semaphore
 from multiprocessing import shared_memory
 from ctypes import c_bool, c_uint32
 from .hmp_daemon import kill_process_and_its_children
-
-SHARE_BUF_SIZE = 10485760
+SHARE_BUF_SIZE = 10485760 # 10 MB for parameter buffer
+REGULAR_BUF_SIZE = 500000 # The non-numpy content max buffer size
 def print_red(*kw,**kargs):
     print("\033[1;31m",*kw,"\033[0m",**kargs)
 def print_green(*kw,**kargs):
@@ -39,50 +38,58 @@ def convert_ndarray(numpy_ndarray, shm_pointer, shm):
     shape = numpy_ndarray.shape
     dtype = numpy_ndarray.dtype
     assert shm_pointer+nbyte < SHARE_BUF_SIZE, ('share memory overflow, need at least %d, yet only have %d'%(shm_pointer+nbyte, SHARE_BUF_SIZE))
-    shm_array_object = np.ndarray(shape, dtype=dtype, buffer=shm[shm_pointer:shm_pointer+nbyte])
+    shm_array_object = numpy.ndarray(shape, dtype=dtype, buffer=shm[shm_pointer:shm_pointer+nbyte])
     shm_array_object[:] = numpy_ndarray[:]
     NID = ndarray_indicator(shape, dtype, shm_pointer, shm_pointer+nbyte)
     shm_pointer = shm_pointer+nbyte
     return NID, shm_pointer
 
-def opti_numpy_object(obj, shm):
-    shm_pointer = 500000 # 在0.5MB的位置  10 MB for parameter buffer
-    def deepin(obj, shm_pointer):
-        if isinstance(obj, list):
-            for i_th in range(len(obj)):
-                if isinstance(obj[i_th], list):
-                    shm_pointer = deepin(obj[i_th], shm_pointer)
-                elif isinstance(obj[i_th], tuple):
-                    item2 = list(obj[i_th])
-                    shm_pointer = deepin(item2, shm_pointer)
-                    obj[i_th] = tuple(item2)
-                elif isinstance(obj[i_th], np.ndarray):
-                    if obj[i_th].dtype == 'object':
-                        print('dtype is object, which is low efficient and may cause error!')
-                    NID, shm_pointer = convert_ndarray(obj[i_th], shm_pointer, shm)
-                    obj[i_th] = NID
-                else:
-                    continue
+def deepin(obj, shm, shm_pointer):
+    if isinstance(obj, list): iterator_ = enumerate(obj)
+    elif isinstance(obj, dict): iterator_ = obj.items()
+    else: 
+        assert not isinstance(obj, tuple)
         return shm_pointer
-    shm_pointer = deepin(obj, shm_pointer)
+    for k, v in iterator_:
+        if isinstance(v, (list,dict)):
+            shm_pointer = deepin(v, shm, shm_pointer)
+        elif isinstance(v, tuple):
+            item2 = list(v)
+            shm_pointer = deepin(item2, shm, shm_pointer)
+            obj[k] = tuple(item2)
+        elif isinstance(v, numpy.ndarray):
+            if v.dtype == 'object':
+                print('dtype is object, which is low efficient and may cause error!')
+            NID, shm_pointer = convert_ndarray(v, shm_pointer, shm)
+            obj[k] = NID
+        else:
+            continue
+    return shm_pointer
+
+def opti_numpy_object(obj, shm):
+    shm_pointer = REGULAR_BUF_SIZE 
+    shm_pointer = deepin(obj, shm, shm_pointer=REGULAR_BUF_SIZE)
     return obj
-        
+
+def reverse_deepin(obj, shm):
+    if isinstance(obj, list): iterator_ = enumerate(obj)
+    elif isinstance(obj, dict): iterator_ = obj.items()
+    else: 
+        return
+    
+    for k, v in iterator_:
+        if isinstance(v, (list,dict)):
+            reverse_deepin(v, shm)
+        elif isinstance(v, tuple):
+            item2 = list(v)
+            reverse_deepin(item2, shm)
+            obj[k] = tuple(item2)
+        elif isinstance(v, ndarray_indicator):
+            obj[k] = numpy.frombuffer(shm, dtype=v.dtype, offset=v.shm_start, count=v.count).reshape(v.shape)
+    return
+
 def reverse_opti_numpy_object(obj, shm):
-    def reverse_deepin(obj):
-        if isinstance(obj, list):
-            for i_th in range(len(obj)):
-                if isinstance(obj[i_th], list):
-                    reverse_deepin(obj[i_th])
-                elif isinstance(obj[i_th], tuple):
-                    item2 = list(obj[i_th])
-                    reverse_deepin(item2)
-                    obj[i_th] = tuple(item2)
-                elif isinstance(obj[i_th], ndarray_indicator):
-                    NID = obj[i_th]
-                    obj[i_th] = np.frombuffer(shm, dtype=NID.dtype, offset=NID.shm_start, count=NID.count).reshape(NID.shape)
-                else:
-                    continue
-    reverse_deepin(obj)
+    reverse_deepin(obj, shm)
     return obj
 
 
@@ -143,13 +150,10 @@ class SuperProc(Process):
             if dowhat == 'None':
                 continue
             if arg is None:              
-                # res = self.automatic_execution(name, dowhat)
                 res = getattr(getattr(self, name), dowhat)()
             elif isinstance(arg, tuple): 
-                # res = self.automatic_execution(name, dowhat, *arg)
                 res = getattr(getattr(self, name), dowhat)(*arg)
             else:                        
-                # res = self.automatic_execution(name, dowhat, arg)
                 res = getattr(getattr(self, name), dowhat)(arg)
             res_list[i] = res
         return res_list
@@ -159,8 +163,6 @@ class SuperProc(Process):
         import numpy, platform
         numpy.random.seed(self.local_seed)
         setproctitle.setproctitle('HmapShmPoolWorker_%d'%self.index)
-        # linux uses fork, but windows does not, reload config for windows
-        # if not platform.system()=="Linux":  child_process_load_config()   # disable, move to main.py
         try:
             while True:
                 recv_args = self._recv_squence() # <<stage 1>>
@@ -200,7 +202,7 @@ class SuperProc(Process):
         send_obj = opti_numpy_object(send_obj, shm=self.shared_memory_io_buffer)
         picked_obj = pickle.dumps(send_obj, protocol=pickle.HIGHEST_PROTOCOL)
         lenOfObj = len(picked_obj)
-        assert lenOfObj <= 500000, ('The non-numpy content size > 0.5MB, please check!', lenOfObj)
+        assert lenOfObj <= REGULAR_BUF_SIZE, ('The non-numpy content size > 0.5MB, please check!', lenOfObj)
         self.shared_memory_io_buffer_len_indicator.value = lenOfObj
         self.shared_memory_io_buffer[:lenOfObj] = picked_obj
         # then light up the work flag, turn off the processed flag
@@ -222,7 +224,7 @@ class SmartPool(object):
     def __init__(self, proc_num, fold, base_seed=None):
         self.proc_num = proc_num
         self.task_fold = fold
-        self.base_seed = int(np.random.rand()*1e5) if base_seed is None else base_seed
+        self.base_seed = int(numpy.random.rand()*1e5) if base_seed is None else base_seed
         # define shared object size
         CC_DEF_SHARED_OBJ_BUF_SIZE = SHARE_BUF_SIZE # 10 MB for parameter buffer
         self.buf_size_limit = CC_DEF_SHARED_OBJ_BUF_SIZE
@@ -252,7 +254,7 @@ class SmartPool(object):
         send_obj = opti_numpy_object(send_obj, shm=self.shared_memory_io_buffer[target_proc])
         picked_obj = pickle.dumps(send_obj, protocol=pickle.HIGHEST_PROTOCOL)
         lenOfObj = len(picked_obj)
-        assert lenOfObj <= 500000, ('The non-numpy content size > 0.5MB, please check!', lenOfObj)
+        assert lenOfObj <= REGULAR_BUF_SIZE, ('The non-numpy content size > 0.5MB, please check!', lenOfObj)
         self.shared_memory_io_buffer_len_indicator[target_proc].value = lenOfObj
         self.shared_memory_io_buffer[target_proc][:lenOfObj] = picked_obj
         self.last_time_response_handled[target_proc] = False  # then light up the work flag, turn off the processed flag
@@ -277,7 +279,7 @@ class SmartPool(object):
                 res_sort[target_proc*self.task_fold: (target_proc+1)*self.task_fold] = recv_obj
                 not_ready[target_proc] = False
                 ready_n += 1
-            
+
             if ready_n == self.proc_num:
                 break
 
@@ -367,7 +369,7 @@ class SmartPool(object):
         for i in range(N_SEC_WAIT):
             print_red('[shm_pool]: terminate in %d'%(N_SEC_WAIT-i));time.sleep(1)
 
-        # 杀死shm_pool创建的所有子进程，以及子进程的孙进程
+        # kill shm_pool's process tree
         print_red('[shm_pool]: kill_process_and_its_children(proc)')
         for proc in self.proc_pool: 
             try: kill_process_and_its_children(proc)

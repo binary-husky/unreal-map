@@ -277,6 +277,15 @@ class BatchTrajManager(TrajManagerBase):
             return
 
         
+    def clear_traj_pool(self):
+        print('do update %d'%self.update_cnt)
+        _, self.traj_pool = self.pool_manager.absorb_finalize_pool(pool=self.traj_pool)
+        self.traj_pool = []
+        # self.update_cnt += 1
+        # assert ppo_update_cnt == self.update_cnt
+        return self.update_cnt
+
+        
     def train_and_clear_traj_pool(self):
         print('do update %d'%self.update_cnt)
 
