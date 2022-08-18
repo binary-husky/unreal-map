@@ -399,7 +399,7 @@ class Net(nn.Module):
         distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
         return act, actLogProbs, distEntropy, act_dist.probs
 
-    def _logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+    def _logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None, **kwargs):
         if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
         act_dist = Categorical(logits = logits_agent_cluster)
         if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions

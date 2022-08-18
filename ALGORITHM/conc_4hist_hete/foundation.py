@@ -120,7 +120,6 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             action, value, action_log_prob = self.policy.act(obs=obs, test_mode=test_mode, 
                                                              avail_act=avail_act, 
                                                              hete_pick=hete_pick,
-                                                             eprsn=eprsn
                                                              )
             
         # vars named like _x_ are aligned, others are not!
