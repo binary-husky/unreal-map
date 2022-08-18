@@ -9,130 +9,7 @@ from UTIL.colorful import *
 from UTIL.tensor_ops import _2tensor, __hash__, repeat_at
 from config import GlobalConfig as cfg
 from UTIL.gpu_share import GpuShareUnit
-class TrajPoolSampler():
-    def __init__(self, n_div, traj_pool, flag, prevent_batchsize_oom=False):
-        self.n_pieces_batch_division = n_div
-        self.prevent_batchsize_oom = prevent_batchsize_oom    
-
-        if self.prevent_batchsize_oom:
-            assert self.n_pieces_batch_division==1, ('?')
-
-        self.num_batch = None
-        self.container = {}
-        self.warned = False
-        assert flag=='train'
-        if cfg.ScenarioConfig.AvailActProvided:
-            req_dict =        ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'value']
-            req_dict_rename = ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'state_value']
-        else:
-            req_dict =        ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'value']
-            req_dict_rename = ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'state_value']
-        return_rename = "return"
-        value_rename =  "state_value"
-        advantage_rename = "advantage"
-        # replace 'obs' to 'obs > xxxx'
-        for key_index, key in enumerate(req_dict):
-            key_name =  req_dict[key_index]
-            key_rename = req_dict_rename[key_index]
-            if not hasattr(traj_pool[0], key_name):
-                real_key_list = [real_key for real_key in traj_pool[0].__dict__ if (key_name+'>' in real_key)]
-                assert len(real_key_list) > 0, ('check variable provided!', key,key_index)
-                for real_key in real_key_list:
-                    mainkey, subkey = real_key.split('>')
-                    req_dict.append(real_key)
-                    req_dict_rename.append(key_rename+'>'+subkey)
-        self.big_batch_size = -1  # vector should have same length, check it!
-        
-        # load traj into a 'container'
-        for key_index, key in enumerate(req_dict):
-            key_name =  req_dict[key_index]
-            key_rename = req_dict_rename[key_index]
-            if not hasattr(traj_pool[0], key_name): continue
-            set_item = np.concatenate([getattr(traj, key_name) for traj in traj_pool], axis=0)
-            if not (self.big_batch_size==set_item.shape[0] or (self.big_batch_size<0)):
-                print('error')
-            assert self.big_batch_size==set_item.shape[0] or (self.big_batch_size<0), (key,key_index)
-            self.big_batch_size = set_item.shape[0]
-            self.container[key_rename] = set_item    # 指针赋值
-
-        # normalize advantage inside the batch
-        self.container[advantage_rename] = self.container[return_rename] - self.container[value_rename]
-        self.container[advantage_rename] = ( self.container[advantage_rename] - self.container[advantage_rename].mean() ) / (self.container[advantage_rename].std() + 1e-5)
-        # size of minibatch for each agent
-        self.mini_batch_size = math.ceil(self.big_batch_size / self.n_pieces_batch_division)  
-
-    def __len__(self):
-        return self.n_pieces_batch_division
-
-    def determine_max_n_sample(self):
-        assert self.prevent_batchsize_oom
-        if not hasattr(TrajPoolSampler,'MaxSampleNum'):
-            # initialization
-            TrajPoolSampler.MaxSampleNum =  [int(self.big_batch_size*(i+1)/50) for i in range(50)]
-            max_n_sample = self.big_batch_size
-        elif TrajPoolSampler.MaxSampleNum[-1] > 0:  
-            # meaning that oom never happen, at least not yet
-            # only update when the batch size increases
-            if self.big_batch_size > TrajPoolSampler.MaxSampleNum[-1]: TrajPoolSampler.MaxSampleNum.append(self.big_batch_size)
-            max_n_sample = self.big_batch_size
-        else:
-            # meaning that oom already happened, choose TrajPoolSampler.MaxSampleNum[-2] to be the limit
-            assert TrajPoolSampler.MaxSampleNum[-2] > 0
-            max_n_sample = TrajPoolSampler.MaxSampleNum[-2]
-        return max_n_sample
-
-    def reset_and_get_iter(self):
-        if not self.prevent_batchsize_oom:
-            self.sampler = BatchSampler(SubsetRandomSampler(range(self.big_batch_size)), self.mini_batch_size, drop_last=False)
-        else:
-            max_n_sample = self.determine_max_n_sample()
-            n_sample = min(self.big_batch_size, max_n_sample)
-            if not hasattr(self,'reminded'):
-                self.reminded = True
-                print('droping %.1f percent samples..'%((self.big_batch_size-n_sample)/self.big_batch_size*100))
-            self.sampler = BatchSampler(SubsetRandomSampler(range(n_sample)), n_sample, drop_last=False)
-
-        for indices in self.sampler:
-            selected = {}
-            for key in self.container:
-                selected[key] = self.container[key][indices]
-            for key in [key for key in selected if '>' in key]:
-                # 重新把子母键值组合成二重字典
-                mainkey, subkey = key.split('>')
-                if not mainkey in selected: selected[mainkey] = {}
-                selected[mainkey][subkey] = selected[key]
-                del selected[key]
-            yield selected
-
-def est_check(x, y):
-    import random
-    y = y.flatten()
-    x = x.flatten()
-    size = y.shape[0]
-    index = list(range(size))
-    random.shuffle(index)
-    index = index[:500]
-    xsub = y[index]
-    new_index = ~torch.isnan(xsub)
-    
-    final = []
-    t = xsub.max()
-    for i in range(15):
-        if new_index.any():
-            t = xsub[torch.where(new_index)[0][0]]
-            final.append(index[torch.where(new_index)[0][0]])
-            new_index = new_index & (xsub!=t)
-        else:
-            break
-    
-    x_ = x[final]
-    y_ = y[final]
-    s = torch.argsort(y_)
-    y_ = y_[s]
-    x_ = x_[s]
-    print(x_.detach().cpu().numpy())
-    print(y_.detach().cpu().numpy())
-    return
+from .ppo_sampler import TrajPoolSampler
 
 class PPO():
     def __init__(self, policy_and_critic, ppo_config, mcv=None):
@@ -145,7 +22,7 @@ class PPO():
         self.max_grad_norm = ppo_config.max_grad_norm
         self.add_prob_loss = ppo_config.add_prob_loss
         self.prevent_batchsize_oom = ppo_config.prevent_batchsize_oom
-        # self.only_train_div_tree_and_ct = ppo_config.only_train_div_tree_and_ct
+        # self.freeze_body = ppo_config.freeze_body
         self.lr = ppo_config.lr
         self.all_parameter = list(policy_and_critic.named_parameters())
         self.at_parameter = [(p_name, p) for p_name, p in self.all_parameter if 'AT_' in p_name]
@@ -164,7 +41,7 @@ class PPO():
         assert len(self.cross_parameter)==0,('a parameter must belong to either CriTic or AcTor, not both')
 
 
-        # if not self.only_train_div_tree_and_ct:
+        # if not self.freeze_body:
         self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_' in p_name]
         self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
 
@@ -175,7 +52,6 @@ class PPO():
         #     self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
         #     self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
         #     self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
-
 
         self.g_update_delayer = 0
         self.g_initial_value_loss = 0
@@ -191,13 +67,13 @@ class PPO():
 
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
-    # def fn_only_train_div_tree_and_ct(self):
-    #     self.only_train_div_tree_and_ct = True
-    #     self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_div_tree' in p_name]
-    #     self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
-    #     self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
-    #     self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
-    #     print('change train object')
+    def freeze_body(self):
+        self.freeze_body = True
+        self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_policy_head' in p_name]
+        self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
+        self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
+        self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
+        print('change train object')
 
     def train_on_traj(self, traj_pool, task):
         while True:
@@ -236,12 +112,10 @@ class PPO():
             for i in range(self.n_div):
                 # ! get traj fragment
                 sample = next(sample_iter)
-                # ! build graph, then update network!
-                # self.ae_optimizer.zero_grad()
+                # ! build graph, then update network
                 loss_final, others = self.establish_pytorch_graph(task, sample, e)
                 loss_final = loss_final*0.5 /self.n_div
-                if (e+i)==0:
-                    print('[PPO.py] Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
+                if (e+i)==0: print('[PPO.py] Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
                 loss_final.backward()
                 # log
                 ppo_valid_percent_list.append(others.pop('PPO valid percent').item())

@@ -145,7 +145,7 @@ class ShellEnvWrapper(object):
         # read internal coop graph info
         obs = StateRecall['Latest-Obs']
         if not GlobalConfig.ScenarioConfig.EntityOriented:    
-            # 如果环境观测非EntityOriented，可以额外创生一个维度，具体细节需要斟酌
+            # 如果环境观测非EntityOriented，可以额外生一个维度，具体细节需要斟酌
             obs = repeat_at(obs, insert_dim=-2, n_times=self.n_entity_placeholder//2, copy_mem=True)
             obs[:,:,2:] = np.nan    # 0 is self; 1 is repeated self; 2,3,... is NaN
             
@@ -158,7 +158,7 @@ class ShellEnvWrapper(object):
         
         if RST.all(): # just experienced full reset on all episode, this is the first step of all env threads
             # randomly pick threads
-            EpRsn = np.random.rand(self.n_thread) < AlgorithmConfig.yita
+            EpRsn = np.random.rand(self.n_thread) < self.RL_functional.stage_planner.yita
             StateRecall['_EpRsn_'] = EpRsn
                 
             n_types = self.n_hete_types
@@ -191,6 +191,7 @@ class ShellEnvWrapper(object):
             'obs':obs_feed_in, 
             'avail_act':self.avail_act[R],
             'Test-Flag':StateRecall['Test-Flag'], 
+            '_EpRsn_':StateRecall['_EpRsn_'][R],
             '_Type_':StateRecall['_Type_'][R], 
             'threads_active_flag':R, 
             'Latest-Team-Info':StateRecall['Latest-Team-Info'][R],
@@ -199,8 +200,6 @@ class ShellEnvWrapper(object):
             avail_act = np.array([info['avail-act'] for info in np.array(StateRecall['Latest-Team-Info'][R], dtype=object)])
             I_StateRecall.update({'avail_act':avail_act})
 
-        if AlgorithmConfig.PR_ACTIVATE:
-            self.RL_functional.ccategorical.register_rsn(rsn_flag=StateRecall['_EpRsn_'][R])
 
         act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_StateRecall)
 

@@ -57,9 +57,7 @@ def random_process_allow_big_yita(probs, rsn_flag):
 
 
 
-def random_process_with_clamp3(probs, rsn_flag):
-    yita = AlgorithmConfig.yita
-    min_prob = AlgorithmConfig.yita_min_prob
+def random_process_with_clamp3(probs, yita, yita_min_prob, rsn_flag):
 
     with torch.no_grad():
         max_place = probs.argmax(-1, keepdims=True)
@@ -72,7 +70,7 @@ def random_process_with_clamp3(probs, rsn_flag):
         yita_arr = torch.ones_like(pmax)*yita
         # p_hat = pmax + (pmax-1) / (1/yita_arr_clip-1) + 1e-10
         p_hat = (pmax-yita_arr)/((1-yita_arr)+EPS)
-        p_hat = p_hat.clamp(min=min_prob)
+        p_hat = p_hat.clamp(min=yita_min_prob)
         k = (1-p_hat)/((1-pmax)+EPS)
         probs *= k
         probs[mask_max] = p_hat.reshape(-1)
@@ -84,16 +82,14 @@ def random_process_with_clamp3(probs, rsn_flag):
 
 
 class CCategorical():
-    def __init__(self):
+    def __init__(self, planner):
+        self.planner = planner
+        
         pass
 
-    def sample(self, dist):
-        # p_hit = AlgorithmConfig.yita
-        # print('AlgorithmConfig.yita', AlgorithmConfig.yita)
+    def sample(self, dist, eprsn):
         probs = dist.probs.clone()
-        # assert 1/probs.shape[-1] > yita, ('yita is too big, please set it less than', 1/probs.shape[-1])
-        # rsn_flag = True if torch.rand(()) < p_hit else False
-        return random_process_with_clamp3(probs, self.rsn_flag)
+        return random_process_with_clamp3(probs, self.planner.yita, self.planner.yita_min_prob, eprsn)
 
     def register_rsn(self, rsn_flag):
         self.rsn_flag = rsn_flag

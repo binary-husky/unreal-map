@@ -72,10 +72,12 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         else:
             rawob_dim = space['obs_space']['obs_shape']
             
+            
         # self.StagePlanner
         from .stage_planner import StagePlanner
-        self.stage_planner = StagePlanner()
+        self.stage_planner = StagePlanner(mcv=mcv)
         
+
         # hete agent policy
         assert self.ScenarioConfig.HeteAgents
         self.HeteAgentType = self.ScenarioConfig.HeteAgentType
@@ -91,7 +93,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         self.traj_manager = BatchTrajManager(
             n_env=n_thread, traj_limit=int(GlobalConfig.ScenarioConfig.MaxEpisodeStep),
             trainer_hook=self.trainer.train_on_traj)
-
+        self.stage_planner.trainer = self.trainer
 
         
         # confirm that reward method is correct
@@ -113,9 +115,13 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         assert len(obs) == sum(threads_active_flag), ('check batch size')
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
         hete_pick = StateRecall['_Type_']
+        eprsn = StateRecall['_EpRsn_']
         with torch.no_grad():
             action, value, action_log_prob = self.policy.act(obs=obs, test_mode=test_mode, 
-                                                             avail_act=avail_act, hete_pick=hete_pick)
+                                                             avail_act=avail_act, 
+                                                             hete_pick=hete_pick,
+                                                             eprsn=eprsn
+                                                             )
             
         # vars named like _x_ are aligned, others are not!
         traj_framefrag = {

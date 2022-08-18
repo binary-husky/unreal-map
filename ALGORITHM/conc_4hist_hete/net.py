@@ -138,7 +138,7 @@ def distribute_compute(fn_arr, mask_arr, **kwargs):
         # def _act(self, obs, test_mode, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None):
         with torch.no_grad() if fn.static else no_context() as gs:
             ret_tuple = fn._act(agent_ids=agent_ids, **_kwargs)
-            
+
         dfs_create_and_fn(ret_tuple, g_out, 0, _create_tensor_ph_or_fill_, n_threads, n_agents, mask_flatten)
 
     dfs_create_and_fn(None, g_out, 0, _tensor_expand_thread_dim_v2_, n_threads, n_agents)
@@ -182,13 +182,18 @@ class HeteNet(nn.Module):
                 n.hete_tag = 'group:%d,type:%d,valid:%s,training:%s'%(gp, tp, str(n.hete_valid), str(n.training))
 
         print('')
+        
+        
 
         # self.pgrb.push_policy_group( self.frontend_nets )
         # self.pgrb.link_policy_group( 
         #     nets = self.static_nets, 
         #     n_sample_point = self.n_types * (self.n_policy_group - 1)
         # )
+        
 
+                
+        
     def redirect_ph(self, i):
         n_tp = self.n_hete_types
         n_gp = self.n_policy_groups
@@ -217,7 +222,8 @@ class HeteNet(nn.Module):
 
     def acquire_net(self, i):
         return self._nets_flat_placeholder_[self.redirect_ph(i)]
-        
+
+
 
     def act_lowlevel(self, hete_pick=None, **kargs):
         # if eval_mode:
@@ -252,13 +258,15 @@ class Net(nn.Module):
     def __init__(self, rawob_dim, n_action, **kwargs):
         super().__init__()
 
-
         self.use_normalization = AlgorithmConfig.use_normalization
         self.use_policy_resonance = AlgorithmConfig.policy_resonance
         self.n_focus_on = AlgorithmConfig.n_focus_on
         self.dual_conc = AlgorithmConfig.dual_conc
         self.n_entity_placeholder = AlgorithmConfig.n_entity_placeholder
         h_dim = AlgorithmConfig.net_hdim
+        if self.use_policy_resonance:
+            self.ccategorical = CCategorical(kwargs['stage_planner'])
+            self.is_resonance_active = lambda: kwargs['stage_planner'].is_resonance_active()
 
         self.skip_connect = True
         self.n_action = n_action
@@ -291,16 +299,11 @@ class Net(nn.Module):
         self.CT_get_value = nn.Sequential(nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
         self.CT_get_threat = nn.Sequential(nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
 
-
-
-        self.AT_get_logit_db = nn.Sequential(
+        self.AT_policy_head = nn.Sequential(
             nn.Linear(tmp_dim, h_dim), nn.ReLU(inplace=True),
             nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
             nn.Linear(h_dim//2, self.n_action))
 
-        if self.use_policy_resonance:
-            self.ccategorical = CCategorical()
-            self.is_resonance_active = lambda: kwargs['stage_planner'].is_resonance_active()
 
         self.is_recurrent = False
         self.apply(weights_init)
@@ -330,7 +333,7 @@ class Net(nn.Module):
         return tmp
 
 
-    def _act(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None):
+    def _act(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None):
 
         eval_act = eval_actions if eval_mode else None
         others = {}
@@ -355,7 +358,7 @@ class Net(nn.Module):
 
         # fuse forward path
         v_C_fuse = torch.cat((vf_C, vh_C), dim=-1)  # (vs + vs + check_n + check_n)
-        logits = self.AT_get_logit_db(v_C_fuse)
+        logits = self.AT_policy_head(v_C_fuse)
 
         # motivation encoding fusion
         v_M_fuse = torch.cat((vf_M, vh_M), dim=-1)
@@ -369,7 +372,10 @@ class Net(nn.Module):
             logit2act = self._logit2act_rsn
             
         act, actLogProbs, distEntropy, probs = logit2act(logits, eval_mode=eval_mode,
-                                                            test_mode=test_mode, eval_actions=eval_act, avail_act=avail_act)
+                                                            test_mode=test_mode, 
+                                                            eval_actions=eval_act, 
+                                                            avail_act=avail_act,
+                                                            eprsn=eprsn)
 
         if eval_mode: others['threat'] = self.re_scale(threat, limit=12)
 
@@ -381,10 +387,11 @@ class Net(nn.Module):
         r = 1. /2. * limit
         return (torch.tanh_(t/r) + 1.) * r
 
-    def _logit2act_rsn(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None):
+    def _logit2act_rsn(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None, eprsn=None):
         if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
         act_dist = self.ccategorical.feed_logits(logits_agent_cluster)
-        if not test_mode: act = self.ccategorical.sample(act_dist) if not eval_mode else eval_actions
+        
+        if not test_mode: act = self.ccategorical.sample(act_dist, eprsn) if not eval_mode else eval_actions
         else:             act = torch.argmax(act_dist.probs, axis=2)
         # the policy gradient loss will feedback from here
         actLogProbs = self._get_act_log_probs(act_dist, act) 
