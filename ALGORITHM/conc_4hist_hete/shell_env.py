@@ -110,14 +110,24 @@ class ShellEnvWrapper(object):
             self.AvailActProvided = ScenarioConfig.AvailActProvided 
 
         # heterogeneous agent types
-        assert GlobalConfig.ScenarioConfig.HeteAgents
-        self.HeteAgentType = np.array(GlobalConfig.ScenarioConfig.HeteAgentType)
+        agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']==self.team]
+        opp_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']!=self.team]
+        def str_array_to_num(str_arr):
+            out_arr = []
+            buffer = {}
+            for str in str_arr:
+                if str not in buffer:
+                    buffer[str] = len(buffer)
+                out_arr.append(buffer[str])
+            return out_arr  
+        
+        self.HeteAgentType = str_array_to_num(agent_type_list)
         self.hete_type = np.array(self.HeteAgentType)[GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[team]]
         self.n_hete_types = count_list_type(self.hete_type)
         
         # check parameters
-        assert self.n_agent == GlobalConfig.ScenarioConfig.n_team1agent
-        ActionConvertLegacy.confirm_parameters_are_correct(team, self.n_agent, GlobalConfig.ScenarioConfig.n_team2agent)
+        assert self.n_agent == len(agent_type_list)
+        ActionConvertLegacy.confirm_parameters_are_correct(team, self.n_agent, len(opp_type_list))
         self.patience = 2000
         
     @staticmethod

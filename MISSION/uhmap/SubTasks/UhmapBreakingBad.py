@@ -7,6 +7,9 @@ from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
 
+class SubTaskConfig():
+    empty = ""
+
 class UhmapBreakingBad(UhmapEnv):
     def __init__(self, rank) -> None:
         super().__init__(rank)
@@ -254,7 +257,7 @@ class UhmapBreakingBad(UhmapEnv):
         arr = np.zeros((*n_int.shape, n_bits), dtype=dtype)
         pointer = 0
         for i in range(n_bits):
-            arr[:, i] = (n_int%2==1).astype(np.int)
+            arr[:, i] = (n_int%2==1).astype(int)
             n_int = n_int / 2
             n_int = n_int.astype(np.int8)
         return arr

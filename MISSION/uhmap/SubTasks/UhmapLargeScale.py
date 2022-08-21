@@ -1,4 +1,4 @@
-import json, os, subprocess, time, copy, re
+import json, copy, re
 import numpy as np
 from UTIL.tensor_ops import my_view, repeat_at
 from ...common.base_env import RawObsArray
@@ -6,11 +6,9 @@ from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
 from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
+from .UhmapLargeScaleConf import SubTaskConfig
 from .cython_func import tear_num_arr
 
-
-class UhmapLargeScaleConfig():
-    n_air_drone = 0
 
 
 
@@ -24,30 +22,18 @@ class UhmapLargeScale(UhmapEnv):
         self.t = 0
         pos_ro = np.random.rand()*2*np.pi
         ####################### spawn all ###########################
-        AgentSettingArray = []
-        uid_cnt = 0
 
-        for which_team in range(ScenarioConfig.N_TEAM):
-            # for each team
-            if which_team==0: n_team_agent = ScenarioConfig.n_team1agent
-            if which_team==1: n_team_agent = ScenarioConfig.n_team2agent
-            
-            for i in range(n_team_agent - UhmapLargeScaleConfig.n_air_drone):
-                AgentSettingArray.append(init_ground_drone(i, uid_cnt, which_team, n_team_agent, pos_ro))
-                uid_cnt += 1
-
-            for i in range(n_team_agent - UhmapLargeScaleConfig.n_air_drone, n_team_agent):
-                AgentSettingArray.append(init_air_drone(i, uid_cnt, which_team, n_team_agent, pos_ro))
-                uid_cnt += 1
-
-
+        AgentSettingArray2 = []
+        for i, agent_info in enumerate(SubTaskConfig.agent_list):
+            temp = None
+            exec(r"AgentSettingArray2.append(%s(agent_info, pos_ro))"%agent_info['init_fn_name'])
 
         # refer to struct.cpp, FParsedDataInput
         resp = self.client.send_and_wait_reply(json.dumps({
             'valid': True,
             'DataCmd': 'reset',
-            'NumAgents' : ScenarioConfig.n_team1agent,
-            'AgentSettingArray': AgentSettingArray,  # refer to struct.cpp, FAgentProperty
+            'NumAgents' : len(SubTaskConfig.agent_list),
+            'AgentSettingArray': AgentSettingArray2,  # refer to struct.cpp, FAgentProperty
             'TimeStepMax': ScenarioConfig.MaxEpisodeStep,
             'TimeStep' : 0,
             'Actions': None,
@@ -56,7 +42,7 @@ class UhmapLargeScale(UhmapEnv):
         # make sure the map (level in UE) is correct
         # assert resp['dataGlobal']['levelName'] == 'UhmapLargeScale'
 
-        assert len(resp['dataArr']) == len(AgentSettingArray)
+        assert len(resp['dataArr']) == len(AgentSettingArray2)
         return self.parse_response_ob_info(resp)
 
 
@@ -226,7 +212,7 @@ class UhmapLargeScale(UhmapEnv):
         arr = np.zeros((*n_int.shape, n_bits), dtype=dtype)
         pointer = 0
         for i in range(n_bits):
-            arr[:, i] = (n_int%2==1).astype(np.int)
+            arr[:, i] = (n_int%2==1).astype(int)
             n_int = n_int / 2
             n_int = n_int.astype(np.int8)
         return arr
@@ -430,19 +416,18 @@ class UhmapLargeScale(UhmapEnv):
 
 '''
 
-
-
-
-def init_ground_drone(i, uid, which_team, n_team_agent, pos_ro):
+def init_ground(agent_info, pos_ro):
     N_COL = 2
-    agent_class = 'RLA_CAR_Laser' if i%2!=1 else 'RLA_CAR'
-    x = 0 + 800*(i - n_team_agent//2) //N_COL
-    y = (400* (i%N_COL) + 2000) * (-1)**(which_team+1)
-
+    agent_class = agent_info['type']
+    team = agent_info['team']
+    n_team_agent = 10
+    tid = agent_info['tid']
+    uid = agent_info['uid']
+    x = 0 + 800*(tid - n_team_agent//2) //N_COL
+    y = (400* (tid%N_COL) + 2000) * (-1)**(team+1)
     x,y = np.matmul(np.array([x,y]), np.array([[np.cos(pos_ro), -np.sin(pos_ro)], [np.sin(pos_ro), np.cos(pos_ro)] ]))
-
     z = 500 # 500 is slightly above the ground
-    yaw = 90 if which_team==0 else -90
+    yaw = 90 if team==0 else -90
     assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
     agent_property = copy.deepcopy(AgentPropertyDefaults)
     agent_property.update({
@@ -456,7 +441,7 @@ def init_ground_drone(i, uid, which_team, n_team_agent, pos_ro):
             # ms explode dmg
             "ExplodeDmg": 20,           
             # team belonging
-            'AgentTeam': which_team,
+            'AgentTeam': team,
             # choose ue class to init
             'ClassName': agent_class,
             # Weapon CD
@@ -472,11 +457,11 @@ def init_ground_drone(i, uid, which_team, n_team_agent, pos_ro):
             # agent hp
             'AgentHp':np.random.randint(low=95,high=105) if agent_class == 'RLA_CAR_Laser' else np.random.randint(low=145,high=155),
             # the rank of agent inside the team
-            'IndexInTeam': i, 
+            'IndexInTeam': tid, 
             # the unique identity of this agent in simulation system
             'UID': uid, 
             # show color
-            'Color':'(R=0,G=1,B=0,A=1)' if which_team==0 else '(R=0,G=0,B=1,A=1)',
+            'Color':'(R=0,G=1,B=0,A=1)' if team==0 else '(R=0,G=0,B=1,A=1)',
             # initial location
             'InitLocation': { 'x': x,  'y': y, 'z': z, },
             # initial facing direction et.al.
@@ -484,22 +469,25 @@ def init_ground_drone(i, uid, which_team, n_team_agent, pos_ro):
     }),
     return agent_property
 
-def init_air_drone(i, uid, which_team, n_team_agent, pos_ro):
+def init_air(agent_info, pos_ro):
     N_COL = 2
-    agent_class = 'RLA_UAV_Support'
-    x = 0 + 800*(i - n_team_agent//2) //N_COL
-    y = 2000 * (-1)**(which_team+1)
-
+    agent_class = agent_info['type']
+    team = agent_info['team']
+    n_team_agent = 10
+    tid = agent_info['tid']
+    uid = agent_info['uid']
+    
+    x = 0 + 800*(tid - n_team_agent//2) //N_COL
+    y = 2000 * (-1)**(team+1)
     x,y = np.matmul(np.array([x,y]), np.array([[np.cos(pos_ro), -np.sin(pos_ro)], [np.sin(pos_ro), np.cos(pos_ro)] ]))
-
-    z = 1000 # 500 is slightly above the ground
-    yaw = 90 if which_team==0 else -90
+    z = 1000
+    yaw = 90 if team==0 else -90
     assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
     agent_property = copy.deepcopy(AgentPropertyDefaults)
     agent_property.update({
             'DebugAgent': False,
             # max drive/fly speed
-            'MaxMoveSpeed': 900,
+            'MaxMoveSpeed':  900,
             # also influence object mass, please change it with causion!
             'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
             # probability of escaping dmg 闪避
@@ -507,27 +495,27 @@ def init_air_drone(i, uid, which_team, n_team_agent, pos_ro):
             # ms explode dmg
             "ExplodeDmg": 10,           
             # team belonging
-            'AgentTeam': which_team,
+            'AgentTeam': team,
             # choose ue class to init
             'ClassName': agent_class,
             # Weapon CD
             'WeaponCD': 3,
             # open fire range
-            "PerceptionRange": 2500,
-            "GuardRange":      1800,
-            "FireRange":       1700,
+            "PerceptionRange":  2500,
+            "GuardRange":       1800,
+            "FireRange":        1700,
             # debugging
             'RSVD1': '-ring1=2500 -ring2=1800 -ring3=1700',
             # regular
             'RSVD2': '-InitAct=ActionSet2::Idle;StaticAlert',
             # agent hp
-            'AgentHp': 50,
+            'AgentHp':50,
             # the rank of agent inside the team
-            'IndexInTeam': i, 
+            'IndexInTeam': tid, 
             # the unique identity of this agent in simulation system
             'UID': uid, 
             # show color
-            'Color':'(R=0,G=1,B=0,A=1)' if which_team==0 else '(R=0,G=0,B=1,A=1)',
+            'Color':'(R=0,G=1,B=0,A=1)' if team==0 else '(R=0,G=0,B=1,A=1)',
             # initial location
             'InitLocation': { 'x': x,  'y': y, 'z': z, },
             # initial facing direction et.al.

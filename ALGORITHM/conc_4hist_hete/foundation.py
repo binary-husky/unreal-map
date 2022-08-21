@@ -76,11 +76,20 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         # self.StagePlanner
         from .stage_planner import StagePlanner
         self.stage_planner = StagePlanner(mcv=mcv)
-        
 
-        # hete agent policy
-        assert self.ScenarioConfig.HeteAgents
-        self.HeteAgentType = self.ScenarioConfig.HeteAgentType
+
+        # heterogeneous agent types
+        agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']==self.team]
+        def str_array_to_num(str_arr):
+            out_arr = []
+            buffer = {}
+            for str in str_arr:
+                if str not in buffer:
+                    buffer[str] = len(buffer)
+                out_arr.append(buffer[str])
+            return out_arr  
+        
+        self.HeteAgentType = str_array_to_num(agent_type_list)
         hete_type = np.array(self.HeteAgentType)[self.ScenarioConfig.AGENT_ID_EACH_TEAM[team]]
         self.policy = HeteNet(rawob_dim=rawob_dim, n_action=n_actions, hete_type=hete_type, stage_planner=self.stage_planner)
         self.policy = self.policy.to(self.device)
@@ -115,11 +124,12 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         assert len(obs) == sum(threads_active_flag), ('check batch size')
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
         hete_pick = StateRecall['_Type_']
-        eprsn = StateRecall['_EpRsn_']
+        eprsn = repeat_at(StateRecall['_EpRsn_'], -1, self.n_agent)
         with torch.no_grad():
             action, value, action_log_prob = self.policy.act(obs=obs, test_mode=test_mode, 
                                                              avail_act=avail_act, 
                                                              hete_pick=hete_pick,
+                                                             eprsn = eprsn,
                                                              )
             
         # vars named like _x_ are aligned, others are not!

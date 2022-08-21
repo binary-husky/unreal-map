@@ -216,7 +216,7 @@ class collective_assultEnvV1(gym.Env):
         arr = np.zeros((*n_int.shape, n_bits), dtype=dtype)
         pointer = 0
         for i in range(8):
-            arr[:, i] = (n_int%2==1).astype(np.int)
+            arr[:, i] = (n_int%2==1).astype(int)
             n_int = n_int / 2
             n_int = n_int.astype(np.int8)
         return arr

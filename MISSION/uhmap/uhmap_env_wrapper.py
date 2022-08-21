@@ -6,6 +6,15 @@ from UTIL.config_args import ChainVar
 from ..common.base_env import BaseEnv
 from .actset_lookup import binary_friendly, dictionary_n_actions
 from .agent import Agent
+
+def get_subtask_conf(subtask):
+    if subtask == 'UhmapBreakingBad':
+        from .SubTasks.UhmapBreakingBadConf import SubTaskConfig
+        return SubTaskConfig
+    elif subtask == 'UhmapLargeScale':
+        from .SubTasks.UhmapLargeScaleConf import SubTaskConfig
+        return SubTaskConfig
+
 # please register this ScenarioConfig into MISSION/env_router.py
 class ScenarioConfig(object):  
     '''
@@ -30,7 +39,6 @@ class ScenarioConfig(object):
 
     # Hete agents
     HeteAgents = False
-    HeteAgentType = []
 
 
     TEAM_NAMES = ['ALGORITHM.None->None',]
@@ -61,6 +69,8 @@ class ScenarioConfig(object):
 
     UnrealLevel = 'UhmapBreakingBad'
     SubTaskSelection = 'UhmapBreakingBad'
+    SubTaskConfig = get_subtask_conf(UnrealLevel)
+    SubTaskConfig_cv = ChainVar(lambda UnrealLevel:get_subtask_conf(UnrealLevel), chained_with=['SubTaskSelection'])
 
     UElink2editor = False
     AutoPortOverride = False
@@ -84,7 +94,7 @@ class ScenarioConfig(object):
 
     n_actions = dictionary_n_actions
     obs_vec_length = 23
-    ObsBreakBase = 1e4
+    # ObsBreakBase = 1e4
 
 
 
@@ -104,6 +114,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         self.id = rank
         self.render = ScenarioConfig.render and (self.id==0)
         self.n_agents = ScenarioConfig.n_team1agent + ScenarioConfig.n_team2agent
+        assert self.n_agents == len(ScenarioConfig.SubTaskConfig.agent_list), 'agent number defination error'
         self.n_teams = ScenarioConfig.N_TEAM
         self.agents = [Agent(team=0, team_id=i, uid=i                            ) for i in range(ScenarioConfig.n_team1agent)] \
                     + [Agent(team=1, team_id=i, uid=i+ScenarioConfig.n_team1agent) for i in range(ScenarioConfig.n_team2agent)]
@@ -118,22 +129,25 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         
         self.simulation_life = self.max_simulation_life
         # with a lock, we can initialize UE side one by one (not necessary though)
-        self.activate_simulation(self.id)
+        self.activate_simulation(self.id, find_port=True)
 
     def __del__(self):
         self.terminate_simulation()
 
-    def activate_simulation(self, rank):
+    def activate_simulation(self, rank, find_port=True):
         print('thread %d initializing'%rank)
         self.sim_thread = 'activiting'
-        self.render = ScenarioConfig.render #  and (rank==0)
-        which_port = ScenarioConfig.UhmapPort
-        if ScenarioConfig.AutoPortOverride:
-            which_port, release_port_fn = find_free_port_no_repeat()   # port for hmp data exchanging
-        ue_visual_port, release_port_fn = find_free_port_no_repeat()    # port for remote visualizing
-        print蓝('Port %d will be used by hmp, port %d will be used by UE internally'%(which_port, ue_visual_port))
-
-        ipport = (ScenarioConfig.TcpAddr, which_port)
+        
+        if find_port:
+            self.render = ScenarioConfig.render #  and (rank==0)
+            self.hmp_ue_port = ScenarioConfig.UhmapPort
+            if ScenarioConfig.AutoPortOverride:
+                self.hmp_ue_port, release_port_fn = find_free_port_no_repeat()   # port for hmp data exchanging
+            self.ue_vis_port, release_port_fn = find_free_port_no_repeat()    # port for remote visualizing
+            print蓝('Port %d will be used by hmp, port %d will be used by UE internally'%(self.hmp_ue_port, self.ue_vis_port))
+            self.ip_port = (ScenarioConfig.TcpAddr, self.hmp_ue_port)
+        
+        
         # os.system()
         if not ScenarioConfig.UElink2editor:
             assert ScenarioConfig.AutoPortOverride
@@ -160,8 +174,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 self.sim_thread = subprocess.Popen([
                     ScenarioConfig.UhmapServerExe,
                     # '-log', 
-                    '-TcpPort=%d'%which_port,   # port for hmp data exchanging
-                    '-Port=%d'%ue_visual_port,   # port for remote visualizing
+                    '-TcpPort=%d'%self.hmp_ue_port,   # port for hmp data exchanging
+                    '-Port=%d'%self.ue_vis_port,   # port for remote visualizing
                     '-OpenLevel=%s'%ScenarioConfig.UnrealLevel, 
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
@@ -175,8 +189,8 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 self.sim_thread = subprocess.Popen([
                     ScenarioConfig.UhmapRenderExe,
                     # '-log', 
-                    '-TcpPort=%d'%which_port,   # port for hmp data exchanging
-                    '-Port=%d'%ue_visual_port,   # port for remote visualizing
+                    '-TcpPort=%d'%self.hmp_ue_port,   # port for hmp data exchanging
+                    '-Port=%d'%self.ue_vis_port,   # port for remote visualizing
                     '-OpenLevel=%s'%ScenarioConfig.UnrealLevel, 
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
@@ -197,7 +211,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             assert not ScenarioConfig.AutoPortOverride
 
         time.sleep(1+np.abs(self.id)/100)
-        self.client = TcpClientP2PWithCompress(ipport)
+        self.client = TcpClientP2PWithCompress(self.ip_port)
         MAX_RETRY = 100
         for i in range(MAX_RETRY):
             try: 
@@ -211,8 +225,9 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     pass
                 time.sleep(1)
         # now that port is bind, no need to hold them anymore
-        release_port_fn(which_port)
-        release_port_fn(ue_visual_port)
+        if find_port:
+            release_port_fn(self.hmp_ue_port)
+            release_port_fn(self.ue_vis_port)
         self.t = 0
         print('thread %d initialize complete'%rank)
 
@@ -245,7 +260,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             print('restarting simutation')
             self.terminate_simulation()
             self.simulation_life = self.max_simulation_life
-            self.activate_simulation(self.id)
+            self.activate_simulation(self.id, find_port=False)
 
     def sleep(self):
         self.simulation_life = -1

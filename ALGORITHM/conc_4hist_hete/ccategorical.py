@@ -62,7 +62,7 @@ def random_process_with_clamp3(probs, yita, yita_min_prob, rsn_flag):
     with torch.no_grad():
         max_place = probs.argmax(-1, keepdims=True)
         mask_max = torch.zeros_like(probs).scatter_(dim=-1, index=max_place, value=1).bool()
-        pmax = probs[mask_max].reshape(max_place.shape) #probs[max_place].clone()
+        pmax = probs[mask_max].reshape(max_place.shape)
         # act max
         assert max_place.shape[-1] == 1
         act_max = max_place.squeeze(-1)
@@ -76,8 +76,8 @@ def random_process_with_clamp3(probs, yita, yita_min_prob, rsn_flag):
         probs[mask_max] = p_hat.reshape(-1)
         dist = Categorical(probs=probs)
         act_samp = dist.sample()
-        assert act_samp.shape[-1] != 1
-        hit_e = repeat_at(_2tensor(rsn_flag), -1, act_max.shape[-1])
+        # assert act_samp.shape[-1] != 1
+        hit_e = _2tensor(rsn_flag)
         return torch.where(hit_e, act_max, act_samp)
 
 

@@ -12,6 +12,7 @@ class StagePlanner:
         self.resonance_active = False
         self.freeze_body = False
         self.yita = 0
+        self.yita_min_prob = PolicyRsnConfig.yita_min_prob
         self.update_cnt = 0
         self.mcv = mcv
         self.trainer = None
@@ -72,7 +73,6 @@ class StagePlanner:
         # log
         pr = 1 if self.resonance_active else 0
         self.mcv.rec(pr, 'resonance')
-        self.mcv.rec(self.policy.AT_div_tree.current_level, 'personality level')
         self.mcv.rec(self.yita, 'self.yita')
 
     def _update_yita(self):
