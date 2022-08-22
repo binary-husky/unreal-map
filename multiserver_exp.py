@@ -84,9 +84,7 @@ base_conf = {
             "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack"
         ]
     },
-    # "MISSION.uhmap.SubTasks.UhmapLargeScale.py->UhmapLargeScaleConfig":{
-    #     "n_air_drone": 0
-    # },
+
 
 
 

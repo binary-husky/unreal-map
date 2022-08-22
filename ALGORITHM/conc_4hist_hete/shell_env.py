@@ -35,7 +35,6 @@ class ActionConvertLegacy():
         ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    7),      # 
         ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    8),      # 
         ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    9),      # 
-
     ]
 
 
@@ -110,8 +109,9 @@ class ShellEnvWrapper(object):
             self.AvailActProvided = ScenarioConfig.AvailActProvided 
 
         # heterogeneous agent types
-        agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']==self.team]
+        agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list]
         opp_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']!=self.team]
+        self_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']==self.team]
         def str_array_to_num(str_arr):
             out_arr = []
             buffer = {}
@@ -126,7 +126,7 @@ class ShellEnvWrapper(object):
         self.n_hete_types = count_list_type(self.hete_type)
         
         # check parameters
-        assert self.n_agent == len(agent_type_list)
+        assert self.n_agent == len(self_type_list)
         ActionConvertLegacy.confirm_parameters_are_correct(team, self.n_agent, len(opp_type_list))
         self.patience = 2000
         

@@ -24,8 +24,18 @@ class UhmapLargeScale(UhmapEnv):
         ####################### spawn all ###########################
 
         AgentSettingArray2 = []
+
+        # count the number of agent in each team
+        n_team_agent = {}
         for i, agent_info in enumerate(SubTaskConfig.agent_list):
-            temp = None
+            team = agent_info['team']
+            if team not in n_team_agent: n_team_agent[team] = 0
+            n_team_agent[team] += 1
+
+        for i, agent_info in enumerate(SubTaskConfig.agent_list):
+            team = agent_info['team']
+            agent_info['uid'] = i
+            agent_info['n_team_agent'] = n_team_agent[team]
             exec(r"AgentSettingArray2.append(%s(agent_info, pos_ro))"%agent_info['init_fn_name'])
 
         # refer to struct.cpp, FParsedDataInput

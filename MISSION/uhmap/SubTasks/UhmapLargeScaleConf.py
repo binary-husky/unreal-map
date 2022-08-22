@@ -1,6 +1,5 @@
 
 class SubTaskConfig():
-    n_air_drone = 0
     agent_list = [
         { 'team':0,  'tid':0,  'uid':0,  'n_team_agent':10,   'type':'RLA_CAR_Laser',  'init_fn_name':'init_ground',  },
         { 'team':0,  'tid':1,  'uid':1,  'n_team_agent':10,   'type':'RLA_CAR',        'init_fn_name':'init_ground',  },

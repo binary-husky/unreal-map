@@ -79,7 +79,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
 
 
         # heterogeneous agent types
-        agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']==self.team]
+        agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list]
         def str_array_to_num(str_arr):
             out_arr = []
             buffer = {}
