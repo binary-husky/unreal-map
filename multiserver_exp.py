@@ -16,20 +16,12 @@ conf_override = {
         [
             np.random.randint(0, 10000) for _ in range(n_run)
         ],
-    "config.py->GlobalConfig-->note":       
+    "config.py->GlobalConfig-->note":
         [
-            "RVE-drone=0",
-            "RVE-drone=1",
-            "RVE-drone=2",
+            "RVE-drone=0+PR-s250-run1",
+            "RVE-drone=0+PR-s250-run2",
+            "RVE-drone=0+PR-s250-run3",
         ],
-    "MISSION.uhmap.SubTasks.UhmapLargeScale.py->UhmapLargeScaleConfig-->n_air_drone":
-        [
-            0,
-            1,
-            2,
-        ]
-
-
 
 }
 
@@ -51,19 +43,23 @@ base_conf = {
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
         "draw_mode": "Img",
-        "num_threads": 32,
-        "report_reward_interval": 128,
+        "num_threads": 16,
+        "report_reward_interval": 256,
         "test_interval": 5120,
         "test_epoch": 512,
         "interested_team": 0,
         "seed": 10088,
         "device": "cuda",
         "max_n_episode": 5000000,
-        "fold": 4,
+        "fold": 1,
         "backup_files": [
-            "ALGORITHM/conc_4hist_uhmap"
+            "ALGORITHM/conc_4hist_hete"
         ]
     },
+
+
+
+
     "MISSION.uhmap.uhmap_env_wrapper.py->ScenarioConfig": {
         "n_team1agent": 10,
         "n_team2agent": 10,
@@ -74,7 +70,6 @@ base_conf = {
         "UElink2editor": false,
         "AutoPortOverride": true,
         "HeteAgents": true,
-        "HeteAgentType": [0,1,0,1,0,2,    0,1,0,1,0,1,2],
         "UnrealLevel": "UhmapLargeScale",
         "SubTaskSelection": "UhmapLargeScale",
         # "UhmapRenderExe": "./../../WindowsNoEditor/UHMP.exe",
@@ -82,30 +77,39 @@ base_conf = {
         "UhmapRenderExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxNoEditor/UHMP.sh",
         "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer/UHMPServer.sh",
         "TimeDilation": 64, # simulation time speed up, larger is faster
-        "ObsBreakBase": 10000,
+        # "ObsBreakBase": 10000,
         "TEAM_NAMES": [
             # "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack",
             "ALGORITHM.conc_4hist_hete.foundation->ReinforceAlgorithmFoundation",
             "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack"
         ]
     },
+    # "MISSION.uhmap.SubTasks.UhmapLargeScale.py->UhmapLargeScaleConfig":{
+    #     "n_air_drone": 0
+    # },
 
-    "MISSION.uhmap.SubTasks.UhmapLargeScale.py->UhmapLargeScaleConfig":{
-        "n_air_drone": 1
-    },
+
+
+
+
 
     # config ALGORITHMs
     "ALGORITHM.script_ai.uhmap_ls.py->DummyAlgConfig": {
         "reserve": ""
     },
 
+
+
+
+
+
+    # config ALGORITHMs
     "ALGORITHM.conc_4hist_hete.shell_env.py->ShellEnvConfig": {
         "add_avail_act": true
     },
-
     "ALGORITHM.conc_4hist_hete.foundation.py->AlgorithmConfig": {
-        "train_traj_needed": 128,
-        "hete_type_trainable": [true, true, true],
+        "train_traj_needed": 256,
+        "hete_type_trainable": [true, true],
         "load_checkpoint": false,
         "load_specific_checkpoint": "",
         "n_focus_on": 3,
@@ -113,12 +117,20 @@ base_conf = {
         "gamma_in_reward_forwarding": "True",
         "gamma_in_reward_forwarding_value": 0.95,
         "prevent_batchsize_oom": "True",
-        "lr": 0.0001,
+        "lr": 0.0004,
         "ppo_epoch": 24,
+        "policy_resonance": "True",
         "n_entity_placeholder": 22
+    },
+    "ALGORITHM.conc_4hist_hete.stage_planner.py->PolicyRsnConfig": {
+        "resonance_start_at_update": 250,
+        "yita_min_prob": 0.01,
+        "yita_max": 0.2,
+        "yita_inc_per_update": 0.005,
     }
-}
 
+    
+}
 ##############################################################################
 ##############################################################################
 ##############################################################################
