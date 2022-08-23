@@ -58,6 +58,8 @@ class AlgorithmConfig:
 
     policy_resonance = False
 
+    use_avail_act = True
+
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from .shell_env import ShellEnvWrapper, ActionConvertLegacy
@@ -67,7 +69,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         n_actions = len(ActionConvertLegacy.dictionary_args)
 
         self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.ScenarioConfig, self.team)
-        if self.ScenarioConfig.EntityOriented :
+        if self.ScenarioConfig.EntityOriented:
             rawob_dim = self.ScenarioConfig.obs_vec_length
         else:
             rawob_dim = space['obs_space']['obs_shape']
@@ -123,13 +125,15 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         obs, threads_active_flag = StateRecall['obs'], StateRecall['threads_active_flag']
         assert len(obs) == sum(threads_active_flag), ('check batch size')
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
+        if AlgorithmConfig.use_avail_act: assert avail_act is not None
         hete_pick = StateRecall['_Type_']
         eprsn = repeat_at(StateRecall['_EpRsn_'], -1, self.n_agent)
         with torch.no_grad():
-            action, value, action_log_prob = self.policy.act(obs=obs, test_mode=test_mode, 
-                                                             avail_act=avail_act, 
+            action, value, action_log_prob = self.policy.act(obs=obs,
+                                                             test_mode=test_mode,
+                                                             avail_act=avail_act,
                                                              hete_pick=hete_pick,
-                                                             eprsn = eprsn,
+                                                             eprsn=eprsn,
                                                              )
             
         # vars named like _x_ are aligned, others are not!
@@ -137,6 +141,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             "_SKIP_":        ~threads_active_flag,
             "value":         value,
             "hete_pick":     hete_pick,
+            "avail_act":     avail_act,
             "actionLogProb": action_log_prob,
             "obs":           obs,
             "action":        action,
@@ -161,7 +166,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             When shell_env finish the preparation, interact_with_env_genuine is called
             (Determine whether or not to do a training routinue)
         '''
-        if not StateRecall['Test-Flag']: self.train()  # when needed, train!
+        # if not StateRecall['Test-Flag']: self.train()  # when needed, train!
         return self.action_making(StateRecall, StateRecall['Test-Flag'])
 
     def train(self):

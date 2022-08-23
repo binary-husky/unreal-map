@@ -37,7 +37,6 @@ VISUALIZE/train-half-death-reward
 ZipResults/Starcraft/
 result
 # .vscode/
-.vscode/settings.json
 forattack-train/
 full-cargo/
 T*/

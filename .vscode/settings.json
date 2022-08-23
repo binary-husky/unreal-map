@@ -1,0 +1,9 @@
+{
+    "diffEditor.ignoreTrimWhitespace": true,
+	"json.schemas": [{
+		"fileMatch": ["*.jsonc"],
+		"schema": {
+			"allowTrailingCommas": true
+		}
+	}],
+}

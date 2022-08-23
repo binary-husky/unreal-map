@@ -1,5 +1,5 @@
 import numpy as np
-# ubuntu command to kill process: kill -9 $(ps -ef | grep python | grep fuqingxu | grep -v grep | awk '{print $ 2}')
+# ubuntu command to kill process: kill -9 $(ps -ef | grep python | grep hmp | grep -v grep | awk '{print $ 2}')
 
 n_run = 3
 n_run_mode = [
@@ -18,9 +18,9 @@ conf_override = {
         ],
     "config.py->GlobalConfig-->note":
         [
-            "RVE-drone=0+PR-s250-run1",
-            "RVE-drone=0+PR-s250-run2",
-            "RVE-drone=0+PR-s250-run3",
+            "RVE-drone1-fixaa-run1",
+            "RVE-drone1-fixaa-run2",
+            "RVE-drone1-fixaa-run3",
         ],
 
 }
@@ -29,15 +29,8 @@ conf_override = {
 true = True
 false = False
 
-base_conf = {
-    # step to convert test mod:
-
-    # <1> num_threads -> 1
-    # <2> test_only -> true
-    # <3> TimeDilation -> 1
-    # <4> load_checkpoint -> true
-
-    # config HMP core
+base_conf =  {
+    #  --- Part1: config HMP core --- 
     "config.py->GlobalConfig": {
         "note": "z-obsbreak-RVE-drone=0",
         "env_name": "uhmap",
@@ -53,35 +46,58 @@ base_conf = {
         "max_n_episode": 5000000,
         "fold": 1,
         "backup_files": [
-            "ALGORITHM/conc_4hist_hete"
+            "ALGORITHM/conc_4hist_hete",
+            "MISSION/uhmap"
         ]
     },
 
 
-
-
+    #  --- Part2: config MISSION --- 
     "MISSION.uhmap.uhmap_env_wrapper.py->ScenarioConfig": {
         "n_team1agent": 10,
         "n_team2agent": 10,
         "MaxEpisodeStep": 125,
         "StepGameTime": 0.5,
         "StateProvided": false,
-        "render": false, # note: random seed has different impact on renderer and server
+        "render": false, #  note: random seed has different impact on renderer and server
         "UElink2editor": false,
         "AutoPortOverride": true,
         "HeteAgents": true,
         "UnrealLevel": "UhmapLargeScale",
         "SubTaskSelection": "UhmapLargeScale",
-        # "UhmapRenderExe": "./../../WindowsNoEditor/UHMP.exe",
-        # "UhmapServerExe": "./../../WindowsServer/UHMPServer.exe",
+        #  "UhmapRenderExe": "./../../WindowsNoEditor/UHMP.exe",
+        #  "UhmapServerExe": "./../../WindowsServer/UHMPServer.exe",
         "UhmapRenderExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxNoEditor/UHMP.sh",
         "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer/UHMPServer.sh",
-        "TimeDilation": 64, # simulation time speed up, larger is faster
-        # "ObsBreakBase": 10000,
+        "TimeDilation": 64, #  simulation time speed up, larger is faster
         "TEAM_NAMES": [
-            # "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack",
             "ALGORITHM.conc_4hist_hete.foundation->ReinforceAlgorithmFoundation",
-            "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack"
+            "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack",
+        ]
+    },
+    "MISSION.uhmap.SubTasks.UhmapLargeScaleConf.py->SubTaskConfig":{
+        "agent_list": [
+            { "team":0,  "tid":0,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":1,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":2,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":3,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":4,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":5,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":6,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":7,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":8,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":9,   "type":"RLA_UAV_Support", "init_fn_name":"init_air"      },
+
+            { "team":1,  "tid":0,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":1,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":2,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":3,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":4,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":5,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":6,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":7,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":8,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":9,   "type":"RLA_UAV_Support", "init_fn_name":"init_air"      },
         ]
     },
 
@@ -90,24 +106,18 @@ base_conf = {
 
 
 
-
-    # config ALGORITHMs
+    #  --- Part3: config ALGORITHM 1/2 --- 
     "ALGORITHM.script_ai.uhmap_ls.py->DummyAlgConfig": {
         "reserve": ""
     },
 
-
-
-
-
-
-    # config ALGORITHMs
+    #  --- Part3: config ALGORITHM 2/2 --- 
     "ALGORITHM.conc_4hist_hete.shell_env.py->ShellEnvConfig": {
         "add_avail_act": true
     },
     "ALGORITHM.conc_4hist_hete.foundation.py->AlgorithmConfig": {
         "train_traj_needed": 256,
-        "hete_type_trainable": [true, true],
+        "hete_type_trainable": [true, true, true],
         "load_checkpoint": false,
         "load_specific_checkpoint": "",
         "n_focus_on": 3,
@@ -117,15 +127,15 @@ base_conf = {
         "prevent_batchsize_oom": "True",
         "lr": 0.0004,
         "ppo_epoch": 24,
-        "policy_resonance": "True",
+        "policy_resonance": "False",
         "n_entity_placeholder": 22
     },
-    "ALGORITHM.conc_4hist_hete.stage_planner.py->PolicyRsnConfig": {
-        "resonance_start_at_update": 250,
-        "yita_min_prob": 0.01,
-        "yita_max": 0.2,
-        "yita_inc_per_update": 0.005,
-    }
+    # "ALGORITHM.conc_4hist_hete.stage_planner.py->PolicyRsnConfig": {
+    #     "resonance_start_at_update": None,
+    #     "yita_min_prob": None,
+    #     "yita_max": None,
+    #     "yita_inc_per_update": None,
+    # }
 
     
 }
