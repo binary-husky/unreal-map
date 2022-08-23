@@ -6,7 +6,7 @@ import numpy as np
 from random import randint, sample
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 from UTIL.colorful import *
-from UTIL.tensor_ops import _2tensor, __hash__, repeat_at
+from UTIL.tensor_ops import _2tensor, __hash__, __hashn__
 from config import GlobalConfig as cfg
 from UTIL.gpu_share import GpuShareUnit
 from .ppo_sampler import TrajPoolSampler
@@ -16,6 +16,7 @@ class PPO():
         self.policy_and_critic = policy_and_critic
         self.clip_param = ppo_config.clip_param
         self.ppo_epoch = ppo_config.ppo_epoch
+        self.use_avail_act = ppo_config.ppo_epoch
         self.n_pieces_batch_division = ppo_config.n_pieces_batch_division
         self.value_loss_coef = ppo_config.value_loss_coef
         self.entropy_coef = ppo_config.entropy_coef
@@ -104,6 +105,7 @@ class PPO():
         ppo_valid_percent_list = []
         sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task, prevent_batchsize_oom=self.prevent_batchsize_oom)
         assert self.n_div == len(sampler)
+        before_training_hash = [__hashn__(t.parameters()) for t in (self.policy_and_critic._nets_flat_placeholder_)]
         for e in range(self.ppo_epoch):
             # print亮紫('pulse')
             sample_iter = sampler.reset_and_get_iter()
@@ -129,8 +131,20 @@ class PPO():
 
         print亮黄(np.array(ppo_valid_percent_list))
         self.log_trivial_finalize()
+        
+        
+        self.at_optimizer.zero_grad(set_to_none=True)
+        self.ct_optimizer.zero_grad(set_to_none=True)
+        after_training_hash = [__hashn__(t.parameters()) for t in (self.policy_and_critic._nets_flat_placeholder_)]
+        for h1,h2 in zip(before_training_hash, after_training_hash):
+            if h1==h2:
+                print亮绿(h1,'-->',h2)
+            else:
+                print亮蓝(h1,'-->',h2)
+                
+        
         # print亮红('Leaky Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
-
+        self.policy_and_critic.on_update()
         self.ppo_update_cnt += 1
         return self.ppo_update_cnt
 

@@ -178,33 +178,6 @@ class mcom():
         
         self.send(str_tmp)
 
-    def 发送虚幻4数据流(self, x, y, z, pitch, yaw, roll):
-        x = float(x)
-        y = float(y)
-        z = float(z)
-        pitch = float(pitch)
-        yaw = float(yaw)
-        roll = float(roll)
-        str_tmp = 'UE4>>(\"agent#1\",%.6e,%.6e,%.6e,%.6e,%.6e,%.6e)\n' % (x, y, z, pitch, yaw, roll)
-        self.send(str_tmp)
-
-    def 发送虚幻4数据流_多智能体(self, x_, y_, z_, pitch_, yaw_, roll_):
-        str_list = ['UE4>>']
-        for x, y, z, pitch, yaw, roll in zip(x_, y_, z_, pitch_, yaw_, roll_):
-            x = float(x)
-            y = float(y)
-            z = float(z)
-            pitch = float(pitch)
-            yaw = float(yaw)
-            roll = float(roll)
-            str_tmp = '(\"agent#1\",%.5e,%.5e,%.5e,%.5e,%.5e,%.5e)' % (x, y, z, pitch, yaw, roll)
-            str_list.append(str_tmp)
-            str_list.append(';')
-        str_list.append('\n')
-
-        cmd = ''.join(str_list)
-        self.send(cmd)
-
     def other_cmd(self, func_name, *args, **kargs):
         # func_name = traceback.extract_stack()[-2][2]
         strlist = ['>>', func_name, '(']

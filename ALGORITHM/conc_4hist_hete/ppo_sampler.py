@@ -21,12 +21,8 @@ class TrajPoolSampler():
         self.container = {}
         self.warned = False
         assert flag=='train'
-        if cfg.ScenarioConfig.AvailActProvided:
-            req_dict =        ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'value']
-            req_dict_rename = ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'state_value']
-        else:
-            req_dict =        ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'value']
-            req_dict_rename = ['obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'state_value']
+        req_dict =        ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'value']
+        req_dict_rename = ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'state_value']
         return_rename = "return"
         value_rename =  "state_value"
         advantage_rename = "advantage"

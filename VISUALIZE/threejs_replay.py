@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
 '''
 
-note=RVE-drone=2
+note=RVE-drone1-fixaa-run2
 cp -r ./ZHECKPOINT/$note ./ZHECKPOINT/$note-bk
 cp -r ./ZHECKPOINT/$note/experiment.jsonc ./ZHECKPOINT/$note/experiment-bk.jsonc
 cp -r ./ZHECKPOINT/$note/experiment.jsonc ./ZHECKPOINT/$note/train.jsonc

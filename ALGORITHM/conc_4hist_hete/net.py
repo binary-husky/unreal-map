@@ -1,10 +1,11 @@
-import torch, math
+import torch, math, copy
 import numpy as np
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
+from UTIL.colorful import print亮绿
 from UTIL.tensor_ops import Args2tensor_Return2numpy, Args2tensor, __hashn__
 from UTIL.tensor_ops import pt_inf
-from UTIL.data_struct import UniqueList
+from UTIL.exp_helper import changed
 from .ccategorical import CCategorical
 from .foundation import AlgorithmConfig
 from ..commom.norm import DynamicNormFix
@@ -28,28 +29,34 @@ class PolicyGroupRollBuffer():
         self._array_policy_group = []
 
     def push_policy_group(self, policy_group):
-        self._array_policy_group.push(
-            [p.state_dict() for p in policy_group]
+        self._array_policy_group.append(
+            copy.deepcopy([p.state_dict() for p in policy_group])
         )
         if len(self._array_policy_group)>self.n_rollbuffer_size:
             self.pop_policy_group()
             assert len(self._array_policy_group) == self.n_rollbuffer_size
 
+    def __len__(self):
+        return len(self._array_policy_group)
+
+    def is_full(self):
+        return len(self._array_policy_group) == self.n_rollbuffer_size
+
     def pop_policy_group(self):
         self._array_policy_group.pop(0)
 
-    def link_policy_group(self, nets, n_sample_point):
-        assert len(self._array_policy_group) == self.n_rollbuffer_size
-        # [ ... ], [ ... ], [ ... ]
-        batch = math.ceil(self.n_rollbuffer_size/n_sample_point)
-        pick = []
-        for i in range(n_sample_point):
-            low = batch * i
-            high = batch * (i + 1) if batch * (i + 1) <= self.n_rollbuffer_size else self.n_rollbuffer_size
-            pick.append(np.random.randint(low=low, high=high))
+    def random_link(self, static_groups):
+        ar = np.arange(len(self._array_policy_group))
+        np.random.shuffle(ar)
+        indices = ar[:len(static_groups)]
+        for i, static_nets in enumerate(static_groups):
+            pick = indices[i]
+            for k, p in enumerate(self._array_policy_group[pick]):
+                static_nets[k].load_state_dict(p, strict=True)
+                static_nets[k].hete_valid = True
+                static_nets[k].eval()
+        
 
-        for i, p in enumerate(pick):
-            nets[i].load_state_dict(self._array_policy_group[p], strict=True)
 
 def _count_list_type(x):
     type_cnt = {}
@@ -155,8 +162,8 @@ class HeteNet(nn.Module):
         self.hete_type = hete_type
         self.n_hete_types = _count_list_type(self.hete_type)
         self.n_policy_groups = AlgorithmConfig.n_policy_groups
-        self.n_rollbuffer_size = 100
-        # self.pgrb = PolicyGroupRollBuffer(self.n_hete_types, self.n_rollbuffer_size)
+        self.n_rollbuffer_size = 5
+        self.pgrb = PolicyGroupRollBuffer(self.n_hete_types, self.n_rollbuffer_size)
         self.use_normalization = AlgorithmConfig.use_normalization
 
         n_tp = self.n_hete_types
@@ -171,8 +178,11 @@ class HeteNet(nn.Module):
         ])
         
         self.nets = [[self._nets_flat_placeholder_[get_placeholder(type=tp, group=gp)] for tp in range(n_tp)] for gp in range(n_gp)]
+        self.frontend_nets = self.nets[0]
+        self.static_nets = self.nets[1:]
         for gp, n_arr in enumerate(self.nets): 
             for tp, n in enumerate(n_arr):
+                n.lock = False
                 n.hete_valid = True                                     # hete_valid 指历史节点已经就绪
                 n.static = not AlgorithmConfig.hete_type_trainable[tp]  # static 即静态网络，不可以训练，torch.no_grad()
                 if gp!=0: n.hete_valid = False
@@ -181,18 +191,24 @@ class HeteNet(nn.Module):
                     n.eval()
                 n.hete_tag = 'group:%d,type:%d,valid:%s,training:%s'%(gp, tp, str(n.hete_valid), str(n.training))
 
-        print('')
+
+    def lock_frontend_type(self, i):
+        self._nets_flat_placeholder_[i].lock = True
+        self._nets_flat_placeholder_[i].static = True
+        self._nets_flat_placeholder_[i].eval()
         
+    def unlock_frontend_type(self, i):
+        self._nets_flat_placeholder_[i].lock = False
+        self._nets_flat_placeholder_[i].static = False
+        self._nets_flat_placeholder_[i].train()
         
 
-        # self.pgrb.push_policy_group( self.frontend_nets )
-        # self.pgrb.link_policy_group( 
-        #     nets = self.static_nets, 
-        #     n_sample_point = self.n_types * (self.n_policy_group - 1)
-        # )
         
-
-                
+    def on_update(self):
+        self.pgrb.push_policy_group( self.frontend_nets )
+        if self.pgrb.is_full():
+            self.pgrb.random_link(self.static_nets)
+            
         
     def redirect_ph(self, i):
         n_tp = self.n_hete_types
@@ -230,6 +246,9 @@ class HeteNet(nn.Module):
         #     for net in self._nets_flat_placeholder_:
         #         print(__hashn__(net.parameters()))
         hete_pick = hete_pick.cpu().apply_(self.redirect_ph)    # map policy selection
+        if len(hete_pick)==16:  # collecting samples, thread all alive
+            if changed().check(hete_pick, key='hete_pick'): 
+                print亮绿('redirected hete pick', hete_pick)
         invo_hete_types = [i for i in range(self.n_hete_types*self.n_hete_types) if (i in hete_pick)]
         
         return distribute_compute(
@@ -334,7 +353,8 @@ class Net(nn.Module):
 
 
     def _act(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None):
-
+        if eval_mode and self.lock:
+            print('??')
         eval_act = eval_actions if eval_mode else None
         others = {}
         if self.use_normalization:

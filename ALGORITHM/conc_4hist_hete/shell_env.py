@@ -5,7 +5,7 @@ from UTIL.tensor_ops import my_view, __hash__, repeat_at, gather_righthand
 from MISSION.uhmap.actset_lookup import encode_action_as_digits
 from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
-
+from .hete_assignment import random_group, select_nets_for_shellenv
 
 class ShellEnvConfig:
     add_avail_act = False
@@ -166,26 +166,43 @@ class ShellEnvWrapper(object):
         R  = ~StateRecall['ENV-PAUSE']
         RST = StateRecall['Env-Suffered-Reset']
         
+        # when needed, train!
+        if not StateRecall['Test-Flag']: self.RL_functional.train()  
+        
         if RST.all(): # just experienced full reset on all episode, this is the first step of all env threads
-            # randomly pick threads
-            EpRsn = np.random.rand(self.n_thread) < self.RL_functional.stage_planner.yita
+            # randomly pick threads 
+            eprsn_yita = self.RL_functional.stage_planner.yita if AlgorithmConfig.policy_resonance else 0
+            EpRsn = np.random.rand(self.n_thread) < eprsn_yita
             StateRecall['_EpRsn_'] = EpRsn
-                
-            n_types = self.n_hete_types
-            selected_type = np.random.randint(low=0, high=n_types, size=())
-            selected_agent_bool = (self.hete_type==selected_type)
-            selected_agent_bool = repeat_at(selected_agent_bool, 0, self.n_thread)
+
+
             
-            group_sel_arr = np.random.randint(low=0, high=AlgorithmConfig.n_policy_groups, size=(self.n_thread, self.n_agent))
-            hete_type_arr = repeat_at(self.hete_type, 0, self.n_thread)
+            # # choose one hete type
+            # n_types = self.n_hete_types
+            # selected_type = np.random.randint(low=0, high=n_types, size=())
+            # for i in range(n_types): self.RL_functional.policy.lock_frontend_type(i)
+            # self.RL_functional.policy.unlock_frontend_type(selected_type)
+            # # select corrisponding agents
+            # selected_agent_bool = (self.hete_type==selected_type)
+            # selected_agent_bool = repeat_at(selected_agent_bool, 0, self.n_thread)
+            # # generate a random group selection array
+            # n_gp = AlgorithmConfig.n_policy_groups
+            # group_sel_arr = random_group(n_thread=self.n_thread, hete_type=self.hete_type, n_hete_types=self.n_hete_types, n_group=n_gp)
+            # # group to net index
+            # n_tp = n_types
+            # get_placeholder = lambda type, group: group*n_tp + type
+            # get_type_group = lambda ph: (ph%n_tp, ph//n_tp)
+            # hete_type_arr = repeat_at(self.hete_type, 0, self.n_thread)
+            # StateRecall['_Type_'] = get_placeholder(type=hete_type_arr, group=group_sel_arr)
+            # # replace chosen agents
+            # StateRecall['_Type_'][selected_agent_bool] = (selected_type)
             
-            n_tp = n_types
-            n_gp = AlgorithmConfig.n_policy_groups
-            get_placeholder = lambda type, group: group*n_tp + type
-            get_type_group = lambda ph: (ph%n_tp, ph//n_tp)
-            
-            StateRecall['_Type_'] = get_placeholder(type=hete_type_arr, group=group_sel_arr)
-            StateRecall['_Type_'][selected_agent_bool] = (selected_type) # 
+            StateRecall['_Type_'] = select_nets_for_shellenv(n_types=self.n_hete_types, 
+                                        policy=self.RL_functional.policy,
+                                        hete_type_list=self.hete_type,
+                                        n_thread = self.n_thread,
+                                        n_gp=AlgorithmConfig.n_policy_groups
+                                    )   
 
         his_pool_obs = StateRecall['_history_pool_obs_'] if '_history_pool_obs_' in StateRecall \
             else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])

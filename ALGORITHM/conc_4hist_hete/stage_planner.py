@@ -9,10 +9,11 @@ class PolicyRsnConfig:
 
 class StagePlanner:
     def __init__(self, mcv) -> None:
-        self.resonance_active = False
+        if AlgorithmConfig.policy_resonance:
+            self.resonance_active = False
+            self.yita = 0
+            self.yita_min_prob = PolicyRsnConfig.yita_min_prob
         self.freeze_body = False
-        self.yita = 0
-        self.yita_min_prob = PolicyRsnConfig.yita_min_prob
         self.update_cnt = 0
         self.mcv = mcv
         self.trainer = None
@@ -44,10 +45,11 @@ class StagePlanner:
 
     def update_plan(self):
         self.update_cnt += 1
-        if self.resonance_active:
-            self.when_pr_active()
-        elif not self.resonance_active:
-            self.when_pr_inactive()
+        if AlgorithmConfig.policy_resonance:
+            if self.resonance_active:
+                self.when_pr_active()
+            elif not self.resonance_active:
+                self.when_pr_inactive()
         return
     
     def activate_pr(self):

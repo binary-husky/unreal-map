@@ -1,5 +1,6 @@
 import paramiko, os, time
 from UTIL.colorful import print亮紫, print亮靛
+from UTIL.tensor_ops import __hash__
 
 def singleton(cls):
     _instance = {}
@@ -20,6 +21,25 @@ class DataCentralServer(object): # ADD_TO_CONF_SYSTEM //DO NOT remove this comme
     addr = 'None'
     usr = 'None'
     pwd = 'None'
+
+
+@singleton
+class changed():
+    def __init__(self):
+        self._storage = {}
+    
+    def check(self, value, key):
+        if key in self._storage:
+            new_hash = __hash__(value)
+            if self._storage[key] == new_hash:
+                return False
+            else:
+                self._storage[key] = new_hash
+                return True
+        else:
+            self._storage[key] = __hash__(value)
+            return True
+
 
 from stat import S_ISDIR
 
