@@ -16,15 +16,18 @@ def random_group(n_thread, hete_type, n_hete_types, n_group):
 #                          policy=self.RL_functional,
 #                          hete_type_list=self.hete_type,
 #                          n_thread = n_thread,
-#                          n_gp=AlgorithmConfig.n_policy_groups
+#                          n_gp=AlgorithmConfig.n_online_policy_groups
 #                          )   
 
 
 def select_nets_for_shellenv(n_types, policy, hete_type_list, n_thread,n_gp):
     # choose one hete type
     selected_type = np.random.randint(low=0, high=n_types, size=())
-    for i in range(n_types): policy.lock_frontend_type(i)
-    policy.unlock_frontend_type(selected_type)
+    
+    # 锁定没有用到的frontend网络，但一般在一个大batch中都会用到
+    # for i in range(n_types): policy.lock_net(i, forbidden=True)
+    # policy.unlock_net(selected_type)
+    
     # select corrisponding agents
     selected_agent_bool = (hete_type_list==selected_type)
     selected_agent_bool = repeat_at(selected_agent_bool, 0, n_thread)
@@ -47,6 +50,7 @@ def select_nets_for_shellenv(n_types, policy, hete_type_list, n_thread,n_gp):
 
 # [net.training for net in self.policy_and_critic._nets_flat_placeholder_]
 # [net.lock for net in self.policy_and_critic._nets_flat_placeholder_]
+# [net.forbidden for net in self.policy_and_critic._nets_flat_placeholder_]
 
 
 

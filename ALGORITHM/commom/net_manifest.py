@@ -8,6 +8,7 @@ def weights_init(m):
 
     initial_fn_dict = {
         'Net': None,
+        'NetCentralCritic': None,
         'DataParallel':None,
         'BatchNorm1d':None,
         'Concentration':None,

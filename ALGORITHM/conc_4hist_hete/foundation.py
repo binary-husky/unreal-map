@@ -50,9 +50,9 @@ class AlgorithmConfig:
 
     ConfigOnTheFly = True
 
-    hete_type_trainable = [False, False, True]
 
-    n_policy_groups = 5
+    n_online_policy_groups = 5
+    rollbuffer_size = 10
 
     entity_distinct = 'auto load, do not change'
 
@@ -63,7 +63,7 @@ class AlgorithmConfig:
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from .shell_env import ShellEnvWrapper, ActionConvertLegacy
-        from .net import HeteNet
+        from .hete_net import HeteNet
         super().__init__(n_agent, n_thread, space, mcv, team)
         AlgorithmConfig.n_agent = n_agent
         n_actions = len(ActionConvertLegacy.dictionary_args)

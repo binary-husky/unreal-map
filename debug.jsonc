@@ -4,7 +4,7 @@
         "note": "z-sim-hete",
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
-        "heartbeat_on": "False",
+        // "heartbeat_on": "False",
         "draw_mode": "Img",
         "num_threads": 16,
         "report_reward_interval": 256,
@@ -87,8 +87,8 @@
         "add_avail_act": true
     },
     "ALGORITHM.conc_4hist_hete.foundation.py->AlgorithmConfig": {
-        "train_traj_needed": 16,
-        "hete_type_trainable": [true, true, true],
+        "train_traj_needed": 64,
+        "rollbuffer_size": 10,
         "load_checkpoint": false,
         "load_specific_checkpoint": "",
         "n_focus_on": 3,

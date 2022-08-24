@@ -105,7 +105,7 @@ class PPO():
         ppo_valid_percent_list = []
         sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task, prevent_batchsize_oom=self.prevent_batchsize_oom)
         assert self.n_div == len(sampler)
-        before_training_hash = [__hashn__(t.parameters()) for t in (self.policy_and_critic._nets_flat_placeholder_)]
+        # before_training_hash = [__hashn__(t.parameters()) for t in (self.policy_and_critic._nets_flat_placeholder_)]
         for e in range(self.ppo_epoch):
             # print亮紫('pulse')
             sample_iter = sampler.reset_and_get_iter()
@@ -135,12 +135,12 @@ class PPO():
         
         self.at_optimizer.zero_grad(set_to_none=True)
         self.ct_optimizer.zero_grad(set_to_none=True)
-        after_training_hash = [__hashn__(t.parameters()) for t in (self.policy_and_critic._nets_flat_placeholder_)]
-        for h1,h2 in zip(before_training_hash, after_training_hash):
-            if h1==h2:
-                print亮绿(h1,'-->',h2)
-            else:
-                print亮蓝(h1,'-->',h2)
+        # after_training_hash = [__hashn__(t.parameters()) for t in (self.policy_and_critic._nets_flat_placeholder_)]
+        # for h1,h2 in zip(before_training_hash, after_training_hash):
+        #     if h1==h2:
+        #         print亮绿(h1,'-->',h2)
+        #     else:
+        #         print亮蓝(h1,'-->',h2)
                 
         
         # print亮红('Leaky Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
@@ -179,7 +179,7 @@ class PPO():
         hete_pick = _2tensor(sample['hete_pick'])
         avail_act = _2tensor(sample['avail_act']) if 'avail_act' in sample else None
 
-        batchsize = advantage.shape[0]#; print亮紫(batchsize)
+        # batchsize = advantage.shape[0]#; print亮紫(batchsize)
         batch_agent_size = advantage.shape[0]*advantage.shape[1]
 
         assert flag == 'train'
@@ -188,10 +188,14 @@ class PPO():
         entropy_loss = entropy.mean()
 
 
-        # threat approximation
+        # [motivational] threat approximation
         SAFE_LIMIT = 11
         filter = (real_threat<SAFE_LIMIT) & (real_threat>=0)
         threat_loss = F.mse_loss(others['threat'][filter], real_threat[filter])
+
+
+        # [motivational] state value
+        inv_value_loss = 0.5 * F.mse_loss(real_value, others['value'])
 
         n_actions = probs.shape[-1]
         if self.add_prob_loss: assert n_actions <= 15  # 
@@ -210,11 +214,10 @@ class PPO():
 
         # add all loses
         value_loss = 0.5 * F.mse_loss(real_value, newPi_value)
-        if 'motivation value' in others:
-            value_loss += 0.5 * F.mse_loss(real_value, others['motivation value'])
+
 
         AT_net_loss = policy_loss - entropy_loss*self.entropy_coef # + probs_loss*20
-        CT_net_loss = value_loss * 1.0 + threat_loss * 0.1 # + friend_threat_loss*0.01
+        CT_net_loss = value_loss * 1.0 + threat_loss * 0.1 + inv_value_loss * 0.1 # + friend_threat_loss*0.01
         # AE_new_loss = ae_loss * 1.0
 
         loss_final =  AT_net_loss + CT_net_loss  # + AE_new_loss

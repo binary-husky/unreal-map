@@ -68,7 +68,7 @@ class Runner(object):
             self.info_runner = self.update_runner(done, obs, reward, info)
             toc=time.time(); dt = toc-tic; tic = toc
             if self.hb_on: print('\r [task runner]: FPS %d, episode steping %s       '%(
-                int(self.n_thread/dt), self.heartbeat()), end='', flush=True)
+                self.get_fps(dt), self.heartbeat()), end='', flush=True)
             if self._exit_early_: print('exit_early'); break
         # All task done! Time to shut down
         return
@@ -303,3 +303,12 @@ class Runner(object):
         beat.astype(np.int)
         beat = [sym[t] for t in beat]
         return ''.join(beat)
+
+    
+    def get_fps(self, dt):
+        new_fps = int(self.n_thread/dt)
+        if not hasattr(self, 'fps_smooth'):
+            self.fps_smooth = new_fps
+        else:
+            self.fps_smooth = int(self.fps_smooth*0.98 + new_fps*0.02)
+        return self.fps_smooth
