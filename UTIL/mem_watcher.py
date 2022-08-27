@@ -82,20 +82,29 @@ def main(root_name = 'HmapRootProcess'):
         thread_dfs(r, 0, info)
         info_list.append(info)
         
-    if len(info_list)>0:
-        print(info_list)
-        info = info_list[0]
-        import pprint
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(info)
-        mcv.rec(info['tot_mem'], 'mem')
-        mcv.rec(info['HmapRootProcess']['mem'], 'HmapRootProcess')
-        mcv.rec(info['HmapShmPoolWorker']['mem'], 'HmapShmPoolWorker')
-        mcv.rec(info['UHMPServer-Linux-Test']['mem'], 'UHMPServer-Linux-Test')
-        mcv.rec(info['UHMPServer.sh']['mem'], 'UHMPServer.sh')
-        mcv.rec(info['python3']['mem'], 'python3')
-        mcv.rec_show()
+    for k, info in enumerate(info_list):
+        info_base = info_list[0]
+        if k==0: continue
+        for p_name in info_base:
+            if hasattr(info_base[p_name], '__iter__'):
+                for item_name in info_base[p_name]:
+                    info_base[p_name][item_name] += info[p_name][item_name]
+            else:
+                info_base[p_name] += info[p_name]
+                
+    info = info_list[0]
+    print(info)
+    import pprint
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(info)
+    mcv.rec(info['tot_mem'], 'mem')
+    mcv.rec(info['HmapRootProcess']['mem'], 'HmapRootProcess')
+    mcv.rec(info['HmapShmPoolWorker']['mem'], 'HmapShmPoolWorker')
+    mcv.rec(info['UHMPServer-Linux-Test']['mem'], 'UHMPServer-Linux-Test')
+    mcv.rec(info['UHMPServer.sh']['mem'], 'UHMPServer.sh')
+    mcv.rec(info['python3']['mem'], 'python3')
+    mcv.rec_show()
 
 while True:
     main()
-    time.sleep(10)
+    time.sleep(300) # 十分钟一次

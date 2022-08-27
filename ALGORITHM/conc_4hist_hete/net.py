@@ -20,7 +20,8 @@ from ..commom.net_manifest import weights_init
 class Net(nn.Module):
     def __init__(self, rawob_dim, n_action, **kwargs):
         super().__init__()
-
+        self.update_cnt = nn.Parameter(
+            torch.zeros(1, requires_grad=False, dtype=torch.long), requires_grad=False)
         self.use_normalization = AlgorithmConfig.use_normalization
         self.use_policy_resonance = AlgorithmConfig.policy_resonance
         self.n_focus_on = AlgorithmConfig.n_focus_on
@@ -67,12 +68,9 @@ class Net(nn.Module):
             nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
             nn.Linear(h_dim//2, self.n_action))
 
-
         self.is_recurrent = False
         self.apply(weights_init)
         return
-
-
 
     def act(self, *args, **kargs):
         act = self._act if self.dual_conc else self._act_singlec
@@ -95,9 +93,10 @@ class Net(nn.Module):
             assert False, "please make sure that the number of entities is correct, should be %d"%mat.shape[-2]
         return tmp
 
-
     def _act(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None):
         assert not (self.forbidden)
+        if self.static:
+            assert self.gp >=1
         # if not test_mode: assert not self.forbidden
         eval_act = eval_actions if eval_mode else None
         others = {}
@@ -106,7 +105,6 @@ class Net(nn.Module):
                 pass # 某一种类型的智能体全体阵亡
             else:
                 obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
-
 
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
@@ -131,20 +129,20 @@ class Net(nn.Module):
         if eval_mode: 
             threat = self.CT_get_threat(v_M_fuse)
             value = self.CT_get_value(v_M_fuse)
-
+            others['threat'] = self.re_scale(threat, limit=12)
+            others['value'] = value
+            
         logit2act = self._logit2act
         if self.use_policy_resonance and self.is_resonance_active():
             logit2act = self._logit2act_rsn
             
-        act, actLogProbs, distEntropy, probs = logit2act(logits, eval_mode=eval_mode,
-                                                            test_mode=test_mode, 
+        act, actLogProbs, distEntropy, probs = logit2act(   logits, eval_mode=eval_mode,
+                                                            test_mode=test_mode or self.static, 
                                                             eval_actions=eval_act, 
                                                             avail_act=avail_act,
                                                             eprsn=eprsn)
 
-        if eval_mode: 
-            others['threat'] = self.re_scale(threat, limit=12)
-            others['value'] = value
+
 
         if not eval_mode: return act, 'vph', actLogProbs
         else:             return 'vph', actLogProbs, distEntropy, probs, others

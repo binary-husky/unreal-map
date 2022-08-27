@@ -1,15 +1,15 @@
 {
     // --- Part1: config HMP core --- 
     "config.py->GlobalConfig": {
-        "note": "z-sim",
+        "note": "z-hete-256batch-staticnetgreedy-fixtest-0826",// http://localhost:59547
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
         // "heartbeat_on": "False",
         "draw_mode": "Img",
-        "num_threads": 16,
-        "report_reward_interval": 16,
-        "test_interval": 64,
-        "test_epoch": 16,
+        "num_threads": 32,
+        "report_reward_interval": 256,
+        "test_interval": 5120,
+        "test_epoch": 256,
         "interested_team": 0,
         "seed": 10098,
         "device": "cuda",
@@ -87,7 +87,7 @@
         "add_avail_act": true
     },
     "ALGORITHM.conc_4hist_hete.foundation.py->AlgorithmConfig": {
-        "train_traj_needed": 16,
+        "train_traj_needed": 256,
         "hete_n_alive_frontend": 2,
         "hete_n_net_placeholder":4,
         "hete_rollbuffer_size": 20,
@@ -104,7 +104,7 @@
         "lr": 0.0004,
         "ppo_epoch": 24,
         "policy_resonance": false,
-        "debug": true,
+        "debug": false,
         "n_entity_placeholder": 22
     },
 

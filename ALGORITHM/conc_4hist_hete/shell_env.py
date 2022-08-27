@@ -158,10 +158,10 @@ class ShellEnvWrapper(object):
             # 如果环境观测非EntityOriented，可以额外生一个维度，具体细节需要斟酌
             obs = repeat_at(obs, insert_dim=-2, n_times=self.n_entity_placeholder//2, copy_mem=True)
             obs[:,:,2:] = np.nan    # 0 is self; 1 is repeated self; 2,3,... is NaN
-            
+
         n_entity_raw = obs.shape[-2]
         AlgorithmConfig.entity_distinct = [list(range(1)), list(range(1,n_entity_raw)), list(range(n_entity_raw,2*n_entity_raw))]
-        
+
         P  =  StateRecall['ENV-PAUSE']
         R  = ~StateRecall['ENV-PAUSE']
         RST = StateRecall['Env-Suffered-Reset']
@@ -174,13 +174,12 @@ class ShellEnvWrapper(object):
             eprsn_yita = self.RL_functional.stage_planner.yita if AlgorithmConfig.policy_resonance else 0
             EpRsn = np.random.rand(self.n_thread) < eprsn_yita
             StateRecall['_EpRsn_'] = EpRsn
-
-
-            StateRecall['_Type_'] = select_nets_for_shellenv(n_types=self.n_hete_types, 
+            StateRecall['_Type_'], StateRecall['_TypeSummary_'] = select_nets_for_shellenv(n_types=self.n_hete_types, 
                                         policy=self.RL_functional.policy,
                                         hete_type_list=self.hete_type,
                                         n_thread = self.n_thread,
-                                        n_gp=AlgorithmConfig.n_online_policy_groups
+                                        n_gp=AlgorithmConfig.hete_n_net_placeholder,
+                                        testing=StateRecall['Test-Flag']
                                     )   
 
         his_pool_obs = StateRecall['_history_pool_obs_'] if '_history_pool_obs_' in StateRecall \
@@ -199,6 +198,7 @@ class ShellEnvWrapper(object):
             'Test-Flag':StateRecall['Test-Flag'], 
             '_EpRsn_':StateRecall['_EpRsn_'][R],
             '_Type_':StateRecall['_Type_'][R], 
+            '_TypeSummary_':StateRecall['_TypeSummary_'][R], 
             'threads_active_flag':R, 
             'Latest-Team-Info':StateRecall['Latest-Team-Info'][R],
         }

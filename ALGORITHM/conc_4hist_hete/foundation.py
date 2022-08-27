@@ -14,6 +14,7 @@ class AlgorithmConfig:
     gamma = 0.99
     tau = 0.95
     train_traj_needed = 512
+    hete_n_alive_frontend = 1
     TakeRewardAsUnity = False
     use_normalization = True
     wait_norm_stable = True
@@ -51,14 +52,20 @@ class AlgorithmConfig:
     ConfigOnTheFly = True
 
 
-    n_online_policy_groups = 5
-    rollbuffer_size = 10
-
+    hete_n_net_placeholder = 5
+    hete_rollbuffer_size = 10
+    hete_rollbuffer_interval = 5
+    hete_rollbuffer_avoidrecent = True
+    hete_sel_exclude_frontend = True
+    hete_thread_align = False
+    
     entity_distinct = 'auto load, do not change'
 
     policy_resonance = False
 
     use_avail_act = True
+    
+    debug = False
 
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
@@ -106,7 +113,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             trainer_hook=self.trainer.train_on_traj)
         self.stage_planner.trainer = self.trainer
 
-        
+
         # confirm that reward method is correct
         self.check_reward_type(AlgorithmConfig)
 
@@ -127,12 +134,16 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
         if AlgorithmConfig.use_avail_act: assert avail_act is not None
         hete_pick = StateRecall['_Type_']
+        gp_sel_summary =  StateRecall['_TypeSummary_']
         eprsn = repeat_at(StateRecall['_EpRsn_'], -1, self.n_agent)
+        thread_index = np.arange(self.n_thread)[threads_active_flag]
         with torch.no_grad():
             action, value, action_log_prob = self.policy.act(obs=obs,
                                                              test_mode=test_mode,
                                                              avail_act=avail_act,
                                                              hete_pick=hete_pick,
+                                                             gp_sel_summary=gp_sel_summary,
+                                                             thread_index=thread_index,
                                                              eprsn=eprsn,
                                                              )
             
@@ -141,6 +152,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             "_SKIP_":        ~threads_active_flag,
             "value":         value,
             "hete_pick":     hete_pick,
+            "gp_sel_summary": gp_sel_summary,
             "avail_act":     avail_act,
             "actionLogProb": action_log_prob,
             "obs":           obs,

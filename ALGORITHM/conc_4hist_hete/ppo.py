@@ -63,8 +63,6 @@ class PPO():
         self.trivial_dict = {}
 
         assert self.n_pieces_batch_division == 1
-        self.n_div = 1
-        # print亮红(self.n_div)
 
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
@@ -86,45 +84,37 @@ class PPO():
                 print(traceback.format_exc())
                 if self.prevent_batchsize_oom:
                     # in some cases, reversing MaxSampleNum a single time is not enough
-                    # [ 10, 20, 30, 40] 
-                    # --> inversion 1
-                    # [ 10, 20, 30, -1], try 30
                     if TrajPoolSampler.MaxSampleNum[-1] < 0: TrajPoolSampler.MaxSampleNum.pop(-1)
                     assert TrajPoolSampler.MaxSampleNum[-1] > 0
-                    # -> [ 10, 20, 30]
                     TrajPoolSampler.MaxSampleNum[-1] = -1
-                    # -> [ 10, 20, -1], try 20
                     print亮红('显存不足！ 回溯上次的样本量')
                 else:
-                    self.n_div += 1
-                    print亮红('显存不足！ 切分样本, 当前n_div: %d'%self.n_div)
+                    assert False
             torch.cuda.empty_cache()
 
     def train_on_traj_(self, traj_pool, task):
 
         ppo_valid_percent_list = []
-        sampler = TrajPoolSampler(n_div=self.n_div, traj_pool=traj_pool, flag=task, prevent_batchsize_oom=self.prevent_batchsize_oom)
-        assert self.n_div == len(sampler)
+        sampler = TrajPoolSampler(n_div=1, traj_pool=traj_pool, flag=task, prevent_batchsize_oom=self.prevent_batchsize_oom)
         # before_training_hash = [__hashn__(t.parameters()) for t in (self.policy_and_critic._nets_flat_placeholder_)]
         for e in range(self.ppo_epoch):
-            # print亮紫('pulse')
             sample_iter = sampler.reset_and_get_iter()
             self.at_optimizer.zero_grad()
             self.ct_optimizer.zero_grad()
-            for i in range(self.n_div):
-                # ! get traj fragment
-                sample = next(sample_iter)
-                # ! build graph, then update network
-                loss_final, others = self.establish_pytorch_graph(task, sample, e)
-                loss_final = loss_final*0.5 /self.n_div
-                if (e+i)==0: print('[PPO.py] Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
-                loss_final.backward()
-                # log
-                ppo_valid_percent_list.append(others.pop('PPO valid percent').item())
-                self.log_trivial(dictionary=others); others = None
+            # ! get traj fragment
+            sample = next(sample_iter)
+            # ! build graph, then update network
+            loss_final, others = self.establish_pytorch_graph(task, sample, e)
+            loss_final = loss_final*0.5
+            if e==0: print('[PPO.py] Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
+            loss_final.backward()
+            # log
+            ppo_valid_percent_list.append(others.pop('PPO valid percent').item())
+            self.log_trivial(dictionary=others); others = None
             nn.utils.clip_grad_norm_(self.at_parameter, self.max_grad_norm)
             self.at_optimizer.step()
             self.ct_optimizer.step()
+            
             if ppo_valid_percent_list[-1] < 0.70: 
                 print亮黄('policy change too much, epoch terminate early'); break
         pass # finish all epoch update
@@ -132,7 +122,9 @@ class PPO():
         print亮黄(np.array(ppo_valid_percent_list))
         self.log_trivial_finalize()
         
-        
+        net_updated = [any([p.grad is not None for p in t.parameters()]) for t in (self.policy_and_critic._nets_flat_placeholder_)]
+
+                
         self.at_optimizer.zero_grad(set_to_none=True)
         self.ct_optimizer.zero_grad(set_to_none=True)
         # after_training_hash = [__hashn__(t.parameters()) for t in (self.policy_and_critic._nets_flat_placeholder_)]
@@ -142,10 +134,13 @@ class PPO():
         #     else:
         #         print亮蓝(h1,'-->',h2)
                 
-        
-        # print亮红('Leaky Memory Allocated %.2f GB'%(torch.cuda.memory_allocated()/1073741824))
-        self.policy_and_critic.on_update()
         self.ppo_update_cnt += 1
+        for updated, net in zip(net_updated, self.policy_and_critic._nets_flat_placeholder_):
+            if updated:
+                net.update_cnt.data[0] = self.ppo_update_cnt
+                
+        self.policy_and_critic.on_update(self.ppo_update_cnt)
+        
         return self.ppo_update_cnt
 
     def log_trivial(self, dictionary):
@@ -177,6 +172,7 @@ class PPO():
         real_value = _2tensor(sample['return'])
         real_threat = _2tensor(sample['threat'])
         hete_pick = _2tensor(sample['hete_pick'])
+        gp_sel_summary = _2tensor(sample['gp_sel_summary'])
         avail_act = _2tensor(sample['avail_act']) if 'avail_act' in sample else None
 
         # batchsize = advantage.shape[0]#; print亮紫(batchsize)
@@ -184,7 +180,13 @@ class PPO():
 
         assert flag == 'train'
         newPi_value, newPi_actionLogProb, entropy, probs, others = \
-            self.policy_and_critic.evaluate_actions(obs=obs, eval_actions=action, test_mode=False, avail_act=avail_act, hete_pick=hete_pick)
+            self.policy_and_critic.evaluate_actions(
+                obs=obs, 
+                eval_actions=action, 
+                test_mode=False, 
+                avail_act=avail_act, 
+                hete_pick=hete_pick,
+                gp_sel_summary=gp_sel_summary)
         entropy_loss = entropy.mean()
 
 

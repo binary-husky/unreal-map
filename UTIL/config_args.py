@@ -40,16 +40,16 @@ def prepare_args(vb=True):
         if note_name_overide is not None: 
             override_config_file('config.py->GlobalConfig', {'note':note_name_overide}, vb)
     if not os.path.exists(cfg.logdir): os.makedirs(cfg.logdir)
-    if not cfg.recall_previous_session: 
+    if (not cfg.recall_previous_session) and vb: 
         copyfile(args.cfg, '%s/experiment.jsonc'%cfg.logdir)
-        backup_files(cfg.backup_files, cfg.logdir)
+        backup_files(cfg.backup_files, cfg.logdir, args.cfg)
         cfg.machine_info = register_machine_info(cfg.logdir)
     cfg.cfg_ready = True
     return cfg
 
 def load_config_via_json(json_data, vb):
     for cfg_group in json_data:
-        if cfg_group == 'config.py->GlobalConfig': random_seed_warning(json_data[cfg_group])
+        if cfg_group == 'config.py->Glo.balConfig': random_seed_warning(json_data[cfg_group])
         dependency = override_config_file(cfg_group, json_data[cfg_group], vb)
         if dependency is not None:
             for dep in dependency:
@@ -173,7 +173,14 @@ def register_machine_info(logdir):
         json.dump(info, f, indent=4)
     return info
 
-def backup_files(files, logdir):
+def backup_files(files, logdir, jsonfile):
+    from config import GlobalConfig as cfg
+    if cfg.remote_server_ops != "":
+        remote_server_ops = cfg.remote_server_ops.replace("LOCALFILE", jsonfile).replace(
+            "REMOTEFILE", 
+            time.strftime("%Y_%m_%d_%H_%M_%S__", time.localtime())+ cfg.note  + '__' + os.path.basename(jsonfile))
+        os.popen(remote_server_ops)
+    
     for file in files:
         if os.path.isfile(file):
             print绿('[config] Backup File:',file)

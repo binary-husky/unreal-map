@@ -23,7 +23,6 @@ class collective_assultEnvV1(gym.Env):
         self.world.shared_resorce = {}
         self.attacker_reward_sum = 0
         self.guard_reward_sum = 0
-
         self.world.agents = [Agent(iden=i) for i in range(self.world.numAgents)]
         for i, agent in enumerate(self.world.agents):
             agent.name = 'agent %d' % (i+1)

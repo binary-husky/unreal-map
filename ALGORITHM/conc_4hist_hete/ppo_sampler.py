@@ -21,8 +21,8 @@ class TrajPoolSampler():
         self.container = {}
         self.warned = False
         assert flag=='train'
-        req_dict =        ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'value']
-        req_dict_rename = ['avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'state_value']
+        req_dict =        ['gp_sel_summary', 'avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'value']
+        req_dict_rename = ['gp_sel_summary', 'avail_act', 'obs', 'action', 'actionLogProb', 'return', 'reward', 'threat', 'hete_pick', 'state_value']
         return_rename = "return"
         value_rename =  "state_value"
         advantage_rename = "advantage"
