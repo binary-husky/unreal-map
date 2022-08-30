@@ -165,20 +165,19 @@ def run_batch_exp(n_run, n_run_mode, base_conf, conf_override):
 
     DELAY = 10
     
-    if __name__ == '__main__':
             
-        input('Confirm execution? 确认执行?')
-        input('Confirm execution! 确认执行!')
+    input('Confirm execution? 确认执行?')
+    input('Confirm execution! 确认执行!')
 
-        t = 0
-        while (t >= 0):
-            print('Counting down ', t)
+    t = 0
+    while (t >= 0):
+        print('Counting down ', t)
+        time.sleep(1)
+        t -= 1
+
+    for ith_run in range(n_run):
+        worker(ith_run)
+        for i in range(DELAY):
             time.sleep(1)
-            t -= 1
 
-        for ith_run in range(n_run):
-            worker(ith_run)
-            for i in range(DELAY):
-                time.sleep(1)
-
-        print('all submitted')
+    print('all submitted')

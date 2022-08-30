@@ -35,10 +35,7 @@ class AlgorithmConfig:
     clip_param = 0.2
     lr = 1e-4
 
-    # sometimes the episode length gets longer,
-    # resulting in more samples and causing GPU OOM,
-    # prevent this by fixing the number of samples to initial
-    # by randomly sampling and droping
+    # prevent GPU OOM
     prevent_batchsize_oom = False
     gamma_in_reward_forwarding = False
     gamma_in_reward_forwarding_value = 0.99
@@ -65,6 +62,20 @@ class AlgorithmConfig:
     use_avail_act = True
     
     debug = False
+    
+def str_array_to_num(str_arr):
+    out_arr = []
+    buffer = {}
+    for str in str_arr:
+        if str not in buffer:
+            buffer[str] = len(buffer)
+        out_arr.append(buffer[str])
+    return out_arr
+
+def itemgetter(*items):
+    # same with operator.itemgetter
+    def g(obj): return tuple(obj[item] if item in obj else None for item in items)
+    return g
 
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
@@ -74,36 +85,25 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         AlgorithmConfig.n_agent = n_agent
         n_actions = len(ActionConvertLegacy.dictionary_args)
 
+        # change obs format, e.g., converting dead agent obs into NaN
         self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.ScenarioConfig, self.team)
-        if self.ScenarioConfig.EntityOriented:
-            rawob_dim = self.ScenarioConfig.obs_vec_length
-        else:
-            rawob_dim = space['obs_space']['obs_shape']
+        if self.ScenarioConfig.EntityOriented: rawob_dim = self.ScenarioConfig.obs_vec_length
+        else: rawob_dim = space['obs_space']['obs_shape']
             
-            
-        # self.StagePlanner
+        # self.StagePlanner, for policy resonance
         from .stage_planner import StagePlanner
         self.stage_planner = StagePlanner(mcv=mcv)
 
-
         # heterogeneous agent types
         agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list]
-        def str_array_to_num(str_arr):
-            out_arr = []
-            buffer = {}
-            for str in str_arr:
-                if str not in buffer:
-                    buffer[str] = len(buffer)
-                out_arr.append(buffer[str])
-            return out_arr  
-        
         self.HeteAgentType = str_array_to_num(agent_type_list)
         hete_type = np.array(self.HeteAgentType)[self.ScenarioConfig.AGENT_ID_EACH_TEAM[team]]
+        
+        # initialize policy
         self.policy = HeteNet(rawob_dim=rawob_dim, n_action=n_actions, hete_type=hete_type, stage_planner=self.stage_planner)
         self.policy = self.policy.to(self.device)
 
-        self.AvgRewardAgentWise = AlgorithmConfig.TakeRewardAsUnity
-        # initialize policy network and traj memory manager
+        # initialize optimizer and trajectory (batch) manager
         from .ppo import PPO
         from .trajectory import BatchTrajManager
         self.trainer = PPO(self.policy, ppo_config=AlgorithmConfig, mcv=mcv)
@@ -112,45 +112,52 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             trainer_hook=self.trainer.train_on_traj)
         self.stage_planner.trainer = self.trainer
 
-
         # confirm that reward method is correct
         self.check_reward_type(AlgorithmConfig)
 
         # load checkpoints if needed
         self.load_model(AlgorithmConfig)
 
-        # activate config on the fly ability
+        # enable config_on_the_fly ability
         if AlgorithmConfig.ConfigOnTheFly:
             self._create_config_fly()
 
 
     def action_making(self, StateRecall, test_mode):
-        assert StateRecall['obs'] is not None, ('Make sure obs is ok')
+        # make sure hook is cleared
         assert ('_hook_' not in StateRecall)
-
-        obs, threads_active_flag = StateRecall['obs'], StateRecall['threads_active_flag']
+        
+        # read obs
+        obs, threads_active_flag, avail_act, hete_pick, hete_type, gp_sel_summary, eprsn = \
+            itemgetter('obs', 'threads_active_flag', 'avail_act', '_hete_pick_', '_hete_type_', '_gp_pick_', '_EpRsn_')(StateRecall)
+            
+        
+        # make sure obs is right
+        assert obs is not None, ('Make sure obs is ok')
         assert len(obs) == sum(threads_active_flag), ('check batch size')
-        avail_act = StateRecall['avail_act'] if 'avail_act' in StateRecall else None
+        # make sure avail_act is correct
         if AlgorithmConfig.use_avail_act: assert avail_act is not None
-        hete_pick = StateRecall['_Type_']
-        gp_sel_summary =  StateRecall['_TypeSummary_']
-        eprsn = repeat_at(StateRecall['_EpRsn_'], -1, self.n_agent)
+        
+        eprsn = repeat_at(eprsn, -1, self.n_agent)
         thread_index = np.arange(self.n_thread)[threads_active_flag]
+        
         with torch.no_grad():
             action, value, action_log_prob = self.policy.act(obs=obs,
                                                              test_mode=test_mode,
                                                              avail_act=avail_act,
                                                              hete_pick=hete_pick,
+                                                             hete_type=hete_type,
                                                              gp_sel_summary=gp_sel_summary,
                                                              thread_index=thread_index,
                                                              eprsn=eprsn,
                                                              )
-            
+
         # vars named like _x_ are aligned, others are not!
         traj_framefrag = {
             "_SKIP_":        ~threads_active_flag,
             "value":         value,
             "hete_pick":     hete_pick,
+            "hete_type":     hete_type,
             "gp_sel_summary": gp_sel_summary,
             "avail_act":     avail_act,
             "actionLogProb": action_log_prob,

@@ -1,7 +1,7 @@
 {
     // --- Part1: config HMP core --- 
     "config.py->GlobalConfig": {
-        "note": "z-hete-256batch-staticnetgreedy-fixtest-0826",// http://localhost:59547
+        "note": "z-hete-newbuffer-0829",// http://localhost:59547
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
         // "heartbeat_on": "False",
@@ -90,9 +90,8 @@
         "train_traj_needed": 256,
         "hete_n_alive_frontend": 2,
         "hete_n_net_placeholder":4,
-        "hete_rollbuffer_size": 20,
-        "hete_rollbuffer_interval": 10,
-        "hete_rollbuffer_avoidrecent":true,
+        "hete_rollbuffer_size": 6,
+        "hete_rollbuffer_interval": 1,
         "hete_sel_exclude_frontend":false,
         "load_checkpoint": false,
         "load_specific_checkpoint": "",
