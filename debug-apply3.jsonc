@@ -1,15 +1,15 @@
 {
     // --- Part1: config HMP core --- 
     "config.py->GlobalConfig": {
-        "note": "z-test-qmix",
+        "note": "z-test-qmix",// http://localhost:59547
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
         // "heartbeat_on": "False",
         "draw_mode": "Img",
-        "num_threads": 4,
-        "report_reward_interval": 16,
-        "test_interval": 64,
-        "test_epoch": 16,
+        "num_threads": 8,
+        "report_reward_interval": 256,
+        "test_interval": 5120,
+        "test_epoch": 256,
         "interested_team": 0,
         "seed": 10098,
         "device": "cuda",
@@ -17,7 +17,7 @@
         "fold": 1,
         "remote_server_ops": "curl -T \"LOCALFILE\" -u fuqingxu:clara \"http://cloud.fuqingxu.top:4080/remote.php/dav/files/fuqingxu/research/ProfileJsonHistory/REMOTEFILE\"",
         "backup_files": [
-            "ALGORITHM/ppo-ma",
+            "ALGORITHM/pymarl2_compat",
             "MISSION/uhmap"
         ]
     },
@@ -84,13 +84,16 @@
 
     // --- Part3: config ALGORITHM 2/2 --- 
     "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig": {
-        "load_checkpoint": "False",
+        "load_checkpoint": "True",
         "batch_size": 128,
         "use_shell": "mini_shell_uhmap",
         "pymarl_config_injection":{
             "controllers.my_n_controller.py->PymarlAlgorithmConfig":{
                 "use_normalization": "True",
-                "use_vae": "False"
+                "use_vae": "False",
+            },
+            "config.py->GlobalConfig":{
+                "load_checkpoint": "True",
             }
         }
     }

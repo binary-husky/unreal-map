@@ -12,8 +12,9 @@ from config import GlobalConfig
 
 class AlgorithmConfig():
     load_checkpoint = False
-    episode_limit = 400 # int(100e3)
+    episode_limit = 400
     batch_size = 2 # Number of episodes to train on
+    use_shell = ''
     pymarl_config_injection = {}
 
 def 加密字符串(s):  # encrpt string
@@ -89,6 +90,7 @@ class PymarlFoundation():
         self.previous_ENV_PAUSE = copy.deepcopy(team_intel['ENV-PAUSE'])
         ret_action_list = np.swapaxes(np.array(self.current_actions), 0, 1)
         return ret_action_list, team_intel
+
 
     def reset_confirm_all(self):
         assert self.team_intel['Env-Suffered-Reset'].all()
@@ -167,8 +169,13 @@ class PymarlFoundation():
         self.previous_ENV_PAUSE = None
         self.ScenarioConfig = GlobalConfig.ScenarioConfig
         self.init_pymarl()
-
-
+        if AlgorithmConfig.use_shell != '':
+            if AlgorithmConfig.use_shell == 'mini_shell_uhmap':
+                from .mini_shell_uhmap import ShellEnv
+                self.shell = ShellEnv(self, n_agent, n_thread, space, mcv, team)
+            else:
+                assert False, "unknown shell env"
+            
     def get_current_mode(self):
         return 'Testing' if self.team_intel['Test-Flag'] else 'Training'
 
@@ -208,7 +215,7 @@ class PymarlFoundation():
     def get_total_actions(self):
         try:
             self.n_actions = self.space['act_space']['n_actions']
-            return self.space['act_space']['n_actions']
+            return self.n_actions
         except:
             assert self.ScenarioConfig.use_simple_action_space
             self.n_actions = self.ScenarioConfig.n_actions
