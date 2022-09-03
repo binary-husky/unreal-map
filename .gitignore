@@ -65,6 +65,7 @@ result.prof
 ignore
 bvrAI.log
 ZHECKPOINT/*
+THIRDPARTY
 
 !ZHECKPOINT/test-50+50
 ZHECKPOINT/test-50+50/*

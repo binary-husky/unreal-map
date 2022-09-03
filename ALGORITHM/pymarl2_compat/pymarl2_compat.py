@@ -14,7 +14,7 @@ class AlgorithmConfig():
     state_compat = 'pad'   # 'pad', 'obs_mean', 'obs_cat'
     pymarl_config_injection = {}
 
-def 加密字符串(s):  # encrpt string
+def encrpt_string(s):  # encrpt_string
     k = ''.join(['@']*1000)
     encry_str = ""
     for i,j in zip(s,k):
@@ -22,7 +22,7 @@ def 加密字符串(s):  # encrpt string
         encry_str = encry_str + temp
     return encry_str
 
-def 解密字符串(p): # decrpt string
+def decrpt_string(p): # decrpt_string
     k = ''.join(['@']*1000)
     dec_str = ""
     for i,j in zip(p.split("_")[:-1],k):
@@ -54,12 +54,12 @@ class PymarlFoundation():
         })
 
         subprocess.Popen(["python", 
-            "/home/hmp/pymarl2/pymarl2src/main.py", 
+            "./THIRDPARTY/pymarl2/pymarl2src/main.py", 
             "--force", 
             "--config=qmix", 
             "--env-config=HMP_compat",
             "with",
-            "pymarl_config_injection=%s"%加密字符串(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
+            "pymarl_config_injection=%s"%encrpt_string(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
             # "batch_size_run=%d"%self.n_thread,
             # "batch_size=%d"%AlgorithmConfig.batch_size,
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
