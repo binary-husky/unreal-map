@@ -6,15 +6,12 @@ import pickle
 import subprocess
 import json
 import os
-# from subprocess import DEVNULL
 from UTIL.hidden_print import HiddenPrints
 from config import GlobalConfig
 
 class AlgorithmConfig():
-    load_checkpoint = False
-    episode_limit = 400
-    batch_size = 2 # Number of episodes to train on
     use_shell = ''
+    state_compat = 'pad'   # 'pad', 'obs_mean', 'obs_cat'
     pymarl_config_injection = {}
 
 def 加密字符串(s):  # encrpt string
@@ -39,18 +36,22 @@ class PymarlFoundation():
         import uuid, atexit
         self.remote_uuid = uuid.uuid1().hex   # use uuid to identify threads
         # add basic
-        AlgorithmConfig.pymarl_config_injection['config.py->GlobalConfig'] = {
+        if 'config.py->GlobalConfig' not in AlgorithmConfig.pymarl_config_injection:
+            AlgorithmConfig.pymarl_config_injection['config.py->GlobalConfig'] = {}
+            
+        AlgorithmConfig.pymarl_config_injection['config.py->GlobalConfig'].update({
             'HmpRoot': os.getcwd(),
             'ExpNote': GlobalConfig.note,
             'draw_mode': GlobalConfig.draw_mode,
             'logdir': GlobalConfig.logdir,
+            'n_thread': GlobalConfig.num_threads,
             'seed': GlobalConfig.seed,
             'activate_logger': GlobalConfig.activate_logger,
             'train_time_testing': GlobalConfig.train_time_testing,
             'test_interval': GlobalConfig.test_interval,
             'test_only': GlobalConfig.test_only,
             'test_epoch': GlobalConfig.test_epoch,
-        }
+        })
 
         subprocess.Popen(["python", 
             "/home/hmp/pymarl2/pymarl2src/main.py", 
@@ -59,8 +60,8 @@ class PymarlFoundation():
             "--env-config=HMP_compat",
             "with",
             "pymarl_config_injection=%s"%加密字符串(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
-            "batch_size_run=%d"%self.n_thread,
-            "batch_size=%d"%AlgorithmConfig.batch_size,
+            # "batch_size_run=%d"%self.n_thread,
+            # "batch_size=%d"%AlgorithmConfig.batch_size,
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
         
         from UTIL.network import UnixTcpServerP2P
@@ -181,15 +182,18 @@ class PymarlFoundation():
 
     # @basic_io_call
     def get_state_size(self):
-        try:
+        if AlgorithmConfig.state_compat == 'native':
+            try:
+                return self.space['obs_space']['state_shape']
+            except:
+                info = self.team_intel['Latest-Team-Info'][0]   # the info of environment 0
+                if 'state' not in info:
+                    return 0
+                else:
+                    return info['state'].shape[-1]
+        else:
             return self.space['obs_space']['state_shape']
-        except:
-            info = self.team_intel['Latest-Team-Info'][0]   # the info of environment 0
-            if 'state' not in info:
-                return 0
-            else:
-                return info['state'].shape[-1]
-
+            
 
     # @basic_io_call
     def get_obs_size(self):
@@ -209,7 +213,7 @@ class PymarlFoundation():
 
     # @basic_io_call
     def get_episode_limit(self):
-        return AlgorithmConfig.episode_limit
+        return int(self.ScenarioConfig.MaxEpisodeStep*1.5) # AlgorithmConfig.episode_limit
 
     # @basic_io_call
     def get_total_actions(self):

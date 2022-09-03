@@ -84,16 +84,16 @@
 
     // --- Part3: config ALGORITHM 2/2 --- 
     "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig": {
-        "load_checkpoint": "True",
-        "batch_size": 128,
         "use_shell": "mini_shell_uhmap",
+        "state_compat": "pad",
         "pymarl_config_injection":{
             "controllers.my_n_controller.py->PymarlAlgorithmConfig":{
                 "use_normalization": "True",
                 "use_vae": "False",
             },
             "config.py->GlobalConfig":{
-                "load_checkpoint": "True",
+                "batch_size": 128,
+                "load_checkpoint": "False",
             }
         }
     }

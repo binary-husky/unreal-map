@@ -111,7 +111,9 @@ def run_batch_exp(n_run, n_run_mode, base_conf, conf_override):
 
         time_mark_ = time_mark.replace(':','-')
         print('byobu attach -t %s'%time_mark_)
-
+        addr_ip, addr_port = addr.split(':')
+        print亮蓝("Attach cmd: ssh %s@%s -p %s -t \"byobu attach -t %s\""%(usr, addr_ip, addr_port, time_mark_))
+        
         stdin, stdout, stderr = ssh.exec_command(command='byobu new-session -d -s %s'%time_mark_, timeout=1)
         print亮紫('byobu new-session -d -s %s'%time_mark_)
         time.sleep(1)
@@ -132,6 +134,10 @@ def run_batch_exp(n_run, n_run_mode, base_conf, conf_override):
         stdin, stdout, stderr = ssh.exec_command(command='byobu send-keys -t %s "%s" C-m'%(time_mark_, cmd), timeout=1)
         print亮紫('byobu send-keys "%s" C-m'%cmd)
         time.sleep(1)
+
+
+        print亮蓝("command send is done!")
+        time.sleep(2)
 
         # 杀死
         # stdin, stdout, stderr = ssh.exec_command(command='byobu kill-session -t %s'%byobu_win_name, timeout=1)

@@ -3,7 +3,7 @@ from config import GlobalConfig
 from UTIL.colorful import *
 from UTIL.tensor_ops import my_view, __hash__, repeat_at, gather_righthand
 from MISSION.uhmap.actset_lookup import encode_action_as_digits
-
+from .pymarl2_compat import AlgorithmConfig
 
 class ShellEnv(object):
     def __init__(self, rl_foundation, n_agent, n_thread, space, mcv, team):
@@ -11,16 +11,25 @@ class ShellEnv(object):
         self.n_thread = n_thread
         self.team = team
         self.rl_foundation = rl_foundation
-        self.state_place_holder_size = 4
         self.n_entity = GlobalConfig.ScenarioConfig.obs_n_entity
         self.obssize = GlobalConfig.ScenarioConfig.obs_vec_length
+
+        if AlgorithmConfig.state_compat == 'pad':
+            self.state_size = 4
+        elif AlgorithmConfig.state_compat == 'obs_cat':
+            self.state_size = self.n_entity * self.obssize * self.n_agent
+        elif AlgorithmConfig.state_compat == 'obs_mean':
+            self.state_size = self.n_entity * self.obssize
+        else:
+            assert False, 'compat method error'
+
         self.rl_foundation.space = {
             'act_space':{
                 'n_actions': len(ActionConvertLegacy.dictionary_args),
             },
             'obs_space':{
                 'obs_shape': self.n_entity * self.obssize,
-                'state_shape': self.state_place_holder_size,
+                'state_shape': self.state_size,
             }
         }
         self.rl_foundation.interact_with_env_real = self.rl_foundation.interact_with_env
@@ -38,15 +47,28 @@ class ShellEnv(object):
             self.avail_act = np.stack(tuple(ActionConvertLegacy.get_tp_avail_act(tp) for tp in self.agent_type))
             self.avail_act = repeat_at(self.avail_act, insert_dim=0, n_times=self.n_thread)
         StateRecall['Latest-Obs'] = np.nan_to_num(my_view(StateRecall['Latest-Obs'], [0,0,-1]), 0)  
+        StateRecall['Terminal-Obs-Echo'] = [np.nan_to_num(my_view(t, [0,-1]), 0)   if t is not None else None for t in StateRecall['Terminal-Obs-Echo']]
         for i, d in enumerate(StateRecall['Latest-Team-Info']):
-            d['state'] = np.zeros(self.state_place_holder_size)
-            d['state-echo'] = np.zeros(self.state_place_holder_size)
+            if AlgorithmConfig.state_compat == 'pad':
+                d['state']      = np.zeros(self.state_size)
+                d['state-echo'] = np.zeros(self.state_size)
+            elif AlgorithmConfig.state_compat == 'obs_cat':
+                d['state']      = StateRecall['Latest-Obs'][i].flatten()
+                d['state-echo'] = np.zeros_like(d['state'])
+                if StateRecall['Terminal-Obs-Echo'][i] is not None: 
+                    d['state-echo'] = StateRecall['Terminal-Obs-Echo'][i].flatten()
+            elif AlgorithmConfig.state_compat == 'obs_mean':
+                d['state']      = StateRecall['Latest-Obs'][i].mean(0)
+                d['state-echo'] = np.zeros_like(d['state'])
+                if StateRecall['Terminal-Obs-Echo'][i] is not None: 
+                    d['state-echo'] = StateRecall['Terminal-Obs-Echo'][i].mean(0)
+            else:
+                assert False, 'compat method error'
             d['avail-act'] = self.avail_act[i]
             
         # for t in StateRecall['Terminal-Obs-Echo']:
         #     if t is not None:
         #         print('???')
-        StateRecall['Terminal-Obs-Echo'] = [np.nan_to_num(my_view(t, [0,-1]), 0)   if t is not None else None for t in StateRecall['Terminal-Obs-Echo']]
             
         ret_action_list, team_intel = self.rl_foundation.interact_with_env_real(StateRecall)
         ret_action_list = np.swapaxes(ret_action_list, 0, 1)

@@ -17,7 +17,7 @@
         "fold": 1,
         "remote_server_ops": "curl -T \"LOCALFILE\" -u fuqingxu:clara \"http://cloud.fuqingxu.top:4080/remote.php/dav/files/fuqingxu/research/ProfileJsonHistory/REMOTEFILE\"",
         "backup_files": [
-            "ALGORITHM/ppo-ma",
+            "ALGORITHM/ppo_ma",
             "MISSION/uhmap"
         ]
     },
