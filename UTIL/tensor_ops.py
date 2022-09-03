@@ -852,3 +852,14 @@ def n_item(tensor):
     for d in tensor.shape:
         n = n*d
     return n
+
+
+
+
+def cat_last_dim(tensor, cat):
+    assert tensor.shape[-1] >= cat.shape[-1]
+    for i, s in enumerate(tensor.shape[:-1]):
+        if s!=cat.shape[i]:
+            cat = repeat_at(cat, i, s)
+    cat = tensor[..., :cat.shape[-1]] * 0 + cat
+    return torch.cat((tensor, cat), -1)

@@ -6,17 +6,15 @@ import pickle
 import subprocess
 import json
 import os
-# from subprocess import DEVNULL
 from UTIL.hidden_print import HiddenPrints
 from config import GlobalConfig
 
 class AlgorithmConfig():
-    load_checkpoint = False
-    episode_limit = 400 # int(100e3)
-    batch_size = 2 # Number of episodes to train on
+    use_shell = ''
+    state_compat = 'pad'   # 'pad', 'obs_mean', 'obs_cat'
     pymarl_config_injection = {}
 
-def 加密字符串(s):  # encrpt string
+def encrpt_string(s):  # encrpt_string
     k = ''.join(['@']*1000)
     encry_str = ""
     for i,j in zip(s,k):
@@ -24,7 +22,7 @@ def 加密字符串(s):  # encrpt string
         encry_str = encry_str + temp
     return encry_str
 
-def 解密字符串(p): # decrpt string
+def decrpt_string(p): # decrpt_string
     k = ''.join(['@']*1000)
     dec_str = ""
     for i,j in zip(p.split("_")[:-1],k):
@@ -38,28 +36,32 @@ class PymarlFoundation():
         import uuid, atexit
         self.remote_uuid = uuid.uuid1().hex   # use uuid to identify threads
         # add basic
-        AlgorithmConfig.pymarl_config_injection['config.py->GlobalConfig'] = {
+        if 'config.py->GlobalConfig' not in AlgorithmConfig.pymarl_config_injection:
+            AlgorithmConfig.pymarl_config_injection['config.py->GlobalConfig'] = {}
+            
+        AlgorithmConfig.pymarl_config_injection['config.py->GlobalConfig'].update({
             'HmpRoot': os.getcwd(),
             'ExpNote': GlobalConfig.note,
             'draw_mode': GlobalConfig.draw_mode,
             'logdir': GlobalConfig.logdir,
+            'n_thread': GlobalConfig.num_threads,
             'seed': GlobalConfig.seed,
             'activate_logger': GlobalConfig.activate_logger,
             'train_time_testing': GlobalConfig.train_time_testing,
             'test_interval': GlobalConfig.test_interval,
             'test_only': GlobalConfig.test_only,
             'test_epoch': GlobalConfig.test_epoch,
-        }
+        })
 
         subprocess.Popen(["python", 
-            "/home/hmp/pymarl2/pymarl2src/main.py", 
+            "./THIRDPARTY/pymarl2/pymarl2src/main.py", 
             "--force", 
             "--config=qmix", 
             "--env-config=HMP_compat",
             "with",
-            "pymarl_config_injection=%s"%加密字符串(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
-            "batch_size_run=%d"%self.n_thread,
-            "batch_size=%d"%AlgorithmConfig.batch_size,
+            "pymarl_config_injection=%s"%encrpt_string(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
+            # "batch_size_run=%d"%self.n_thread,
+            # "batch_size=%d"%AlgorithmConfig.batch_size,
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
         
         from UTIL.network import UnixTcpServerP2P
@@ -89,6 +91,7 @@ class PymarlFoundation():
         self.previous_ENV_PAUSE = copy.deepcopy(team_intel['ENV-PAUSE'])
         ret_action_list = np.swapaxes(np.array(self.current_actions), 0, 1)
         return ret_action_list, team_intel
+
 
     def reset_confirm_all(self):
         assert self.team_intel['Env-Suffered-Reset'].all()
@@ -167,22 +170,30 @@ class PymarlFoundation():
         self.previous_ENV_PAUSE = None
         self.ScenarioConfig = GlobalConfig.ScenarioConfig
         self.init_pymarl()
-
-
+        if AlgorithmConfig.use_shell != '':
+            if AlgorithmConfig.use_shell == 'mini_shell_uhmap':
+                from .mini_shell_uhmap import ShellEnv
+                self.shell = ShellEnv(self, n_agent, n_thread, space, mcv, team)
+            else:
+                assert False, "unknown shell env"
+            
     def get_current_mode(self):
         return 'Testing' if self.team_intel['Test-Flag'] else 'Training'
 
     # @basic_io_call
     def get_state_size(self):
-        try:
+        if AlgorithmConfig.state_compat == 'native':
+            try:
+                return self.space['obs_space']['state_shape']
+            except:
+                info = self.team_intel['Latest-Team-Info'][0]   # the info of environment 0
+                if 'state' not in info:
+                    return 0
+                else:
+                    return info['state'].shape[-1]
+        else:
             return self.space['obs_space']['state_shape']
-        except:
-            info = self.team_intel['Latest-Team-Info'][0]   # the info of environment 0
-            if 'state' not in info:
-                return 0
-            else:
-                return info['state'].shape[-1]
-
+            
 
     # @basic_io_call
     def get_obs_size(self):
@@ -202,13 +213,13 @@ class PymarlFoundation():
 
     # @basic_io_call
     def get_episode_limit(self):
-        return AlgorithmConfig.episode_limit
+        return int(self.ScenarioConfig.MaxEpisodeStep*1.5) # AlgorithmConfig.episode_limit
 
     # @basic_io_call
     def get_total_actions(self):
         try:
             self.n_actions = self.space['act_space']['n_actions']
-            return self.space['act_space']['n_actions']
+            return self.n_actions
         except:
             assert self.ScenarioConfig.use_simple_action_space
             self.n_actions = self.ScenarioConfig.n_actions

@@ -3,7 +3,7 @@ import numpy as np
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
 from UTIL.colorful import print亮绿
-from UTIL.tensor_ops import Args2tensor_Return2numpy, Args2tensor, __hashn__
+from UTIL.tensor_ops import Args2tensor_Return2numpy, Args2tensor, __hashn__, cat_last_dim, __hash__, repeat_at, scatter_righthand, gather_righthand
 from UTIL.tensor_ops import pt_inf
 from UTIL.exp_helper import changed
 from .ccategorical import CCategorical
@@ -193,7 +193,9 @@ def distribute_compute(fn_arr, mask_arr, **kwargs):
     dfs_create_and_fn(None, g_out, 0, _tensor_expand_thread_dim_v2_, n_threads, n_agents)
     return tuple(g_out[0])
 
-
+def popgetter(*items):
+    def g(obj): return tuple(obj.pop(item) if item in obj else None for item in items)
+    return g
 
 
 class HeteNet(nn.Module):
@@ -205,7 +207,7 @@ class HeteNet(nn.Module):
         self.n_hete_types = _count_list_type(self.hete_type)
         self.hete_n_net_placeholder = AlgorithmConfig.hete_n_net_placeholder
         self.n_rollbuffer_size = AlgorithmConfig.hete_rollbuffer_size
-        self.pgrb = PolicyGroupRollBuffer(5, self.n_rollbuffer_size)
+        self.pgrb = PolicyGroupRollBuffer(1, self.n_rollbuffer_size)
         self.use_normalization = AlgorithmConfig.use_normalization
 
         self.n_tp = self.n_hete_types
@@ -214,11 +216,11 @@ class HeteNet(nn.Module):
         self.get_type_group = lambda ph: (ph%self.n_hete_types, ph//self.n_hete_types)
 
         self._nets_flat_placeholder_ = torch.nn.ModuleList(modules=[
-            Net(rawob_dim+self.n_tp, n_action, **kwargs) for _ in range(
+            Net(rawob_dim+self.n_tp+1, n_action, **kwargs) for _ in range(
                 self.n_tp * self.n_gp
             )  
         ])
-        self._critic_central = NetCentralCritic(rawob_dim+self.n_tp, n_action, **kwargs)
+        self._critic_central = NetCentralCritic(rawob_dim+self.n_tp+1, n_action, **kwargs)
         self.nets = [[self._nets_flat_placeholder_[get_placeholder(type=tp, group=gp)] for tp in range(self.n_tp)] for gp in range(self.n_gp)]
         self.frontend_nets = self.nets[0]
         self.static_nets = self.nets[1:]
@@ -277,107 +279,121 @@ class HeteNet(nn.Module):
         else:
             return self.redirect_to_frontend(i)
 
-
-    def act_lowlevel(self, hete_pick=None, **kargs):
-        gp_sel_summary = kargs.pop('gp_sel_summary')
-        if 'thread_index' in kargs:
-            thread_indices = kargs.pop('thread_index')
-        # add the hete info into obs
-        hete_info_obs = (kargs['obs'].permute(1,2,0,3)[:,:,:,:self.n_tp] * 0 + gp_sel_summary).permute(2,0,1,3)
-        kargs['obs'] = torch.cat((kargs['obs'], hete_info_obs), -1)
+    def debug_visual(self, hete_pick, n_thread, n_agents, thread_indices):
+        if n_thread <= 32:
+            # # rollbuffer elements
+            # for t, p_dict_L in enumerate(self.pgrb._array_policy_group):
+            #     for tp, p_dict in enumerate(p_dict_L):
+            #         update_cnt = p_dict['update_cnt'][0].item()
+            #         self.threejs_bridge.v2dx(
+            #             'box|%d|%s|%.3f'%(-1000-t*len(p_dict_L) - tp, 
+            #                             'yellow', 
+            #                             0.2),
+            #             tp-10, t+10, 2,
+            #             label='U-%d'%(update_cnt),
+            #             label_color='white',
+            #         )
+            
+            # net place holder
+            for i, net in enumerate(self._nets_flat_placeholder_):
+                update_cnt = net.update_cnt[0].item()
+                self.threejs_bridge.v2dx(
+                    'box|%d|%s|%.3f'%(-10-i, 
+                                    'white' if not net.static else 'red', 
+                                    0.2),
+                    net.tp, net.gp, 10,
+                    label='G-%d, T-%d, U-%d'%(net.gp, net.tp, update_cnt),
+                    label_color='white',
+                )
         
-        invo_hete_types = [i for i in range(self.n_tp*self.n_gp) if (i in hete_pick)]
-        # run self.net(input)
-        
-        running_nets = [self.acquire_net(hete_type) for hete_type in invo_hete_types]
-        if 'test_mode' in kargs and kargs['test_mode']:
-             for net in running_nets:
-                assert not net.static
-                
-        n_thread = hete_pick.shape[0]
-        n_agents = hete_pick.shape[1]
-        if AlgorithmConfig.debug:
-            if n_thread <= 32:
-                # # rollbuffer elements
-                # for t, p_dict_L in enumerate(self.pgrb._array_policy_group):
-                #     for tp, p_dict in enumerate(p_dict_L):
-                #         update_cnt = p_dict['update_cnt'][0].item()
-                #         self.threejs_bridge.v2dx(
-                #             'box|%d|%s|%.3f'%(-1000-t*len(p_dict_L) - tp, 
-                #                             'yellow', 
-                #                             0.2),
-                #             tp-10, t+10, 2,
-                #             label='U-%d'%(update_cnt),
-                #             label_color='white',
-                #         )
-                
-                # net place holder
-                for i, net in enumerate(self._nets_flat_placeholder_):
-                    update_cnt = net.update_cnt[0].item()
+            # agents 
+            for t in range(n_thread):
+                thread_index = thread_indices[t].item()
+                for agent_index in range(n_agents):
+                    hete_type = hete_pick[t, agent_index]
+                    
+                    net = self.acquire_net(hete_type)
+                    net_redirect = self.acquire_net_redirect(hete_type).item()
                     self.threejs_bridge.v2dx(
-                        'box|%d|%s|%.3f'%(-10-i, 
+                        'box|%d|%s|%.3f'%(thread_index*n_agents+agent_index, 
                                         'white' if not net.static else 'red', 
                                         0.2),
-                        net.tp, net.gp, 10,
-                        label='G-%d, T-%d, U-%d'%(net.gp, net.tp, update_cnt),
+                        agent_index, thread_index, 1,
+                        label='G-%d, U-%d'%(net.gp, net.update_cnt[0].item()),
                         label_color='white',
                     )
-            
-                # agents 
-                for t in range(n_thread):
-                    thread_index = thread_indices[t].item()
-                    for agent_index in range(n_agents):
-                        hete_type = hete_pick[t, agent_index]
-                        
-                        net = self.acquire_net(hete_type)
-                        net_redirect = self.acquire_net_redirect(hete_type).item()
-                        self.threejs_bridge.v2dx(
-                            'box|%d|%s|%.3f'%(thread_index*n_agents+agent_index, 
-                                            'white' if not net.static else 'red', 
-                                            0.2),
-                            agent_index, thread_index, 1,
-                            label='G-%d, U-%d'%(net.gp, net.update_cnt[0].item()),
-                            label_color='white',
+                    if net.static:
+                        self.threejs_bridge.发射光束(
+                            'beam',         # 有 beam 和 lightning 两种选择
+                            src=thread_index*n_agents+agent_index,   # 发射者的几何体的唯一ID标识
+                            dst=-10-net_redirect,  # 接收者的几何体的唯一ID标识
+                            dur=0.5,        # 光束持续时间，单位秒，绝对时间，不受播放fps的影响
+                            size=0.03,      # 光束粗细
+                            color='DeepSkyBlue' # 光束颜色
                         )
-                        if net.static:
-                            self.threejs_bridge.发射光束(
-                                'beam',         # 有 beam 和 lightning 两种选择
-                                src=thread_index*n_agents+agent_index,   # 发射者的几何体的唯一ID标识
-                                dst=-10-net_redirect,  # 接收者的几何体的唯一ID标识
-                                dur=0.5,        # 光束持续时间，单位秒，绝对时间，不受播放fps的影响
-                                size=0.03,      # 光束粗细
-                                color='DeepSkyBlue' # 光束颜色
-                            )
-                        
-                self.threejs_bridge.v2d_show()
-            else:
-                pass
-                # print('too many threads')
-            
-        # hete: 把对hete_pick融入obs 
+                    
+            self.threejs_bridge.v2d_show()
+        else:
+            pass
+            # print('too many threads')
+
+    def exe(self, hete_pick=None, **kargs):
+        # pop items from kargs
+        n_thread = hete_pick.shape[0]
+        n_agents = hete_pick.shape[1]
         
+
+        gp_sel_summary, thread_indices, hete_type = popgetter('gp_sel_summary', 'thread_index', 'hete_type')(kargs)
+        
+        
+        gp = repeat_at(gp_sel_summary, 1, n_agents)
+        
+        # add the hete type info into obs
+        gp_sel_summary_obs = scatter_righthand(
+            scatter_into = gp,
+            src = hete_type.new_ones(n_thread,n_agents,1) * -1,
+            index = hete_type.unsqueeze(-1), check=True
+        )
+        kargs['obs'] = cat_last_dim(kargs['obs'], hete_type.unsqueeze(-1))
+        kargs['obs'] = cat_last_dim(kargs['obs'], gp_sel_summary_obs)
+        
+        invo_hete_types = [i for i in range(self.n_tp*self.n_gp) if (i in hete_pick)]
+        running_nets = [self.acquire_net(hete_type) for hete_type in invo_hete_types]
+        
+        # make sure all nets under testing is frontend
+        if 'test_mode' in kargs and kargs['test_mode']:
+             for net in running_nets: assert not net.static
+                
+        # debug visual
+
+        if AlgorithmConfig.debug: self.debug_visual(hete_pick, n_thread, n_agents, thread_indices)
+
+            
+        # run actor policy networks
         actor_result = distribute_compute(
             fn_arr = running_nets,
             mask_arr = [(hete_pick == hete_type) for hete_type in invo_hete_types],
             **kargs
         )
+        
+        # run critic network
         critic_result = self._critic_central.estimate_state(**kargs)
         
+        # replace value estimation
         actor_result = list(actor_result)
         for i, item in enumerate(actor_result):
-            if item=='vph': 
-                actor_result[i] = critic_result
+            if item=='vph': actor_result[i] = critic_result
         
         return tuple(actor_result)
 
 
     @Args2tensor_Return2numpy
     def act(self, **kargs):
-        return self.act_lowlevel(**kargs)
+        return self.exe(**kargs)
 
     @Args2tensor
     def evaluate_actions(self, **kargs):
-        return self.act_lowlevel(**kargs, eval_mode=True)
+        return self.exe(**kargs, eval_mode=True)
 
 
 def tuple_ops():

@@ -220,7 +220,6 @@ class UhmapLargeScale(UhmapEnv):
     @staticmethod
     def get_binary_array(n_int, n_bits=8, dtype=np.float32):
         arr = np.zeros((*n_int.shape, n_bits), dtype=dtype)
-        pointer = 0
         for i in range(n_bits):
             arr[:, i] = (n_int%2==1).astype(int)
             n_int = n_int / 2
@@ -303,7 +302,6 @@ class UhmapLargeScale(UhmapEnv):
                 continue
 
             # if alive
-
             # scope <all>
             dis2all = dis_mat[i, :]
             is_ally = (team_belonging == agent.team)
@@ -401,30 +399,7 @@ class UhmapLargeScale(UhmapEnv):
 
         return OBS_ALL_AGENTS
 
-'''
-            obs_arr.append(
-                self.uid_binary[i]
-            )
-            obs_arr.append([
-                agent.index,
-                agent.team,
-                agent.alive,
-                agent.uid_remote,
-            ])
-            obs_arr.append(
-                agent.pos3d
-            )
-            obs_arr.append(
-                agent.vel3d
-            )
-            obs_arr.append([
-                agent.hp,
-                agent.yaw,
-                agent.max_speed,
-            ])
 
-
-'''
 
 def init_ground(agent_info, pos_ro):
     N_COL = 2

@@ -145,3 +145,28 @@ class MultiHeadAttention(nn.Module):
 
 
 
+
+class SimpleAttention(nn.Module):
+    def __init__(self, h_dim):
+        super().__init__()
+        self.W_query = nn.Parameter(torch.Tensor(h_dim, h_dim))
+        self.W_key = nn.Parameter(torch.Tensor(h_dim, h_dim))
+        self.W_val = nn.Parameter(torch.Tensor(h_dim, h_dim))
+        self.init_parameters()
+
+    def init_parameters(self):
+        for param in self.parameters():
+            stdv = 1. / math.sqrt(param.size(-1))
+            param.data.uniform_(-stdv, stdv)
+
+    def forward(self, k, q, v, mask=None):
+        Q = torch.matmul(q, self.W_query) 
+        K = torch.matmul(k, self.W_key) 
+        V = torch.matmul(v, self.W_val)
+
+        norm_factor = 1 / math.sqrt(Q.shape[-1])
+        compat = norm_factor * torch.matmul(Q, K.transpose(-1, -2)) 
+        if mask is not None: compat[mask.bool()] = -math.inf
+        # 为了在这里解决 0*nan = nan 的问题，输入必须将V中的nan转化为0
+        score = torch.nan_to_num(F.softmax(compat, dim=-1), 0)
+        return torch.matmul(score, V) 

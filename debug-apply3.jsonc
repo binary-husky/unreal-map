@@ -1,12 +1,12 @@
 {
     // --- Part1: config HMP core --- 
     "config.py->GlobalConfig": {
-        "note": "z-hete-newbuffer-0829",// http://localhost:59547
+        "note": "z-test-qmix",// http://localhost:59547
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
         // "heartbeat_on": "False",
         "draw_mode": "Img",
-        "num_threads": 32,
+        "num_threads": 8,
         "report_reward_interval": 256,
         "test_interval": 5120,
         "test_epoch": 256,
@@ -17,7 +17,7 @@
         "fold": 1,
         "remote_server_ops": "curl -T \"LOCALFILE\" -u fuqingxu:clara \"http://cloud.fuqingxu.top:4080/remote.php/dav/files/fuqingxu/research/ProfileJsonHistory/REMOTEFILE\"",
         "backup_files": [
-            "ALGORITHM/conc_4hist_hete",
+            "ALGORITHM/pymarl2_compat",
             "MISSION/uhmap"
         ]
     },
@@ -42,7 +42,7 @@
         "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer/UHMPServer.sh",
         "TimeDilation": 64, // simulation time speed up, larger is faster
         "TEAM_NAMES": [
-            "ALGORITHM.conc_4hist_hete.foundation->ReinforceAlgorithmFoundation",
+            "ALGORITHM.pymarl2_compat.pymarl2_compat->PymarlFoundation",
             "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack",
         ]
     },
@@ -83,29 +83,18 @@
     },
 
     // --- Part3: config ALGORITHM 2/2 --- 
-    "ALGORITHM.conc_4hist_hete.shell_env.py->ShellEnvConfig": {
-        "add_avail_act": true
-    },
-    "ALGORITHM.conc_4hist_hete.foundation.py->AlgorithmConfig": {
-        "train_traj_needed": 256,
-        "hete_n_alive_frontend": 2,
-        "hete_n_net_placeholder":4,
-        "hete_rollbuffer_size": 6,
-        "hete_rollbuffer_interval": 1,
-        "hete_sel_exclude_frontend":false,
-        "load_checkpoint": false,
-        "load_specific_checkpoint": "",
-        "n_focus_on": 3,
-        "gamma": 0.99,
-        "gamma_in_reward_forwarding": "True",
-        "gamma_in_reward_forwarding_value": 0.95,
-        "prevent_batchsize_oom": "True",
-        "lr": 0.0004,
-        "ppo_epoch": 24,
-        "policy_resonance": false,
-        "debug": false,
-        "n_entity_placeholder": 22
-    },
-
-    
+    "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig": {
+        "use_shell": "mini_shell_uhmap",
+        "state_compat": "pad",
+        "pymarl_config_injection":{
+            "controllers.my_n_controller.py->PymarlAlgorithmConfig":{
+                "use_normalization": "True",
+                "use_vae": "False",
+            },
+            "config.py->GlobalConfig":{
+                "batch_size": 128,
+                "load_checkpoint": "False",
+            }
+        }
+    }
 }
