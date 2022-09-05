@@ -5,6 +5,7 @@ from UTIL.tensor_ops import my_view, __hash__, repeat_at, gather_righthand
 from MISSION.uhmap.actset_lookup import encode_action_as_digits
 from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
+from .hete_assignment import random_group, select_nets_for_shellenv
 
 class ShellEnvConfig:
     add_avail_act = False
@@ -106,7 +107,26 @@ class ShellEnvWrapper(object):
         if hasattr(ScenarioConfig, 'AvailActProvided'):
             self.AvailActProvided = ScenarioConfig.AvailActProvided 
 
+        # heterogeneous agent types
+        agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list]
+        opp_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']!=self.team]
+        self_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']==self.team]
+        def str_array_to_num(str_arr):
+            out_arr = []
+            buffer = {}
+            for str in str_arr:
+                if str not in buffer:
+                    buffer[str] = len(buffer)
+                out_arr.append(buffer[str])
+            return out_arr  
+        
+        self.HeteAgentType = str_array_to_num(agent_type_list)
+        self.hete_type = np.array(self.HeteAgentType)[GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[team]]
+        self.n_hete_types = count_list_type(self.hete_type)
+        
         # check parameters
+        assert self.n_agent == len(self_type_list)
+        ActionConvertLegacy.confirm_parameters_are_correct(team, self.n_agent, len(opp_type_list))
         self.patience = 2000
         
     @staticmethod
@@ -124,8 +144,8 @@ class ShellEnvWrapper(object):
         if not hasattr(self, 'agent_type'):
             self.agent_uid = GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[self.team]
             self.agent_type = [agent_meta['type'] 
-                               for agent_meta in StateRecall['Latest-Team-Info'][0]['dataArr']
-                               if agent_meta['uId'] in self.agent_uid]
+                for agent_meta in StateRecall['Latest-Team-Info'][0]['dataArr']
+                if agent_meta['uId'] in self.agent_uid]
             if ShellEnvConfig.add_avail_act:
                 self.avail_act = np.stack(tuple(ActionConvertLegacy.get_tp_avail_act(tp) for tp in self.agent_type))
                 self.avail_act = repeat_at(self.avail_act, insert_dim=0, n_times=self.n_thread)
@@ -153,6 +173,18 @@ class ShellEnvWrapper(object):
             eprsn_yita = self.rl_functional.stage_planner.yita if AlgorithmConfig.policy_resonance else 0
             EpRsn = np.random.rand(self.n_thread) < eprsn_yita
             StateRecall['_EpRsn_'] = EpRsn
+            StateRecall['_hete_type_'] = repeat_at(self.hete_type, 0, self.n_thread)
+            StateRecall['_hete_pick_'], StateRecall['_gp_pick_'] = select_nets_for_shellenv(n_types=self.n_hete_types, 
+                                        policy=self.rl_functional.policy,
+                                        hete_type_list=self.hete_type,
+                                        n_thread = self.n_thread,
+                                        n_gp=AlgorithmConfig.hete_n_net_placeholder,
+                                        testing=StateRecall['Test-Flag']
+                                    )   
+
+        his_pool_obs = StateRecall['_history_pool_obs_'] if '_history_pool_obs_' in StateRecall \
+            else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])
+        his_pool_obs[RST] = 0
 
         obs_feed = obs[R]
         I_StateRecall = {
@@ -160,6 +192,9 @@ class ShellEnvWrapper(object):
             'avail_act':self.avail_act[R],
             'Test-Flag':StateRecall['Test-Flag'], 
             '_EpRsn_':StateRecall['_EpRsn_'][R],
+            '_hete_pick_':StateRecall['_hete_pick_'][R], 
+            '_hete_type_':StateRecall['_hete_type_'][R],
+            '_gp_pick_':StateRecall['_gp_pick_'][R], 
             'threads_active_flag':R, 
             'Latest-Team-Info':StateRecall['Latest-Team-Info'][R],
         }

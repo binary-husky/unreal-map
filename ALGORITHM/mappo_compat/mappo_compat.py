@@ -16,7 +16,7 @@ class AlgorithmConfig():
     n_training_threads = 127 # Number of episodes to train on
     pymarl_config_injection = {}
 
-def 加密字符串(s):  # encrpt string
+def encrpt_string(s):  # encrpt_string
     k = ''.join(['@']*1000)
     encry_str = ""
     for i,j in zip(s,k):
@@ -24,13 +24,14 @@ def 加密字符串(s):  # encrpt string
         encry_str = encry_str + temp
     return encry_str
 
-def 解密字符串(p): # decrpt string
+def decrpt_string(p): # decrpt_string
     k = ''.join(['@']*1000)
     dec_str = ""
     for i,j in zip(p.split("_")[:-1],k):
         temp = chr(int(i) - ord(j))
         dec_str = dec_str+temp
     return dec_str
+
 
 class MappoFoundation():
     def init_pymarl(self):
@@ -67,7 +68,7 @@ class MappoFoundation():
             "--use_value_active_masks",
             "--use_eval",
             "--use_recurrent_policy",
-            "--pymarl_config_injection", 加密字符串(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
+            "--pymarl_config_injection", encrpt_string(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
             "--env_args_env_uuid", self.remote_uuid], 
             stdout=fp, stderr=fp)
         

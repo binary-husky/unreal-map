@@ -44,6 +44,14 @@ class PPO():
         self.gpu_share_unit = GpuShareUnit(cfg.device, gpu_party=cfg.gpu_party)
 
 
+    def freeze_body(self):
+        self.freeze_body = True
+        self.at_parameter = [p for p_name, p in self.all_parameter if 'AT_policy_head' in p_name]
+        self.at_optimizer = optim.Adam(self.at_parameter, lr=self.lr)
+        self.ct_parameter = [p for p_name, p in self.all_parameter if 'CT_' in p_name]
+        self.ct_optimizer = optim.Adam(self.ct_parameter, lr=self.lr*10.0) #(self.lr)
+        print('change train object')
+
     def train_on_traj(self, traj_pool, task):
         while True:
             try:
@@ -84,18 +92,24 @@ class PPO():
             self.optimizer.step()
             
             if ppo_valid_percent_list[-1] < 0.70: 
-                print亮黄('policy change too much, epoch terminate early'); break 
+                print亮黄('policy change too much, epoch terminate early'); break
         pass # finish all epoch update
 
         print亮黄(np.array(ppo_valid_percent_list))
         self.log_trivial_finalize()
-
+        
+        net_updated = [any([p.grad is not None for p in t.parameters()]) for t in (self.policy_and_critic._nets_flat_placeholder_)]
+        self.optimizer.zero_grad(set_to_none=True)
         self.ppo_update_cnt += 1
-                
+        for updated, net in zip(net_updated, self.policy_and_critic._nets_flat_placeholder_):
+            if updated:
+                net.update_cnt.data[0] = self.ppo_update_cnt
+        self.policy_and_critic.on_update(self.ppo_update_cnt)
         
         return self.ppo_update_cnt
 
     def freeze_body(self):
+        assert False, "function forbidden"
         self.freeze_body = True
         self.parameter_pv = [p_name for p_name, p in self.all_parameter if not any(p_name.startswith(kw)  for kw in ('obs_encoder', 'attention_layer'))]
         self.parameter = [p for p_name, p in self.all_parameter if not any(p_name.startswith(kw)  for kw in ('obs_encoder', 'attention_layer'))]
@@ -129,6 +143,9 @@ class PPO():
         action = _2tensor(sample['action'])
         oldPi_actionLogProb = _2tensor(sample['actionLogProb'])
         real_value = _2tensor(sample['return'])
+        hete_pick = _2tensor(sample['hete_pick'])
+        hete_type = _2tensor(sample['hete_type'])
+        gp_sel_summary = _2tensor(sample['gp_sel_summary'])
         avail_act = _2tensor(sample['avail_act']) if 'avail_act' in sample else None
 
         # batchsize = advantage.shape[0]#; print亮紫(batchsize)
@@ -140,7 +157,10 @@ class PPO():
                 obs=obs, 
                 eval_actions=action, 
                 test_mode=False, 
-                avail_act=avail_act)
+                avail_act=avail_act, 
+                hete_pick=hete_pick,
+                hete_type=hete_type,
+                gp_sel_summary=gp_sel_summary)
         entropy_loss = entropy.mean()
 
 

@@ -48,27 +48,29 @@ class Net(nn.Module):
             nn.Linear(_size, h_dim), nn.ReLU(inplace=True),
             nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
             nn.Linear(h_dim//2, self.n_action))
-        # # # # # # # # # # critic # # # # # # # # # # # #
-        
-        _size = n_entity * h_dim
-        self.ct_encoder = nn.Sequential(nn.Linear(_size, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
-        self.ct_attention_layer = SimpleAttention(h_dim=h_dim)
-        self.get_value = nn.Sequential(nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
 
 
         self.is_recurrent = False
         self.apply(weights_init)
         return
-    
-    @Args2tensor_Return2numpy
+
     def act(self, *args, **kargs):
         return self._act(*args, **kargs)
-    
-    @Args2tensor
+
     def evaluate_actions(self, *args, **kargs):
         return self._act(*args, **kargs, eval_mode=True)
 
     def _act(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None):
+        assert not (self.forbidden)
+        mask_dead = torch.isnan(obs).any(-1)    # find dead agents
+        
+        if not (obs[..., -3+self.tp][~mask_dead] == -1).all().item():
+            assert False
+        
+        if self.static:
+            assert self.gp >=1
+            
+        # if not test_mode: assert not self.forbidden
         eval_act = eval_actions if eval_mode else None
         others = {}
         if self.use_normalization:
@@ -98,14 +100,9 @@ class Net(nn.Module):
                                                             eprsn=eprsn)
         
         
-        # # # # # # # # # # critic # # # # # # # # # # # #
-        ct_bac = my_view(baec,[0,0,-1])
-        ct_bac = self.ct_encoder(ct_bac)
-        ct_bac = self.ct_attention_layer(k=ct_bac,q=ct_bac,v=ct_bac)
-        value = self.get_value(ct_bac)
-        
-        if not eval_mode: return act, value, actLogProbs
-        else:             return value, actLogProbs, distEntropy, probs, others
+
+        if not eval_mode: return act, 'vph', actLogProbs
+        else:             return 'vph', actLogProbs, distEntropy, probs, others
 
     def _logit2act_rsn(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None, eprsn=None):
         if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
@@ -134,6 +131,69 @@ class Net(nn.Module):
         return distribution.log_prob(action.squeeze(-1)).unsqueeze(-1)
     
     
+
+
+class NetCentralCritic(nn.Module):
+    def __init__(self, rawob_dim, n_action, **kwargs):
+        super().__init__()
+        self.update_cnt = nn.Parameter(
+            torch.zeros(1, requires_grad=False, dtype=torch.long), requires_grad=False)
+        self.use_normalization = AlgorithmConfig.use_normalization
+        self.use_policy_resonance = AlgorithmConfig.policy_resonance
+        self.n_action = n_action
+        
+        
+        if self.use_policy_resonance:
+            self.ccategorical = CCategorical(kwargs['stage_planner'])
+            self.is_resonance_active = lambda: kwargs['stage_planner'].is_resonance_active()
+
+        h_dim = AlgorithmConfig.net_hdim
+
+        # observation normalization
+        if self.use_normalization:
+            self._batch_norm = DynamicNormFix(rawob_dim, only_for_last_dim=True, exclude_one_hot=True, exclude_nan=True)
+
+        n_entity = AlgorithmConfig.n_entity_placeholder
+        
+        # # # # # # # # # #  actor-critic share # # # # # # # # # # # #
+        self.obs_encoder = nn.Sequential(nn.Linear(rawob_dim, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
+        self.attention_layer = SimpleAttention(h_dim=h_dim)
+
+        # # # # # # # # # # critic # # # # # # # # # # # #
+        
+        _size = n_entity * h_dim
+        self.ct_encoder = nn.Sequential(nn.Linear(_size, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
+        self.ct_attention_layer = SimpleAttention(h_dim=h_dim)
+        self.get_value = nn.Sequential(nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
+
+
+        self.is_recurrent = False
+        self.apply(weights_init)
+        return
+
+
+
+    def estimate_state(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None):
+        if self.use_normalization:
+            if torch.isnan(obs).all(): pass
+            else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
+
+        mask_dead = torch.isnan(obs).any(-1)
+        obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
+        
+        # # # # # # # # # # actor-critic share # # # # # # # # # # # #
+        baec = self.obs_encoder(obs)
+        baec = self.attention_layer(k=baec,q=baec,v=baec, mask=mask_dead)
+
+        # # # # # # # # # # critic # # # # # # # # # # # #
+        ct_bac = my_view(baec,[0,0,-1])
+        ct_bac = self.ct_encoder(ct_bac)
+        ct_bac = self.ct_attention_layer(k=ct_bac,q=ct_bac,v=ct_bac)
+        value = self.get_value(ct_bac)
+        return value
+        
+
+
 
     
     

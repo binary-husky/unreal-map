@@ -14,6 +14,7 @@ class AlgorithmConfig:
     gamma = 0.99
     tau = 0.95
     train_traj_needed = 512
+    hete_n_alive_frontend = 1
     TakeRewardAsUnity = False
     use_normalization = True
     wait_norm_stable = True
@@ -48,6 +49,11 @@ class AlgorithmConfig:
     ConfigOnTheFly = True
 
 
+    hete_n_net_placeholder = 5
+    hete_rollbuffer_size = 6
+    hete_rollbuffer_interval = 5
+    hete_sel_exclude_frontend = True
+    hete_thread_align = False
     
     entity_distinct = 'auto load, do not change'
 
@@ -74,7 +80,7 @@ def itemgetter(*items):
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from .shell_env import ShellEnvWrapper, ActionConvertLegacy
-        from .net import Net
+        from .hete_net import HeteNet
         super().__init__(n_agent, n_thread, space, mcv, team)
         AlgorithmConfig.n_agent = n_agent
         n_actions = len(ActionConvertLegacy.dictionary_args)
@@ -83,13 +89,18 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.ScenarioConfig, self.team)
         if self.ScenarioConfig.EntityOriented: rawob_dim = self.ScenarioConfig.obs_vec_length
         else: rawob_dim = space['obs_space']['obs_shape']
-            
+
         # self.StagePlanner, for policy resonance
         from .stage_planner import StagePlanner
         self.stage_planner = StagePlanner(mcv=mcv)
 
+        # heterogeneous agent types
+        agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list]
+        self.HeteAgentType = str_array_to_num(agent_type_list)
+        hete_type = np.array(self.HeteAgentType)[self.ScenarioConfig.AGENT_ID_EACH_TEAM[team]]
+        
         # initialize policy
-        self.policy = Net(rawob_dim=rawob_dim, n_action=n_actions, stage_planner=self.stage_planner)
+        self.policy = HeteNet(rawob_dim=rawob_dim, n_action=n_actions, hete_type=hete_type, stage_planner=self.stage_planner)
         self.policy = self.policy.to(self.device)
 
         # initialize optimizer and trajectory (batch) manager
@@ -117,8 +128,8 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         assert ('_hook_' not in StateRecall)
         
         # read obs
-        obs, threads_active_flag, avail_act, eprsn = \
-            itemgetter('obs', 'threads_active_flag', 'avail_act', '_EpRsn_')(StateRecall)
+        obs, threads_active_flag, avail_act, hete_pick, hete_type, gp_sel_summary, eprsn = \
+            itemgetter('obs', 'threads_active_flag', 'avail_act', '_hete_pick_', '_hete_type_', '_gp_pick_', '_EpRsn_')(StateRecall)
             
         
         # make sure obs is right
@@ -126,14 +137,18 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         assert len(obs) == sum(threads_active_flag), ('check batch size')
         # make sure avail_act is correct
         if AlgorithmConfig.use_avail_act: assert avail_act is not None
-
+        
         eprsn = repeat_at(eprsn, -1, self.n_agent)
         thread_index = np.arange(self.n_thread)[threads_active_flag]
-
+        
         with torch.no_grad():
             action, value, action_log_prob = self.policy.act(obs=obs,
                                                              test_mode=test_mode,
                                                              avail_act=avail_act,
+                                                             hete_pick=hete_pick,
+                                                             hete_type=hete_type,
+                                                             gp_sel_summary=gp_sel_summary,
+                                                             thread_index=thread_index,
                                                              eprsn=eprsn,
                                                              )
 
@@ -141,6 +156,9 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         traj_framefrag = {
             "_SKIP_":        ~threads_active_flag,
             "value":         value,
+            "hete_pick":     hete_pick,
+            "hete_type":     hete_type,
+            "gp_sel_summary": gp_sel_summary,
             "avail_act":     avail_act,
             "actionLogProb": action_log_prob,
             "obs":           obs,
@@ -230,7 +248,8 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             cpt = torch.load(ckpt_dir, map_location=cuda_n)
             self.policy.load_state_dict(cpt['policy'], strict=strict)
             # https://github.com/pytorch/pytorch/issues/3852
-            self.trainer.optimizer.load_state_dict(cpt['optimizer'])
+            self.trainer.at_optimizer.load_state_dict(cpt['at_optimizer'])
+            self.trainer.ct_optimizer.load_state_dict(cpt['ct_optimizer'])
 
             print黄('loaded checkpoint:', ckpt_dir)
 
