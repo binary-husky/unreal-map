@@ -12,7 +12,7 @@ from ..commom.norm import DynamicNormFix
 from ..commom.conc import Concentration
 from ..commom.net_manifest import weights_init
 from .net import Net, NetCentralCritic
-
+from operator import methodcaller
 
     
 class no_context():
