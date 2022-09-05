@@ -64,8 +64,8 @@ class Net(nn.Module):
         assert not (self.forbidden)
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         
-        if not (obs[..., -3+self.tp][~mask_dead] == -1).all().item():
-            assert False
+        # if not (obs[..., -3+self.tp][~mask_dead] == -1).all().item():
+        #     assert False
         
         if self.static:
             assert self.gp >=1

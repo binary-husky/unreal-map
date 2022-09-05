@@ -51,10 +51,9 @@ class AlgorithmConfig:
 
 
     hete_n_net_placeholder = 5
-    hete_rollbuffer_size = 6
-    hete_rollbuffer_interval = 5
-    hete_sel_exclude_frontend = True
     hete_thread_align = False
+    hete_max_active_groups = 3
+    hete_same_prob = 0.25
     
     entity_distinct = 'auto load, do not change'
 
@@ -214,7 +213,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             info=str(kargs)
         )
         
-        self.policy.register_ckp(win_rate, path)
+        self.policy.register_ckp(win_rate, path, mean_reward)
         
 
     def save_model(self, update_cnt, info=None):

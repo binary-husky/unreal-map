@@ -3,14 +3,19 @@ import numpy as np
 from UTIL.tensor_ops import my_view, __hash__, repeat_at, gather_righthand
 from .foundation import AlgorithmConfig
 
-def random_group(n_thread, hete_type, n_hete_types, n_group, selected_tps):
+def random_group(policy, n_thread, hete_type, n_hete_types, n_group, selected_tps):
     n_agent = hete_type.shape[-1]
     res = np.zeros(shape=(n_thread, n_agent), dtype=int)
     gp_sel_summary = []
+    MaximumActiveNets = AlgorithmConfig.hete_max_active_groups
+    rand_ops = [np.random.rand() for _ in range(MaximumActiveNets)]
     for i in range(n_thread):
-        # low_group = 1 if AlgorithmConfig.hete_sel_exclude_frontend else 0
         # include
-        group_assignment = policy.random_select(exclude_frontend = AlgorithmConfig.hete_sel_exclude_frontend)
+        group_assignment = np.array([
+                policy.random_select(
+                    rand_ops=rand_ops
+                ) 
+            for _ in range(n_hete_types)])
         
         # group_assignment = np.random.randint(low=low_group, high=n_group, size=(n_hete_types))
         group_assignment[selected_tps[i]]=0
@@ -48,7 +53,7 @@ def select_nets_for_shellenv(n_types, policy, hete_type_list, n_thread, n_gp, te
     if testing: selected_types = np.stack([np.arange(n_types) for _ in range(n_thread)])
     
     # generate a random group selection array
-    group_sel_arr, gp_sel_summary = random_group(n_thread=n_thread, hete_type=hete_type_list, n_hete_types=n_types, n_group=n_gp, selected_tps=selected_types)
+    group_sel_arr, gp_sel_summary = random_group(policy=policy, n_thread=n_thread, hete_type=hete_type_list, n_hete_types=n_types, n_group=n_gp, selected_tps=selected_types)
     # group to net index
     n_tp = n_types
     get_placeholder = lambda type, group: group*n_tp + type
