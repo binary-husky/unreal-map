@@ -22,88 +22,6 @@ class no_context():
         return False
 
 
-class spring():
-    def __init__(self, buflen) -> None:
-        self.buflen = buflen
-        self.buf = [None for _ in range(self.buflen)]
-        self.vis = ['None' for _ in range(self.buflen)]
-        self.push_seq = [1, 8, 32, 64, 128, 512, 1024, 2048, 4096]
-        # self.push_seq = [1, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
-        self.cnt = 0
-        
-    def push_into(self, content, counter):
-        for k in reversed(range(1, self.buflen)):
-            if self.cnt % self.push_seq[k] ==0:
-                self.buf[k] = self.buf[k-1]
-                self.vis[k] = self.vis[k-1]
-        self.buf[0] = content
-        self.vis[0] = str(counter)
-        self.cnt += 1
-        
-        
-class PolicyGroupRollBuffer():
-    def __init__(self, n_spring, buflen) -> None:
-        self.n_spring = n_spring
-        self.buflen = buflen
-        self.springs = [spring(buflen=self.buflen) for _ in range(self.n_spring)]
-        self.cnt = 0
-
-    def is_empty(self):
-        buf = self.flat_buf()
-        return len(buf) == 0
-
-    def push_policy_group(self, policy_group):
-        self.push_into(
-            copy.deepcopy([p.state_dict() for p in policy_group])
-        )
-
-    def random_link(self, static_groups):
-        pick_n = len(static_groups)
-        buf = self.flat_buf()
-        avail_n = len(buf)
-        
-        ar = np.arange( avail_n )
-        
-        if avail_n < pick_n:
-            indices = np.random.choice(ar, size=pick_n, replace=True)
-        else:
-            indices = np.random.choice(ar, size=pick_n, replace=False)
-            
-        # 加载参数
-        for i, static_nets in enumerate(static_groups):
-            pick = indices[i]
-            for k, p in enumerate(buf[pick]):
-                static_nets[k].load_state_dict(p, strict=True)
-                assert static_nets[k].static
-                assert not static_nets[k].forbidden
-
-    def push_into(self, content):
-        j = np.random.choice(np.arange(self.n_spring), 1)[0]
-        self.springs[j].push_into(content, self.cnt)
-        self.cnt += 1
-        for s in self.springs:
-            print(s.vis)
-            
-    def flat_buf(self):
-        res = []
-        for i in range(1, self.buflen):
-            for s in self.springs:
-                t = s.buf[i]
-                if t is not None:
-                    res.append(t)
-        return res
-
-    def __len__(self):
-        res = 0
-        for i in range(1, self.buflen):
-            for s in self.springs:
-                t = s.buf[i]
-                if t is not None:
-                    res += 1
-        return res
-
-
-
 def _count_list_type(x):
     type_cnt = {}
     for xx in x:
@@ -207,7 +125,7 @@ class HeteNet(nn.Module):
         self.n_hete_types = _count_list_type(self.hete_type)
         self.hete_n_net_placeholder = AlgorithmConfig.hete_n_net_placeholder
         self.n_rollbuffer_size = AlgorithmConfig.hete_rollbuffer_size
-        self.pgrb = PolicyGroupRollBuffer(1, self.n_rollbuffer_size)
+        # self.pgrb = PolicyGroupRollBuffer(1, self.n_rollbuffer_size)
         self.use_normalization = AlgorithmConfig.use_normalization
 
         self.n_tp = self.n_hete_types
@@ -242,6 +160,8 @@ class HeteNet(nn.Module):
             self.threejs_bridge.v2d_init()
             self.threejs_bridge.set_style('font', fontPath='/examples/fonts/ttf/FZYTK.TTF', fontLineHeight=1500)
             self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0, 0,       1, 1, 1,         0, 0, 0)
+        
+        self.ckp_info = []
 
     def lock_net(self, i, forbidden=False):
         n = self._nets_flat_placeholder_[i]
@@ -256,13 +176,31 @@ class HeteNet(nn.Module):
         n.forbidden = False
         n.train()
 
+    def register_ckp(self, win_rate, cpk_path):
+        self.ckp_info.apppend({
+            'win_rate': win_rate, 
+            'cpk_path': cpk_path,
+            'model': copy.deepcopy([p.state_dict() for p in self.frontend_nets]),
+            'feature': None,
+            })
+        self.ckp_info.sort(key=lambda x:x['win_rate'])
+
+    def random_select(self, exclude_frontend):
+        rand_winrate = np.random.rand()
+        for i in self.ckp_info:
+            t = self.ckp_info[i]
+            winrate = t['win_rate']
+            e = abs(winrate-rand_winrate)
+        
 
     # called after training update
     def on_update(self, update_cnt):
-        if update_cnt % AlgorithmConfig.hete_rollbuffer_interval==0:
-            self.pgrb.push_policy_group(self.frontend_nets)
-        if not self.pgrb.is_empty():
-            self.pgrb.random_link(self.static_nets)
+        return 
+        # if update_cnt % AlgorithmConfig.hete_rollbuffer_interval==0:
+        #     self.pgrb.push_policy_group(self.frontend_nets)
+        # if not self.pgrb.is_empty():
+        #     self.pgrb.random_link(self.static_nets)
+        
 
     def redirect_to_frontend(self, i):
         return i%self.n_tp
@@ -279,63 +217,63 @@ class HeteNet(nn.Module):
         else:
             return self.redirect_to_frontend(i)
 
-    def debug_visual(self, hete_pick, n_thread, n_agents, thread_indices):
-        if n_thread <= 32:
-            # # rollbuffer elements
-            # for t, p_dict_L in enumerate(self.pgrb._array_policy_group):
-            #     for tp, p_dict in enumerate(p_dict_L):
-            #         update_cnt = p_dict['update_cnt'][0].item()
-            #         self.threejs_bridge.v2dx(
-            #             'box|%d|%s|%.3f'%(-1000-t*len(p_dict_L) - tp, 
-            #                             'yellow', 
-            #                             0.2),
-            #             tp-10, t+10, 2,
-            #             label='U-%d'%(update_cnt),
-            #             label_color='white',
-            #         )
+    # def debug_visual(self, hete_pick, n_thread, n_agents, thread_indices):
+    #     if n_thread <= 32:
+    #         # # rollbuffer elements
+    #         # for t, p_dict_L in enumerate(self.pgrb._array_policy_group):
+    #         #     for tp, p_dict in enumerate(p_dict_L):
+    #         #         update_cnt = p_dict['update_cnt'][0].item()
+    #         #         self.threejs_bridge.v2dx(
+    #         #             'box|%d|%s|%.3f'%(-1000-t*len(p_dict_L) - tp, 
+    #         #                             'yellow', 
+    #         #                             0.2),
+    #         #             tp-10, t+10, 2,
+    #         #             label='U-%d'%(update_cnt),
+    #         #             label_color='white',
+    #         #         )
             
-            # net place holder
-            for i, net in enumerate(self._nets_flat_placeholder_):
-                update_cnt = net.update_cnt[0].item()
-                self.threejs_bridge.v2dx(
-                    'box|%d|%s|%.3f'%(-10-i, 
-                                    'white' if not net.static else 'red', 
-                                    0.2),
-                    net.tp, net.gp, 10,
-                    label='G-%d, T-%d, U-%d'%(net.gp, net.tp, update_cnt),
-                    label_color='white',
-                )
+    #         # net place holder
+    #         for i, net in enumerate(self._nets_flat_placeholder_):
+    #             update_cnt = net.update_cnt[0].item()
+    #             self.threejs_bridge.v2dx(
+    #                 'box|%d|%s|%.3f'%(-10-i, 
+    #                                 'white' if not net.static else 'red', 
+    #                                 0.2),
+    #                 net.tp, net.gp, 10,
+    #                 label='G-%d, T-%d, U-%d'%(net.gp, net.tp, update_cnt),
+    #                 label_color='white',
+    #             )
         
-            # agents 
-            for t in range(n_thread):
-                thread_index = thread_indices[t].item()
-                for agent_index in range(n_agents):
-                    hete_type = hete_pick[t, agent_index]
+    #         # agents 
+    #         for t in range(n_thread):
+    #             thread_index = thread_indices[t].item()
+    #             for agent_index in range(n_agents):
+    #                 hete_type = hete_pick[t, agent_index]
                     
-                    net = self.acquire_net(hete_type)
-                    net_redirect = self.acquire_net_redirect(hete_type).item()
-                    self.threejs_bridge.v2dx(
-                        'box|%d|%s|%.3f'%(thread_index*n_agents+agent_index, 
-                                        'white' if not net.static else 'red', 
-                                        0.2),
-                        agent_index, thread_index, 1,
-                        label='G-%d, U-%d'%(net.gp, net.update_cnt[0].item()),
-                        label_color='white',
-                    )
-                    if net.static:
-                        self.threejs_bridge.发射光束(
-                            'beam',         # 有 beam 和 lightning 两种选择
-                            src=thread_index*n_agents+agent_index,   # 发射者的几何体的唯一ID标识
-                            dst=-10-net_redirect,  # 接收者的几何体的唯一ID标识
-                            dur=0.5,        # 光束持续时间，单位秒，绝对时间，不受播放fps的影响
-                            size=0.03,      # 光束粗细
-                            color='DeepSkyBlue' # 光束颜色
-                        )
+    #                 net = self.acquire_net(hete_type)
+    #                 net_redirect = self.acquire_net_redirect(hete_type).item()
+    #                 self.threejs_bridge.v2dx(
+    #                     'box|%d|%s|%.3f'%(thread_index*n_agents+agent_index, 
+    #                                     'white' if not net.static else 'red', 
+    #                                     0.2),
+    #                     agent_index, thread_index, 1,
+    #                     label='G-%d, U-%d'%(net.gp, net.update_cnt[0].item()),
+    #                     label_color='white',
+    #                 )
+    #                 if net.static:
+    #                     self.threejs_bridge.发射光束(
+    #                         'beam',         # 有 beam 和 lightning 两种选择
+    #                         src=thread_index*n_agents+agent_index,   # 发射者的几何体的唯一ID标识
+    #                         dst=-10-net_redirect,  # 接收者的几何体的唯一ID标识
+    #                         dur=0.5,        # 光束持续时间，单位秒，绝对时间，不受播放fps的影响
+    #                         size=0.03,      # 光束粗细
+    #                         color='DeepSkyBlue' # 光束颜色
+    #                     )
                     
-            self.threejs_bridge.v2d_show()
-        else:
-            pass
-            # print('too many threads')
+    #         self.threejs_bridge.v2d_show()
+    #     else:
+    #         pass
+    #         # print('too many threads')
 
     def exe(self, hete_pick=None, **kargs):
         # pop items from kargs
@@ -366,7 +304,7 @@ class HeteNet(nn.Module):
                 
         # debug visual
 
-        if AlgorithmConfig.debug: self.debug_visual(hete_pick, n_thread, n_agents, thread_indices)
+        # if AlgorithmConfig.debug: self.debug_visual(hete_pick, n_thread, n_agents, thread_indices)
 
             
         # run actor policy networks

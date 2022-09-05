@@ -1,4 +1,5 @@
 import os, time, torch, traceback, shutil
+from typing import overload
 import numpy as np
 from UTIL.colorful import *
 from config import GlobalConfig
@@ -203,8 +204,18 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             # 
             self.stage_planner.update_plan()
 
-
-
+    # override parent function
+    def on_notify(self, message, **kargs):
+        win_rate = kargs['win_rate']
+        mean_reward = kargs['mean_reward']
+        
+        path = self.save_model(
+            update_cnt=self.traj_manager.update_cnt,
+            info=str(kargs)
+        )
+        
+        self.policy.register_ckp(win_rate, path)
+        
 
     def save_model(self, update_cnt, info=None):
         '''
@@ -231,7 +242,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         shutil.copyfile(pt_path, pt_path2)
 
         print绿('save_model fin')
-
+        return pt_path2
 
 
     def load_model(self, AlgorithmConfig):

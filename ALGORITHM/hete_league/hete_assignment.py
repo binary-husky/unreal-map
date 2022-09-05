@@ -8,8 +8,11 @@ def random_group(n_thread, hete_type, n_hete_types, n_group, selected_tps):
     res = np.zeros(shape=(n_thread, n_agent), dtype=int)
     gp_sel_summary = []
     for i in range(n_thread):
-        low_group = 1 if AlgorithmConfig.hete_sel_exclude_frontend else 0
-        group_assignment = np.random.randint(low=low_group, high=n_group, size=(n_hete_types))
+        # low_group = 1 if AlgorithmConfig.hete_sel_exclude_frontend else 0
+        # include
+        group_assignment = policy.random_select(exclude_frontend = AlgorithmConfig.hete_sel_exclude_frontend)
+        
+        # group_assignment = np.random.randint(low=low_group, high=n_group, size=(n_hete_types))
         group_assignment[selected_tps[i]]=0
         gp_sel_summary.append(copy.deepcopy(group_assignment))
         for ht, group in enumerate(group_assignment):

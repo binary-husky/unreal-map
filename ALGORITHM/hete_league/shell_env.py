@@ -5,7 +5,7 @@ from UTIL.tensor_ops import my_view, __hash__, repeat_at, gather_righthand
 from MISSION.uhmap.actset_lookup import encode_action_as_digits
 from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
-from .hete_assignment import random_group, select_nets_for_shellenv
+from .hete_assignment import select_nets_for_shellenv
 
 class ShellEnvConfig:
     add_avail_act = False
@@ -174,7 +174,8 @@ class ShellEnvWrapper(object):
             EpRsn = np.random.rand(self.n_thread) < eprsn_yita
             StateRecall['_EpRsn_'] = EpRsn
             StateRecall['_hete_type_'] = repeat_at(self.hete_type, 0, self.n_thread)
-            StateRecall['_hete_pick_'], StateRecall['_gp_pick_'] = select_nets_for_shellenv(n_types=self.n_hete_types, 
+            StateRecall['_hete_pick_'], StateRecall['_gp_pick_'] = select_nets_for_shellenv(
+                                        n_types=self.n_hete_types, 
                                         policy=self.rl_functional.policy,
                                         hete_type_list=self.hete_type,
                                         n_thread = self.n_thread,
