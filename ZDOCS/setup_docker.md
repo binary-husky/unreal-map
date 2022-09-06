@@ -1,5 +1,5 @@
 
-# Install nvidia docker runtime
+# 1. Install nvidia docker runtime
 Cuda is needed inside our docker container, which need toolkits from Nvidia for GPU support.
 Please install nvidia docker runtime on the host ubuntu system.
 
@@ -83,11 +83,6 @@ Next, use the remote desktop tool of MS Windows (or anything supporting RDP) to 
 
 (It's normal that xrdp is a bit slow, but there is no better RDP solution for docker container yet, please use SSH when GUI is not needed)
 ```
-<div align="center">
-<img src="VISUALIZE/md_imgs/2022-07-01-10-08-56.png" width="400" >
-</div>
-
-
 
 # 4. Run HMP
 After getting ```inside``` the HMP container:
@@ -112,7 +107,7 @@ After getting ```inside``` the HMP container:
 (hmp-container)$ git pull && python main.py -c ZHECKPOINT/50RL-55opp/test-50RL-55opp.jsonc
 
 ```
-<img src="ZHECKPOINT/test-50+50/butterfly.webp" width="200" >
+<img src="../ZHECKPOINT/test-50+50/butterfly.webp" width="200" >
 
 # Docker in Docker (If need to run air combat env)
 
@@ -125,7 +120,7 @@ docker run -itd   --name  hmp-$USER \
 --shm-size=16G \
 fuqingxu/hmp:latest
 ```
-<img src="ZHECKPOINT/test-50+50/butterfly.webp" width="200" >
+<img src="../ZHECKPOINT/test-50+50/butterfly.webp" width="200" >
 
 # requirement.txt
 If possible, please use docker to Avoid following

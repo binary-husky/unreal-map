@@ -61,11 +61,11 @@ git pull && python main.py -c ZHECKPOINT/test-100+100/test-100+100.jsonc --skip
 ```
 
 # Dependency
-We use docker to solve dependency: [SetupDocker](./setup_docker.md).
+We use docker to solve dependency: [SetupDocker](./ZDOCS/setup_docker.md).
 
 Please do not run on WindowsOS (low efficiency), 
 but if you have to, 
-also refer to the last part of [setup_docker](./setup_docker.md) for pip requirements list. 
+also refer to the last part of [setup_docker](./ZDOCS/setup_docker.md) for pip requirements list. 
 
 
 # Introducing the Structure of HMP
@@ -224,15 +224,15 @@ Interface functions, operation introduction.
 
 ## Dependency
 We use docker to solve dependency: 
-[setup_docker](./setup_docker.md). 
+[setup_docker](./ZDOCS/setup_docker.md). 
 This project uses techniques such shared memory for extreme training efficiency, 
 as a cost, 
 WindowsOS+GPU training is not well supported (using pipe IO for Windows compat).
 
 For Windows (Not recommended, please do NOT run under Windows if possible), 
-also refer to the last part of [setup_docker](./setup_docker.md) for pip requirements list. 
+also refer to the last part of [setup_docker](./ZDOCS/setup_docker.md) for pip requirements list. 
 
-Please read [setup_docker.md](./setup_docker.md) first, and then set up the container using:
+Please read [setup_docker.md](./ZDOCS/setup_docker.md) first, and then set up the container using:
 ```bash
 $ docker run -itd   --name  hmp-$USER \
 --net host \
