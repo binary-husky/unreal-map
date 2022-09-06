@@ -22,7 +22,7 @@ cd ../..
 ```
 
 ## step 3: run example
-
+Save following file as ```debug.json```: 
 ``` json
 {
     "config.py->GlobalConfig": {
@@ -110,3 +110,6 @@ cd ../..
     }
 }
 ```
+
+Then start training with:
+```python main.py -c debug.json```
