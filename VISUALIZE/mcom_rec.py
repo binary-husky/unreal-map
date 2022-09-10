@@ -93,16 +93,16 @@ class rec_family(object):
             encountered = 0 
         
         if image_num >= 3:
-            rows = 2 #大与3张图，则放两行
+            rows = 2 #大与3张图，则放2行
         if image_num > 8:
-            rows = 3 #大与3张图，则放两行
+            rows = 3 #大与8张图，则放3行
         if image_num > 12:
-            rows = 4 #大与3张图，则放两行
+            rows = 4 #大与12张图，则放4行
 
         if flag_time_e>0:
             image_num = image_num + 1
         
-        cols = int(np.ceil(image_num/rows))#根据行数求列数
+        cols = int(np.ceil(image_num/rows)) #根据行数求列数
         if self.image_num!=image_num:
             # 需要刷新布局，所有已经绘制的图作废
             self.subplots = {}
