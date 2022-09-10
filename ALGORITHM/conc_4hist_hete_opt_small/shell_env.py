@@ -5,7 +5,7 @@ from UTIL.tensor_ops import my_view, __hash__, repeat_at, gather_righthand
 from MISSION.uhmap.actset_lookup import encode_action_as_digits
 from .foundation import AlgorithmConfig
 from .cython_func import roll_hisory
-from .hete_assignment import select_nets_for_shellenv
+from .hete_assignment import random_group, select_nets_for_shellenv
 
 class ShellEnvConfig:
     add_avail_act = False
@@ -89,18 +89,19 @@ def count_list_type(x):
  
 
 class ShellEnvWrapper(object):
-    def __init__(self, n_agent, n_thread, space, mcv, rl_functional, alg_config, ScenarioConfig, team):
+    def __init__(self, n_agent, n_thread, space, mcv, RL_functional, alg_config, ScenarioConfig, team):
         self.n_agent = n_agent
         self.n_thread = n_thread
         self.team = team
         self.space = space
         self.mcv = mcv
-        self.rl_functional = rl_functional
+        self.RL_functional = RL_functional
         if GlobalConfig.ScenarioConfig.EntityOriented:
             self.core_dim = GlobalConfig.ScenarioConfig.obs_vec_length
         else:
             self.core_dim = space['obs_space']['obs_shape']
         self.n_entity_placeholder = alg_config.n_entity_placeholder
+        assert self.n_entity_placeholder >= 4
 
         # whether to use avail_act to block forbiden actions
         self.AvailActProvided = False
@@ -151,45 +152,42 @@ class ShellEnvWrapper(object):
                 self.avail_act = repeat_at(self.avail_act, insert_dim=0, n_times=self.n_thread)
 
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
-        
         # read internal coop graph info
         obs = StateRecall['Latest-Obs']
-        obs = my_view(obs,[0, 0, -1, self.core_dim])
-        obs[(obs==0).all(-1)] = np.nan
 
         n_entity_raw = obs.shape[-2]
         AlgorithmConfig.entity_distinct = [list(range(1)), list(range(1,n_entity_raw)), list(range(n_entity_raw,2*n_entity_raw))]
 
         P  =  StateRecall['ENV-PAUSE']
-        R  = ~P
+        R  = ~StateRecall['ENV-PAUSE']
         RST = StateRecall['Env-Suffered-Reset']
         
         # when needed, train!
-        if not StateRecall['Test-Flag']: self.rl_functional.train()
+        if not StateRecall['Test-Flag']: self.RL_functional.train()
         
-        if RST.all(): 
-            # just experienced full reset on all episode, this is the first step of all env threads
+        if RST.all(): # just experienced full reset on all episode, this is the first step of all env threads
             # randomly pick threads 
-            eprsn_yita = self.rl_functional.stage_planner.yita if AlgorithmConfig.policy_resonance else 0
+            eprsn_yita = self.RL_functional.stage_planner.yita if AlgorithmConfig.policy_resonance else 0
             EpRsn = np.random.rand(self.n_thread) < eprsn_yita
             StateRecall['_EpRsn_'] = EpRsn
             StateRecall['_hete_type_'] = repeat_at(self.hete_type, 0, self.n_thread)
-            StateRecall['_hete_pick_'], StateRecall['_gp_pick_'] = select_nets_for_shellenv(
-                                        n_types=self.n_hete_types, 
-                                        policy=self.rl_functional.policy,
+            StateRecall['_hete_pick_'], StateRecall['_gp_pick_'] = select_nets_for_shellenv(n_types=self.n_hete_types, 
+                                        policy=self.RL_functional.policy,
                                         hete_type_list=self.hete_type,
                                         n_thread = self.n_thread,
                                         n_gp=AlgorithmConfig.hete_n_net_placeholder,
                                         testing=StateRecall['Test-Flag']
                                     )   
-            print([(t['win_rate'], t['ckpg_cnt']) for t in self.rl_functional.policy.ckpg_info])
 
 
         obs_feed = obs[R]
+        obs_feed[(obs_feed==0).all(-1)] = np.nan
+
+
         I_StateRecall = {
             'obs':obs_feed, 
             'avail_act':self.avail_act[R],
-            'Test-Flag':StateRecall['Test-Flag'], 
+            'Test-Flag':StateRecall['Test-Flag'],
             '_EpRsn_':StateRecall['_EpRsn_'][R],
             '_hete_pick_':StateRecall['_hete_pick_'][R], 
             '_hete_type_':StateRecall['_hete_type_'][R],
@@ -202,11 +200,10 @@ class ShellEnvWrapper(object):
             I_StateRecall.update({'avail_act':avail_act})
 
 
-        act_active, internal_recall = self.rl_functional.interact_with_env_genuine(I_StateRecall)
+        act_active, internal_recall = self.RL_functional.interact_with_env_genuine(I_StateRecall)
 
         act[R] = act_active
         
-        # check 
         if ShellEnvConfig.add_avail_act and self.patience>0:
             self.patience -= 1
             assert (gather_righthand(self.avail_act, repeat_at(act, -1, 1), check=False)[R]==1).all()

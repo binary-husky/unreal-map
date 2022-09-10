@@ -184,6 +184,9 @@ class ShellEnvWrapper(object):
                                     )   
             print([(t['win_rate'], t['ckpg_cnt']) for t in self.rl_functional.policy.ckpg_info])
 
+        his_pool_obs = StateRecall['_history_pool_obs_'] if '_history_pool_obs_' in StateRecall \
+            else my_view(np.zeros_like(obs),[0, 0, -1, self.core_dim])
+        his_pool_obs[RST] = 0
 
         obs_feed = obs[R]
         I_StateRecall = {

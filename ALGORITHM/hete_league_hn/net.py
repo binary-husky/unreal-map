@@ -11,6 +11,7 @@ from .foundation import AlgorithmConfig
 from ..commom.attention import SimpleAttention
 from ..commom.norm import DynamicNormFix
 from ..commom.net_manifest import weights_init
+from ..commom.hyper_net import HyperNet
 
 
 
@@ -25,6 +26,8 @@ class Net(nn.Module):
         self.use_normalization = AlgorithmConfig.use_normalization
         self.use_policy_resonance = AlgorithmConfig.policy_resonance
         self.n_action = n_action
+        
+        
         if self.use_policy_resonance:
             self.ccategorical = CCategorical(kwargs['stage_planner'])
             self.is_resonance_active = lambda: kwargs['stage_planner'].is_resonance_active()
@@ -42,11 +45,10 @@ class Net(nn.Module):
         self.attention_layer = SimpleAttention(h_dim=h_dim)
         # # # # # # # # # #        actor        # # # # # # # # # # # #
         _size = n_entity * h_dim
+        self.hyper_net = HyperNet(embed_dim=h_dim, hyper_input_dim=3, x_input_dim=_size)
         self.policy_head = nn.Sequential(
-            nn.Linear(_size, h_dim), nn.ReLU(inplace=True),
-            nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
-            nn.Linear(h_dim//2, self.n_action))
-
+            nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True),
+            nn.Linear(h_dim, self.n_action))
 
         self.is_recurrent = False
         self.apply(weights_init)
@@ -58,7 +60,7 @@ class Net(nn.Module):
     def evaluate_actions(self, *args, **kargs):
         return self._act(*args, **kargs, eval_mode=True)
 
-    def _act(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None):
+    def _act(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None, obs_hfeature=None):
         assert not (self.forbidden)
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         
@@ -74,6 +76,7 @@ class Net(nn.Module):
         if self.use_normalization:
             if torch.isnan(obs).all(): pass
             else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
+            obs_hfeature_norm = obs_hfeature
 
         mask_dead = torch.isnan(obs).any(-1)
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
@@ -84,18 +87,21 @@ class Net(nn.Module):
 
         # # # # # # # # # # actor # # # # # # # # # # # #
         at_bac = my_view(baec,[0,0,-1])
-        logits = self.policy_head(at_bac)
+        
+        at_bac_hn = self.hyper_net(at_bac, hyper_x=obs_hfeature_norm)
+        
+        logits = self.policy_head(at_bac_hn)
         
         # choose action selector
         logit2act = self._logit2act_rsn if self.use_policy_resonance and self.is_resonance_active() else self._logit2act
         
         # apply action selector
-        act, actLogProbs, distEntropy, probs = logit2act(   logits, 
-                                                            eval_mode=eval_mode,
-                                                            test_mode=test_mode, 
-                                                            eval_actions=eval_act, 
-                                                            avail_act=avail_act,
-                                                            eprsn=eprsn)
+        act, actLogProbs, distEntropy, probs = logit2act( logits, 
+                                                          eval_mode=eval_mode,
+                                                          test_mode=test_mode, 
+                                                          eval_actions=eval_act, 
+                                                          avail_act=avail_act,
+                                                          eprsn=eprsn )
         
         
 
@@ -160,7 +166,9 @@ class NetCentralCritic(nn.Module):
         # # # # # # # # # # critic # # # # # # # # # # # #
         
         _size = n_entity * h_dim
-        self.ct_encoder = nn.Sequential(nn.Linear(_size, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
+        self.hyper_net = HyperNet(embed_dim=h_dim, hyper_input_dim=3, x_input_dim=_size)
+        
+        self.ct_encoder = nn.Sequential(nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
         self.ct_attention_layer = SimpleAttention(h_dim=h_dim)
         self.get_value = nn.Sequential(nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
 
@@ -171,10 +179,11 @@ class NetCentralCritic(nn.Module):
 
 
 
-    def estimate_state(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None):
+    def estimate_state(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None, obs_hfeature=None):
         if self.use_normalization:
             if torch.isnan(obs).all(): pass
             else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
+            obs_hfeature_norm = obs_hfeature
 
         mask_dead = torch.isnan(obs).any(-1)
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
@@ -185,8 +194,14 @@ class NetCentralCritic(nn.Module):
 
         # # # # # # # # # # critic # # # # # # # # # # # #
         ct_bac = my_view(baec,[0,0,-1])
-        ct_bac = self.ct_encoder(ct_bac)
+        ct_bac_hn = self.hyper_net(ct_bac, hyper_x=obs_hfeature_norm)
+        ct_bac = self.ct_encoder(ct_bac_hn)
         ct_bac = self.ct_attention_layer(k=ct_bac,q=ct_bac,v=ct_bac)
         value = self.get_value(ct_bac)
         return value
         
+
+
+
+    
+    

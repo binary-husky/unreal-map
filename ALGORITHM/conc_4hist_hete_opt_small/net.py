@@ -38,11 +38,11 @@ class Net(nn.Module):
         n_entity = AlgorithmConfig.n_entity_placeholder
         
         # # # # # # # # # #  actor-critic share # # # # # # # # # # # #
-        self.obs_encoder = nn.Sequential(nn.Linear(rawob_dim, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
-        self.attention_layer = SimpleAttention(h_dim=h_dim)
+        self.AT_obs_encoder = nn.Sequential(nn.Linear(rawob_dim, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
+        self.AT_attention_layer = SimpleAttention(h_dim=h_dim)
         # # # # # # # # # #        actor        # # # # # # # # # # # #
         _size = n_entity * h_dim
-        self.policy_head = nn.Sequential(
+        self.AT_policy_head = nn.Sequential(
             nn.Linear(_size, h_dim), nn.ReLU(inplace=True),
             nn.Linear(h_dim, h_dim//2), nn.ReLU(inplace=True),
             nn.Linear(h_dim//2, self.n_action))
@@ -51,7 +51,7 @@ class Net(nn.Module):
         self.is_recurrent = False
         self.apply(weights_init)
         return
-
+    
     def act(self, *args, **kargs):
         return self._act(*args, **kargs)
 
@@ -62,29 +62,31 @@ class Net(nn.Module):
         assert not (self.forbidden)
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         
-        # if not (obs[..., -3+self.tp][~mask_dead] == -1).all().item():
-        #     assert False
+        if not (obs[..., -3+self.tp][~mask_dead] == -1).all().item():
+            assert False
         
         if self.static:
             assert self.gp >=1
+            
             
         # if not test_mode: assert not self.forbidden
         eval_act = eval_actions if eval_mode else None
         others = {}
         if self.use_normalization:
-            if torch.isnan(obs).all(): pass
-            else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
+            if torch.isnan(obs).all():
+                pass # 某一种类型的智能体全体阵亡
+            else:
+                obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
 
-        mask_dead = torch.isnan(obs).any(-1)
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
-        
+
         # # # # # # # # # # actor-critic share # # # # # # # # # # # #
-        baec = self.obs_encoder(obs)
-        baec = self.attention_layer(k=baec,q=baec,v=baec, mask=mask_dead)
+        baec = self.AT_obs_encoder(obs)
+        baec = self.AT_attention_layer(k=baec,q=baec,v=baec, mask=mask_dead)
 
         # # # # # # # # # # actor # # # # # # # # # # # #
         at_bac = my_view(baec,[0,0,-1])
-        logits = self.policy_head(at_bac)
+        logits = self.AT_policy_head(at_bac)
         
         # choose action selector
         logit2act = self._logit2act_rsn if self.use_policy_resonance and self.is_resonance_active() else self._logit2act
@@ -130,7 +132,12 @@ class Net(nn.Module):
     
     
 
-
+    
+    
+    
+"""
+    network initialize
+"""
 class NetCentralCritic(nn.Module):
     def __init__(self, rawob_dim, n_action, **kwargs):
         super().__init__()
@@ -154,15 +161,15 @@ class NetCentralCritic(nn.Module):
         n_entity = AlgorithmConfig.n_entity_placeholder
         
         # # # # # # # # # #  actor-critic share # # # # # # # # # # # #
-        self.obs_encoder = nn.Sequential(nn.Linear(rawob_dim, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
-        self.attention_layer = SimpleAttention(h_dim=h_dim)
+        self.CT_obs_encoder = nn.Sequential(nn.Linear(rawob_dim, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
+        self.CT_attention_layer = SimpleAttention(h_dim=h_dim)
 
         # # # # # # # # # # critic # # # # # # # # # # # #
         
         _size = n_entity * h_dim
-        self.ct_encoder = nn.Sequential(nn.Linear(_size, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
-        self.ct_attention_layer = SimpleAttention(h_dim=h_dim)
-        self.get_value = nn.Sequential(nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
+        self.CT_encoder = nn.Sequential(nn.Linear(_size, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
+        self.CT_attention_layer = SimpleAttention(h_dim=h_dim)
+        self.CT_get_value = nn.Sequential(nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
 
 
         self.is_recurrent = False
@@ -180,13 +187,13 @@ class NetCentralCritic(nn.Module):
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0
         
         # # # # # # # # # # actor-critic share # # # # # # # # # # # #
-        baec = self.obs_encoder(obs)
-        baec = self.attention_layer(k=baec,q=baec,v=baec, mask=mask_dead)
+        baec = self.CT_obs_encoder(obs)
+        baec = self.CT_attention_layer(k=baec,q=baec,v=baec, mask=mask_dead)
 
         # # # # # # # # # # critic # # # # # # # # # # # #
         ct_bac = my_view(baec,[0,0,-1])
-        ct_bac = self.ct_encoder(ct_bac)
-        ct_bac = self.ct_attention_layer(k=ct_bac,q=ct_bac,v=ct_bac)
-        value = self.get_value(ct_bac)
+        ct_bac = self.CT_encoder(ct_bac)
+        ct_bac = self.CT_attention_layer(k=ct_bac,q=ct_bac,v=ct_bac)
+        value = self.CT_get_value(ct_bac)
         return value
         

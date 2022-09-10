@@ -3,7 +3,7 @@
         // please checkout config.py for information
         "note": "example experiment",                   // in case you forget the purpose of this trainning session, write a note
         "env_name": "collective_assult",                // which environment, see ./MISSION/env_router.py
-        "env_path": "MISSION.collective_assult",       // path of environment
+        "env_path": "MISSION.collective_assult",        // path of environment
         "draw_mode": "Img",                             // activate data plotting (Tensorboard is not used because I do not like it)
         "num_threads": "64",                            // run N parallel envs, a 'env' is refered to as a 'thread'
         "report_reward_interval": "64",                 // reporting interval
