@@ -10,13 +10,15 @@ from ..commom.pca import pca
 from ..commom.net_manifest import weights_init
 from .net import Net, NetCentralCritic
 
-    
+def popgetter(*items):
+    def g(obj): return tuple(obj.pop(item) if item in obj else None for item in items)
+    return g
+
 class no_context():
     def __enter__(self):
         return None
     def __exit__(self, exc_type, exc_value, traceback):
         return False
-
 
 def _count_list_type(x):
     type_cnt = {}
@@ -77,6 +79,15 @@ def _deal_single_in(x, mask_flatten):
 
 # todo: https://pytorch.org/tutorials/advanced/torch-script-parallelism.html?highlight=parallel
 def distribute_compute(fn_arr, mask_arr, **kwargs):
+    """compute on each network
+
+    Args:
+        fn_arr : a list of forwarding networks
+        mask_arr : mask of kwargs
+
+    Returns:
+        tuple tensors: the result of networks
+    """
     # python don't have pointers, 
     # however, a list is a mutable type in python, that's all we need
     g_out = [None]  
@@ -86,6 +97,8 @@ def distribute_compute(fn_arr, mask_arr, **kwargs):
     
     # calculated result will be gathered into ret_tuple_gather
     ret_tuple_gather = []
+    
+    # one by one we compute the result
     for fn, mask in zip(fn_arr, mask_arr):
         assert mask.dim()==2
         mask_flatten = mask.flatten()
@@ -107,9 +120,6 @@ def distribute_compute(fn_arr, mask_arr, **kwargs):
     dfs_create_and_fn(None, g_out, 0, _tensor_expand_thread_dim_v2_, n_threads, n_agents)
     return tuple(g_out[0])
 
-def popgetter(*items):
-    def g(obj): return tuple(obj.pop(item) if item in obj else None for item in items)
-    return g
 
 
 class HeteNet(nn.Module):
@@ -124,37 +134,50 @@ class HeteNet(nn.Module):
 
         self.n_tp = self.n_hete_types
         self.n_gp = self.hete_n_net_placeholder
-        get_placeholder = lambda type, group: group*self.n_tp + type
-        self.get_type_group = lambda ph: (ph%self.n_hete_types, ph//self.n_hete_types)
+        
+        # convertion between placeholder index and type-group index
+        self.tpgp_2_ph = lambda type, group: group*self.n_tp + type
+        self.ph_2_tpgp = lambda ph: (ph%self.n_hete_types, ph//self.n_hete_types)
 
+        # initialize net placeholders
         self._nets_flat_placeholder_ = torch.nn.ModuleList(modules=[
             Net(rawob_dim, n_action, **kwargs) for _ in range(
                 self.n_tp * self.n_gp
-            )  
+            )
         ])
-        self.hete_feature_dim = 1
+        # initialize critic
         self._critic_central = NetCentralCritic(rawob_dim, n_action, **kwargs)
-        self.nets = [[self._nets_flat_placeholder_[get_placeholder(type=tp, group=gp)] for tp in range(self.n_tp)] for gp in range(self.n_gp)]
+        # reshape the handle of networks
+        self.nets = [[self._nets_flat_placeholder_[self.tpgp_2_ph(type=tp, group=gp)] for tp in range(self.n_tp)] for gp in range(self.n_gp)]
+        # the frontier nets
         self.frontend_nets = self.nets[0]
+        # the static nets
         self.static_nets = self.nets[1:]
+        # heterogeneous feature dimension
+        self.hete_feature_dim = 1
+        # add flags to each nets
         for gp, n_arr in enumerate(self.nets): 
             for tp, n in enumerate(n_arr):
-                index = get_placeholder(tp, gp)
-                n.forbidden = False
+                ph_index = self.tpgp_2_ph(tp, gp)
                 n.gp = gp
                 n.tp = tp
                 n.feature = np.zeros(self.hete_feature_dim)
                 if gp!=0: 
-                    n.forbidden = True
-                    self.lock_net(index)
+                    # the frontier nets are ready
+                    n.ready_to_go = False
+                    self.lock_net(ph_index)
                 else:
-                    self.unlock_net(index)
-                n.hete_tag = 'group:%d,type:%d'%(gp, tp)
-
+                    # the static nets are not loaded yet
+                    n.ready_to_go = True
+                    self.unlock_net(ph_index)
+                    
+        # a list to trace the vital checkpoints
         self.ckpg_info = []
-        self.map_ckpg_phg = {}
+        # track the number of checkpoints commited
         self.ckpg_input_cnt = 0
+        # feature array, arranged according to placeholders
         self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
+        # debug visually
         if AlgorithmConfig.debug:
             from VISUALIZE.mcom import mcom
             self.threejs_bridge = mcom(path='TEMP/v2d_logger/', rapid_flush=False, draw_mode='Threejs')
@@ -162,45 +185,26 @@ class HeteNet(nn.Module):
             self.threejs_bridge.set_style('font', fontPath='/examples/fonts/ttf/FZYTK.TTF', fontLineHeight=1500)
             self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0, 0,       1, 1, 1,         0, 0, 0)
 
-    def lock_net(self, i, forbidden=False):
+    def lock_net(self, i):
         n = self._nets_flat_placeholder_[i]
         n.static = True
         n.eval()
-        if forbidden:
-            n.forbidden = True
 
     def unlock_net(self, i):
         n = self._nets_flat_placeholder_[i]
         n.static = False
-        n.forbidden = False
         n.train()
 
-    # def re_calculate_nets_feature(self):
-    #     drop_out_interval = 50
-    #     down_dim = 10
-
-    #     pca_data = []
-    #     for d in self.ckpg_info: 
-    #         for dd in d['model']:
-    #             pca_data.append(torch.cat([v.flatten()[::drop_out_interval] for v in dd.values()]))
-                
-    #     pca_data = _2cpu2numpy(torch.stack(pca_data)) 
-    #     downd_data = pca(pca_data, down_dim)
-        
-    #     downd_data = downd_data.reshape(len(self.ckpg_info), self.n_tp, down_dim)
-        
-    #     for i, d in enumerate(self.ckpg_info): 
-    #         self.ckpg_info[i]['feature'] = [v for v in downd_data[i]]
-        
-
     def register_ckp(self, win_rate, cpk_path, mean_reward):
+        # deal with new checkpoint
         self.ckpg_input_cnt += 1
+        # get previous win rates
         prev_win_rate = [self.ckpg_info[i]['win_rate'] for i in range(len(self.ckpg_info))]
+        # if the winrate is not a breakthough, give up
         if len(prev_win_rate)>0 and win_rate <= max(prev_win_rate): 
-            return  # give up
+            return
         
-        # net_feature = np.concatenate(([win_rate], np.zeros(10)))
-        
+        # list the infomation about this checkpoint
         self.ckpg_info.append({
             'win_rate': win_rate, 
             'mean_reward': mean_reward,
@@ -214,57 +218,64 @@ class HeteNet(nn.Module):
             ],
             })
         
+        # sort according to win rate
         self.ckpg_info.sort(key=lambda x:x['win_rate'])
+        # remove a checkpoint that is too close to its neighbor
         self.trim_ckp()
         
         print('ckp register change!')
         print([self.ckpg_info[i]['win_rate'] for i in range(len(self.ckpg_info))])
         print([self.ckpg_info[i]['ckpg_cnt'] for i in range(len(self.ckpg_info))])
         
-        # load parameters
+        # reload parameters
         for i, static_nets in enumerate(self.static_nets):
+            # some net cannot be loaded with parameters yet, because ckpg_info has not collect enough samples
             if i >= len(self.ckpg_info): continue
             for k, net in enumerate(static_nets):
+                # load parameters
                 net.load_state_dict(self.ckpg_info[i]['model'][k], strict=True)
+                # the net must be static
                 assert static_nets[k].static
-                static_nets[k].forbidden = False
+                # now the net is ready
+                static_nets[k].ready_to_go = True
                 static_nets[k].feature = self.ckpg_info[i]['feature'][k]
-                
+
+        # reload the net features
         self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
         print('parameters reloaded')
 
+    # def random_select(self, *args, **kwargs):
+    #     """randomly select a group index
 
-    def trim_ckp(self):
-        RemoveNew = True
-        max_static_gp = self.n_gp - 1
-        if len(self.ckpg_info) <= max_static_gp:
-            return
-        else:
-            assert len(self.ckpg_info) == max_static_gp+1
-            # find two ckp with nearest 
-            winrate_list = np.array([self.ckpg_info[i]['win_rate'] for i in range(len(self.ckpg_info))])
-            winrate_list = np.abs(winrate_list[1:] - winrate_list[:-1])
-            index = np.argmin(winrate_list)
-            old_index = index
-            new_index = index + 1
-            if self.ckpg_info[new_index]['ckpg_cnt'] < self.ckpg_info[old_index]['ckpg_cnt']:
-                new_index, old_index = old_index, new_index
-            
-            if RemoveNew:
-                self.ckpg_info.pop(new_index)
-            else:
-                self.ckpg_info.pop(old_index)
-            assert len(self.ckpg_info) == max_static_gp
-                
-        pass
+    #     Args:
+    #         AlgorithmConfig.hete_same_prob: a probability about choosing the frontier net as the teammate
 
-
+    #     Returns:
+    #         int: a group index
+    #     """
+    #     # redirect to frontier if so
+    #     if np.random.rand() < AlgorithmConfig.hete_same_prob:
+    #         return 0
+        
+    #     # choose randomly among existing nets
+    #     n_option = len(self.ckpg_info)
+    #     if n_option > 0:
+    #         rand_winrate = np.random.randint(low=1, high=n_option+1)
+    #         return rand_winrate
+    #     else:
+    #         return 0
+    
     def random_select(self, rand_ops=None):
-        
-        
+        """randomly select a group index
+
+        Args:
+            AlgorithmConfig.hete_same_prob: a probability about choosing the frontier net as the teammate
+
+        Returns:
+            int: a group index
+        """
         # when random win rate is high, direct to frontend nets
         if np.random.rand() < AlgorithmConfig.hete_same_prob:
-            # print亮绿('frontend return', 0)
             return 0
         
         # randomly select ckp
@@ -344,56 +355,57 @@ class HeteNet(nn.Module):
                 
                 
     def exe(self, hete_pick=None, **kargs):
-        # pop items from kargs
+        # shape
         n_thread = hete_pick.shape[0]
         n_agents = hete_pick.shape[1]
         
+        # pop items from kargs
         gp_sel_summary, thread_indices, hete_type = popgetter('gp_sel_summary', 'thread_index', 'hete_type')(kargs)
+        
+        # get ph_feature
         _012345 = torch.arange(self.n_tp, device=kargs['obs'].device, dtype=torch.int64)
         ph_sel = gp_sel_summary*self.n_tp + repeat_at(_012345, 0, n_thread)   # group * self.n_tp + tp
         ph_feature = self.ph_to_feature[ph_sel]  # my_view(, [0, -1])
         ph_feature_cp = repeat_at(ph_feature, 1, n_agents)
         
-        # add the hete type info into obs
-        
-        # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, n_tp=3, core_dim=4])
-        ph_feature_cp_obs = scatter_righthand(
+        # reshape ph_feature
+        ph_feature_cp_obs = scatter_righthand( # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, n_tp=3, core_dim=4])
             scatter_into = ph_feature_cp,
             src = ph_feature_cp.new_ones(n_thread,n_agents, 1, self.hete_feature_dim) * -1,
             index = hete_type.unsqueeze(-1), check=True
         ) 
-        # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, core_dim=12])
-        ph_feature_cp_obs = my_view(ph_feature_cp_obs, [0,0,-1])
+        ph_feature_cp_obs = my_view(ph_feature_cp_obs, [0,0,-1]) # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, core_dim=12])
         
-        kargs['obs'] = kargs['obs']
+        # add ph_feature to kwargs
         kargs['obs_hfeature'] = ph_feature_cp_obs
         
+        # get a manifest of running nets
         invo_hete_types = [i for i in range(self.n_tp*self.n_gp) if (i in hete_pick)]
         running_nets = [self.acquire_net(hete_type) for hete_type in invo_hete_types]
         
-        # make sure all nets under testing is frontend
-        if 'test_mode' in kargs and kargs['test_mode']:
-             for net in running_nets: assert not net.static
+        # make sure all nets under testing is frontend / frontier
+        if 'test_mode' in kargs and kargs['test_mode']: 
+            for net in running_nets: assert not net.static
                 
         # debug visual
         # if AlgorithmConfig.debug: self.debug_visual(hete_pick, n_thread, n_agents, thread_indices, running_nets)
-        # print('begin hete net')
+
         # run actor policy networks
         actor_result = distribute_compute(
             fn_arr = running_nets,
             mask_arr = [(hete_pick == hete_type) for hete_type in invo_hete_types],
             **kargs
         )
-        # print('begin critic central')
-
+        
         # run critic network
         critic_result = self._critic_central.estimate_state(**kargs)
         
-        # replace value estimation
+        # combine actor_result and critic_result
         actor_result = list(actor_result)
         for i, item in enumerate(actor_result):
             if item=='vph': actor_result[i] = critic_result
         
+        # done !
         return tuple(actor_result)
 
 
@@ -405,7 +417,27 @@ class HeteNet(nn.Module):
     def evaluate_actions(self, **kargs):
         return self.exe(**kargs, eval_mode=True)
 
-
-def tuple_ops():
-    return
-
+    def trim_ckp(self):
+        RemoveNew = True
+        max_static_gp = self.n_gp - 1
+        if len(self.ckpg_info) <= max_static_gp:
+            return
+        else:
+            assert len(self.ckpg_info) == max_static_gp+1
+            # find two ckp with nearest 
+            winrate_list = np.array([self.ckpg_info[i]['win_rate'] for i in range(len(self.ckpg_info))])
+            winrate_list = np.abs(winrate_list[1:] - winrate_list[:-1])
+            index = np.argmin(winrate_list)
+            old_index = index
+            new_index = index + 1
+            if self.ckpg_info[new_index]['ckpg_cnt'] < self.ckpg_info[old_index]['ckpg_cnt']:
+                new_index, old_index = old_index, new_index
+            
+            if RemoveNew:
+                self.ckpg_info.pop(new_index)
+            else:
+                self.ckpg_info.pop(old_index)
+            assert len(self.ckpg_info) == max_static_gp
+                
+        pass
+    

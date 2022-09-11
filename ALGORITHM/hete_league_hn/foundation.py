@@ -55,13 +55,12 @@ class AlgorithmConfig:
     hete_max_active_groups = 3
     hete_same_prob = 0.25
     
-    entity_distinct = 'auto load, do not change'
-
     policy_resonance = False
 
     use_avail_act = True
     
     debug = False
+    ignore_test = False
     
 def str_array_to_num(str_arr):
     out_arr = []
@@ -127,20 +126,23 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         # make sure hook is cleared
         assert ('_hook_' not in StateRecall)
         
-        # read obs
+        # read obs et.al.
         obs, threads_active_flag, avail_act, hete_pick, hete_type, gp_sel_summary, eprsn = \
             itemgetter('obs', 'threads_active_flag', 'avail_act', '_hete_pick_', '_hete_type_', '_gp_pick_', '_EpRsn_')(StateRecall)
             
         
-        # make sure obs is right
+        # make sure obs shape is correct
         assert obs is not None, ('Make sure obs is ok')
         assert len(obs) == sum(threads_active_flag), ('check batch size')
+        
         # make sure avail_act is correct
         if AlgorithmConfig.use_avail_act: assert avail_act is not None
         
+        # policy resonance flag reshape
         eprsn = repeat_at(eprsn, -1, self.n_agent)
         thread_index = np.arange(self.n_thread)[threads_active_flag]
         
+        # make decision
         with torch.no_grad():
             action, value, action_log_prob = self.policy.act(obs=obs,
                                                              test_mode=test_mode,
@@ -152,7 +154,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
                                                              eprsn=eprsn,
                                                              )
 
-        # vars named like _x_ are aligned, others are not!
+        # commit obs to buffer, vars named like _x_ are aligned, others are not!
         traj_framefrag = {
             "_SKIP_":        ~threads_active_flag,
             "value":         value,

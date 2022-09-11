@@ -143,7 +143,7 @@ class Net(nn.Module):
             logit2act = self._logit2act_rsn
             
         act, actLogProbs, distEntropy, probs = logit2act(   logits, eval_mode=eval_mode,
-                                                            test_mode=test_mode or self.static, 
+                                                            test_mode=(test_mode or self.static), 
                                                             eval_actions=eval_act, 
                                                             avail_act=avail_act,
                                                             eprsn=eprsn)

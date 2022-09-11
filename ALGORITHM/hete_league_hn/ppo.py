@@ -90,7 +90,7 @@ class PPO():
                 gp = max(gp_list)
                 wr = self.policy_and_critic.ckpg_info[gp-1]['win_rate']
                 tp = np.argmax(gp_list)
-                tag = 'gp:%d tp:%d wr:%.2f'%(gp, tp, wr)
+                tag = 'tp:%d wr:%.2f'%(tp, wr)
                 if tag not in tags: tags[tag] = []
                 tags[tag].append(traj.reward_sum)
         tags = dict(sorted(tags.items()))

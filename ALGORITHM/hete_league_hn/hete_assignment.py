@@ -36,11 +36,6 @@ def random_group(policy, n_thread, hete_type, n_hete_types, n_group, selected_tp
 def select_nets_for_shellenv(n_types, policy, hete_type_list, n_thread, n_gp, testing):
     # choose one hete type
     n_alive_frontend = AlgorithmConfig.hete_n_alive_frontend
-
-
-    # 锁定没有用到的frontend网络，但一般在一个大batch中都会用到
-    # for i in range(n_types): policy.lock_net(i, forbidden=True)
-    # policy.unlock_net(selected_type)
     tmp = np.arange(n_types)
     selected_types = np.stack([
         np.random.choice(
@@ -77,7 +72,7 @@ def select_nets_for_shellenv(n_types, policy, hete_type_list, n_thread, n_gp, te
 
 # [net.training for net in self.policy_and_critic._nets_flat_placeholder_]
 # [net.lock for net in self.policy_and_critic._nets_flat_placeholder_]
-# [net.forbidden for net in self.policy_and_critic._nets_flat_placeholder_]
+# [net.ready_to_go for net in self.policy_and_critic._nets_flat_placeholder_]
 
 
 

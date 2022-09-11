@@ -61,7 +61,7 @@ class Net(nn.Module):
         return self._act(*args, **kargs, eval_mode=True)
 
     def _act(self, obs=None, test_mode=None, eval_mode=False, eval_actions=None, avail_act=None, agent_ids=None, eprsn=None, obs_hfeature=None):
-        assert not (self.forbidden)
+        assert (self.ready_to_go)
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         
         # if not (obs[..., -3+self.tp][~mask_dead] == -1).all().item():
@@ -70,7 +70,7 @@ class Net(nn.Module):
         if self.static:
             assert self.gp >=1
             
-        # if not test_mode: assert not self.forbidden
+        # if not test_mode: assert not self.ready_to_go
         eval_act = eval_actions if eval_mode else None
         others = {}
         if self.use_normalization:
@@ -98,7 +98,7 @@ class Net(nn.Module):
         # apply action selector
         act, actLogProbs, distEntropy, probs = logit2act( logits, 
                                                           eval_mode=eval_mode,
-                                                          test_mode=test_mode, 
+                                                          greedy=(test_mode or self.static), 
                                                           eval_actions=eval_act, 
                                                           avail_act=avail_act,
                                                           eprsn=eprsn )
@@ -108,11 +108,11 @@ class Net(nn.Module):
         if not eval_mode: return act, 'vph', actLogProbs
         else:             return 'vph', actLogProbs, distEntropy, probs, others
 
-    def _logit2act_rsn(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None, eprsn=None):
+    def _logit2act_rsn(self, logits_agent_cluster, eval_mode, greedy, eval_actions=None, avail_act=None, eprsn=None):
         if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
         act_dist = self.ccategorical.feed_logits(logits_agent_cluster)
         
-        if not test_mode: act = self.ccategorical.sample(act_dist, eprsn) if not eval_mode else eval_actions
+        if not greedy:    act = self.ccategorical.sample(act_dist, eprsn) if not eval_mode else eval_actions
         else:             act = torch.argmax(act_dist.probs, axis=2)
         # the policy gradient loss will feedback from here
         actLogProbs = self._get_act_log_probs(act_dist, act) 
@@ -120,10 +120,10 @@ class Net(nn.Module):
         distEntropy = act_dist.entropy().mean(-1) if eval_mode else None
         return act, actLogProbs, distEntropy, act_dist.probs
 
-    def _logit2act(self, logits_agent_cluster, eval_mode, test_mode, eval_actions=None, avail_act=None, **kwargs):
+    def _logit2act(self, logits_agent_cluster, eval_mode, greedy, eval_actions=None, avail_act=None, **kwargs):
         if avail_act is not None: logits_agent_cluster = torch.where(avail_act>0, logits_agent_cluster, -pt_inf())
         act_dist = Categorical(logits = logits_agent_cluster)
-        if not test_mode:  act = act_dist.sample() if not eval_mode else eval_actions
+        if not greedy:     act = act_dist.sample() if not eval_mode else eval_actions
         else:              act = torch.argmax(act_dist.probs, axis=2)
         actLogProbs = self._get_act_log_probs(act_dist, act) # the policy gradient loss will feedback from here
         # sum up the log prob of all agents
