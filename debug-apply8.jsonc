@@ -102,6 +102,7 @@
         "ppo_epoch": 24,
         "policy_resonance": false,
         "debug": true,
+        "type_agent_diff_lr": true,
         "n_entity_placeholder": 11
     },
 
