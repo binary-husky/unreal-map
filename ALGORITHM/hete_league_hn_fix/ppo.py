@@ -105,7 +105,6 @@ class PPO():
         for k in tags:
             mcv2.rec(np.array(tags[k]).mean(), k)
         mcv2.rec_show()
-        
     def train_on_traj_(self, traj_pool, task):
         self.log_reward_rich(traj_pool, self.mcv2)
         ppo_valid_percent_list = []
@@ -142,10 +141,16 @@ class PPO():
                 net.update_cnt.data[0] = self.ppo_update_cnt
         self.policy_and_critic.on_update(self.ppo_update_cnt)
         
+        torch.cuda.empty_cache()
         return self.ppo_update_cnt
 
     def freeze_body(self):
         assert False, "function forbidden"
+        self.freeze_body = True
+        self.parameter_pv = [p_name for p_name, p in self.all_parameter if not any(p_name.startswith(kw)  for kw in ('obs_encoder', 'attention_layer'))]
+        self.parameter = [p for p_name, p in self.all_parameter if not any(p_name.startswith(kw)  for kw in ('obs_encoder', 'attention_layer'))]
+        self.optimizer = optim.Adam(self.parameter, lr=self.lr)
+        print('change train object')
 
     def log_trivial(self, dictionary):
         for key in dictionary:

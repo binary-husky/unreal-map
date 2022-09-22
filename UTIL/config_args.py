@@ -128,33 +128,28 @@ def prepare_tmp_folder():
             return True
         else:
             return False
+        
     def init_dir(dir):
         if not os.path.exists(dir):  os.makedirs(dir)
-
-
-
 
     import glob
     local_temp_folder = './TEMP'
     global_temp_folder = os.path.expanduser('~/HmapTemp')
     init_dir(local_temp_folder)
-    init_dir(global_temp_folder+'/GpuLock'   )
+    init_dir(global_temp_folder+'/GpuLock')
     init_dir(global_temp_folder+'/PortFinder')
-    
 
-    _tmp_files_to_investigate = \
-          glob.glob(global_temp_folder+'/GpuLock/*'    ) \
-        + glob.glob(global_temp_folder+'/PortFinder/*' )
+    _tmp_files_to_investigate = glob.glob(global_temp_folder+'/PortFinder/*' )
     
     for tmp in _tmp_files_to_investigate:
         if not is_file_empty(tmp):
             print亮红('Warning, find temp file which is not empty: %s !'%tmp)
             time.sleep(10)
 
-
-                
-                
-    # done checking trash folder
+    _tmp_files_to_investigate = glob.glob(global_temp_folder+'/GpuLock/*.register'    )
+    for tmp in _tmp_files_to_investigate:
+        from .gpu_share import check_lock_file
+        check_lock_file(tmp)
 
 def register_machine_info(logdir):
     import socket, json, subprocess, uuid

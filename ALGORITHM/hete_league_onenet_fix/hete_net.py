@@ -163,13 +163,14 @@ class HeteNet(nn.Module):
                 ph_index = gp
                 n.gp = gp
                 # n.lr_div = self.n_agent_each_tp[tp] / self.n_agents
-                n.feature = np.zeros(self.hete_feature_dim)
                 if gp!=0: 
-                    # the frontier nets are ready
+                    # lock static nets: the static nets are not loaded yet
+                    n.feature = np.zeros(self.hete_feature_dim)
                     n.ready_to_go = False
                     self.lock_net(ph_index)
                 else:
-                    # the static nets are not loaded yet
+                    # unlock frontier nets: the frontier nets are ready
+                    n.feature = np.ones(self.hete_feature_dim)
                     n.ready_to_go = True
                     self.unlock_net(ph_index)
                     
@@ -204,6 +205,8 @@ class HeteNet(nn.Module):
         prev_win_rate = [self.ckpg_info[i]['win_rate'] for i in range(len(self.ckpg_info))]
         # if the winrate is not a breakthough, give up
         if len(prev_win_rate)>0 and win_rate <= max(prev_win_rate): 
+            return
+        if AlgorithmConfig.hete_exclude_zero_wr and win_rate==0:
             return
         
         # list the infomation about this checkpoint
@@ -244,28 +247,7 @@ class HeteNet(nn.Module):
         self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
         print('parameters reloaded')
 
-    # def random_select(self, *args, **kwargs):
-    #     """randomly select a group index
-
-    #     Args:
-    #         AlgorithmConfig.hete_same_prob: a probability about choosing the frontier net as the teammate
-
-    #     Returns:
-    #         int: a group index
-    #     """
-    #     # redirect to frontier if so
-    #     if np.random.rand() < AlgorithmConfig.hete_same_prob:
-    #         return 0
-        
-    #     # choose randomly among existing nets
-    #     n_option = len(self.ckpg_info)
-    #     if n_option > 0:
-    #         rand_winrate = np.random.randint(low=1, high=n_option+1)
-    #         return rand_winrate
-    #     else:
-    #         return 0
-    
-    def random_select(self, rand_ops=None):
+    def random_select(self, *args, **kwargs):
         """randomly select a group index
 
         Args:
@@ -274,33 +256,58 @@ class HeteNet(nn.Module):
         Returns:
             int: a group index
         """
-        # when random win rate is high, direct to frontend nets
+        # redirect to frontier if so
         if np.random.rand() < AlgorithmConfig.hete_same_prob:
             return 0
         
-        # randomly select ckp
-        if rand_ops is not None:
-            # improve efficiency by limiting the number of active net
-            rand_winrate = np.random.choice(rand_ops)
+        # choose randomly among existing nets
+        n_option = len(self.ckpg_info)
+        if n_option > 0:
+            if n_option > AlgorithmConfig.hete_lasted_n:
+                assert AlgorithmConfig.hete_lasted_n != 0
+                rand_sel = np.random.randint(low=n_option+1-AlgorithmConfig.hete_lasted_n, high=n_option+1)
+            else:
+                rand_sel = np.random.randint(low=1, high=n_option+1)
+            return rand_sel
         else:
-            rand_winrate = np.random.rand()
-            
-        # find nearest
-        e_min = float('inf')
-        e_min_index = -1 # default return 0
-        for i, t in enumerate(self.ckpg_info):
-            winrate = t['win_rate']
-            e = abs(winrate-rand_winrate)
-            if e < e_min:
-                e_min = e
-                e_min_index = i
-        
-        if e_min_index >= 0: # not empty
-            # print亮绿('given', rand_winrate, 'return', e_min_index + 1)
-            return e_min_index + 1
-        else: # self.ckpg_info is empty
-            # print亮绿('given', rand_winrate, 'return', 0)
             return 0
+    
+    # def random_select(self, rand_ops=None):
+    #     """randomly select a group index
+
+    #     Args:
+    #         AlgorithmConfig.hete_same_prob: a probability about choosing the frontier net as the teammate
+
+    #     Returns:
+    #         int: a group index
+    #     """
+    #     # when random win rate is high, direct to frontend nets
+    #     if np.random.rand() < AlgorithmConfig.hete_same_prob:
+    #         return 0
+        
+    #     # randomly select ckp
+    #     if rand_ops is not None:
+    #         # improve efficiency by limiting the number of active net
+    #         rand_winrate = np.random.choice(rand_ops)
+    #     else:
+    #         rand_winrate = np.random.rand()
+            
+    #     # find nearest
+    #     e_min = float('inf')
+    #     e_min_index = -1 # default return 0
+    #     for i, t in enumerate(self.ckpg_info):
+    #         winrate = t['win_rate']
+    #         e = abs(winrate-rand_winrate)
+    #         if e < e_min:
+    #             e_min = e
+    #             e_min_index = i
+        
+    #     if e_min_index >= 0: # not empty
+    #         # print亮绿('given', rand_winrate, 'return', e_min_index + 1)
+    #         return e_min_index + 1
+    #     else: # self.ckpg_info is empty
+    #         # print亮绿('given', rand_winrate, 'return', 0)
+    #         return 0
 
     # called after training update
     def on_update(self, update_cnt):
@@ -315,7 +322,6 @@ class HeteNet(nn.Module):
 
     # def debug_visual(self, hete_pick, n_thread, n_agents, thread_indices, running_nets):
     #     if n_thread > 8: return 
-        
     #     for i, net in enumerate(self._nets_flat_placeholder_):
     #         update_cnt = net.update_cnt[0].item()
     #         self.threejs_bridge.v2dx(
@@ -328,7 +334,6 @@ class HeteNet(nn.Module):
     #         thread_index = thread_indices[t].item()
     #         for agent_index in range(n_agents):
     #             hete_type = hete_pick[t, agent_index]
-                
     #             net = self.acquire_net(hete_type)
     #             net_redirect = hete_type.item()
     #             self.threejs_bridge.v2dx(
@@ -348,8 +353,6 @@ class HeteNet(nn.Module):
     #                     size=0.03,      # 光束粗细
     #                     color='DeepSkyBlue' # 光束颜色
     #                 )
-                    
-
     #     self.threejs_bridge.v2d_show()
 
                 
@@ -364,25 +367,27 @@ class HeteNet(nn.Module):
         gp_sel_summary, thread_indices, hete_type = popgetter('gp_sel_summary', 'thread_index', 'hete_type')(kargs)
         
         # get ph_feature
-        _012345 = torch.arange(self.n_tp, device=kargs['obs'].device, dtype=torch.int64)
+        # _012345 = torch.arange(self.n_tp, device=kargs['obs'].device, dtype=torch.int64)
         ph_sel = gp_sel_summary # *self.n_tp + repeat_at(_012345, 0, n_thread)   # group * self.n_tp + tp
         ph_feature = self.ph_to_feature[ph_sel]  # my_view(, [0, -1])
-        ph_feature_cp = repeat_at(ph_feature, 1, n_agents)
+        ph_feature_cp_raw = repeat_at(ph_feature, 1, n_agents)
         
         # reshape ph_feature
-        ph_feature_cp_obs_p2 = scatter_righthand( # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, n_tp=3, core_dim=4])
-            scatter_into = torch.zeros_like(ph_feature_cp),
-            src = ph_feature_cp.new_ones(n_thread,n_agents, 1, self.hete_feature_dim) * -1,
-            index = hete_type.unsqueeze(-1), check=True
+        agent_self_type_mask = scatter_righthand( # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, n_tp=3, core_dim=4])
+            scatter_into = torch.zeros_like(ph_feature_cp_raw),
+            src = ph_feature_cp_raw.new_ones(n_thread,n_agents, 1, self.hete_feature_dim),
+            index = hete_type.unsqueeze(-1)#, check=True
         ) 
-        assert ph_feature_cp.dim() == 4
-        ph_feature_cp = ph_feature_cp * (ph_feature_cp_obs_p2+1)
-        ph_feature_cp_obs_ = torch.cat((ph_feature_cp, ph_feature_cp_obs_p2), 2)
+        assert ph_feature_cp_raw.dim() == 4
+        ph_feature_cp = (ph_feature_cp_raw*(1-agent_self_type_mask) + agent_self_type_mask)
+        # ph_feature_cp.squeeze()
+        ph_feature_cp_obs_ = torch.cat((ph_feature_cp, agent_self_type_mask), 2)
+        ph_feature_cp_critic_ = torch.cat((ph_feature_cp_raw, agent_self_type_mask), 2)
         ph_feature_cp_obs = my_view(ph_feature_cp_obs_, [0,0,-1]) # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, core_dim=12])
+        ph_feature_cp_critic = my_view(ph_feature_cp_critic_, [0,0,-1]) # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, core_dim=12])
         
         # add ph_feature to kwargs
         kargs['obs_hfeature'] = ph_feature_cp_obs
-        
         # get a manifest of running nets
         # invo_hete_types = [i for i in range(self.n_tp*self.n_gp) if (i in hete_pick)]
         invo_gps = [i for i in range(self.n_gp) if (i in gp_sel_summary)]
@@ -403,6 +408,8 @@ class HeteNet(nn.Module):
         )
         
         # run critic network
+        kargs.pop('obs_hfeature')   # replace h_feature
+        kargs['obs_hfeature_critic'] = ph_feature_cp_critic
         critic_result = self._critic_central.estimate_state(**kargs)
         
         # combine actor_result and critic_result

@@ -1,23 +1,46 @@
-import platform, os, torch, uuid, time
+import platform, os, torch, uuid, time, psutil
 from atexit import register
 IsLinux = platform.system()=="Linux"
 if IsLinux: 
     print('system is Linux, using flock module')
     import flock # flock is Linux only
+    
+def check_lock_file(path):
+    def is_file_empty(file_path):
+        with open(file_path, 'r') as f: 
+            file_content = f.read()
+        if file_content == '' or file_content == '\n': 
+            return True
+        else:
+            return False
 
+    if is_file_empty(path):
+        os.remove(path)
+        glock = path.replace('.register','.glock')
+        if os.path.exists(glock): os.remove(glock)
+
+    return
+
+def pid_exist(pid_str):
+    try:
+        return psutil.pid_exists(int(pid_str.strip('\n')))
+    except:
+        return False
+    
 class GpuShareUnit():
     def __init__(self, which_gpu, lock_path=None, manual_gpu_ctl=True, gpu_party=''):
         self.device = which_gpu
         self.manual_gpu_ctl = True
         self.lock_path=lock_path
         self.gpu_party = gpu_party
-        self.experiment_uuid = uuid.uuid1().hex + '\n'
+        self.pid = str(os.getpid()) + '\n'
         self.n_gpu_process_online = 1
         if gpu_party == 'off':
             self.manual_gpu_ctl = False
         if self.lock_path is None: 
             self.lock_path = os.path.expanduser('~/HmapTemp/GpuLock')
         if not os.path.exists(self.lock_path): os.makedirs(self.lock_path)
+        self.register_file = self.lock_path+'/lock_gpu_%s_%s.register'%(self.device, self.gpu_party)
         register(self.__del__)
         
     def __del__(self):
@@ -55,33 +78,35 @@ class GpuShareUnit():
                 self.gpu_lock.__exit__(None,None,None)
                 self.gpu_lock_file.close()
             else:
-                print('不共享GPU')
+                print('GPU not shared')
         return
     
     def register_uuid_(self):
         try:
-            flag = 'w+' if not os.path.exists(self.lock_path+'/lock_gpu_%s_%s.register'%(self.device, self.gpu_party)) else 'r+'
-            with open(self.lock_path+'/lock_gpu_%s_%s.register'%(self.device, self.gpu_party), mode=flag) as gpu_register_file:
+            flag = 'w+' if not os.path.exists(self.register_file) else 'r+'
+            with open(self.register_file, mode=flag) as gpu_register_file:
                 _lock = flock.Flock(gpu_register_file, flock.LOCK_EX); _lock.__enter__()
                 lines = gpu_register_file.readlines()
-                if not any([line==self.experiment_uuid for line in lines]):
-                    lines.append(self.experiment_uuid)
+                lines = [line for line in lines if pid_exist(line)]   #  clear non-exist pid
+                if not (self.pid in lines):
+                    lines.append(self.pid)
                     gpu_register_file.seek(0); gpu_register_file.truncate(0)
                     gpu_register_file.writelines(lines)
                     gpu_register_file.flush()
                 _lock.__exit__(None,None,None)
                 return len(lines)
         except:
-            print('GPU 队列异常!')
+            print('GPU sharing error!')
             return 999
 
     def unregister_uuid_(self):
-        flag = 'w+' if not os.path.exists(self.lock_path+'/lock_gpu_%s_%s.register'%(self.device, self.gpu_party)) else 'r+'
-        with open(self.lock_path+'/lock_gpu_%s_%s.register'%(self.device, self.gpu_party), mode=flag) as gpu_register_file:
+        flag = 'w+' if not os.path.exists(self.register_file) else 'r+'
+        with open(self.register_file, mode=flag) as gpu_register_file:
             _lock = flock.Flock(gpu_register_file, flock.LOCK_EX); _lock.__enter__()
             lines = gpu_register_file.readlines()
+            lines = [line for line in lines if pid_exist(line)]   #  clear non-exist pid
             gpu_register_file.seek(0); gpu_register_file.truncate(0)
-            gpu_register_file.writelines([line for line in lines if line!=self.experiment_uuid])
+            gpu_register_file.writelines([line for line in lines if line!=self.pid])
             gpu_register_file.flush()
             _lock.__exit__(None,None,None)
             print('unregister')
@@ -99,4 +124,5 @@ if not IsLinux:
 
         def __exit__(self, exc_type, exc_value, traceback):
             return
+        
     GpuShareUnit = GpuShareUnitFake

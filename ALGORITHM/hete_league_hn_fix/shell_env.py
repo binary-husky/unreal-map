@@ -158,7 +158,7 @@ class ShellEnvWrapper(object):
         # warm up at first execution
         if not hasattr(self, 'agent_type'):
             self.cold_start_warmup(StateRecall)
-            
+
         # action init to: -1
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1
         

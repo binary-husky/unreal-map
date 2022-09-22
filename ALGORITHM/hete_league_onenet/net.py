@@ -45,7 +45,7 @@ class Net(nn.Module):
         self.attention_layer = SimpleAttention(h_dim=h_dim)
         # # # # # # # # # #        actor        # # # # # # # # # # # #
         _size = n_entity * h_dim
-        self.hyper_net = HyperNet(embed_dim=h_dim, hyper_input_dim=3, x_input_dim=_size)
+        self.hyper_net = HyperNet(embed_dim=h_dim, hyper_input_dim=6, x_input_dim=_size)
         self.policy_head = nn.Sequential(
             nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True),
             nn.Linear(h_dim, self.n_action))
@@ -75,7 +75,7 @@ class Net(nn.Module):
         others = {}
         if self.use_normalization:
             if torch.isnan(obs).all(): pass
-            else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
+            else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode or self.static))
             obs_hfeature_norm = obs_hfeature
 
         mask_dead = torch.isnan(obs).any(-1)
@@ -98,12 +98,10 @@ class Net(nn.Module):
         # apply action selector
         act, actLogProbs, distEntropy, probs = logit2act( logits, 
                                                           eval_mode=eval_mode,
-                                                          greedy=(test_mode), 
+                                                          greedy=(test_mode or self.static), 
                                                           eval_actions=eval_act, 
                                                           avail_act=avail_act,
                                                           eprsn=eprsn )
-        
-        
 
         if not eval_mode: return act, 'vph', actLogProbs
         else:             return 'vph', actLogProbs, distEntropy, probs, others
@@ -133,8 +131,8 @@ class Net(nn.Module):
     @staticmethod
     def _get_act_log_probs(distribution, action):
         return distribution.log_prob(action.squeeze(-1)).unsqueeze(-1)
-    
-    
+
+
 
 
 class NetCentralCritic(nn.Module):
@@ -166,12 +164,11 @@ class NetCentralCritic(nn.Module):
         # # # # # # # # # # critic # # # # # # # # # # # #
         
         _size = n_entity * h_dim
-        self.hyper_net = HyperNet(embed_dim=h_dim, hyper_input_dim=3, x_input_dim=_size)
+        self.hyper_net = HyperNet(embed_dim=h_dim, hyper_input_dim=6, x_input_dim=_size)
         
         self.ct_encoder = nn.Sequential(nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True), nn.Linear(h_dim, h_dim))
         self.ct_attention_layer = SimpleAttention(h_dim=h_dim)
         self.get_value = nn.Sequential(nn.Linear(h_dim, h_dim), nn.ReLU(inplace=True),nn.Linear(h_dim, 1))
-
 
         self.is_recurrent = False
         self.apply(weights_init)

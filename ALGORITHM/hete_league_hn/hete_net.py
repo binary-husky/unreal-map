@@ -246,28 +246,7 @@ class HeteNet(nn.Module):
         self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
         print('parameters reloaded')
 
-    # def random_select(self, *args, **kwargs):
-    #     """randomly select a group index
-
-    #     Args:
-    #         AlgorithmConfig.hete_same_prob: a probability about choosing the frontier net as the teammate
-
-    #     Returns:
-    #         int: a group index
-    #     """
-    #     # redirect to frontier if so
-    #     if np.random.rand() < AlgorithmConfig.hete_same_prob:
-    #         return 0
-        
-    #     # choose randomly among existing nets
-    #     n_option = len(self.ckpg_info)
-    #     if n_option > 0:
-    #         rand_winrate = np.random.randint(low=1, high=n_option+1)
-    #         return rand_winrate
-    #     else:
-    #         return 0
-    
-    def random_select(self, rand_ops=None):
+    def random_select(self, *args, **kwargs):
         """randomly select a group index
 
         Args:
@@ -276,33 +255,54 @@ class HeteNet(nn.Module):
         Returns:
             int: a group index
         """
-        # when random win rate is high, direct to frontend nets
+        # redirect to frontier if so
         if np.random.rand() < AlgorithmConfig.hete_same_prob:
             return 0
         
-        # randomly select ckp
-        if rand_ops is not None:
-            # improve efficiency by limiting the number of active net
-            rand_winrate = np.random.choice(rand_ops)
+        # choose randomly among existing nets
+        n_option = len(self.ckpg_info)
+        if n_option > 0:
+            rand_sel = np.random.randint(low=1, high=n_option+1)
+            return rand_sel
         else:
-            rand_winrate = np.random.rand()
-            
-        # find nearest
-        e_min = float('inf')
-        e_min_index = -1 # default return 0
-        for i, t in enumerate(self.ckpg_info):
-            winrate = t['win_rate']
-            e = abs(winrate-rand_winrate)
-            if e < e_min:
-                e_min = e
-                e_min_index = i
-        
-        if e_min_index >= 0: # not empty
-            # print亮绿('given', rand_winrate, 'return', e_min_index + 1)
-            return e_min_index + 1
-        else: # self.ckpg_info is empty
-            # print亮绿('given', rand_winrate, 'return', 0)
             return 0
+    
+    # def random_select(self, rand_ops=None):
+    #     """randomly select a group index
+
+    #     Args:
+    #         AlgorithmConfig.hete_same_prob: a probability about choosing the frontier net as the teammate
+
+    #     Returns:
+    #         int: a group index
+    #     """
+    #     # when random win rate is high, direct to frontend nets
+    #     if np.random.rand() < AlgorithmConfig.hete_same_prob:
+    #         return 0
+        
+    #     # randomly select ckp
+    #     if rand_ops is not None:
+    #         # improve efficiency by limiting the number of active net
+    #         rand_winrate = np.random.choice(rand_ops)
+    #     else:
+    #         rand_winrate = np.random.rand()
+            
+    #     # find nearest
+    #     e_min = float('inf')
+    #     e_min_index = -1 # default return 0
+    #     for i, t in enumerate(self.ckpg_info):
+    #         winrate = t['win_rate']
+    #         e = abs(winrate-rand_winrate)
+    #         if e < e_min:
+    #             e_min = e
+    #             e_min_index = i
+        
+    #     if e_min_index >= 0: # not empty
+    #         # print亮绿('given', rand_winrate, 'return', e_min_index + 1)
+    #         return e_min_index + 1
+    #     else: # self.ckpg_info is empty
+    #         # print亮绿('given', rand_winrate, 'return', 0)
+    #         return 0
 
     # called after training update
     def on_update(self, update_cnt):

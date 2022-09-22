@@ -169,7 +169,6 @@ def run_batch_exp(n_run, n_run_mode, base_conf, conf_override):
         parent_pid = os.getpid()   # my example
         clean_process(parent_pid)
 
-    DELAY = 10
     
             
     input('Confirm execution? 确认执行?')
@@ -181,6 +180,7 @@ def run_batch_exp(n_run, n_run_mode, base_conf, conf_override):
         time.sleep(1)
         t -= 1
 
+    DELAY = 60
     for ith_run in range(n_run):
         worker(ith_run)
         for i in range(DELAY):

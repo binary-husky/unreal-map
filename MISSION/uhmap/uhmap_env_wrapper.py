@@ -221,7 +221,9 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 break
             except: 
                 if i>50:
-                    print('Thread %d: Trying to connect to uhmap simulation. Going to take a while when openning for the first time. Retry %d ...'%(rank, i))
+                    print('Thread %d: Trying to connect to unreal engine. Related library not in memory, going to take some minutes. Retry %d ...'%(rank, i))
+                elif i>100:
+                    print('Thread %d: Waiting too long, please reduce parallel threads (num_threads), Retry %d ... | 请减小num_threads运行一次, 让动态库载入内存, 然后恢复num_threads即可'%(rank, i))
                 else:
                     pass
                 time.sleep(1)

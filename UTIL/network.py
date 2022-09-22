@@ -167,6 +167,7 @@ class UnixUdpServer:
 
     def __del__(self):
         self.server.close()
+        os.unlink(self.unix_path)
         return
 
 class UnixUdpTargetedClient:
@@ -198,6 +199,11 @@ class UnixUdpTargetedClient:
         if self.use_pickle: data = pickle.loads(data)
         if DEBUG_NETWORK: print('get_reply :', self.target_unix_path, ' data :', data)
         return data
+    
+    def __del__(self):
+        self.client.close()
+        os.unlink(self.self_unix_path)
+        return
 
 
 # ///////   test unix udp
@@ -323,9 +329,11 @@ class UnixTcpServerP2P(StreamingPackageSep):
 
     def __del__(self):
         self.server.close()
-        try: os.remove(self.unix_path)
+        try: os.unlink(self.unix_path)
         except: pass
         return
+
+
 
 
 class UnixTcpClientP2P(StreamingPackageSep):
@@ -364,7 +372,7 @@ class UnixTcpClientP2P(StreamingPackageSep):
 
     def __del__(self):
         self.client.close()
-        os.remove(self.self_unix_path)
+        os.unlink(self.self_unix_path)
         return
 
 '''

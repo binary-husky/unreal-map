@@ -73,7 +73,7 @@ class Net(nn.Module):
         others = {}
         if self.use_normalization:
             if torch.isnan(obs).all(): pass
-            else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
+            else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode or self.static))
 
         mask_dead = torch.isnan(obs).any(-1)
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0

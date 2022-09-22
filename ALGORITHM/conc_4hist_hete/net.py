@@ -104,7 +104,7 @@ class Net(nn.Module):
             if torch.isnan(obs).all():
                 pass # 某一种类型的智能体全体阵亡
             else:
-                obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
+                obs = self._batch_norm(obs, freeze=(eval_mode or test_mode or self.static))
 
         mask_dead = torch.isnan(obs).any(-1)    # find dead agents
         obs = torch.nan_to_num_(obs, 0)         # replace dead agents' obs, from NaN to 0

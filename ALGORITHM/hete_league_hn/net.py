@@ -75,7 +75,7 @@ class Net(nn.Module):
         others = {}
         if self.use_normalization:
             if torch.isnan(obs).all(): pass
-            else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode))
+            else: obs = self._batch_norm(obs, freeze=(eval_mode or test_mode or self.static))
             obs_hfeature_norm = obs_hfeature
 
         mask_dead = torch.isnan(obs).any(-1)
@@ -98,7 +98,7 @@ class Net(nn.Module):
         # apply action selector
         act, actLogProbs, distEntropy, probs = logit2act( logits, 
                                                           eval_mode=eval_mode,
-                                                          greedy=(test_mode), 
+                                                          greedy=(test_mode or self.static), 
                                                           eval_actions=eval_act, 
                                                           avail_act=avail_act,
                                                           eprsn=eprsn )

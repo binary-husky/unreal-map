@@ -17,7 +17,7 @@
         "fold": 1,
         "remote_server_ops": "curl -T \"LOCALFILE\" -u fuqingxu:clara \"http://cloud.fuqingxu.top:4080/remote.php/dav/files/fuqingxu/research/ProfileJsonHistory/REMOTEFILE\"",
         "backup_files": [
-            "ALGORITHM/hete_league_hn_fix",
+            "ALGORITHM/hete_league_onenet_fix",
             "MISSION/uhmap"
         ]
     },
@@ -42,7 +42,7 @@
         "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer/UHMPServer.sh",
         "TimeDilation": 64, // simulation time speed up, larger is faster
         "TEAM_NAMES": [
-            "ALGORITHM.hete_league_hn_fix.foundation->ReinforceAlgorithmFoundation",
+            "ALGORITHM.hete_league_onenet_fix.foundation->ReinforceAlgorithmFoundation",
             "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack",
         ]
     },
@@ -83,15 +83,15 @@
     },
 
     // --- Part3: config ALGORITHM 2/2 --- 
-    "ALGORITHM.hete_league_hn_fix.shell_env.py->ShellEnvConfig": {
+    "ALGORITHM.hete_league_onenet_fix.shell_env.py->ShellEnvConfig": {
         "add_avail_act": true
     },
-    "ALGORITHM.hete_league_hn_fix.foundation.py->AlgorithmConfig": {
+    "ALGORITHM.hete_league_onenet_fix.foundation.py->AlgorithmConfig": {
         "train_traj_needed": 16,
         "hete_n_alive_frontend": 2,
         "hete_n_net_placeholder":5,
         "hete_max_active_groups": 5,
-        "hete_same_prob": 0.25,
+        "hete_same_prob": 0.40,
         "load_checkpoint": false,
         "load_specific_checkpoint": "",
         "gamma": 0.99,
@@ -101,8 +101,8 @@
         "lr": 0.0004,
         "ppo_epoch": 24,
         "policy_resonance": false,
-        "debug": true,
-        "type_agent_diff_lr": true,
+        "debug": false,
+        "type_agent_diff_lr": false,
         "n_entity_placeholder": 11
     },
 
