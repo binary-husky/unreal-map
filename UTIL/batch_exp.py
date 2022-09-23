@@ -5,9 +5,10 @@ import time
 import json
 from UTIL.colorful import *
 
-def run_batch_exp(n_run, n_run_mode, base_conf, conf_override):
+def run_batch_exp(sum_note, n_run, n_run_mode, base_conf, conf_override):
     arg_base = ['python', 'main.py']
-    time_mark = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
+    time_mark_only = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+    time_mark = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + '-' + sum_note
     log_dir = '%s/'%time_mark
     exp_log_dir = log_dir+'exp_log'
     if not os.path.exists('PROFILE/%s'%exp_log_dir):
@@ -109,29 +110,28 @@ def run_batch_exp(n_run, n_run_mode, base_conf, conf_override):
                 sftp.close()
                 print紫('do not need upload')
 
-        time_mark_ = time_mark.replace(':','-')
-        print('byobu attach -t %s'%time_mark_)
+        print('byobu attach -t %s'%time_mark_only)
         addr_ip, addr_port = addr.split(':')
-        print亮蓝("Attach cmd: ssh %s@%s -p %s -t \"byobu attach -t %s\""%(usr, addr_ip, addr_port, time_mark_))
+        print亮蓝("Attach cmd: ssh %s@%s -p %s -t \"byobu attach -t %s\""%(usr, addr_ip, addr_port, time_mark_only))
         
-        stdin, stdout, stderr = ssh.exec_command(command='byobu new-session -d -s %s'%time_mark_, timeout=1)
-        print亮紫('byobu new-session -d -s %s'%time_mark_)
+        stdin, stdout, stderr = ssh.exec_command(command='byobu new-session -d -s %s'%time_mark_only, timeout=1)
+        print亮紫('byobu new-session -d -s %s'%time_mark_only)
         time.sleep(1)
 
-        byobu_win_name = '%s--run-%d'%(time_mark_, ith_run)
-        byobu_win_name = byobu_win_name.replace(':','-')
-        stdin, stdout, stderr = ssh.exec_command(command='byobu new-window -t %s'%time_mark_, timeout=1)
-        print亮紫('byobu new-window -t %s'%time_mark_)
+        byobu_win_name = '%s--run-%d'%(time_mark_only, ith_run)
+        byobu_win_name = byobu_win_name
+        stdin, stdout, stderr = ssh.exec_command(command='byobu new-window -t %s'%time_mark_only, timeout=1)
+        print亮紫('byobu new-window -t %s'%time_mark_only)
         time.sleep(1)
 
 
         cmd = 'cd  ' + src_path
-        stdin, stdout, stderr = ssh.exec_command(command='byobu send-keys -t %s "%s" C-m'%(time_mark_, cmd), timeout=1)
+        stdin, stdout, stderr = ssh.exec_command(command='byobu send-keys -t %s "%s" C-m'%(time_mark_only, cmd), timeout=1)
         print亮紫('byobu send-keys "%s" C-m'%cmd)
         time.sleep(1)
 
         cmd = ' '.join(final_arg_list[ith_run])
-        stdin, stdout, stderr = ssh.exec_command(command='byobu send-keys -t %s "%s" C-m'%(time_mark_, cmd), timeout=1)
+        stdin, stdout, stderr = ssh.exec_command(command='byobu send-keys -t %s "%s" C-m'%(time_mark_only, cmd), timeout=1)
         print亮紫('byobu send-keys "%s" C-m'%cmd)
         time.sleep(1)
 

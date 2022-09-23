@@ -3,7 +3,12 @@
 Cuda is needed inside our docker container, which need toolkits from Nvidia for GPU support.
 Please install nvidia docker runtime on the host ubuntu system.
 
-For details, refer to https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#installing-on-ubuntu-and-debian
+For details, refer to nvidia official document: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#installing-on-ubuntu-and-debian
+
+According the link above, we write a manual about installing nvidia docker runtime:
+Please read [SetupUbuntu](./setup_ubuntu.md).
+
+
 
 # 2. Start docker container
 From the host:

@@ -128,6 +128,8 @@ n_run_mode = [
     },
 ]*n_run
 assert len(n_run_mode)==n_run
+
+sum_note = "excludeZero-prob0.8-batch128"
 conf_override = {
     
     
@@ -161,13 +163,13 @@ conf_override = {
         
     "config.py->GlobalConfig-->note":
         [
-            "R-onenetexclude_zero_wr-pr-prob1-T1000-sameprob-0.4-batch128-run1",
-            "R-onenetexclude_zero_wr-pr-prob1-T1000-sameprob-0.5-batch128-run1",
-            "R-onenetexclude_zero_wr-pr-prob1-T1000-sameprob-0.6-batch128-run1",
+            "R-onenetexclude_zero_wr-pr-prob1-T1000-sameprob-0.8-batch128-run1",
+            "R-onenetexclude_zero_wr-pr-prob1-T1000-sameprob-0.8-batch128-run2",
+            "R-onenetexclude_zero_wr-pr-prob1-T1000-sameprob-0.8-batch128-run3",
             
-            "R-onenetexclude_zero_wr-pr-prob1-T500-sameprob-0.4-batch128-run1",
-            "R-onenetexclude_zero_wr-pr-prob1-T500-sameprob-0.5-batch128-run1",
-            "R-onenetexclude_zero_wr-pr-prob1-T500-sameprob-0.6-batch128-run1",
+            "R-onenetexclude_zero_wr-pr-prob1-T500-sameprob-0.8-batch128-run1",
+            "R-onenetexclude_zero_wr-pr-prob1-T500-sameprob-0.8-batch128-run2",
+            "R-onenetexclude_zero_wr-pr-prob1-T500-sameprob-0.8-batch128-run3",
             
         ],
     "ALGORITHM.hete_league_onenet_fix.stage_planner.py->PolicyRsnConfig-->cosine_yita_shift_cycle":
@@ -183,13 +185,13 @@ conf_override = {
         
     "ALGORITHM.hete_league_onenet_fix.foundation.py->AlgorithmConfig-->hete_same_prob":
         [
-            1.0,
-            1.0,
-            1.0,
+            0.8,
+            0.8,
+            0.8,
             
-            1.0,
-            1.0,
-            1.0,
+            0.8,
+            0.8,
+            0.8,
         ],
 
 }
@@ -200,4 +202,4 @@ if __name__ == '__main__':
     shutil.copyfile(__file__, os.path.join(os.path.dirname(__file__), 'batch_experiment_backup.py'))
     # run experiments remotely
     from UTIL.batch_exp import run_batch_exp
-    run_batch_exp(n_run, n_run_mode, base_conf, conf_override)
+    run_batch_exp(sum_note, n_run, n_run_mode, base_conf, conf_override)
