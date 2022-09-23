@@ -3,6 +3,7 @@ import numpy as np
 from UTIL.colorful import print蓝, print靛, print亮红
 from UTIL.network import TcpClientP2PWithCompress, find_free_port_no_repeat
 from UTIL.config_args import ChainVar
+from config import GlobalConfig
 from ..common.base_env import BaseEnv
 from .actset_lookup import binary_friendly, dictionary_n_actions
 from .agent import Agent
@@ -130,7 +131,19 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
         
         self.simulation_life = self.max_simulation_life
         # with a lock, we can initialize UE side one by one (not necessary though)
+
+        # wait until thread 0 finish its initialization (to avoid a traffic jam in server memory)
+        traffic_light = './TEMP/uhmap_thread_0_init_ok_%s'%GlobalConfig.machine_info['ExpUUID'][:8]
+        if rank != 0:
+            while not os.path.exists(traffic_light): time.sleep(1)
+
         self.activate_simulation(self.id, find_port=True)
+
+        # thread 0 finish its initialization, 
+        if rank == 0:
+            with open(traffic_light, mode='w+') as f: f.write(traffic_light)
+
+
 
     def __del__(self):
         self.terminate_simulation()
@@ -213,19 +226,19 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
 
         time.sleep(1+np.abs(self.id)/100)
         self.client = TcpClientP2PWithCompress(self.ip_port)
-        MAX_RETRY = 100
+        MAX_RETRY = 150
         for i in range(MAX_RETRY):
             try: 
                 self.client.manual_connect()
                 print('handshake complete %d'%rank)
                 break
             except: 
-                if i>50:
+                if i>25:
                     print('Thread %d: Trying to connect to unreal engine. Related library not in memory, going to take some minutes. Retry %d ...'%(rank, i))
-                elif i>100:
+                elif i>75:
                     print('Thread %d: Waiting too long, please reduce parallel threads (num_threads), Retry %d ... | 请减小num_threads运行一次, 让动态库载入内存, 然后恢复num_threads即可'%(rank, i))
-                else:
-                    pass
+                elif i >= MAX_RETRY-1:
+                    assert False, ('uhmap connection timeout, please reduce parallel threads (num_threads) !')
                 time.sleep(1)
         # now that port is bind, no need to hold them anymore
         if find_port:
