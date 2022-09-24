@@ -128,6 +128,7 @@ class Runner(object):
                 self.info_runner['Recent-Team-Ranking'] = []
             # begin a testing session?
             if self.train_time_testing and (not self.test_only) and (self.current_n_episode % self.test_interval == 0): 
+                self.platform_controller.before_terminate(self.info_runner)
                 self.start_a_test_run()
         # all threads haulted, finished and Aligned, then restart all thread
         if self.align_episode and self.info_runner['ENV-PAUSE'].all():  self.info_runner['ENV-PAUSE'][:] = False
@@ -182,6 +183,7 @@ class Runner(object):
                     self.platform_controller.notify_teams(message='test done:%s', win_rate=win_rate, mean_reward=reward_avg_itr_agent)
                     # close all
                     if self.test_env_sleepy: self.test_envs.sleep()
+                    self.platform_controller.before_terminate(self.test_info_runner)
                     return
         def init_test_runner(self):
             if not hasattr(self, 'test_envs'):

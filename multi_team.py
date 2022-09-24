@@ -62,6 +62,12 @@ class MMPlatform(object):
         if ENV_PAUSE.any() and self.align_episode: actions_list[ENV_PAUSE,:] = np.nan
         return actions_list, runner_info
 
+    def before_terminate(self, runner_info):
+        for t_name, t_members, t_index in zip(self.t_name, self.t_member_list, range(self.n_t)):
+            # split info such as reward and observation
+            self._split_intel(runner_info, t_members, t_name, t_index)
+
+
     def _update_runner(self, runner_info, ENV_PAUSE, t_name, key, content):
         u_key = t_name+key
         if (u_key in runner_info) and hasattr(content, '__len__') and \
@@ -111,9 +117,10 @@ class MMPlatform(object):
             # otherwise deal with _hook_
             if t_intel_basic['_hook_'] is not None:
                 self.deal_with_hook(t_intel_basic['_hook_'], t_intel_basic)
-                runner_info[key] = t_intel_basic['_hook_'] = None
+                runner_info[key] = None
+                t_intel_basic['_hook_'] = None
             # remove _hook_ key
-            t_intel_basic.pop('_hook_') and runner_info.pop(key)
+            t_intel_basic.pop('_hook_')
             
         # t_intel_basic = self.filter_running(t_intel_basic, RUNNING)
         return t_intel_basic
