@@ -235,6 +235,6 @@ class ShellEnvWrapper(object):
         if not StateRecall['Test-Flag']:
             StateRecall['_hook_'] = internal_recall['_hook_']
             assert StateRecall['_hook_'] is not None
-        
+
         # all done
         return actions_list, StateRecall 

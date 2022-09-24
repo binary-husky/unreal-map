@@ -1,4 +1,4 @@
-import torch, math, copy
+import torch, math, copy, pickle
 import numpy as np
 import torch.nn as nn
 from config import GlobalConfig as cfg
@@ -245,6 +245,17 @@ class HeteNet(nn.Module):
 
         # reload the net features
         self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
+        
+        # save to a file
+        with open('%s/history_cpt/ckpg_info.pkl'%cfg.logdir, 'wb') as f:
+            pickle.dump(self.ckpg_info, f)
+        
+        # read from a file
+        # with open('%s/history_cpt/ckpg_info.pkl'%cfg.logdir, 'rb') as f:
+        #     self.ckpg_info = pickle.load(f)
+
+
+
         print('parameters reloaded')
 
     def random_select(self, *args, **kwargs):
