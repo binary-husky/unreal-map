@@ -150,7 +150,7 @@ class Runner(object):
             self.init_test_runner()
             # loop until all env is done
             assert self.test_epoch%self.n_thread == 0, ('please set test_epoch as (n_thread * N)!')
-            ntimesthread = self.test_epoch // self.n_thread
+            num_runs = self.test_epoch // self.n_thread
             print靛('\r[task runner]: test run is going to run %d episode'%self.test_epoch)
             while True:
                 actions_list, self.test_info_runner = self.platform_controller.act(self.test_info_runner)
@@ -159,7 +159,7 @@ class Runner(object):
                 if self.hb_on: print('\r [task runner]: testing %s  '%self.heartbeat(
                     style=3, beat=self.test_info_runner['Current-Obs-Step']), end='', flush=True)
                 # If the test run reach its end, record the reward and win-rate:
-                if (self.test_info_runner['Thread-Episode-Cnt']>=ntimesthread).all():
+                if (self.test_info_runner['Thread-Episode-Cnt']>=num_runs).all():
                     # get the reward average
                     reward_of_each_ep = np.stack(self.test_info_runner['Recent-Reward-Sum']) #.squeeze()
                     if self.RewardAsUnity: 
@@ -180,7 +180,8 @@ class Runner(object):
                     print_info = 'average reward: %.2f, win rate: %.2f'%(reward_avg_itr_agent, win_rate)
                     print靛('\r[task runner]: test finished, %s'%print_info )
                     if cfg.upload_after_test: upload_exp(cfg)
-                    self.platform_controller.notify_teams(message='test done:%s', win_rate=win_rate, mean_reward=reward_avg_itr_agent)
+                    self.platform_controller.notify_teams(message='test done:%s', 
+                        win_rate=win_rate, mean_reward=reward_avg_itr_agent)
                     # close all
                     if self.test_env_sleepy: self.test_envs.sleep()
                     self.platform_controller.before_terminate(self.test_info_runner)
