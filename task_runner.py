@@ -33,7 +33,6 @@ class Runner(object):
             self.test_env_sleepy = cfg.ScenarioConfig.CanTurnOff
         self.n_thread = cfg.num_threads
         self.n_frame =  cfg.n_parallel_frame
-        self.test_epoch=cfg.test_epoch
         self.note =     cfg.note   # experiment note
         self.hb_on =    cfg.heartbeat_on and stdout.isatty()    # show the environment stepping heartbeat
         self.current_n_frame = 0
@@ -149,9 +148,9 @@ class Runner(object):
             print靛('\r[task runner]: test run started!')
             self.init_test_runner()
             # loop until all env is done
-            assert self.test_epoch%self.n_thread == 0, ('please set test_epoch as (n_thread * N)!')
-            num_runs = self.test_epoch // self.n_thread
-            print靛('\r[task runner]: test run is going to run %d episode'%self.test_epoch)
+            assert cfg.test_epoch%self.n_thread == 0, ('please set test_epoch as (n_thread * N)!')
+            num_runs = cfg.test_epoch // self.n_thread
+            print靛('\r[task runner]: test run is going to run %d episode'%cfg.test_epoch)
             while True:
                 actions_list, self.test_info_runner = self.platform_controller.act(self.test_info_runner)
                 obs, reward, done, info = self.test_envs.step(actions_list)
@@ -179,12 +178,12 @@ class Runner(object):
                     self.mcv.rec_show()
                     print_info = 'average reward: %.2f, win rate: %.2f'%(reward_avg_itr_agent, win_rate)
                     print靛('\r[task runner]: test finished, %s'%print_info )
+                    self.platform_controller.before_terminate(self.test_info_runner)
                     if cfg.upload_after_test: upload_exp(cfg)
                     self.platform_controller.notify_teams(message='test done:%s', 
                         win_rate=win_rate, mean_reward=reward_avg_itr_agent)
                     # close all
                     if self.test_env_sleepy: self.test_envs.sleep()
-                    self.platform_controller.before_terminate(self.test_info_runner)
                     return
         def init_test_runner(self):
             if not hasattr(self, 'test_envs'):

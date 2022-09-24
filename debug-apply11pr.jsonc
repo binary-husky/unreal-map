@@ -103,6 +103,7 @@
         "policy_resonance": true,
         "debug": false,
         "type_agent_diff_lr": false,
+        "policy_matrix_testing": true,
         "n_entity_placeholder": 11
     },
     "ALGORITHM.hete_league_onenet_fix.stage_planner.py->PolicyRsnConfig": {

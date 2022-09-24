@@ -24,3 +24,7 @@ class UniqueList():
 
     def get(self):
         return self._list
+
+    def __iter__(self):
+        return self._list.__iter__()
+
