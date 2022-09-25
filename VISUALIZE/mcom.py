@@ -18,7 +18,8 @@ class mcom():
             resume_mod: resume previous session
             resume_file: resume from which file
             image_path: if draw_mode=='Img', where to save image
-            
+            figsize: if draw_mode=='Img', determine the size of the figure, default is (12, 6)
+            rec_exclude: if draw_mode=='Img', blacklist some vars
     """
     def __init__(self, path=None, digit=-1, rapid_flush=True, draw_mode="Img", tag='default', resume_mod=False, **kargs):
         self.draw_mode = draw_mode
@@ -408,7 +409,7 @@ class DrawProcess(Process):
         self.draw_mode = draw_mode
         self.draw_udp_port = draw_udp_port
         self.tcp_connection = QueueOnTcpServer(self.draw_udp_port)
-        self.image_path = kargs['image_path'] if 'image_path' in kargs else None
+        self.kwargs = kargs
 
         return
 
@@ -508,7 +509,10 @@ class DrawProcess(Process):
 
     def rec_init_fn(self):
         from VISUALIZE.mcom_rec import rec_family
-        self.rec = rec_family('r', self.draw_mode, self.image_path)
+        self.rec = rec_family('r', 
+            self.draw_mode, 
+            **self.kwargs
+        )
 
     def v2d_init_fn(self):
         from VISUALIZE.mcom_v2d import v2d_family

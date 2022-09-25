@@ -1,6 +1,6 @@
-import os
+import os, fnmatch, matplotlib
 import numpy as np
-import matplotlib
+from functools import lru_cache
 from config import GlobalConfig
 # 设置matplotlib正常显示中文和负号
 # matplotlib.rcParams['font.sans-serif']=['SimHei']   # 用黑体显示中文
@@ -10,7 +10,7 @@ StandardPlotFig = 1
 ComparePlotFig = 2
 # from pylab import *
 class rec_family(object):
-    def __init__(self, colorC=None, draw_mode='Native', image_path=None):
+    def __init__(self, colorC=None, draw_mode='Native', image_path=None, figsize=(12, 6), rec_exclude=[], **kwargs):
         self.name_list = []
         self.line_list = []
         self.line_plot_handle = []
@@ -20,10 +20,12 @@ class rec_family(object):
         self.working_figure_handle = None
         self.working_figure_handle2 = None
         self.smooth_line = False
+        self.figsize = figsize
         self.colorC = 'k' if colorC is None else colorC
         self.Working_path = 'Testing-beta'
         self.image_num = -1
         self.draw_mode = draw_mode
+        self.rec_exclude = rec_exclude
         self.vis_95percent = True
         self.enable_percentile_clamp = True
         logdir = GlobalConfig.logdir
@@ -57,8 +59,17 @@ class rec_family(object):
     def rec_init(self, colorC=None):
         if colorC is not None: self.colorC = colorC
         return
+    
+    @lru_cache(500)
+    def match_exclude(self, name):
+        for n in self.rec_exclude:
+            if fnmatch.fnmatch(name, n): return True
+        return False
 
     def rec(self, var, name):
+        if self.match_exclude(name):
+            return
+            
         if name in self.name_list:
             pass
         else:
@@ -76,7 +87,7 @@ class rec_family(object):
         #画重叠曲线，如果有的话
         
         if self.working_figure_handle is None:
-            self.working_figure_handle = self.plt.figure(StandardPlotFig, figsize=(12, 6), dpi=100)
+            self.working_figure_handle = self.plt.figure(StandardPlotFig, figsize=self.figsize, dpi=100)
             if self.draw_mode == 'Native': 
                 self.working_figure_handle.canvas.set_window_title(self.Working_path)
                 self.plt.show()
