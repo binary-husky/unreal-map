@@ -285,12 +285,14 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
                 mask = [u==uu  for uu in recent_test_hete_gp_summary_ls]
                 r = np.array(self.recent_test_rewards)[mask].mean()
                 wr = np.array(self.recent_test_wins)[mask].mean()
-                self.mcv_matrix.rec(r,  'r %s'%feature)
-                self.mcv_matrix.rec(wr, 'w %s'%feature)
-                self.mcv_matrix.rec(sum(mask), 'n %s'%feature)
-                # self.mcv_matrix.rec(self.policy.ckpg_input_cnt, 'time')
+
+                self.mcv_matrix.rec(self.policy.ckpg_input_cnt, 'time')
+                self.mcv_matrix.rec(r,  'r of=%s'%feature)
+                self.mcv_matrix.rec(wr, 'w of=%s'%feature)
+                self.mcv_matrix.rec(sum(mask), 'n of=%s'%feature)
 
             self.mcv_matrix.rec_show()
+            
             self.recent_test_rewards = []
             self.recent_test_wins = []
             self.recent_test_hete_gp_summary = []
