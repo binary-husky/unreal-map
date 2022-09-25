@@ -89,8 +89,8 @@ def distribute_compute(fn_arr, mask_arr, **kwargs):
         tuple tensors: the result of networks
     """
     # python don't have pointers, 
-    # however, a list is a mutable type in python, that's all we need
-    g_out = [None]  
+    # however, a list is a mutable type in python, that's what we need
+    g_out = [None]
     
     n_threads = mask_arr[0].shape[0]
     n_agents = mask_arr[0].shape[1]
@@ -258,7 +258,7 @@ class HeteNet(nn.Module):
 
         print('parameters reloaded')
 
-    def random_select(self, *args, **kwargs):
+    def random_select(self, testing, *args, **kwargs):
         """randomly select a group index
 
         Args:
@@ -267,7 +267,7 @@ class HeteNet(nn.Module):
         Returns:
             int: a group index
         """
-        # redirect to frontier if so
+        assert not testing
         if np.random.rand() < AlgorithmConfig.hete_same_prob:
             return 0
         
@@ -282,43 +282,31 @@ class HeteNet(nn.Module):
             return rand_sel
         else:
             return 0
+    if AlgorithmConfig.policy_matrix_testing: 
+        def random_select_matrix_test(self, testing, *args, **kwargs):
     
-    # def random_select(self, rand_ops=None):
-    #     """randomly select a group index
+            if testing:
+                hete_frontier_prob = 0.2
+            else:
+                hete_frontier_prob = AlgorithmConfig.hete_same_prob
 
-    #     Args:
-    #         AlgorithmConfig.hete_same_prob: a probability about choosing the frontier net as the teammate
+            if np.random.rand() < hete_frontier_prob:
+                return 0
+                
+            # choose randomly among existing nets
+            n_option = len(self.ckpg_info)
+            if n_option > 0:
+                if n_option > AlgorithmConfig.hete_lasted_n:
+                    assert AlgorithmConfig.hete_lasted_n != 0
+                    rand_sel = np.random.randint(low=n_option+1-AlgorithmConfig.hete_lasted_n, high=n_option+1)
+                else:
+                    rand_sel = np.random.randint(low=1, high=n_option+1)
+                return rand_sel
+            else:
+                return 0
 
-    #     Returns:
-    #         int: a group index
-    #     """
-    #     # when random win rate is high, direct to frontend nets
-    #     if np.random.rand() < AlgorithmConfig.hete_same_prob:
-    #         return 0
-        
-    #     # randomly select ckp
-    #     if rand_ops is not None:
-    #         # improve efficiency by limiting the number of active net
-    #         rand_winrate = np.random.choice(rand_ops)
-    #     else:
-    #         rand_winrate = np.random.rand()
-            
-    #     # find nearest
-    #     e_min = float('inf')
-    #     e_min_index = -1 # default return 0
-    #     for i, t in enumerate(self.ckpg_info):
-    #         winrate = t['win_rate']
-    #         e = abs(winrate-rand_winrate)
-    #         if e < e_min:
-    #             e_min = e
-    #             e_min_index = i
-        
-    #     if e_min_index >= 0: # not empty
-    #         # print亮绿('given', rand_winrate, 'return', e_min_index + 1)
-    #         return e_min_index + 1
-    #     else: # self.ckpg_info is empty
-    #         # print亮绿('given', rand_winrate, 'return', 0)
-    #         return 0
+
+
 
     # called after training update
     def on_update(self, update_cnt):
@@ -406,7 +394,8 @@ class HeteNet(nn.Module):
         
         # make sure all nets under testing is frontend / frontier
         if 'test_mode' in kargs and kargs['test_mode']: 
-            for net in running_nets: assert not net.static
+            for net in running_nets: 
+                if not AlgorithmConfig.policy_matrix_testing: assert not net.static
 
         # debug visual
         # if AlgorithmConfig.debug: self.debug_visual(hete_pick, n_thread, n_agents, thread_indices, running_nets)

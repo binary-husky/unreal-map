@@ -64,6 +64,7 @@ class AlgorithmConfig:
     
     type_agent_diff_lr = False
     hete_exclude_zero_wr = False
+    policy_matrix_testing = False
     
 def str_array_to_num(str_arr):
     out_arr = []
@@ -124,6 +125,22 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         if AlgorithmConfig.ConfigOnTheFly:
             self._create_config_fly()
 
+        if AlgorithmConfig.policy_matrix_testing:
+            self.threads_test_reward_sum = np.zeros(shape=(n_thread,), dtype=float)
+            # self.threads_test_reward = []
+            self.recent_test_rewards = []
+            self.recent_test_wins = []
+            self._unfi_frag_matrix_ = None
+            self.recent_test_hete_gp_summary = []
+            self.current_hete_gp_summary = None
+            from VISUALIZE.mcom import mcom
+            self.mcv_matrix = mcom( 
+                            path='%s/logger/matrix/'%GlobalConfig.logdir,
+                            image_path='%s/matrix.jpg'%GlobalConfig.logdir,
+                            draw_mode='Img',
+                            tag='[ppo.py]' )
+            self.mcv_matrix.rec_init(color='r')
+
 
     def action_making(self, StateRecall, test_mode):
         # make sure hook is cleared
@@ -172,8 +189,44 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         if avail_act is not None: traj_framefrag.update({'avail_act':  avail_act})
         
         # deal with rollout later when the reward is ready, leave a hook as a callback here
-        if not test_mode: StateRecall['_hook_'] = self.commit_traj_frag(traj_framefrag, req_hook = True)
+        if not test_mode: 
+            StateRecall['_hook_'] = self.commit_traj_frag(traj_framefrag, req_hook = True)
+        else:
+            if test_mode and AlgorithmConfig.policy_matrix_testing: 
+                StateRecall['_hook_'] = self.matrix_callback_special(traj_framefrag)
         return action.copy(), StateRecall
+
+
+
+    ''' 
+        function to be called when reward is received
+    '''
+    def matrix_callback_special(self, framefrag):
+        assert self._unfi_frag_matrix_ is None
+        self._unfi_frag_matrix_ = framefrag
+        return self.matrix_callback_special_callback
+
+    def matrix_callback_special_callback(self, new_frag):
+        
+        fi_frag = self._unfi_frag_matrix_
+        self._unfi_frag_matrix_ = None
+
+        reward = new_frag['reward'].copy()
+        done = new_frag['done'].copy()
+        # self.threads_test_reward.append(reward)
+        self.threads_test_reward_sum += reward * ~fi_frag['_SKIP_']
+        
+        if not any(fi_frag['_SKIP_']):
+            self.current_hete_gp_summary = fi_frag["gp_sel_summary"]
+
+        if done.all():
+            self.recent_test_rewards.extend(self.threads_test_reward_sum)
+            self.recent_test_wins.extend([q['team_ranking'][self.team]==0 for q in new_frag['info']]) # 0 means rank first
+            self.recent_test_hete_gp_summary.extend(self.current_hete_gp_summary)
+            self.threads_test_reward_sum *= 0
+            self.current_hete_gp_summary = None
+
+        return None
 
 
     def interact_with_env(self, StateRecall):
@@ -221,6 +274,29 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         # win_rate = np.random.rand()
         self.policy.register_ckp(win_rate, path, mean_reward)
         
+        if AlgorithmConfig.policy_matrix_testing:
+            from UTIL.data_struct import UniqueList
+            # self.recent_test_hete_gp_summary_str = self.recent_test_hete_gp_summary # [str(q.tolist()) for q in self.recent_test_hete_gp_summary]
+            recent_test_hete_gp_summary_ls = [q.tolist() for q in self.recent_test_hete_gp_summary]
+            ulist = UniqueList(recent_test_hete_gp_summary_ls)
+            for u in ulist:
+                feature = self.policy.ph_to_feature[u].squeeze().cpu().numpy().tolist()
+                feature = "[%.2f,%.2f,%.2f]"%tuple(feature)
+                mask = [u==uu  for uu in recent_test_hete_gp_summary_ls]
+                r = np.array(self.recent_test_rewards)[mask].mean()
+                wr = np.array(self.recent_test_wins)[mask].mean()
+                self.mcv_matrix.rec(r,  'r %s'%feature)
+                self.mcv_matrix.rec(wr, 'w %s'%feature)
+                self.mcv_matrix.rec(sum(mask), 'n %s'%feature)
+                # self.mcv_matrix.rec(self.policy.ckpg_input_cnt, 'time')
+
+            self.mcv_matrix.rec_show()
+            self.recent_test_rewards = []
+            self.recent_test_wins = []
+            self.recent_test_hete_gp_summary = []
+
+
+
 
     def save_model(self, update_cnt, info=None):
         '''
