@@ -1,4 +1,4 @@
-# start up docker container
+# start up ue docker container | 这个docker额外带有虚幻引擎，体积有点大
 ```sh
 # 检查docker是否可用 （如果已经身处某个docker容器内，则docker不可用，请找到宿主系统，然后再运行以下命令）
 sudo docker ps

@@ -1,5 +1,8 @@
 # how to build: docker build --network=host -progress=plain -t hmp-from-scrach . 
 
+# 此文件用于构建 HMAP + Starcraft(难易两个版本) + 虚幻引擎组件
+# 可能需要翻墙，请自行搭梯子，然后解开下面相关的注释，并进行适当修改（socks5地址和端口）
+
 FROM nvidia/cuda:11.5.1-runtime-ubuntu20.04
 RUN apt-get update
 ARG useProxyNetwork=''
