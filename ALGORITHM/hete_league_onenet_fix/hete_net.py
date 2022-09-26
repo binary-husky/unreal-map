@@ -246,14 +246,6 @@ class HeteNet(nn.Module):
         # reload the net features
         self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
         
-        # save to a file
-        with open('%s/history_cpt/ckpg_info.pkl'%cfg.logdir, 'wb') as f:
-            pickle.dump(self.ckpg_info, f)
-        
-        # read from a file
-        # with open('%s/history_cpt/ckpg_info.pkl'%cfg.logdir, 'rb') as f:
-        #     self.ckpg_info = pickle.load(f)
-
 
 
         print('parameters reloaded')
@@ -286,7 +278,7 @@ class HeteNet(nn.Module):
         def random_select_matrix_test(self, testing, *args, **kwargs):
     
             if testing:
-                hete_frontier_prob = 0.2
+                hete_frontier_prob = 0 # 1 / (AlgorithmConfig.hete_lasted_n+1)
             else:
                 hete_frontier_prob = AlgorithmConfig.hete_same_prob
 
@@ -296,6 +288,8 @@ class HeteNet(nn.Module):
             # choose randomly among existing nets
             n_option = len(self.ckpg_info)
             if n_option > 0:
+                if AlgorithmConfig.hete_lasted_n == 0:
+                    return 0
                 if n_option > AlgorithmConfig.hete_lasted_n:
                     assert AlgorithmConfig.hete_lasted_n != 0
                     rand_sel = np.random.randint(low=n_option+1-AlgorithmConfig.hete_lasted_n, high=n_option+1)

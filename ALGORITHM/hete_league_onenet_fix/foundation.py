@@ -1,5 +1,4 @@
-import os, time, torch, traceback, shutil
-from typing import overload
+import os, time, torch, traceback, shutil, pickle
 import numpy as np
 from UTIL.colorful import *
 from config import GlobalConfig
@@ -324,6 +323,8 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         pt_path2 = '%s/history_cpt/model_%s.pt' % (GlobalConfig.logdir, info)
         shutil.copyfile(pt_path, pt_path2)
 
+        # save ckpg_info
+        with open('%s/history_cpt/ckpg_info.pkl'%GlobalConfig.logdir, 'wb') as f:pickle.dump((self.policy.ckpg_info, self.policy.ckpg_input_cnt, [(n.feature, n.static, n.ready_to_go) for n in self.policy._nets_flat_placeholder_]),f)
         print绿('save_model fin')
         return pt_path2
 
@@ -338,21 +339,29 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             ckpt_dir = '%s/model.pt' % GlobalConfig.logdir if manual_dir == '' else '%s/%s' % (GlobalConfig.logdir, manual_dir)
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
             strict = True
-            
+
             cpt = torch.load(ckpt_dir, map_location=cuda_n)
             self.policy.load_state_dict(cpt['policy'], strict=strict)
             # https://github.com/pytorch/pytorch/issues/3852
-            self.trainer.at_optimizer.load_state_dict(cpt['at_optimizer'])
-            self.trainer.ct_optimizer.load_state_dict(cpt['ct_optimizer'])
+            self.trainer.optimizer.load_state_dict(cpt['optimizer'])
 
             print黄('loaded checkpoint:', ckpt_dir)
+
+            with open('%s/history_cpt/ckpg_info.pkl'%GlobalConfig.logdir, 'rb') as f:
+                self.policy.ckpg_info, self.policy.ckpg_input_cnt, n_flags = pickle.load(f)
+            for (n, flags) in zip(self.policy._nets_flat_placeholder_, n_flags):
+                n.feature = flags[0]
+                n.static = flags[1]
+                n.ready_to_go = flags[2]
+            print黄('loaded ckpg_info')
+
 
 
     def process_framedata(self, traj_framedata):
         ''' 
             hook is called when reward and next moment observation is ready,
             now feed them into trajectory manager.
-            Rollout Processor 准备提交Rollout, 以下划线开头和结尾的键值需要对齐(self.n_thread, ...)
+            Rollout Processor | 准备提交Rollout, 以下划线开头和结尾的键值需要对齐(self.n_thread, ...)
             note that keys starting with _ must have shape (self.n_thread, ...), details see fn:mask_paused_env()
         '''
         # strip info, since it is not array
