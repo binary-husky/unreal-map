@@ -4,7 +4,7 @@ import torch.nn as nn
 from config import GlobalConfig as cfg
 from torch.distributions.categorical import Categorical
 from UTIL.colorful import print亮绿
-from UTIL.tensor_ops import Args2tensor_Return2numpy, Args2tensor, __hashn__, cat_last_dim, __hash__, repeat_at, scatter_righthand, gather_righthand, _2cpu2numpy, my_view
+from UTIL.tensor_ops import Args2tensor_Return2numpy, Args2tensor, __hashn__, cat_last_dim, __hash__, one_hot_with_nan, repeat_at, scatter_righthand, gather_righthand, _2cpu2numpy, my_view
 from .foundation import AlgorithmConfig
 from ..commom.pca import pca
 from ..commom.net_manifest import weights_init
@@ -180,13 +180,9 @@ class HeteNet(nn.Module):
         self.ckpg_input_cnt = 0
         # feature array, arranged according to placeholders
         self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
-        # debug visually
-        if AlgorithmConfig.debug:
-            from VISUALIZE.mcom import mcom
-            self.threejs_bridge = mcom(path='TEMP/v2d_logger/', rapid_flush=False, draw_mode='Threejs')
-            self.threejs_bridge.v2d_init()
-            self.threejs_bridge.set_style('font', fontPath='/examples/fonts/ttf/FZYTK.TTF', fontLineHeight=1500)
-            self.threejs_bridge.geometry_rotate_scale_translate('box',   0, 0, 0,       1, 1, 1,         0, 0, 0)
+        # 
+        # from UTIL.sync_exp import SynWorker
+        # self.syn_worker = SynWorker('follow')
 
     def lock_net(self, i):
         n = self._nets_flat_placeholder_[i]
@@ -262,7 +258,7 @@ class HeteNet(nn.Module):
         assert not testing
         if np.random.rand() < AlgorithmConfig.hete_same_prob:
             return 0
-        
+ 
         # choose randomly among existing nets
         n_option = len(self.ckpg_info)
         if n_option > 0:
@@ -274,11 +270,17 @@ class HeteNet(nn.Module):
             return rand_sel
         else:
             return 0
+
     if AlgorithmConfig.policy_matrix_testing: 
         def random_select_matrix_test(self, testing, *args, **kwargs):
     
             if testing:
                 hete_frontier_prob = 0 # 1 / (AlgorithmConfig.hete_lasted_n+1)
+                # print('manual selection')
+                n_option = len(self.ckpg_info)
+                LAST = AlgorithmConfig.test_which_cpk
+                # return 0
+                return (n_option+1) - LAST
             else:
                 hete_frontier_prob = AlgorithmConfig.hete_same_prob
 
@@ -312,44 +314,6 @@ class HeteNet(nn.Module):
     def acquire_net(self, i):
         tp, gp = self.ph_2_tpgp(i)
         return self._nets_flat_placeholder_[gp]
-
-    # def debug_visual(self, hete_pick, n_thread, n_agents, thread_indices, running_nets):
-    #     if n_thread > 8: return 
-    #     for i, net in enumerate(self._nets_flat_placeholder_):
-    #         update_cnt = net.update_cnt[0].item()
-    #         self.threejs_bridge.v2dx(
-    #             'box|%d|%s|0.2'%(-10-i, 'white' if not net.static else 'red' ),
-    #             net.tp, net.gp, 10,
-    #             label='G-%d, T-%d, U-%d'%(net.gp, net.tp, update_cnt),
-    #             label_color='white',
-    #         )
-    #     for t in range(n_thread):
-    #         thread_index = thread_indices[t].item()
-    #         for agent_index in range(n_agents):
-    #             hete_type = hete_pick[t, agent_index]
-    #             net = self.acquire_net(hete_type)
-    #             net_redirect = hete_type.item()
-    #             self.threejs_bridge.v2dx(
-    #                 'box|%d|%s|%.3f'%(thread_index*n_agents+agent_index, 
-    #                                 'white' if not net.static else 'red', 
-    #                                 0.2),
-    #                 agent_index, thread_index, 1,
-    #                 label='G-%d, U-%d'%(net.gp, net.update_cnt[0].item()),
-    #                 label_color='white',
-    #             )
-    #             if net.static:
-    #                 self.threejs_bridge.发射光束(
-    #                     'beam',         # 有 beam 和 lightning 两种选择
-    #                     src=thread_index*n_agents+agent_index,   # 发射者的几何体的唯一ID标识
-    #                     dst=-10-net_redirect,  # 接收者的几何体的唯一ID标识
-    #                     dur=0.5,        # 光束持续时间，单位秒，绝对时间，不受播放fps的影响
-    #                     size=0.03,      # 光束粗细
-    #                     color='DeepSkyBlue' # 光束颜色
-    #                 )
-    #     self.threejs_bridge.v2d_show()
-
-                
-                
                 
     def exe(self, hete_pick=None, **kargs):
         # shape
@@ -364,18 +328,17 @@ class HeteNet(nn.Module):
         ph_sel = gp_sel_summary # *self.n_tp + repeat_at(_012345, 0, n_thread)   # group * self.n_tp + tp
         ph_feature = self.ph_to_feature[ph_sel]  # my_view(, [0, -1])
         ph_feature_cp_raw = repeat_at(ph_feature, 1, n_agents)
-        
-        # reshape ph_feature
-        agent_self_type_mask = scatter_righthand( # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, n_tp=3, core_dim=4])
-            scatter_into = torch.zeros_like(ph_feature_cp_raw),
-            src = ph_feature_cp_raw.new_ones(n_thread,n_agents, 1, self.hete_feature_dim),
-            index = hete_type.unsqueeze(-1)#, check=True
-        ) 
+        agent2tp_onehot = torch.nn.functional.one_hot(hete_type.long(), num_classes=self.n_tp).unsqueeze(-1)
+
+        type_gp_mat = repeat_at(gp_sel_summary, -1, self.n_tp)
+        same_gp = (type_gp_mat == type_gp_mat.transpose(-1,-2)).long()
+        agent_self_type_mask2 = gather_righthand(same_gp,  index=hete_type, check=False).unsqueeze(-1)
+
         assert ph_feature_cp_raw.dim() == 4
-        ph_feature_cp = (ph_feature_cp_raw*(1-agent_self_type_mask) + agent_self_type_mask)
-        # ph_feature_cp.squeeze()
-        ph_feature_cp_obs_ = torch.cat((ph_feature_cp, agent_self_type_mask), 2)
-        ph_feature_cp_critic_ = torch.cat((ph_feature_cp_raw, agent_self_type_mask), 2)
+
+        ph_feature_cp2 = (ph_feature_cp_raw*(1-agent_self_type_mask2) + agent_self_type_mask2)
+        ph_feature_cp_obs_ = torch.cat((ph_feature_cp2, agent2tp_onehot), 2)
+        ph_feature_cp_critic_ = torch.cat((ph_feature_cp_raw, agent2tp_onehot), 2)
         ph_feature_cp_obs = my_view(ph_feature_cp_obs_, [0,0,-1]) # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, core_dim=12])
         ph_feature_cp_critic = my_view(ph_feature_cp_critic_, [0,0,-1]) # ph_feature_cp_obs.shape = torch.Size([n_thread=16, n_agents=10, core_dim=12])
         
@@ -391,8 +354,6 @@ class HeteNet(nn.Module):
             for net in running_nets: 
                 if not AlgorithmConfig.policy_matrix_testing: assert not net.static
 
-        # debug visual
-        # if AlgorithmConfig.debug: self.debug_visual(hete_pick, n_thread, n_agents, thread_indices, running_nets)
 
         # run actor policy networks
         actor_result = distribute_compute(
@@ -400,7 +361,8 @@ class HeteNet(nn.Module):
             mask_arr = [(self.ph_2_gp(hete_pick) == gp) for gp in invo_gps],
             **kargs
         )
-        
+
+
         # run critic network
         kargs.pop('obs_hfeature')   # replace h_feature
         kargs['obs_hfeature_critic'] = ph_feature_cp_critic

@@ -139,7 +139,7 @@ def prepare_tmp_folder():
     init_dir(global_temp_folder+'/GpuLock')
     init_dir(global_temp_folder+'/PortFinder')
 
-    _tmp_files_to_investigate = glob.glob(global_temp_folder+'/PortFinder/*' )
+    _tmp_files_to_investigate = glob.glob(global_temp_folder+'/PortFinder/*.txt' )
     
     for tmp in _tmp_files_to_investigate:
         if not is_file_empty(tmp):

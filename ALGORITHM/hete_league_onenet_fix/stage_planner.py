@@ -9,8 +9,8 @@ class PolicyRsnConfig:
     yita_inc_per_update = 0.0075 # (increase to 0.75 in 500 updates)
     freeze_critic = False
     
-    cosine_yita_shift = False
-    cosine_yita_shift_cycle = 1000
+    yita_shift_method = '-sin'
+    yita_shift_cycle = 1000
 
 
 class StagePlanner:
@@ -92,19 +92,28 @@ class StagePlanner:
         '''
             increase self.yita by @yita_inc_per_update per function call
         '''
-        if PolicyRsnConfig.cosine_yita_shift:
+        if PolicyRsnConfig.yita_shift_method == '-cos':
             self.yita = PolicyRsnConfig.yita_max
-            t = -math.cos(2*math.pi/PolicyRsnConfig.cosine_yita_shift_cycle * self.update_cnt) * PolicyRsnConfig.yita_max
-            
+            t = -math.cos(2*math.pi/PolicyRsnConfig.yita_shift_cycle * self.update_cnt) * PolicyRsnConfig.yita_max
             if t<=0:
                 self.yita = 0
             else:
                 self.yita = t
-                
             print亮绿('yita update:', self.yita)
 
-        else:
+        elif PolicyRsnConfig.yita_shift_method == '-sin':
+            self.yita = PolicyRsnConfig.yita_max
+            t = -math.sin(2*math.pi/PolicyRsnConfig.yita_shift_cycle * self.update_cnt) * PolicyRsnConfig.yita_max
+            if t<=0:
+                self.yita = 0
+            else:
+                self.yita = t
+            print亮绿('yita update:', self.yita)
+
+        elif PolicyRsnConfig.yita_shift_method == 'slow-inc':
             self.yita += PolicyRsnConfig.yita_inc_per_update
             if self.yita > PolicyRsnConfig.yita_max:
                 self.yita = PolicyRsnConfig.yita_max
             print亮绿('yita update:', self.yita)
+        else:
+            assert False

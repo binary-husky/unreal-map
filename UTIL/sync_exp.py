@@ -29,6 +29,8 @@ class SynWorker:
             except: pass
 
     def dump_sychronize_data(self):
+        if self.mod == 'follow':
+            return
         with open(self.sychronize_FILE_hashdict, 'wb+') as f:
             pickle.dump(self.sychronize_internal_hashdict, f)
         with open(self.sychronize_FILE_cnt, 'wb+') as f:

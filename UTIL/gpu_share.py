@@ -6,20 +6,7 @@ if IsLinux:
     import flock # flock is Linux only
     
 def check_lock_file(path):
-    def is_file_empty(file_path):
-        with open(file_path, 'r') as f: 
-            file_content = f.read()
-        if file_content == '' or file_content == '\n': 
-            return True
-        else:
-            return False
-
-    if is_file_empty(path):
-        os.remove(path)
-        glock = path.replace('.register','.glock')
-        if os.path.exists(glock): os.remove(glock)
-
-    return
+    return 
 
 def pid_exist(pid_str):
     try:

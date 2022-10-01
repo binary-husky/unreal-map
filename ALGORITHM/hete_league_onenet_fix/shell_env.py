@@ -132,6 +132,7 @@ class ShellEnvWrapper(object):
         assert self.n_agent == len(self_type_list)
         ActionConvertLegacy.confirm_parameters_are_correct(team, self.n_agent, len(opp_type_list))
         self.patience = 2000
+        self.epsiode_cnt = 0
         
     @staticmethod
     def get_binary_array(n, n_bits, dtype=np.float32):
@@ -180,6 +181,10 @@ class ShellEnvWrapper(object):
         
         # if true: just experienced full reset on all episode, this is the first step of all env threads
         if RST.all(): 
+            if GlobalConfig.test_only and (self.epsiode_cnt > GlobalConfig.report_reward_interval):
+                import sys
+                sys.exit(0)
+            self.epsiode_cnt += self.n_thread
             # policy resonance
             eprsn_yita = self.rl_functional.stage_planner.yita if AlgorithmConfig.policy_resonance else 0
             EpRsn = np.random.rand(self.n_thread) < eprsn_yita

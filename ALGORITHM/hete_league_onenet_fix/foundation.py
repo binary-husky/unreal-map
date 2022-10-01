@@ -2,7 +2,7 @@ import os, time, torch, traceback, shutil, pickle
 import numpy as np
 from UTIL.colorful import *
 from config import GlobalConfig
-from UTIL.tensor_ops import repeat_at
+from UTIL.tensor_ops import repeat_at, _2tensor
 from ..commom.rl_alg_base import RLAlgorithmBase
 class AlgorithmConfig:
     '''
@@ -64,6 +64,7 @@ class AlgorithmConfig:
     type_agent_diff_lr = False
     hete_exclude_zero_wr = False
     policy_matrix_testing = False
+    test_which_cpk = 1
     
 def str_array_to_num(str_arr):
     out_arr = []
@@ -328,6 +329,15 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         print绿('save_model fin')
         return pt_path2
 
+    def find_ckp(self, feature):
+        import glob
+        list_ckp = glob.glob('%s/history_cpt/*.pt'%GlobalConfig.logdir)
+        ckp_dir = [ckp for ckp in list_ckp if str(feature[0]) in ckp][0]
+        cuda_n = 'cpu' if 'cpu' in self.device else self.device
+        cpt = torch.load(ckp_dir, map_location=cuda_n)
+        # get previous frontier network
+        return {k.replace('_nets_flat_placeholder_.0.',''):v for k, v in cpt['policy'].items() if '_nets_flat_placeholder_.0.' in k}
+
 
     def load_model(self, AlgorithmConfig):
         '''
@@ -353,6 +363,9 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
                 n.feature = flags[0]
                 n.static = flags[1]
                 n.ready_to_go = flags[2]
+                if n.feature!=1: 
+                    n.load_state_dict(self.find_ckp(n.feature), strict=True)
+            self.policy.ph_to_feature = _2tensor(np.array([n.feature for n in self.policy._nets_flat_placeholder_]))
             print黄('loaded ckpg_info')
 
 
