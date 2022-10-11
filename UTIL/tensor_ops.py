@@ -117,6 +117,10 @@ def copy_clone(x):
             y = my_view(x, new_shape)
             y.shape = [3, 2, 2, 5, 6]
 
+    eg.5    x.shape = (32, 10, 24); new_shape = [32, 10, 24, 1]
+            y = my_view(x, new_shape)
+            y.shape = [32, 10, 24, 1]
+
     Error eg.1
             x.shape = (3, 4, 5, 6); new_shape = [0, 2, 0, -1, 0]
             Error: 2(!=4) and -1 must stick together!
@@ -139,11 +143,15 @@ def my_view(x, shape):
     for i, dim in enumerate(shape):
         if dim == 0: shape[i] = x.shape[i]
         elif dim == -1: break
+        elif i >= len(x.shape): break  # prevent x.shape[i] out of range
         elif dim != x.shape[i]: break
     for i in range(len(shape)):
-        ni = -(i + 1); dim = shape[ni]
+        if i >= len(x.shape): break # prevent x.shape[ni] out of range
+        ni = -(i + 1)
+        dim = shape[ni]
         if dim == 0: shape[ni] = x.shape[ni]
         elif dim == -1: break
+
     # print(shape)
     if isinstance(x, np.ndarray):
         return x.reshape(*shape)

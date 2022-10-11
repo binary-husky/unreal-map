@@ -33,6 +33,7 @@ def weights_init(m):
         'ResLinear':None,
         'LeakyReLU':None,
         'HyperNet':None,
+        'MyHyperNet':None,
         'DivTree':None,
     }
 

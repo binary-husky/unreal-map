@@ -50,3 +50,49 @@ class HyperNet(nn.Module):
         y = torch.matmul(hidden, w2) + b2 # b * t, 1, 1
         
         return y.squeeze(-2)
+
+
+
+class MyHyperNet(nn.Module):
+    def __init__(self, x_in_dim, hyber_in_dim, layer_out_dims, hyber_hid_dim):
+        super(MyHyperNet, self).__init__()
+
+        self.x_in_dim = x_in_dim
+        self.layer_out_dims = layer_out_dims
+        self.hyber_in_dim = hyber_in_dim
+        self.hyber_hid_dim = hyber_hid_dim
+        self.n_layer = len(self.layer_out_dims)
+        self.layer_dim_dict = [(x_in_dim, layer_out_dims[0])] + [(d_in, d_out) for d_in, d_out in zip(layer_out_dims[:-1], layer_out_dims[1:])]
+
+
+        self.weight_each_layer = nn.ModuleList([
+            nn.Sequential(nn.Linear(self.hyber_in_dim, self.hyber_hid_dim), nn.ReLU(inplace=True), nn.Linear(self.hyber_hid_dim, d_in * d_out))
+            for d_in, d_out in self.layer_dim_dict
+        ])
+
+        self.bias_each_layer = nn.ModuleList([
+            nn.Sequential(nn.Linear(self.hyber_in_dim, self.hyber_hid_dim), nn.ReLU(inplace=True), nn.Linear(self.hyber_hid_dim, d_out))
+            for d_in, d_out in self.layer_dim_dict
+        ])
+
+
+    def forward(self, x, hyper_x):
+        # x shape (thread/batch, agent, core)
+        # hyper_x shape (thread/batch, core)
+        assert hyper_x.dim() == 3
+        x = x.unsqueeze(-2)
+
+        for i in range(self.n_layer):
+            d_in, d_out = self.layer_dim_dict[i]
+            w = my_view(self.weight_each_layer[i](hyper_x), [0, 0, d_in, d_out])
+            b = self.bias_each_layer[i](hyper_x).unsqueeze(-2)
+            x = torch.matmul(x, w) + b
+
+            is_last_layer = (i==(self.n_layer-1))
+            if is_last_layer:
+                # do NOT use relu at last layer
+                pass
+            else:
+                x = F.relu(x, inplace=True)
+
+        return x.squeeze(-2)
