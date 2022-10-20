@@ -95,3 +95,13 @@ WORKDIR /home/hmp
 RUN $useProxyNetwork git clone https://github.com/binary-husky/hmp2g.git -b multiteam
 WORKDIR /home/hmp/hmp2g
 # RUN python main.py -c example.jsonc
+
+# Installing Times New Roman font
+USER root
+RUN apt-get --reinstall install ttf-mscorefonts-installer
+
+
+
+# exit
+USER hmp
+WORKDIR /home/hmp
