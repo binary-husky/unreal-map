@@ -38,7 +38,7 @@ class ShellEnv(object):
         
         opp_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']!=self.team]
         ActionConvertLegacy.confirm_parameters_are_correct(team, self.n_agent, len(opp_type_list))
-        
+
     def interact_with_env(self, StateRecall):
         if not hasattr(self, 'agent_type'):
             self.agent_uid = GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[self.team]
@@ -66,21 +66,11 @@ class ShellEnv(object):
                 assert False, 'compat method error'
             d['avail-act'] = self.avail_act[i]
             
-        # for t in StateRecall['Terminal-Obs-Echo']:
-        #     if t is not None:
-        #         print('???')
-            
         ret_action_list, team_intel = self.rl_foundation.interact_with_env_real(StateRecall)
         ret_action_list = np.swapaxes(ret_action_list, 0, 1)
-        # mask = np.isnan(ret_action_list)
-        # ret_action_list = np.nan_to_num(ret_action_list, 0)
-        
+
         R  = ~StateRecall['ENV-PAUSE']
         
-        # if self.patience>0:
-        #     self.patience -= 1
-        #     assert (gather_righthand(self.avail_act, repeat_at(ret_action_list, -1, 1), check=False)[R]==1).all()
-            
         act_converted = np.array([
             [ 
                 ActionConvertLegacy.convert_act_arr(self.agent_type[agentid], int(act)) 
