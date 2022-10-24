@@ -92,7 +92,7 @@ class ShellEnv(object):
 class ActionConvertLegacy():
     SELF_TEAM_ASSUME = 0
     OPP_TEAM_ASSUME = 1
-    OPP_NUM_ASSUME = 10
+    OPP_NUM_ASSUME = 20
     # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
     dictionary_args = [
         ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
@@ -104,17 +104,10 @@ class ActionConvertLegacy():
         ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 8
         ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 9
         ('SpecificMoving',      'Dir-Y',    None, None, None, None, None, None),   # 10
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    0),      # 11
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    1),      # 12
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    2),      # 13
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    3),      # 14
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    4),      # 15
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    5),      # 16
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    6),      # 17        
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    7),      # 
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    8),      # 
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    9),      # 
-    ]
+    ] 
+    for i in range(OPP_NUM_ASSUME):
+        dictionary_args.append( ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME, i) )
+    
 
 
     @staticmethod

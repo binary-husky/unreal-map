@@ -98,9 +98,9 @@ WORKDIR /home/hmp/hmp2g
 
 # Installing Times New Roman font
 USER root
-RUN apt-get --reinstall install ttf-mscorefonts-installer
-
-
+# RUN apt-get --reinstall install ttf-mscorefonts-installer
+# RUN apt-get install msttcorefonts -qq
+# RUN rm /home/hmp/.cache/matplotlib -rf
 
 # exit
 USER hmp

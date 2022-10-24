@@ -25,20 +25,25 @@ def random_group(random_select_fn, n_thread, hete_type, n_hete_types, n_group, s
 
 
 
-# 
 def select_nets_for_shellenv(n_types, policy, hete_type_list, n_thread, n_gp, testing):
     if (not testing) or (AlgorithmConfig.policy_matrix_testing):
         n_alive_frontend = AlgorithmConfig.hete_n_alive_frontend
         tmp = np.arange(n_types)
         # select types to use frontier
-        selected_types = np.stack([
-            np.random.choice(
-                a=tmp,
-                size=(n_alive_frontend),
-                replace=False,
-                p=None)
-            for _ in range(n_thread)
-        ])
+        if not AlgorithmConfig.type_sel_override:
+            selected_types = np.stack([
+                np.random.choice(
+                    a=tmp,
+                    size=(n_alive_frontend),
+                    replace=False,
+                    p=None)
+                for _ in range(n_thread)
+            ])
+        else:
+            selected_types = np.stack([
+                AlgorithmConfig.type_sel_override_list
+                for _ in range(n_thread)
+            ]) 
     else:
         # testing but not policy_matrix_testing: select all types to use frontier
         selected_types = np.stack([np.arange(n_types) for _ in range(n_thread)])

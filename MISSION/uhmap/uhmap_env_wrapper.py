@@ -171,6 +171,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             # which will be enlarged due to Butterfly Effect
             # therefore we have to make sure that FrameRate = 16,32,64,...
             print('checking ScenarioConfig args problems ...') 
+            assert ScenarioConfig.TimeDilation <= 128, "* TimeDilation <= 128 *"
             assert binary_friendly(1/ScenarioConfig.FrameRate), "* A Butterfly Effect problem *"
             assert binary_friendly(ScenarioConfig.TimeDilation/256), "* A Butterfly Effect problem *"
             real_step_time = np.floor(ScenarioConfig.StepGameTime/ScenarioConfig.TimeDilation*ScenarioConfig.FrameRate)*ScenarioConfig.TimeDilation/ScenarioConfig.FrameRate

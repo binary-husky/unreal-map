@@ -28,28 +28,35 @@ def prepare_args(vb=True):
     skip_logdir_check = (hasattr(args, 'skip') and (args.skip is not None) and args.skip) or (not vb)
 
     if len(unknown) > 0 and vb: print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
+    # load configuration from file
     import commentjson as json
-    with open(args.cfg, encoding='utf8') as f:
-        json_data = json.load(f)
-    new_args = load_config_via_json(json_data, vb)
-
+    # inject configuration into place
+    with open(args.cfg, encoding='utf8') as f: json_data = json.load(f)
+    # inject configuration into place
+    load_config_via_json(json_data, vb)
+    # read the new global configuration
     from config import GlobalConfig as cfg
+    # check log path conflict, change note name if required
     note_name_overide = None
     if not skip_logdir_check: 
         note_name_overide = check_experiment_log_path(cfg.logdir)
         if note_name_overide is not None: 
             override_config_file('config.py->GlobalConfig', {'note':note_name_overide}, vb)
+    # create log path
     if not os.path.exists(cfg.logdir): os.makedirs(cfg.logdir)
+    # back up essiential files
     if (not cfg.recall_previous_session) and vb: 
         copyfile(args.cfg, '%s/experiment.jsonc'%cfg.logdir)
         backup_files(cfg.backup_files, cfg.logdir, args.cfg)
         cfg.machine_info = register_machine_info(cfg.logdir)
+    # light up the ready flag
     cfg.cfg_ready = True
+    # finish
     return cfg
 
 def load_config_via_json(json_data, vb):
     for cfg_group in json_data:
-        if cfg_group == 'config.py->Glo.balConfig': random_seed_warning(json_data[cfg_group])
+        if cfg_group == 'config.py->GlobalConfig': random_seed_warning(json_data[cfg_group])
         dependency = override_config_file(cfg_group, json_data[cfg_group], vb)
         if dependency is not None:
             for dep in dependency:

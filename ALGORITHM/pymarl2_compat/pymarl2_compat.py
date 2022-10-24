@@ -13,6 +13,8 @@ class AlgorithmConfig():
     use_shell = ''
     state_compat = 'pad'   # 'pad', 'obs_mean', 'obs_cat'
     pymarl_config_injection = {}
+    load_checkpoint = False
+    load_specific_checkpoint = ''
 
 def encrpt_string(s):  # encrpt_string
     k = ''.join(['@']*1000)
@@ -60,8 +62,6 @@ class PymarlFoundation():
             "--env-config=HMP_compat",
             "with",
             "pymarl_config_injection=%s"%encrpt_string(json.dumps(AlgorithmConfig.pymarl_config_injection)),  
-            # "batch_size_run=%d"%self.n_thread,
-            # "batch_size=%d"%AlgorithmConfig.batch_size,
             "env_args.env_uuid=%s"%self.remote_uuid], stdout=fp, stderr=fp)
         
         from UTIL.network import UnixTcpServerP2P

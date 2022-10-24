@@ -1,4 +1,4 @@
-import os, time, torch, traceback, shutil, pickle
+import os, time, torch, traceback, shutil, pickle, io
 import numpy as np
 from UTIL.colorful import *
 from config import GlobalConfig
@@ -65,7 +65,9 @@ class AlgorithmConfig:
     hete_exclude_zero_wr = False
     policy_matrix_testing = False
     test_which_cpk = 1
-    
+    type_sel_override = False
+    type_sel_override_list = []
+
 def str_array_to_num(str_arr):
     out_arr = []
     buffer = {}
@@ -79,7 +81,12 @@ def itemgetter(*items):
     # same with operator.itemgetter
     def g(obj): return tuple(obj[item] if item in obj else None for item in items)
     return g
-
+class CPU_Unpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module == 'torch.storage' and name == '_load_from_bytes':
+            return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
+        else:
+            return super().find_class(module, name)
 class ReinforceAlgorithmFoundation(RLAlgorithmBase):
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
         from .shell_env import ShellEnvWrapper, ActionConvertLegacy
@@ -358,7 +365,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             print黄('loaded checkpoint:', ckpt_dir)
 
             with open('%s/history_cpt/ckpg_info.pkl'%GlobalConfig.logdir, 'rb') as f:
-                self.policy.ckpg_info, self.policy.ckpg_input_cnt, n_flags = pickle.load(f)
+                self.policy.ckpg_info, self.policy.ckpg_input_cnt, n_flags = CPU_Unpickler(f).load()
             for (n, flags) in zip(self.policy._nets_flat_placeholder_, n_flags):
                 n.feature = flags[0]
                 n.static = flags[1]
