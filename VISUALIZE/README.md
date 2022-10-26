@@ -177,6 +177,25 @@ x=1; y=2; z=3
     track_color='Green',    # 轨迹的颜色显示，输入js颜色名或者hex值均可
     )
 ```
+
+
+```python
+# 高级文本颜色，一句话添加不同颜色文字，支持换行，支持半透明背景色（测试中）
+n_blue=1
+n_red=2
+who_is_winning = '<Blue>Blue(MARL AI)<Black> is leading' if n_blue>n_red else '<Red>Red(Script AI)<Black> is leading'
+可视化桥.发送几何体('tower2|1004|Gray|0.2', 0, 0, 1, ro_x=0, ro_y=0, ro_z=0, 
+    # 文本的背景色
+    label_bgcolor='GhostWhite',
+    # 带不同颜色的文本区
+    label='<Blue>Blue(MARL AI)<Black>Agents Remain: <Blue>%d\n<Red>Red(Script AI)<Black>Agents Remain: <Red>%d \n%s<End>'%(n_blue, n_red, who_is_winning), 
+    # 默认颜色
+    label_color='DarkGreen', 
+    # 透明度
+    opacity=0
+)
+```
+
 其中的“renderOrder”选项比较难以理解，如果没有显示异常，则设置为0，或者干脆删除该键值（默认0）。
 
 用它解决的问题是简单的：

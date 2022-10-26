@@ -1,5 +1,6 @@
 # %matplotlib inline
 import os
+import copy
 import subprocess
 import matplotlib
 import matplotlib.pyplot as plt
@@ -7,8 +8,9 @@ import pandas as pd
 import seaborn as sns
 def setTimesNewRomanFont_MustExecuteAtLast():
     plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.serif'] = ['Times New Roman'] # + plt.rcParams['font.serif']
-
+    
 def init(font_scale):
     sns.set_theme(
         context='paper',    # notebook, paper, talk, poster
@@ -60,6 +62,23 @@ def rename_key_in_dict_list(dict_list, from_what, to_what):
         res.append(d)
     return res
 
+def rename_query_in_dict_list(dict_list, from_what, to_what):
+    res = []
+    for d in dict_list:
+        new = copy.deepcopy(d)
+        for k, v in d.items():
+            if k == from_what: new[to_what] = new.pop(k)
+        res.append(new)
+    return res
+
+# def map_in_dict_list(dict_list, from_what, to_what):
+#     res = []
+#     for d in dict_list:
+#         for k, v in d.items():
+#             if v == from_what: d[k] = to_what
+#         res.append(d)
+#     return res
+
 def lift_key_in_dict_list(dict_list, key):
     res = []
     for d in dict_list:
@@ -72,12 +91,16 @@ def lift_key_in_dict_list(dict_list, key):
     return res
 
 # 左下角为0点
-def legend(handle, 水平位置百分比, 垂直位置百分比, 边框):
+def legend(handle, 水平位置百分比, 垂直位置百分比, 边框, 字体大小):
     # https://stackoverflow.com/questions/39803385/what-does-a-4-element-tuple-argument-for-bbox-to-anchor-mean-in-matplotlib/39806180#39806180
+    
     sns.move_legend(
         handle, "center", frameon = 边框,
-        bbox_to_anchor=(水平位置百分比, 垂直位置百分比)
+        bbox_to_anchor=(水平位置百分比, 垂直位置百分比),
+        fontsize = 字体大小,
+        title_fontsize = 字体大小*1.2,
     )
+
 
 def save_and_push(handle, img_path, check_exist=True):
     if check_exist and os.path.exists(img_path): 
