@@ -1,6 +1,5 @@
 import os, torch
 import numpy as np
-from numba import njit, jit
 from UTIL.colorful import *
 from UTIL.tensor_ops import my_view, __hash__
 import pickle

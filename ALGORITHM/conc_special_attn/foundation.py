@@ -1,6 +1,5 @@
 import os, torch, json, time
 import numpy as np
-from numba import njit, jit
 from UTIL.colorful import *
 from .net import Net
 from config import GlobalConfig
