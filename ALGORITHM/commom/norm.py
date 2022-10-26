@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 from torch.distributions.multivariate_normal import MultivariateNormal
 from UTIL.tensor_ops import my_view
-# from UTIL.tensor_ops import Args2tensor_Return2numpy
+from UTIL.tensor_ops import Args2tensor_Return2numpy
 
 class DynamicNorm(nn.Module):
     # ! warning! this module will mess with multi-gpu setting!!
@@ -96,18 +96,12 @@ class DynamicNormFix(nn.Module):
         self.TD = (self.T2**2 - self.T1**2)/self.T2**2
         self.first_run = True
         self.debug = True
-        # if self.debug:
-            # from VISUALIZE.mcom import mcom
-            # logdir = './RECYCLE'
-            # self.mcv = mcom( path='%s/logger/'%logdir,
-            #     rapid_flush=True,
-            #     draw_mode='Img',
-            #     tag='[task_runner.py]',
-            #     resume_mod=False)
-            # self.mcv.rec_init(color='b')
-            # self.mcv.rec_disable_percentile_clamp()
-         
-                
+
+    # 兼容np
+    @Args2tensor_Return2numpy
+    def np_forward(self, x, freeze=False, get_mu_var=False):
+        return self.forward(x, freeze, get_mu_var)
+    
     def forward(self, x, freeze=False, get_mu_var=False):
         assert self.input_size == x.shape[-1], ('self.input_size',self.input_size,'x.shape[-1]',x.shape[-1])
         _2dx = x.detach().reshape(-1, self.input_size)

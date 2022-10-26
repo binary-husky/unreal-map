@@ -1,0 +1,41 @@
+{
+    "config.py->GlobalConfig": {
+        "note": "hybrid-bvr-conc-IS4-new-rewardy",               // experiment note, also means the log saving directory
+        // "train_time_testing": "False",                      // do not manage train time testing, pymarl env manage the testing itself
+        // "heartbeat_on":"True",                             // just some fancy visual effect
+        "env_name":"bvr",                                   // starcraft 2
+        "env_path":"MISSIONS.bvr_sim",    // starcraft 2
+        // "interested_agent_num":100,                         // only for reward logging, **not needed because sc2 use uniform team reward
+        "draw_mode": "Img",                                 // plot curlves as image
+        "num_threads": "32",                                 // number of parallel envs
+        "report_reward_interval": "32",                      // report the reward averaging x episodes
+        "test_interval": "256",                             // begin a test run every x episodes, test run is managed by pymarl side
+        "test_epoch": "64",                                 // begin a test run every x episodes, test run is managed by pymarl side
+        "device": "cuda:4",
+        // "max_n_episode": 1500000, 1.706
+        // "gpu_party": "CUDA0_P1",
+        "fold": "1",                                        // each linux process handle x parallel envs
+        "seed": 1115,                                       // seed 9995-->9996
+        "backup_files":[
+        ]
+    },
+
+    "MISSIONS.bvr_sim.init_env.py->ScenarioConfig": {
+        "render": false,
+        "reduce_ipc_io": true,
+        "internal_step": 4,
+        "TEAM_NAMES": [
+            "ALGORITHM.conc_4hist_scdb.foundation->ReinforceAlgorithmFoundation"
+        ]
+    },
+
+    "ALGORITHM.conc_4hist_scdb.foundation.py->AlgorithmConfig": {
+        "train_traj_needed": "64",
+        "n_focus_on": 3,
+        "actor_attn_mod": "False",
+        "lr": 0.0005,
+        "ppo_epoch": 24,
+        "load_checkpoint": "False"
+    }
+}
+

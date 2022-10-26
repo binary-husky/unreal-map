@@ -1,0 +1,52 @@
+{
+    "config.py->GlobalConfig": {
+        "note": "hybrid-starcraft27m-qtran",               // experiment note, also means the log saving directory
+        // "train_time_testing": "False",                      // do not manage train time testing, pymarl env manage the testing itself
+        "env_name":"sc2",                                   // starcraft 2
+        "env_path":"MISSION.starcraft.sc2_env_wrapper",    // starcraft 2
+        // "interested_agent_num":100,                         // only for reward logging, **not needed because sc2 use uniform team reward
+        "draw_mode": "Img",                                 // plot curlves as image
+        "num_threads": "4",                                 // number of parallel envs
+        "report_reward_interval": "16",                      // report the reward averaging x episodes
+        "test_interval": "256",                             // begin a test run every x episodes, test run is managed by pymarl side
+        "test_epoch": "16",                                 // begin a test run every x episodes, test run is managed by pymarl side
+        "device": "cuda:6",
+        "max_n_episode": 1500000,
+        // "gpu_party": "CUDA0_P1",
+        "fold": "1",                                        // each linux process handle x parallel envs
+        "seed": 1113,                                       // seed 9995-->9996
+        "backup_files":[
+        ]
+    },
+
+    "MISSION.starcraft.sc2_env_wrapper.py->ScenarioConfig": {
+        // "map_": "27m_vs_30m",
+        "map_": "5m_vs_6m",
+        "sc_version": "2.4.10",
+        // "map_": "5m_vs_6m",
+        // "SINGLE_TEAM_N_AGENT": 5,
+        // "episode_limit": 60,
+        // "reward_vec": true,
+        "TEAM_NAMES": [
+            "ALGORITHM.pymarl2_compat.pymarl2_compat_old->PymarlFoundation"
+        ]
+    },
+
+    "ALGORITHM.pymarl2_compat.pymarl2_compat_old.py->AlgorithmConfig": {
+        "load_checkpoint": "False",
+        "pymarl2_alg_select": "qtran",
+        "pymarl2_runner_select": "parallel",
+        "pymarl_config_injection":{
+            "config.py->GlobalConfig": {
+                "batch_size": 128,
+                "load_checkpoint": "False",
+                "runner": "parallel",
+            },
+            "controllers.my_n_controller.py->PymarlAlgorithmConfig":{
+                "use_normalization": "True",
+                "use_vae": "False"
+            },
+        }
+    }
+}
+
