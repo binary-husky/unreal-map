@@ -20,7 +20,7 @@ def random_group(random_select_fn, n_thread, hete_type, n_hete_types, n_group, s
         for ht, group in enumerate(group_assignment):
             mask = (hete_type == ht)
             group_sel_arr[i,mask] = group
-    return group_sel_arr, np.stack(gp_sel_summary)
+    return group_sel_arr, np.stack(gp_sel_summary).astype(np.int64)
 
 
 

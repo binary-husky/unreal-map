@@ -67,6 +67,7 @@ class AlgorithmConfig:
     test_which_cpk = 1
     type_sel_override = False
     type_sel_override_list = []
+    allow_fast_test = True
 
 def str_array_to_num(str_arr):
     out_arr = []
@@ -356,7 +357,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             ckpt_dir = '%s/model.pt' % GlobalConfig.logdir if manual_dir == '' else '%s/%s' % (GlobalConfig.logdir, manual_dir)
             cuda_n = 'cpu' if 'cpu' in self.device else self.device
             strict = True
-
+            if not platform.system()=="Linux": assert ':' not in ckpt_dir, ('Windows OS does not allow : in file name')
             cpt = torch.load(ckpt_dir, map_location=cuda_n)
             self.policy.load_state_dict(cpt['policy'], strict=strict)
             # https://github.com/pytorch/pytorch/issues/3852
