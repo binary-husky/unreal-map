@@ -11,12 +11,12 @@ def find_free_port_no_repeat():
     from UTIL.file_lock import FileLock
     fp = os.path.expanduser('~/HmapTemp') + '/PortFinder/find_free_ports.txt'
 
-    with FileLock(fp):
+    with FileLock(fp+'.lock'):
         if not os.path.exists(fp):
             with open(fp, "w") as f: pass
 
         with open(fp, "r+") as f:
-            ports_to_be_taken = [int(p) for p in f.readlines()]
+            ports_to_be_taken = [int(p) for p in f.readlines() if p != '\n']
         while True:
             new_port = find_free_port()
             if new_port not in ports_to_be_taken:
@@ -35,12 +35,12 @@ def release_fn(port):
     from UTIL.file_lock import FileLock
     fp = os.path.expanduser('~/HmapTemp/PortFinder/find_free_ports.txt')
 
-    with FileLock(fp):
+    with FileLock(fp+'.lock'):
         if not os.path.exists(fp):
             with open(fp, "w") as f: pass
 
         with open(fp, "r+") as f:
-            ports_to_be_taken = [int(p) for p in f.readlines()]
+            ports_to_be_taken = [int(p) for p in f.readlines() if p != '\n']
             
         ports_to_be_taken.remove(port)
         with open(fp, "w") as f:

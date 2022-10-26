@@ -3,10 +3,11 @@
 import os
 import time
 import errno
- 
+import platform
+
 class FileLockException(Exception):
     pass
- 
+
 class FileLock(object):
     """ A file locking mechanism that has context-manager support so 
         you can use it in a with statement. This should be relatively cross
@@ -38,7 +39,7 @@ class FileLock(object):
             try:
                 self.fd = os.open(self.lockfile, os.O_CREAT|os.O_EXCL|os.O_RDWR)
                 self.is_locked = True #moved to ensure tag only when locked
-                break;
+                break
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
@@ -86,3 +87,8 @@ class FileLock(object):
             lying around.
         """
         self.release()
+
+
+# To compat Windows, redirect to a filelock package
+if not platform.system()=="Linux":  
+    from filelock import FileLock

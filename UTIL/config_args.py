@@ -18,7 +18,7 @@ class ChainVar(object):
     Load all parameters in place
 '''
 def prepare_args(vb=True):
-    prepare_tmp_folder()
+    if vb: prepare_tmp_folder()
     parser = argparse.ArgumentParser(description='HMP')
     parser.add_argument('-c', '--cfg', help='Path of the configuration file')
     parser.add_argument('-s', '--skip', action='store_true', help='skip logdir check')
@@ -151,7 +151,7 @@ def prepare_tmp_folder():
     for tmp in _tmp_files_to_investigate:
         if not is_file_empty(tmp):
             print亮红('Warning, find temp file which is not empty: %s !'%tmp)
-            time.sleep(10)
+            time.sleep(5)
 
     _tmp_files_to_investigate = glob.glob(global_temp_folder+'/GpuLock/*.register'    )
     for tmp in _tmp_files_to_investigate:

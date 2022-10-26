@@ -1,26 +1,38 @@
 """
-    Author: Fu Qingxu,CASIA
+    Author: Fu Qingxu, CASIA
     Description: Efficient parallel execting tool, 
     Less efficient than the shm_pool (Linux only), 
-    but this one supports Windows as well as Linux.
+    but this one supports Windows+Linux.
 """
 import numpy as np
 from multiprocessing import Pipe
-import time, psutil
+import time, psutil, platform, copy
+
+from config import GlobalConfig
 from .hmp_daemon import kill_process_and_its_children
 import multiprocessing
 def print_red(*kw,**kargs):
     print("\033[1;31m",*kw,"\033[0m",**kargs)
 def print_green(*kw,**kargs):
     print("\033[1;32m",*kw,"\033[0m",**kargs)
+def child_process_load_config(machine_info):
+    # This function is only needed in Windows:
+    # Load json config or cmdline config to child process, 
+    from UTIL.config_args import prepare_args
+    prepare_args(vb=False)
+    # there is a 'machine_info' in GlobalConfig that must agree with main process
+    GlobalConfig.machine_info = machine_info
+    pass
 
 class SuperProc(multiprocessing.Process):
-    def __init__(self, pipe, pipeHelp, index, base_seed):
+    def __init__(self, pipe, pipeHelp, index, base_seed, machine_info):
         super(SuperProc, self).__init__()
         self.p = pipe
         self.pH = pipeHelp
         self.local_seed = index + base_seed
         self.index = index
+        self.machine_info = machine_info
+        
 
     def automatic_generation(self, name, gen_fn, *arg):
         setattr(self, name, gen_fn(*arg))
@@ -55,7 +67,8 @@ class SuperProc(multiprocessing.Process):
         import numpy
         numpy.random.seed(self.local_seed)
         # linux uses fork, but windows does not, reload config for windows
-        # if not platform.system()=="Linux":  child_process_load_config()
+        if not platform.system()=="Linux":  
+            child_process_load_config(self.machine_info)
         print('[win_pool]: process worker %d started'%self.index)
         try:
             while True:
@@ -91,7 +104,7 @@ class SmartPool(object):
         self.thisSideHelp, self.thatSideHelp = zip(*[Pipe() for _ in range(proc_num)])
         self.base_seed = int(np.random.rand()*1e5) if base_seed is None else base_seed
         print('[win_pool]: SmartPool base rand seed', self.base_seed)
-        self.proc_pool = [SuperProc(pipe=p, pipeHelp=pH, index=cnt, base_seed=self.base_seed)
+        self.proc_pool = [SuperProc(pipe=p, pipeHelp=pH, index=cnt, base_seed=self.base_seed, machine_info=GlobalConfig.machine_info)
                           for p, pH, cnt in zip(self.thatSide, self.thatSideHelp, range(proc_num))]
         for proc in self.proc_pool:
             proc.daemon = False
