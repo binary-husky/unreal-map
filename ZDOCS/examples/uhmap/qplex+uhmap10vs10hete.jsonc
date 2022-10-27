@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "RVE-drone2-qmix-fixstate-run1",
+        "note": "qplex-uhmap",
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
         "draw_mode": "Img",
@@ -9,7 +9,6 @@
         "test_interval": 5120,
         "test_epoch": 256,
         "interested_team": 0,
-        "seed": 8529,
         "device": "cuda",
         "max_n_episode": 5000000,
         "fold": 1,

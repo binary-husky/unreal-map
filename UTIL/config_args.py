@@ -30,6 +30,7 @@ def prepare_args(vb=True):
     if len(unknown) > 0 and vb: print亮红('Warning! In json setting mode, %s is ignored'%str(unknown))
     # load configuration from file
     import commentjson as json
+    if vb: print亮绿('reading configuration at', args.cfg)
     # inject configuration into place
     with open(args.cfg, encoding='utf8') as f: json_data = json.load(f)
     # inject configuration into place
@@ -47,6 +48,8 @@ def prepare_args(vb=True):
     # back up essiential files
     if (not cfg.recall_previous_session) and vb: 
         copyfile(args.cfg, '%s/experiment.jsonc'%cfg.logdir)
+        if not os.path.exists('%s/raw_exp.jsonc'%cfg.logdir):
+            copyfile(args.cfg, '%s/raw_exp.jsonc'%cfg.logdir)
         backup_files(cfg.backup_files, cfg.logdir, args.cfg)
         cfg.machine_info = register_machine_info(cfg.logdir)
     # light up the ready flag
@@ -163,7 +166,7 @@ def register_machine_info(logdir):
     from .network import get_host_ip
     info = {
         'HostIP': get_host_ip(),
-        'ExpUUID':uuid.uuid1().hex,
+        'ExpUUID': uuid.uuid1().hex,
         'RunPath': os.getcwd(),
         'StartDateTime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     }
