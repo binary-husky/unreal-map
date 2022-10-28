@@ -66,15 +66,16 @@ ignore
 bvrAI.log
 ZHECKPOINT/*
 
-!THIRDPARTY
-THIRDPARTY/*
-!THIRDPARTY/__init__.py
-!THIRDPARTY/pymarl2
-THIRDPARTY/pymarl2/*
-!THIRDPARTY/pymarl2/__init__.py
-!THIRDPARTY/mappo
-THIRDPARTY/mappo/*
-!THIRDPARTY/mappo/__init__.py
+# !THIRDPARTY
+# THIRDPARTY/*
+# !THIRDPARTY/__init__.py
+# !THIRDPARTY/pymarl2
+# THIRDPARTY/pymarl2/*
+# !THIRDPARTY/pymarl2/__init__.py
+# !THIRDPARTY/mappo
+# THIRDPARTY/mappo/*
+# !THIRDPARTY/mappo/__init__.py
+THIRDPARTY/pymarl2/test
 
 !ZHECKPOINT/test-50+50
 ZHECKPOINT/test-50+50/*

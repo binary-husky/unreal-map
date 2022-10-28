@@ -63,7 +63,7 @@ class ShellEnv(object):
         StateRecall['Latest-Obs'] = np.nan_to_num(
                 self.obs_norm_fn(my_view(StateRecall['Latest-Obs'], [0,0,-1]))
             , 0)
-        StateRecall['Terminal-Obs-Echo'] = [np.nan_to_num(my_view(t, [0,-1]), 0)   if t is not None else None for t in StateRecall['Terminal-Obs-Echo']]
+        StateRecall['Terminal-Obs-Echo'] = [np.nan_to_num(my_view(np.array(t, dtype=float), [0,-1]), 0)   if t is not None else None for t in StateRecall['Terminal-Obs-Echo']]
         for i, d in enumerate(StateRecall['Latest-Team-Info']):
             if AlgorithmConfig.state_compat == 'pad':
                 d['state']      = np.zeros(self.state_size)
