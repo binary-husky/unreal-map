@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "qplex-uhmap",
+        "note": "cwqmix-cat",
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
         "draw_mode": "Img",
@@ -71,9 +71,9 @@
     "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig": {
         "use_shell": "mini_shell_uhmap",
         "use_shell_normalization": true,
-        "state_compat": "pad",
+        "state_compat": "obs_cat",
         "load_checkpoint": "False",
-        "pymarl2_alg_select": "qplex",
+        "pymarl2_alg_select": "cw_qmix",
         "pymarl2_runner_select": "parallel",
         "pymarl_config_injection":{
             "config.py->GlobalConfig": {
@@ -89,4 +89,3 @@
     }
 
 }
-

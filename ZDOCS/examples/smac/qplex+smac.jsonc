@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "hybrid-starcraft27m-qplex",               // experiment note, also means the log saving directory
+        "note": "hybrid-starcraft-5mvs6m-qplex",               // experiment note, also means the log saving directory
         // "train_time_testing": "False",                      // do not manage train time testing, pymarl env manage the testing itself
         "env_name":"sc2",                                   // starcraft 2
         "env_path":"MISSION.starcraft.sc2_env_wrapper",    // starcraft 2
@@ -29,11 +29,11 @@
         // "episode_limit": 60,
         // "reward_vec": true,
         "TEAM_NAMES": [
-            "ALGORITHM.pymarl2_compat.pymarl2_compat_old->PymarlFoundation"
+            "ALGORITHM.pymarl2_compat.pymarl2_compat->PymarlFoundationOld"
         ]
     },
 
-    "ALGORITHM.pymarl2_compat.pymarl2_compat_old.py->AlgorithmConfig": {
+    "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig": {
         "load_checkpoint": "False",
         "pymarl2_alg_select": "qplex",
         "pymarl2_runner_select": "parallel",
@@ -49,5 +49,6 @@
             },
         }
     }
+
 }
 

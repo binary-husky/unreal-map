@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "hybrid-starcraft-5mvs6m-qtran",               // experiment note, also means the log saving directory
+        "note": "hybrid-starcraft-5mvs6m-cwqmix",               // experiment note, also means the log saving directory
         // "train_time_testing": "False",                      // do not manage train time testing, pymarl env manage the testing itself
         "env_name":"sc2",                                   // starcraft 2
         "env_path":"MISSION.starcraft.sc2_env_wrapper",    // starcraft 2
@@ -34,7 +34,7 @@
 
     "ALGORITHM.pymarl2_compat.pymarl2_compat.py->AlgorithmConfig": {
         "load_checkpoint": "False",
-        "pymarl2_alg_select": "qtran",
+        "pymarl2_alg_select": "cw_qmix",
         "pymarl2_runner_select": "parallel",
         "pymarl_config_injection":{
             "config.py->GlobalConfig": {
