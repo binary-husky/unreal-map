@@ -1,5 +1,16 @@
-import socket, threading, pickle, uuid, os, atexit, time
+import socket, threading, pickle, uuid, os, atexit, time, json
+from UTIL.file_lock import FileLock
+port_finder = os.path.expanduser('~/HmapTemp') + '/PortFinder/find_free_port_no_repeat.json'
 
+def check_pid(pid):        
+    """ Check For the existence of a unix pid. """
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return True
+    
 def find_free_port():
     from contextlib import closing
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
@@ -7,46 +18,63 @@ def find_free_port():
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
-def find_free_port_no_repeat():
-    from UTIL.file_lock import FileLock
-    fp = os.path.expanduser('~/HmapTemp') + '/PortFinder/find_free_ports.txt'
 
-    with FileLock(fp+'.lock'):
+def find_free_port_no_repeat():
+    fp = port_finder
+    def read():
         if not os.path.exists(fp):
             with open(fp, "w") as f: pass
 
-        with open(fp, "r+") as f:
-            ports_to_be_taken = [int(p) for p in f.readlines() if p != '\n']
+        try:
+            with open(fp, "r+") as f: ports_to_be_taken = json.load(f)
+        except:
+            ports_to_be_taken = {}
+        return ports_to_be_taken
+    
+    def write(ports_to_be_taken):
+        # clean outdated
+        for port in list(ports_to_be_taken.keys()):
+            if not check_pid(ports_to_be_taken[port]['pid']):
+                ports_to_be_taken.pop(port)
+                print('removing dead item', port)
+
+        with open(fp, "w") as f:
+            json.dump(ports_to_be_taken, fp=f)
+
+
+    with FileLock(fp+'.lock'):
+
+        ports_to_be_taken = read()
+        
         while True:
             new_port = find_free_port()
-            if new_port not in ports_to_be_taken:
+            if str(new_port) not in ports_to_be_taken:
                 break
             else:
                 print('port taken, change another')
+        print('find port:', new_port)
 
-        ports_to_be_taken.append(new_port)
-        with open(fp, "w") as f:
-            f.writelines([str(p)+'\n' for p in ports_to_be_taken])
+        ports_to_be_taken[str(new_port)] = {
+            'time': time.time(),
+            'pid': os.getpid(),
+        } 
+        write(ports_to_be_taken)
 
-        print('new port:', new_port)
+    def release_fn(port):
+        with FileLock(fp+'.lock'):
+            ports_to_be_taken = read()
+            if str(port) in ports_to_be_taken: 
+                ports_to_be_taken.pop(str(port))
+            else:
+                pass
+            write(ports_to_be_taken)
+        return release_fn
+    
+    import atexit
+    atexit.register(release_fn, port=new_port)
+
     return new_port, release_fn
 
-def release_fn(port):
-    from UTIL.file_lock import FileLock
-    fp = os.path.expanduser('~/HmapTemp/PortFinder/find_free_ports.txt')
-
-    with FileLock(fp+'.lock'):
-        if not os.path.exists(fp):
-            with open(fp, "w") as f: pass
-
-        with open(fp, "r+") as f:
-            ports_to_be_taken = [int(p) for p in f.readlines() if p != '\n']
-            
-        ports_to_be_taken.remove(port)
-        with open(fp, "w") as f:
-            f.writelines([str(p)+'\n' for p in ports_to_be_taken])
-
-    return release_fn
 
 def get_host_ip():
     ip = None

@@ -2,19 +2,24 @@
     Author: Fu Qingxu, CASIA
     Description: Efficient parallel execting tool, 
     Less efficient than the shm_pool (Linux only), 
-    but this one supports Windows+Linux.
+    but this one supports Windows as well as Linux.
 """
 import numpy as np
+import time, psutil, platform, copy, multiprocessing
 from multiprocessing import Pipe
-import time, psutil, platform, copy
-
 from config import GlobalConfig
 from .hmp_daemon import kill_process_and_its_children
-import multiprocessing
+from sys import stdout
+
 def print_red(*kw,**kargs):
     print("\033[1;31m",*kw,"\033[0m",**kargs)
+
 def print_green(*kw,**kargs):
     print("\033[1;32m",*kw,"\033[0m",**kargs)
+
+if not stdout.isatty():
+    print_green = print_red = print
+
 def child_process_load_config(machine_info):
     # This function is only needed in Windows:
     # Load json config or cmdline config to child process, 

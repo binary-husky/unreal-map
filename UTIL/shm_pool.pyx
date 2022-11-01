@@ -12,8 +12,9 @@
 import time, pickle, platform, setproctitle, numpy
 from multiprocessing import Process, RawValue, Semaphore
 from multiprocessing import shared_memory
-from ctypes import c_bool, c_uint32
 from .hmp_daemon import kill_process_and_its_children
+from ctypes import c_bool, c_uint32
+from sys import stdout
 SHARE_BUF_SIZE = 10485760 # 10 MB for parameter buffer
 REGULAR_BUF_SIZE = 500000 # The non-numpy content max buffer size
 
@@ -23,6 +24,9 @@ def print_red(*kw,**kargs):
 def print_green(*kw,**kargs):
     print("\033[1;32m",*kw,"\033[0m",**kargs)
 
+if not stdout.isatty():
+    print_green = print_red = print
+    
 # optimize share mem IO for numpy ndarray
 class ndarray_indicator():
     def __init__(self, shape, dtype, shm_start, shm_end):
