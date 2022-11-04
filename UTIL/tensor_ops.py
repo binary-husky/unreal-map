@@ -235,13 +235,20 @@ def MayGoWrong(f):
 
     return decorated
 
-def dummy_decorator(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        return f(*args, **kwargs)
 
-    return decorated
-
+def dummy_decorator(f=None):
+    if callable(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            return f(*args, **kwargs)
+        return decorated
+    else:
+        def actual_decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(*args, **kwargs)
+            return wrapper
+        return actual_decorator
 
 """
     Function decorate, 

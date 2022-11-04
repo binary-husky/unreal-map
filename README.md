@@ -263,7 +263,7 @@ JS visualizer online (localhost): http://localhost:aRandomPort
 
 ```
 git pull && python main.py -c ZDOCS/examples/dca/example_dca.jsonc
-git pull && python main.py -c ZDOCS/examples/dca/example.jsonc
+git pull && python main.py -c ZDOCS/examples/dca/train_old_dca.jsonc
 ```
 
 
