@@ -1,0 +1,2 @@
+>>rec_init('g')
+><EndTaskFlag

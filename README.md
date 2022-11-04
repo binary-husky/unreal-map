@@ -20,6 +20,17 @@ runs pymarl2 in a subprocess. This work is ongoing. Currently, HMP can link to a
 By the way, we also have a gitee rep which is a mirror of this Github rep: ```https://gitee.com/hh505030475/hmp-2g```. Archived code used in our AAAI papers: ```https://github.com/binary-husky/hmp2g/tree/aaai-conc```.
 
 # Demo
+## Unreal-Engine Based Simulation
+<div align="center">
+<img src="ZDOCS/examples/uhmap/uhmp_demo.gif" width="300" >
+</div>
+Note: render client is not included in docker image. For visualization,
+refer to https://github.com/binary-husky/uhmap-visual-tool git resp.
+
+``` sh
+git pull && python main.py -c ZHECKPOINT/uhmap_hete10vs10/render_result.jsonc
+```
+
 ## Web Demo of DCA (AAAI Paper Version)
 
 ```

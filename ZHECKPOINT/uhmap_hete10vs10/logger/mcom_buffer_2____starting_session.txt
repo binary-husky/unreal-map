@@ -1,0 +1,5 @@
+>>rec_init('b')
+>>rec(1.8375000000000001e+00,"reward")
+>>rec(1.8375000000000001e+00,"top reward")
+>>rec(1.0000000000000000e+00,"top-rank ratio")
+>>rec_show

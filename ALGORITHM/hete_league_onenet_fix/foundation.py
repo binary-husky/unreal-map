@@ -368,18 +368,19 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
             self.trainer.optimizer.load_state_dict(cpt['optimizer'])
 
             print黄('loaded checkpoint:', ckpt_dir)
-
-            with open('%s/history_cpt/ckpg_info.pkl'%GlobalConfig.logdir, 'rb') as f:
-                self.policy.ckpg_info, self.policy.ckpg_input_cnt, n_flags = CPU_Unpickler(f).load()
-            for (n, flags) in zip(self.policy._nets_flat_placeholder_, n_flags):
-                n.feature = flags[0]
-                n.static = flags[1]
-                n.ready_to_go = flags[2]
-                if n.feature!=1: 
-                    n.load_state_dict(self.find_ckp(n.feature), strict=True)
-            self.policy.ph_to_feature = _2tensor(np.array([n.feature for n in self.policy._nets_flat_placeholder_]))
-            print黄('loaded ckpg_info')
-
+            if os.path.exists('%s/history_cpt/ckpg_info.pkl'%GlobalConfig.logdir):
+                with open('%s/history_cpt/ckpg_info.pkl'%GlobalConfig.logdir, 'rb') as f:
+                    self.policy.ckpg_info, self.policy.ckpg_input_cnt, n_flags = CPU_Unpickler(f).load()
+                for (n, flags) in zip(self.policy._nets_flat_placeholder_, n_flags):
+                    n.feature = flags[0]
+                    n.static = flags[1]
+                    n.ready_to_go = flags[2]
+                    if n.feature!=1: 
+                        n.load_state_dict(self.find_ckp(n.feature), strict=True)
+                self.policy.ph_to_feature = _2tensor(np.array([n.feature for n in self.policy._nets_flat_placeholder_]))
+                print黄('loaded ckpg_info')
+            else:
+                print('Warning, past policy missing !!')
 
 
     def process_framedata(self, traj_framedata):
