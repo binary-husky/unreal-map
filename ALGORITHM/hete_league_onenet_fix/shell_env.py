@@ -69,7 +69,6 @@ class ActionConvertLegacy():
         assert self.SELF_TEAM_ASSUME + self.OPP_TEAM_ASSUME == 1
         assert self.SELF_TEAM_ASSUME + self.OPP_TEAM_ASSUME == 1
         assert opp_agent_num == self.OPP_NUM_ASSUME
-
     
 def count_list_type(x):
     type_cnt = {}

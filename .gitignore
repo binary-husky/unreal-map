@@ -133,6 +133,12 @@ ZHECKPOINT/adca-demo/*
 !ZHECKPOINT/adca-demo/train.json
 !ZHECKPOINT/adca-demo/test.json
 
+!ZHECKPOINT/uhmap_hete10vs10
+ZHECKPOINT/uhmap_hete10vs10/backup_files
+
+cmd_io.txt
+rec.jpg
+detail_reward.jpg
 z_*
 ALGORITHM/conc_4hist_divtree3
 ALGORITHM/conc_4hist_divtree2
@@ -153,3 +159,5 @@ x.txt
 debug*.jsonc
 HLT_eval.py
 qplex-pad.jsonc
+raw_exp.jsonc
+info.json
