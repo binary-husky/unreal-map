@@ -262,8 +262,8 @@ JS visualizer online (localhost): http://localhost:aRandomPort
 ### 2. All Default: Training
 
 ```
-git pull && python main.py -c example.jsonc
-git pull && python main.py -c example_dca.jsonc
+git pull && python main.py -c ZDOCS/examples/dca/example_dca.jsonc
+git pull && python main.py -c ZDOCS/examples/dca/example.jsonc
 ```
 
 

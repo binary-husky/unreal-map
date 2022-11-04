@@ -4,7 +4,7 @@
         // "train_time_testing": "False",                      // do not manage train time testing, pymarl env manage the testing itself
         // "heartbeat_on":"True",                             // just some fancy visual effect
         "env_name":"bvr",
-        "env_path":"MISSIONS.bvr_sim",
+        "env_path":"MISSION.bvr_sim",
         // "interested_agent_num":100,                         // only for reward logging, **not needed because sc2 use uniform team reward
         "draw_mode": "Img",                                 // plot curlves as image
         "num_threads": "1",                                 // number of parallel envs
@@ -20,7 +20,7 @@
         ]
     },
 
-    "MISSIONS.bvr_sim.init_env.py->ScenarioConfig": {
+    "MISSION.bvr_sim.init_env.py->ScenarioConfig": {
         "render": true,
         "reduce_ipc_io": true,
         "internal_step": 4,
