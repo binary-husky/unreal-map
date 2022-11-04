@@ -4,7 +4,7 @@ import numpy as np
 import sys
 sys.path.append('./MISSION/collective_assult')
 from .multi_discrete import MultiDiscrete
-from .malib.spaces import Box, MASpace,  MAEnvSpec
+from malib.spaces import Box, MASpace, MAEnvSpec
 import time, os
 import json
 # from pyglet.gl import *
