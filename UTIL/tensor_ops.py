@@ -235,6 +235,12 @@ def MayGoWrong(f):
 
     return decorated
 
+def dummy_decorator(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        return f(*args, **kwargs)
+
+    return decorated
 
 
 """

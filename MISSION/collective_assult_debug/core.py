@@ -1,11 +1,13 @@
 import numpy as np
 import time
-from numba import jit
+try:
+    from numba import jit
+except:
+    from UTIL.tensor_ops import dummy_decorator as jit
 
 # written by qth,2021/04/22
 from scipy.optimize import linear_sum_assignment
 from scipy.cluster.vq import kmeans2
-from sklearn.cluster import DBSCAN
 from .cheat_script_ai import CheatScriptAI
 from .cython_func import laser_hit_improve3
 # action of the agent
