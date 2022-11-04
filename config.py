@@ -5,7 +5,6 @@ from UTIL.config_args import ChainVar
 
 
 
-
 '''
     GlobalConfig: This config class will be 'injected' with new settings from JSONC.
     (E.g., override configs with ```python main.py --cfg example.jsonc```)
