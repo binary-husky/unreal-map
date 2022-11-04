@@ -1,6 +1,10 @@
 import numpy as np
 import time
-from numba import njit, jit
+try: 
+    from numba import njit, jit
+except: 
+    from UTIL.tensor_ops import dummy_decorator as jit
+    from UTIL.tensor_ops import dummy_decorator as njit
 
 # written by qth,2021/04/22
 from scipy.optimize import linear_sum_assignment

@@ -2,7 +2,11 @@ import numpy as np
 from multiagent.core import World, Agent
 from multiagent.scenario import BaseScenario
 import cmath, math, os
-from numba import jit, njit
+try:
+    from numba import jit
+except:
+    from UTIL.tensor_ops import dummy_decorator as jit
+, njit
 
 def Norm(x):  # 求长度
     return np.linalg.norm(x)

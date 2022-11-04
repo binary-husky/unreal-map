@@ -1,6 +1,10 @@
 import numpy as np
 from UTIL.tensor_ops import my_view, Args2tensor_Return2numpy, Args2tensor, repeat_at, np_softmax, gather_righthand
-from numba import njit, jit
+try: 
+    from numba import njit, jit
+except: 
+    from UTIL.tensor_ops import dummy_decorator as jit
+    from UTIL.tensor_ops import dummy_decorator as njit
 class main_formation(object):
     def __init__(self):
         return

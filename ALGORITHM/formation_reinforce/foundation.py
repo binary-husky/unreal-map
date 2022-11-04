@@ -1,6 +1,10 @@
 import os, torch, json, time
 import numpy as np
-from numba import njit, jit
+try: 
+    from numba import njit, jit
+except: 
+    from UTIL.tensor_ops import dummy_decorator as jit
+    from UTIL.tensor_ops import dummy_decorator as njit
 from UTIL.colorful import *
 from .net import Net
 from config import GlobalConfig

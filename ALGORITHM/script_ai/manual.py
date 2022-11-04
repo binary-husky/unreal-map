@@ -1,6 +1,10 @@
 import numpy as np
 from UTIL.tensor_ops import my_view, copy_clone
-from numba import jit
+try:
+    from numba import jit
+except:
+    from UTIL.tensor_ops import dummy_decorator as jit
+
 
 def to_cpu_numpy(x):
     return x.cpu().numpy() if hasattr(x,'cpu') else x

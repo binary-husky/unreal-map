@@ -1,6 +1,10 @@
 import os, torch
 import numpy as np
-from numba import njit, jit
+try:
+    from numba import jit
+except:
+    from UTIL.tensor_ops import dummy_decorator as jit
+
 from UTIL.colorful import *
 from UTIL.tensor_ops import my_view, __hash__
 import pickle

@@ -1,6 +1,10 @@
 import os, torch
 import numpy as np
-from numba import njit, jit
+try: 
+    from numba import njit, jit
+except: 
+    from UTIL.tensor_ops import dummy_decorator as jit
+    from UTIL.tensor_ops import dummy_decorator as njit
 from UTIL.colorful import *
 from .gcortex import GNet
 from .ppo import PPO

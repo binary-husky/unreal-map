@@ -2,7 +2,11 @@ import copy
 from functools import wraps
 import numpy as np
 import torch
-from numba import jit, njit
+try:
+    from numba import jit
+except:
+    from UTIL.tensor_ops import dummy_decorator as jit
+
 
 
 def normalize_obs(obs, mean, std):
