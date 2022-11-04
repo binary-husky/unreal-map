@@ -10,43 +10,32 @@ from .hete_assignment import select_nets_for_shellenv
 class ShellEnvConfig:
     add_avail_act = False
     
+    
 class ActionConvertLegacy():
-    """
-        This class convert agent action from Discrete space to numerial action tuple.
-        dictionary_args: define the discrete actions
-        convert_action(): convert action from Discrete space to numerial action tuple.
-        get_tp_avail_act(): get available action according to the type of agents
-    """
-    SELF_TEAM_ASSUME = 0
-    OPP_TEAM_ASSUME = 1
-    OPP_NUM_ASSUME = 10
-    # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
-    dictionary_args = [
-        ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
-        ('Idle',        'DynamicGuard',     None, None, None, None, None, None),   # 1
-        ('Idle',        'StaticAlert',      None, None, None, None, None, None),   # 2
-        ('Idle',        'AsFarAsPossible',              None, None, None, None, None, None),   # 4
-        ('Idle',        'StayWhenTargetInRange',        None, None, None, None, None, None),   # 5
-        ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 7
-        ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 8
-        ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 9
-        ('SpecificMoving',      'Dir-Y',    None, None, None, None, None, None),   # 10
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    0),      # 11
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    1),      # 12
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    2),      # 13
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    3),      # 14
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    4),      # 15
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    5),      # 16
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    6),      # 17        
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    7),      # 
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    8),      # 
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    9),      # 
-    ]
+    def __init__(self, SELF_TEAM_ASSUME, OPP_TEAM_ASSUME, OPP_NUM_ASSUME) -> None:
+        self.SELF_TEAM_ASSUME = SELF_TEAM_ASSUME
+        self.OPP_TEAM_ASSUME = OPP_TEAM_ASSUME
+        self.OPP_NUM_ASSUME = OPP_NUM_ASSUME
+        # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
+        self.dictionary_args = [
+            ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
+            ('Idle',        'DynamicGuard',     None, None, None, None, None, None),   # 1
+            ('Idle',        'StaticAlert',      None, None, None, None, None, None),   # 2
+            ('Idle',        'AsFarAsPossible',              None, None, None, None, None, None),   # 4
+            ('Idle',        'StayWhenTargetInRange',        None, None, None, None, None, None),   # 5
+            ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 7
+            ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 8
+            ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 9
+            ('SpecificMoving',      'Dir-Y',    None, None, None, None, None, None),   # 10
+        ] 
+        for i in range(self.OPP_NUM_ASSUME):
+            self.dictionary_args.append( ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME, i) )
+    
+    
 
-    @staticmethod
-    def convert_action(type, a):
+    def convert_act_arr(self, type, a):
         if type == 'RLA_UAV_Support':
-            args = ActionConvertLegacy.dictionary_args[a]
+            args = self.dictionary_args[a]
             # override wrong actions
             if args[0] == 'SpecificAttacking':
                 return encode_action_as_digits('N/A',         'N/A',              None, None, None, None, None, None)
@@ -55,16 +44,15 @@ class ActionConvertLegacy():
                 return encode_action_as_digits('Idle',        'StaticAlert',      None, None, None, None, None, None)
             return encode_action_as_digits(*args)
         else:
-            return encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a])
+            return encode_action_as_digits(*self.dictionary_args[a])
 
-    @staticmethod
-    def get_tp_avail_act(type):
+    def get_tp_avail_act(self, type):
         DISABLE = 0
         ENABLE = 1
-        n_act = len(ActionConvertLegacy.dictionary_args)
+        n_act = len(self.dictionary_args)
         ret = np.zeros(n_act) + ENABLE
         for i in range(n_act):
-            args = ActionConvertLegacy.dictionary_args[i]
+            args = self.dictionary_args[i]
             
             # for all kind of agents
             if args[0] == 'PatrolMoving':       ret[i] = DISABLE
@@ -76,12 +64,12 @@ class ActionConvertLegacy():
                 if args[1] == 'StaticAlert':        ret[i] = ENABLE
         return ret
     
-    @staticmethod
-    def confirm_parameters_are_correct(team, agent_num, opp_agent_num):
-        assert team == ActionConvertLegacy.SELF_TEAM_ASSUME
-        assert ActionConvertLegacy.SELF_TEAM_ASSUME + ActionConvertLegacy.OPP_TEAM_ASSUME == 1
-        assert opp_agent_num == ActionConvertLegacy.OPP_NUM_ASSUME
-    
+    def confirm_parameters_are_correct(self, team, agent_num, opp_agent_num):
+        assert team == self.SELF_TEAM_ASSUME
+        assert self.SELF_TEAM_ASSUME + self.OPP_TEAM_ASSUME == 1
+        assert self.SELF_TEAM_ASSUME + self.OPP_TEAM_ASSUME == 1
+        assert opp_agent_num == self.OPP_NUM_ASSUME
+
     
 def count_list_type(x):
     type_cnt = {}
@@ -110,7 +98,11 @@ class ShellEnvWrapper(object):
         self.AvailActProvided = False
         if hasattr(ScenarioConfig, 'AvailActProvided'):
             self.AvailActProvided = ScenarioConfig.AvailActProvided 
-
+        self.action_converter = ActionConvertLegacy(
+                SELF_TEAM_ASSUME=team, 
+                OPP_TEAM_ASSUME=(1-team), 
+                OPP_NUM_ASSUME=GlobalConfig.ScenarioConfig.N_AGENT_EACH_TEAM[1-team]
+        )
         # heterogeneous agent types
         agent_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list]
         opp_type_list = [a['type'] for a in GlobalConfig.ScenarioConfig.SubTaskConfig.agent_list if a['team']!=self.team]
@@ -130,7 +122,7 @@ class ShellEnvWrapper(object):
         
         # check parameters
         assert self.n_agent == len(self_type_list)
-        ActionConvertLegacy.confirm_parameters_are_correct(team, self.n_agent, len(opp_type_list))
+        self.action_converter.confirm_parameters_are_correct(team, self.n_agent, len(opp_type_list))
         self.patience = 2000
         self.epsiode_cnt = 0
         
@@ -151,7 +143,7 @@ class ShellEnvWrapper(object):
             for agent_meta in StateRecall['Latest-Team-Info'][0]['dataArr']
             if agent_meta['uId'] in self.agent_uid]
         if ShellEnvConfig.add_avail_act:
-            self.avail_act = np.stack(tuple(ActionConvertLegacy.get_tp_avail_act(tp) for tp in self.agent_type))
+            self.avail_act = np.stack(tuple(self.action_converter.get_tp_avail_act(tp) for tp in self.agent_type))
             self.avail_act = repeat_at(self.avail_act, insert_dim=0, n_times=self.n_thread)
 
 
@@ -231,7 +223,7 @@ class ShellEnvWrapper(object):
             assert (gather_righthand(self.avail_act, repeat_at(act, -1, 1), check=False)[R]==1).all()
             
         # translate action into ue4 tuple action
-        act_converted = np.array([[ ActionConvertLegacy.convert_action(self.agent_type[agentid], act) for agentid, act in enumerate(th) ] for th in act])
+        act_converted = np.array([[ self.action_converter.convert_act_arr(self.agent_type[agentid], act) for agentid, act in enumerate(th) ] for th in act])
         
         # swap thread(batch) axis and agent axis
         actions_list = np.swapaxes(act_converted, 0, 1)

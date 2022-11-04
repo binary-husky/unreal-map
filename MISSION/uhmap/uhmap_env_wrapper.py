@@ -15,6 +15,9 @@ def get_subtask_conf(subtask):
     elif subtask == 'UhmapLargeScale':
         from .SubTasks.UhmapLargeScaleConf import SubTaskConfig
         return SubTaskConfig
+    elif subtask == 'UhmapHuge':
+        from .SubTasks.UhmapHugeConf import SubTaskConfig
+        return SubTaskConfig
 
 # please register this ScenarioConfig into MISSION/env_router.py
 class ScenarioConfig(object):  
@@ -299,3 +302,6 @@ def make_uhmap_env(env_id, rank):
     if ScenarioConfig.SubTaskSelection == 'UhmapLargeScale':
         from .SubTasks.UhmapLargeScale import UhmapLargeScale
         return UhmapLargeScale(rank)
+    if ScenarioConfig.SubTaskSelection == 'UhmapHuge':
+        from .SubTasks.UhmapHuge import UhmapHuge
+        return UhmapHuge(rank)

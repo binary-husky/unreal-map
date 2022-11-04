@@ -1,4 +1,4 @@
-import json, copy, re, inspect, os
+import json, copy, re, os, inspect, os
 import numpy as np
 from UTIL.tensor_ops import my_view, repeat_at
 from ...common.base_env import RawObsArray
@@ -6,18 +6,20 @@ from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
 from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
-from .UhmapLargeScaleConf import SubTaskConfig
+from .UhmapHugeConf import SubTaskConfig
 from .cython_func import tear_num_arr
 
 
 
 
-class UhmapLargeScale(UhmapEnv):
+class UhmapHuge(UhmapEnv):
     def __init__(self, rank) -> None:
         super().__init__(rank)
         self.observation_space = self.make_obs(get_shape=True)
+        inspect.getfile(SubTaskConfig)
         assert os.path.basename(inspect.getfile(SubTaskConfig)) == type(self).__name__+'Conf.py', \
                 ('make sure you have imported the correct SubTaskConfig class')
+
     def reset(self):
         super().reset()
         self.t = 0
@@ -403,10 +405,10 @@ class UhmapLargeScale(UhmapEnv):
 
 
 def init_ground(agent_info, pos_ro):
-    N_COL = 2
+    N_COL = 4
     agent_class = agent_info['type']
     team = agent_info['team']
-    n_team_agent = 10
+    n_team_agent = 50
     tid = agent_info['tid']
     uid = agent_info['uid']
     x = 0 + 800*(tid - n_team_agent//2) //N_COL
@@ -421,7 +423,7 @@ def init_ground(agent_info, pos_ro):
             # max drive/fly speed
             'MaxMoveSpeed':  720          if agent_class == 'RLA_CAR_Laser' else 600,
             # also influence object mass, please change it with causion!
-            'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
+            'AgentScale'  : { 'x': 0.5,  'y': 0.5, 'z': 0.5, },
             # probability of escaping dmg 闪避
             "DodgeProb": 0.0,
             # ms explode dmg
@@ -456,10 +458,10 @@ def init_ground(agent_info, pos_ro):
     return agent_property
 
 def init_air(agent_info, pos_ro):
-    N_COL = 2
+    N_COL = 4
     agent_class = agent_info['type']
     team = agent_info['team']
-    n_team_agent = 10
+    n_team_agent = 50
     tid = agent_info['tid']
     uid = agent_info['uid']
     
@@ -475,7 +477,7 @@ def init_air(agent_info, pos_ro):
             # max drive/fly speed
             'MaxMoveSpeed':  900,
             # also influence object mass, please change it with causion!
-            'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
+            'AgentScale'  : { 'x': 0.5,  'y': 0.5, 'z': 0.5, },
             # probability of escaping dmg 闪避
             "DodgeProb": 0.0,
             # ms explode dmg

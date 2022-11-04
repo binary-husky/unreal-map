@@ -1,4 +1,4 @@
-import json, os, subprocess, time, copy, re
+import json, os, subprocess, time, copy, re, inspect, os
 import numpy as np
 from UTIL.tensor_ops import my_view, repeat_at, distance_mat_between
 from ...common.base_env import RawObsArray
@@ -14,7 +14,8 @@ class UhmapBreakingBad(UhmapEnv):
     def __init__(self, rank) -> None:
         super().__init__(rank)
         self.observation_space = self.make_obs(get_shape=True)
-
+        assert os.path.basename(inspect.getfile(SubTaskConfig)) == type(self).__name__+'Conf.py', \
+                ('make sure you have imported the correct SubTaskConfig class')
     def reset(self):
         super().reset()
         
