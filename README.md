@@ -17,7 +17,7 @@ runs pymarl2 in a subprocess. This work is ongoing. Currently, HMP can link to a
 
 **Please ```star``` the root Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/hmp2g```**
 
-By the way, we also have a gitee rep which is a mirror of this Github rep: ```https://gitee.com/hh505030475/hmp-2g```. Archived code used in our AAAI papers: ```https://github.com/binary-husky/hmp2g/tree/aaai-conc```.
+Archived code used in our AAAI papers: ```https://github.com/binary-husky/hmp2g/tree/aaai-conc```.
 
 # Demo
 ## Web Demo of DCA (AAAI Paper Version)
@@ -351,20 +351,37 @@ import_path_ref = {
 # Papers Supported by HMP
 
 ```
-<1> Qingxu, F.; Tenghai, Q.; Jianqiang, Y.; Zhiqiang, Q.; and Shiguang, W. 2022. Concentration Network for Reinforcement Learning of Large-Scale Multi-Agent Systems. In Proceedings of the AAAI Conference on Artificial Intelligence
+@article{fu2022concentration,
+	title        = {Concentration Network for Reinforcement Learning of Large-Scale Multi-Agent Systems},
+	author       = {Fu, Qingxu and Qiu, Tenghai and Yi, Jianqiang and Pu, Zhiqiang and Wu, Shiguang},
+	year         = 2022,
+	month        = {Jun.},
+	journal      = {Proceedings of the AAAI Conference on Artificial Intelligence},
+	volume       = 36,
+	number       = 9,
+	pages        = {9341--9349},
+	doi          = {10.1609/aaai.v36i9.21165},
+	url          = {https://ojs.aaai.org/index.php/AAAI/article/view/21165}
+}
 
-<2> Qingxu, F. A Cooperation Graph Approach for Multiagent Sparse Reward Reinforcement Learning. IJCNN
+
+@inproceedings{fu2022cooperation,
+	title        = {A Cooperation Graph Approach for Multiagent Sparse Reward Reinforcement Learning},
+	author       = {Fu, Qingxu and Qiu, Tenghai and Pu, Zhiqiang and Yi, Jianqiang and Yuan, Wanmai},
+	year         = 2022,
+	booktitle    = {2022 International Joint Conference on Neural Networks (IJCNN)},
+	pages        = {1--8},
+	doi          = {10.1109/IJCNN55064.2022.9891991}
+}
+
+@article{fu2022solving,
+	title        = {Solving the Diffusion of Responsibility Problem in Multiagent Reinforcement Learning with a Policy Resonance Approach},
+	author       = {Fu, Qingxu and Qiu, Tenghai and Yi, Jianqiang and Pu, Zhiqiang and Ai, Xiaolin and Yuan, Wanmai},
+	year         = 2022,
+	journal      = {arXiv preprint arXiv:2208.07753}
+}
+
+
 ```
 
-
-# (Written to Myself) Steps to Mirror to Github
-
-```
-rm -rf ~/ATempDir
-mkdir ~/ATempDir
-cp -r ../hmp-2g ~/ATempDir
-cd ~/ATempDir/hmp-2g
-git remote add github git@github.com:binary-husky/hmp2g.git
-git push github master
-```
 
