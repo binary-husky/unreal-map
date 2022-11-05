@@ -101,8 +101,8 @@ class ScenarioConfig(object):
     obs_n_entity = 11
     # ObsBreakBase = 1e4
 
-
-
+    EnableMemReport = False
+    UhmapVersion = '2.3'
 
 
 class UhmapEnvParseHelper:
@@ -197,9 +197,11 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-OpenLevel=%s'%ScenarioConfig.UnrealLevel, 
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
+                    '-EnableMemReport=%s'%str(ScenarioConfig.EnableMemReport),
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
                     '-Seed=%d'%int(np.random.rand()*1e5), # 如果已经设定了主线程随机数种子，这里随机出来的数字则是确定的
                     '-DebugMod=False',
+                    '-Version=%s'%ScenarioConfig.UhmapVersion,
                     '-LockGameDuringCom=True',
                 ], stdout=subprocess.DEVNULL)
                 print('UHMAP (Headless) started ...')
@@ -212,9 +214,11 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-OpenLevel=%s'%ScenarioConfig.UnrealLevel, 
                     '-TimeDilation=%.8f'%ScenarioConfig.TimeDilation, 
                     '-FrameRate=%.8f'%ScenarioConfig.FrameRate,
+                    '-EnableMemReport=%s'%str(ScenarioConfig.EnableMemReport),
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
                     '-Seed=%d'%int(np.random.rand()*1e5), # 如果已经设定了主线程随机数种子，这里随机出来的数字则是确定的
                     '-DebugMod=False',
+                    '-Version=%s'%ScenarioConfig.UhmapVersion,
                     '-LockGameDuringCom=True',
                     "-ResX=1280",
                     "-ResY=720",

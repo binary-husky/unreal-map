@@ -90,7 +90,7 @@ class mcom():
     def __del__(self):
         if hasattr(self,'_deleted_'): return    # avoid exit twice
         else: self._deleted_ = True     # avoid exit twice
-        print红('[mcom.py]: mcom exiting! tag: %s'%self.tag)
+        # print红('[mcom.py]: mcom exiting! tag: %s'%self.tag)
         if hasattr(self, 'file_handle') and self.file_handle is not None:
             end_file_flag = ('><EndTaskFlag\n')
             self.file_handle.write(end_file_flag)
@@ -103,7 +103,7 @@ class mcom():
                 self.draw_proc.join()
             except:
                 pass
-        print蓝('[mcom.py]: mcom exited! tag: %s'%self.tag)
+        # print蓝('[mcom.py]: mcom exited! tag: %s'%self.tag)
 
 
     def disconnect(self):

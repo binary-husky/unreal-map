@@ -378,10 +378,10 @@ class SmartPool(object):
         try:
             for i in range(self.proc_num): self._send_squence(send_obj=-1, target_proc=i)
             self.notify_all_children()
-            print('[shm_pool]: self.notify_all_children()')
+            # print('[shm_pool]: self.notify_all_children()')
         except: pass
 
-        print('[shm_pool]: shm.close(); shm.unlink()')
+        # print('[shm_pool]: shm.close(); shm.unlink()')
         for shm in self.shared_memory_io_buffer_handle:
             try: shm.close(); shm.unlink()
             except: pass
@@ -391,7 +391,7 @@ class SmartPool(object):
             print_red('[shm_pool]: terminate in %d'%(N_SEC_WAIT-i));time.sleep(1)
 
         # kill shm_pool's process tree
-        print_red('[shm_pool]: kill_process_and_its_children(proc)')
+        # print_red('[shm_pool]: kill_process_and_its_children(proc)')
         for proc in self.proc_pool: 
             try: kill_process_and_its_children(proc)
             except Exception as e: print_red('[shm_pool]: error occur when kill_process_and_its_children:\n', e)

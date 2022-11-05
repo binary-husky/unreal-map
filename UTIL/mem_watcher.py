@@ -100,11 +100,12 @@ def main(root_name = 'HmapRootProcess'):
     mcv.rec(info['tot_mem'], 'mem')
     mcv.rec(info['HmapRootProcess']['mem'], 'HmapRootProcess')
     mcv.rec(info['HmapShmPoolWorker']['mem'], 'HmapShmPoolWorker')
-    mcv.rec(info['UHMPServer-Linux-Test']['mem'], 'UHMPServer-Linux-Test')
+    mcv.rec(info['UHMPServer']['mem'], 'UHMPServer')
     mcv.rec(info['UHMPServer.sh']['mem'], 'UHMPServer.sh')
-    mcv.rec(info['python3']['mem'], 'python3')
+    mcv.rec(info['python']['mem'], 'python')
     mcv.rec_show()
 
 while True:
     main()
-    time.sleep(300) # 十分钟一次
+    time.sleep(10) # 十分钟一次
+    # time.sleep(300) # 十分钟一次

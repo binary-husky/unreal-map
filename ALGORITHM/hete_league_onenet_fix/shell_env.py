@@ -172,7 +172,7 @@ class ShellEnvWrapper(object):
         
         # if true: just experienced full reset on all episode, this is the first step of all env threads
         if RST.all(): 
-            if GlobalConfig.test_only and (self.epsiode_cnt > GlobalConfig.report_reward_interval):
+            if AlgorithmConfig.allow_fast_test and GlobalConfig.test_only and (self.epsiode_cnt > GlobalConfig.report_reward_interval):
                 import sys
                 sys.exit(0)
             self.epsiode_cnt += self.n_thread

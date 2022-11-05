@@ -76,7 +76,7 @@ class mcom():
                 self.draw_proc.join()
             except:
                 pass
-        print蓝('[mcom.py]: mcom exited! tag: %s'%self.tag)
+        # print蓝('[mcom.py]: mcom exited! tag: %s'%self.tag)
 
 
     def disconnect(self):
