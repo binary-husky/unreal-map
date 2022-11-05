@@ -32,7 +32,7 @@ base = """
         "UnrealLevel": "UhmapLargeScale",
         "SubTaskSelection": "UhmapLargeScale",
         "UhmapRenderExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxNoEditor/UHMP.sh",
-        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer/UHMPServer.sh",
+        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer_Ver1.0/UHMPServer.sh",
         "TimeDilation": 64,
         "TEAM_NAMES": [
             "ALGORITHM.pymarl2_compat.pymarl2_compat->PymarlFoundation",

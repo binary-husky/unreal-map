@@ -38,7 +38,7 @@
         // "UhmapRenderExe": "./../../WindowsNoEditor/UHMP.exe",
         // "UhmapServerExe": "./../../WindowsServer/UHMPServer.exe",
         "UhmapRenderExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxNoEditor/UHMP.sh",
-        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer/UHMPServer.sh",
+        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer_Ver1.0/UHMPServer.sh",
         "TimeDilation": 2, // simulation time speed up, larger is faster
         "TEAM_NAMES": [
             "ALGORITHM.hete_league_onenet_fix.foundation->ReinforceAlgorithmFoundation",

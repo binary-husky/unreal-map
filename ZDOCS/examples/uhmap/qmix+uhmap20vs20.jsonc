@@ -38,7 +38,7 @@
         // "UhmapRenderExe": "./../../WindowsNoEditor/UHMP.exe",
         // "UhmapServerExe": "./../../WindowsServer/UHMPServer.exe",
         "UhmapRenderExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxNoEditor/UHMP.sh",
-        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer/UHMPServer.sh",
+        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer_Ver1.0/UHMPServer.sh",
         "TimeDilation": 64, // simulation time speed up, larger is faster
         "TEAM_NAMES": [
             "ALGORITHM.pymarl2_compat.pymarl2_compat->PymarlFoundation",
