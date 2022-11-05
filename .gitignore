@@ -136,6 +136,7 @@ ZHECKPOINT/adca-demo/*
 !ZHECKPOINT/uhmap_hete10vs10
 ZHECKPOINT/uhmap_hete10vs10/backup_files
 ZHECKPOINT/uhmap_hete10vs10/logger
+!ZHECKPOINT/uhmap_hete10vs10/model_trained.pt
 
 cmd_io.txt
 rec.jpg
