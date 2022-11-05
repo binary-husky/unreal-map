@@ -1,15 +1,17 @@
-import socket, threading, pickle, uuid, os, atexit, time, json
+import socket, threading, pickle, uuid, os, atexit, time, json, psutil
 from UTIL.file_lock import FileLock
 port_finder = os.path.expanduser('~/HmapTemp') + '/PortFinder/find_free_port_no_repeat.json'
 
 def check_pid(pid):        
-    """ Check For the existence of a unix pid. """
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    else:
-        return True
+    return psutil.pid_exists(pid)
+    #     return True
+    # """ Check For the existence of a unix pid. """
+    # try:
+    #     os.kill(pid, 0)
+    # except OSError:
+    #     return False
+    # else:
+    #     return True
     
 def find_free_port():
     from contextlib import closing
