@@ -6,13 +6,13 @@
         "env_path": "MISSION.uhmap",
         // "heartbeat_on": "False",
         "draw_mode": "Img",
-        "num_threads": 1,
+        "num_threads": 4,
         "report_reward_interval": 128,
         "test_interval": 1280,
         "test_epoch": 256,
         "interested_team": 0,
         "seed": 10098,
-        "device": "cuda:5",
+        "device": "cuda",
         "max_n_episode": 5000000,
         "fold": 1,
         "backup_files": [
@@ -37,8 +37,9 @@
         "SubTaskSelection": "UhmapHuge",
         // "UhmapRenderExe": "./../../WindowsNoEditor/UHMP.exe",
         // "UhmapServerExe": "./../../WindowsServer/UHMPServer.exe",
-        "UhmapRenderExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxNoEditor/UHMP.sh",
-        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer_Ver1.0/UHMPServer.sh",
+        "UhmapVersion":"2.4",
+        "UhmapRenderExe": "../WindowsNoEditor/UHMP.exe",
+        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer_Ver2.4/UHMPServer.sh",
         "TimeDilation": 2, // simulation time speed up, larger is faster
         "TEAM_NAMES": [
             "ALGORITHM.hete_league_onenet_fix.foundation->ReinforceAlgorithmFoundation",
