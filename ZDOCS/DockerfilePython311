@@ -44,6 +44,8 @@ RUN apt-get install -y language-pack-zh-hans \
     rsync \
     net-tools \
     cron \
+    swig \
+    cmake \
     redis-tools \
     redis-server\
     iproute2 \
@@ -81,9 +83,11 @@ RUN $useProxyNetwork curl cip.cc
 USER hmp
 SHELL ["/bin/bash", "-c"]
 RUN $useProxyNetwork pip install numpy scipy sklearn
-RUN $useProxyNetwork pip install lz4 gym flask cython waitress colorama func_timeout setproctitle filelock 
-RUN $useProxyNetwork pip install commentjson matplotlib psutil paramiko ipykernel onedrivedownloader flock
-
+RUN $useProxyNetwork pip install lz4 gym flask cython waitress colorama func_timeout setproctitle filelock
+RUN $useProxyNetwork pip install commentjson matplotlib psutil paramiko ipykernel onedrivedownloader flock 
+RUN $useProxyNetwork pip install cmake redis sacred
+RUN $useProxyNetwork pip install pygame --pre
+RUN $useProxyNetwork pip install git+https://github.com/oxwhirl/smac.git
 
 RUN $useProxyNetwork pip install torch torchvision
 
@@ -93,6 +97,10 @@ RUN $useProxyNetwork git clone https://github.com/binary-husky/uhmap-visual-tool
 WORKDIR /home/hmp/uhmap-visual-tool/
 RUN python linux_deploy.py
 RUN python linux_deploy_starcraft_all_versions.py
+
+RUN chmod +x /home/hmp/StarCraftIII/Version2410/StarCraftII/Versions/Base75689/ 
+RUN chmod +x /home/hmp/StarCraftIII/Versions/Base69232/SC2_x64
+
 RUN mv /home/hmp/uhmap-visual-tool/UnrealEngine/home/hmp/*  /home/hmp
 
 
@@ -113,6 +121,8 @@ USER root
 # RUN sed -i 's/22/2233/g' /etc/ssh/sshd_config
 RUN echo "Port 2233" >> /etc/ssh/sshd_config
 RUN echo "service ssh start" >> /entrypoint.sh
+RUN echo "redis-server --daemonize yes" >> /entrypoint.sh
+
 # CMD ["/bin/bash -c echo clara | sudo -S /entrypoint.sh"]
 
 

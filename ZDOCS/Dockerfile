@@ -58,7 +58,7 @@ RUN apt-get install -y language-pack-zh-hans \
     redis-server\
     iproute2 \
     pkg-config build-essential libssl-dev libffi-dev --fix-missing
-    
+
 RUN locale-gen zh_CN.UTF-8 && localedef -c -f UTF-8 -i zh_CN zh_CN.utf8 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
@@ -77,10 +77,12 @@ RUN ln /usr/bin/python3 /usr/bin/python
 # pip install everything we need
 USER hmp
 SHELL ["/bin/bash", "-c"]
-RUN $useProxyNetwork pip install numpy scipy
-RUN $useProxyNetwork pip install lz4 gym flask numba cython waitress colorama func_timeout setproctitle 
+RUN $useProxyNetwork pip install numpy scipy sklearn
+RUN $useProxyNetwork pip install lz4 gym flask numba cython waitress colorama func_timeout setproctitle filelock
 RUN $useProxyNetwork pip install commentjson matplotlib psutil paramiko ipykernel onedrivedownloader flock
-RUN $useProxyNetwork pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
+RUN $useProxyNetwork pip install torch --extra-index-url https://download.pytorch.org/whl/cu113
+RUN $useProxyNetwork pip install pygame cmake redis
+RUN $useProxyNetwork pip install git+https://github.com/oxwhirl/smac.git
 
 # download and extract UHMAP component
 WORKDIR /home/hmp
