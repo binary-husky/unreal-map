@@ -1,7 +1,7 @@
 import json, os, subprocess, time, stat, platform
 import numpy as np
 from UTIL.colorful import print蓝, print靛, print亮红
-from UTIL.network import TcpClientP2PWithCompress, find_free_port_no_repeat
+from UTIL.network import TcpClientP2PWithCompress, find_free_port_no_repeat, get_host_ip
 from UTIL.config_args import ChainVar
 from config import GlobalConfig
 from ..common.base_env import BaseEnv
@@ -161,7 +161,11 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             if ScenarioConfig.AutoPortOverride:
                 self.hmp_ue_port, release_port_fn = find_free_port_no_repeat()   # port for hmp data exchanging
             self.ue_vis_port, release_port_fn = find_free_port_no_repeat()    # port for remote visualizing
-            print蓝('Port %d will be used by hmp, port %d will be used by UE internally'%(self.hmp_ue_port, self.ue_vis_port))
+            print蓝('Port %d will be used by hmp'%(self.hmp_ue_port))
+            print蓝('Port %d will be used to welcome remote client, '%(self.ue_vis_port))
+            if not self.render:
+                print蓝('To visualize on Windows, run "./UHMP.exe -OpenLevel=%s:%d -WINDOWED -TimeDilation=%.8f -FrameRate=%.8f -IOInterval=%.8f -DebugMod=False -LockGameDuringCom=True"'%(
+                    get_host_ip(), self.ue_vis_port, ScenarioConfig.TimeDilation, ScenarioConfig.FrameRate, ScenarioConfig.StepGameTime))
             self.ip_port = (ScenarioConfig.TcpAddr, self.hmp_ue_port)
         
         
@@ -261,7 +265,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
     def terminate_simulation(self):
         if hasattr(self, 'sim_thread') and self.sim_thread is not None:
             # self.sim_thread.terminate()
-            
+            # send terminate command to unreal side
             self.client.send_dgram_to_target(json.dumps({
                 'valid': True,
                 'DataCmd': 'end_unreal_engine',
@@ -272,11 +276,6 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             }))
             self.client.close()
             self.sim_thread = None
-            # json_to_send = json.dumps({
-            #     'valid': True,
-            #     'DataCmd': 'end_unreal_engine',
-            # })
-            # self.client.send_dgram_to_target(json_to_send)
 
 
     # override reset function
@@ -286,7 +285,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             print('restarting simutation')
             self.terminate_simulation()
             self.simulation_life = self.max_simulation_life
-            self.activate_simulation(self.id, find_port=False)
+            self.activate_simulation(self.id, find_port=True)
 
     def sleep(self):
         self.simulation_life = -1
