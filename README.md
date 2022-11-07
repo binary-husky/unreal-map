@@ -186,9 +186,37 @@ In general, HMP task runner can operate two ways:
 Please refer to [MISSION README](./MISSION/readme.md).
 
 ## Execution Pool
-Unfinished doc
+We designed a parallel execution pool based on shared-memory,
+the most efficient inter-process communication method possible.
+This parallel pool is only functional on Linux, 
+therefore, 
+when running on Windows,
+we will automatically switch to a backup pool using pipe.
 
-## VHMAP, a Component of HMP
+- The efficient execution pool is defined in ```UTIL/shm_pool.pyx```
+- The windows-compatible execution pool is defined in ```UTIL/win_pool.py```
+
+Both of them is initialized in ```main.py```, and they share the same APIs:
+```
+smart_pool = SmartPool(...)
+```
+
+Furthermore, the pickle and reverse-pickle process is slow for large numpy arrays,
+we solve this problem by copying raw numpy memory directly to shared memory area without pickle 
+and significantly improve the data transfer efficiency.
+
+When dealing with a large number of parallel environments (100+),
+even shared-memory communication can be slowed down by the process coordination of OS.
+
+As a compomise,
+we design a ```folding``` mechanism to allow a single process to run ```N=fold``` parallel environments to relieve the burden of OS.
+When folding is disabled (default disabled), ```fold=1```.
+
+However, note that setting ```fold>1``` will not accelerate the paralell FPS (and usually decrease the FPS) for a single experiment,
+but it allows you to run more experiment simutanously on the server.
+
+
+## VHMAP, Visulization of HMP
 VHMAP is a visulization component of HMP. [VHMAP](./VISUALIZE/README.md)
 
 It is unfortunate that 

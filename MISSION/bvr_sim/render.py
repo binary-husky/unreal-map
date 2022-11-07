@@ -19,7 +19,7 @@ class RenderBridge():
             #     negz='/wget/snow_textures/negz.jpg',
             # )
 
-            self.可视化桥.设置样式('font', fontPath='/examples/fonts/ttf/FZYTK.TTF', fontLineHeight=1500) # 注意不可以省略参数键值'font_path=' ！！！
+            self.可视化桥.设置样式('font', fontPath='/examples/fonts/ttf/FZYTK.TTF', fontLineHeight=1500) # 注意不可以省略参数键值'fontpath=' ！！！
             self.可视化桥.其他几何体之旋转缩放和平移('BOX', 'BoxGeometry(1,1,1)',   0,0,0,  1,1,1, 0,0,0) 
             self.可视化桥.其他几何体之旋转缩放和平移('OCT', 'OctahedronGeometry(1,0)', 0,0,0,  1,1,1, 0,0,0)   # 八面体
             self.可视化桥.其他几何体之旋转缩放和平移('Plane', 'fbx=/examples/files/plane.fbx', -np.pi/2, 0, np.pi/2,  1,1,1, 0,0,0)   # 八面体

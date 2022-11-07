@@ -387,7 +387,7 @@ class collective_assultGlobalEnv(gym.Env):
             # self.threejs_bridge.set_style('star')
             # self.threejs_bridge.set_style('grid')
             # self.threejs_bridge.set_style('grid3d')
-            self.threejs_bridge.set_style('font', fontPath='/examples/fonts/ttf/FZYTK.TTF', fontLineHeight=1500) # 注意不可以省略参数键值'font_path=','fontLineHeight=' ！！！
+            self.threejs_bridge.set_style('font', fontPath='/examples/fonts/ttf/FZYTK.TTF', fontLineHeight=1500) # 注意不可以省略参数键值'fontpath=','fontLineHeight=' ！！！
             # self.threejs_bridge.set_style('gray')
             self.threejs_bridge.set_style('skybox6side',    # 设置天空盒子，注意不可以省略参数键值 !!
                 posx='/wget/snow_textures/posx.jpg',   
