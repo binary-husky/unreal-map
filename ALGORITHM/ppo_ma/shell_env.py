@@ -8,39 +8,33 @@ from .cython_func import roll_hisory
 
 class ShellEnvConfig:
     add_avail_act = False
-    
+
+
 class ActionConvertLegacy():
-    SELF_TEAM_ASSUME = 0
-    OPP_TEAM_ASSUME = 1
-    OPP_NUM_ASSUME = 10
-    # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
-    dictionary_args = [
-        ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
-        ('Idle',        'DynamicGuard',     None, None, None, None, None, None),   # 1
-        ('Idle',        'StaticAlert',      None, None, None, None, None, None),   # 2
-        ('Idle',        'AsFarAsPossible',              None, None, None, None, None, None),   # 4
-        ('Idle',        'StayWhenTargetInRange',        None, None, None, None, None, None),   # 5
-        ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 7
-        ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 8
-        ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 9
-        ('SpecificMoving',      'Dir-Y',    None, None, None, None, None, None),   # 10
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    0),      # 11
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    1),      # 12
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    2),      # 13
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    3),      # 14
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    4),      # 15
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    5),      # 16
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    6),      # 17        
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    7),      # 
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    8),      # 
-        ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME,    9),      # 
-    ]
+    def __init__(self, SELF_TEAM_ASSUME, OPP_TEAM_ASSUME, OPP_NUM_ASSUME) -> None:
+        self.SELF_TEAM_ASSUME = SELF_TEAM_ASSUME
+        self.OPP_TEAM_ASSUME = OPP_TEAM_ASSUME
+        self.OPP_NUM_ASSUME = OPP_NUM_ASSUME
+        # (main_cmd, sub_cmd, x=None, y=None, z=None, UID=None, T=None, T_index=None)
+        self.dictionary_args = [
+            ('N/A',         'N/A',              None, None, None, None, None, None),   # 0
+            ('Idle',        'DynamicGuard',     None, None, None, None, None, None),   # 1
+            ('Idle',        'StaticAlert',      None, None, None, None, None, None),   # 2
+            ('Idle',        'AsFarAsPossible',              None, None, None, None, None, None),   # 4
+            ('Idle',        'StayWhenTargetInRange',        None, None, None, None, None, None),   # 5
+            ('SpecificMoving',      'Dir+X',    None, None, None, None, None, None),   # 7
+            ('SpecificMoving',      'Dir+Y',    None, None, None, None, None, None),   # 8
+            ('SpecificMoving',      'Dir-X',    None, None, None, None, None, None),   # 9
+            ('SpecificMoving',      'Dir-Y',    None, None, None, None, None, None),   # 10
+        ] 
+        for i in range(self.OPP_NUM_ASSUME):
+            self.dictionary_args.append( ('SpecificAttacking',   'N/A',      None, None, None, None, OPP_TEAM_ASSUME, i) )
+    
+    
 
-
-    @staticmethod
-    def convert_act_arr(type, a):
+    def convert_act_arr(self, type, a):
         if type == 'RLA_UAV_Support':
-            args = ActionConvertLegacy.dictionary_args[a]
+            args = self.dictionary_args[a]
             # override wrong actions
             if args[0] == 'SpecificAttacking':
                 return encode_action_as_digits('N/A',         'N/A',              None, None, None, None, None, None)
@@ -49,16 +43,15 @@ class ActionConvertLegacy():
                 return encode_action_as_digits('Idle',        'StaticAlert',      None, None, None, None, None, None)
             return encode_action_as_digits(*args)
         else:
-            return encode_action_as_digits(*ActionConvertLegacy.dictionary_args[a])
+            return encode_action_as_digits(*self.dictionary_args[a])
 
-    @staticmethod
-    def get_tp_avail_act(type):
+    def get_tp_avail_act(self, type):
         DISABLE = 0
         ENABLE = 1
-        n_act = len(ActionConvertLegacy.dictionary_args)
+        n_act = len(self.dictionary_args)
         ret = np.zeros(n_act) + ENABLE
         for i in range(n_act):
-            args = ActionConvertLegacy.dictionary_args[i]
+            args = self.dictionary_args[i]
             
             # for all kind of agents
             if args[0] == 'PatrolMoving':       ret[i] = DISABLE
@@ -70,13 +63,11 @@ class ActionConvertLegacy():
                 if args[1] == 'StaticAlert':        ret[i] = ENABLE
         return ret
     
-    @staticmethod
-    def confirm_parameters_are_correct(team, agent_num, opp_agent_num):
-        assert team == ActionConvertLegacy.SELF_TEAM_ASSUME
-        assert ActionConvertLegacy.SELF_TEAM_ASSUME + ActionConvertLegacy.OPP_TEAM_ASSUME == 1
-        assert ActionConvertLegacy.SELF_TEAM_ASSUME + ActionConvertLegacy.OPP_TEAM_ASSUME == 1
-        assert opp_agent_num == ActionConvertLegacy.OPP_NUM_ASSUME
-    
+    def confirm_parameters_are_correct(self, team, agent_num, opp_agent_num):
+        assert team == self.SELF_TEAM_ASSUME
+        assert self.SELF_TEAM_ASSUME + self.OPP_TEAM_ASSUME == 1
+        assert self.SELF_TEAM_ASSUME + self.OPP_TEAM_ASSUME == 1
+        assert opp_agent_num == self.OPP_NUM_ASSUME
     
 def count_list_type(x):
     type_cnt = {}
@@ -105,7 +96,11 @@ class ShellEnvWrapper(object):
         self.AvailActProvided = False
         if hasattr(ScenarioConfig, 'AvailActProvided'):
             self.AvailActProvided = ScenarioConfig.AvailActProvided 
-
+        self.action_converter = ActionConvertLegacy(
+                SELF_TEAM_ASSUME=team, 
+                OPP_TEAM_ASSUME=(1-team), 
+                OPP_NUM_ASSUME=GlobalConfig.ScenarioConfig.N_AGENT_EACH_TEAM[1-team]
+        )
         # check parameters
         self.patience = 2000
         
@@ -127,7 +122,7 @@ class ShellEnvWrapper(object):
                                for agent_meta in StateRecall['Latest-Team-Info'][0]['dataArr']
                                if agent_meta['uId'] in self.agent_uid]
             if ShellEnvConfig.add_avail_act:
-                self.avail_act = np.stack(tuple(ActionConvertLegacy.get_tp_avail_act(tp) for tp in self.agent_type))
+                self.avail_act = np.stack(tuple(self.action_converter.get_tp_avail_act(tp) for tp in self.agent_type))
                 self.avail_act = repeat_at(self.avail_act, insert_dim=0, n_times=self.n_thread)
 
         act = np.zeros(shape=(self.n_thread, self.n_agent), dtype=np.int) - 1 # 初始化全部为 -1
@@ -154,6 +149,7 @@ class ShellEnvWrapper(object):
             EpRsn = np.random.rand(self.n_thread) < eprsn_yita
             StateRecall['_EpRsn_'] = EpRsn
 
+        # prepare observation for the real RL algorithm
         obs_feed = obs[R]
         I_StateRecall = {
             'obs':obs_feed, 
@@ -163,61 +159,30 @@ class ShellEnvWrapper(object):
             'threads_active_flag':R, 
             'Latest-Team-Info':StateRecall['Latest-Team-Info'][R],
         }
+        # load available act to limit action space if possible
         if self.AvailActProvided:
             avail_act = np.array([info['avail-act'] for info in np.array(StateRecall['Latest-Team-Info'][R], dtype=object)])
             I_StateRecall.update({'avail_act':avail_act})
 
-
+        # the real RL algorithm ! !
         act_active, internal_recall = self.rl_functional.interact_with_env_genuine(I_StateRecall)
 
+        # get decision results
         act[R] = act_active
         
-        # check 
+        # confirm actions are valid (satisfy 'avail-act')
         if ShellEnvConfig.add_avail_act and self.patience>0:
             self.patience -= 1
             assert (gather_righthand(self.avail_act, repeat_at(act, -1, 1), check=False)[R]==1).all()
             
-
         # translate action into ue4 tuple action
-        act_converted = np.array([[ ActionConvertLegacy.convert_act_arr(self.agent_type[agentid], act) for agentid, act in enumerate(th) ] for th in act])
+        act_converted = np.array([[ self.action_converter.convert_act_arr(self.agent_type[agentid], act) for agentid, act in enumerate(th) ] for th in act])
+        
         # swap thread(batch) axis and agent axis
         actions_list = np.swapaxes(act_converted, 0, 1)
 
-
+        # register callback hook
         if not StateRecall['Test-Flag']:
             StateRecall['_hook_'] = internal_recall['_hook_']
             assert StateRecall['_hook_'] is not None
         return actions_list, StateRecall 
-
-    def solve_duplicate(self, obs_feed_new, prev_his_pool):
-        #  input might be (n_thread, n_agent, n_entity, basic_dim), or (n_thread, n_agent, n_entity*basic_dim)
-        # both can be converted to (n_thread, n_agent, n_entity, basic_dim)
-        obs_feed_new = my_view(obs_feed_new,[0, 0, -1, self.core_dim])
-        prev_obs_feed = my_view(prev_his_pool,[0, 0, -1, self.core_dim])
-
-        # turn history into more entities
-        obs_feed = np.concatenate((obs_feed_new, prev_obs_feed), axis=-2)
-
-        # turning all zero padding to NaN, which is excluded in normalization
-        obs_feed[(obs_feed==0).all(-1)] = np.nan
-        obs_feed_new[(obs_feed_new==0).all(-1)] = np.nan
-        valid_mask = ~np.isnan(obs_feed_new).any(-1)    #
-
-        # set self as not valid to avoid buffering self obs! valid_mask
-        valid_mask[:,:,0] = False
-
-        # N valid: how many subjects (entities) needs to be buffered
-        N_valid = valid_mask.sum(-1)
-
-        # alloc mem for next_his_pool
-        next_his_pool = np.zeros_like(prev_obs_feed) # twice size  ( threads,  agents,  subjects)
-
-        # fill next_his_pool
-        next_his_pool = roll_hisory(obs_feed_new, prev_obs_feed, valid_mask, N_valid, next_his_pool)
-
-        # a very important assumption: if an agent observe itself as NaN *When and Only When* it is dead
-        alive_mask = ~np.isnan(obs_feed_new[:,:,0]).any(-1) 
-        if (~alive_mask).any():
-            obs_feed[~alive_mask] = np.nan
-        return obs_feed, next_his_pool
-

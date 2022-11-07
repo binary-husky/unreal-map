@@ -1,3 +1,4 @@
+import math
 from .foundation import AlgorithmConfig
 from UTIL.colorful import *
 
@@ -6,6 +7,11 @@ class PolicyRsnConfig:
     yita_min_prob = 0.15  #  should be >= (1/n_action)
     yita_max = 0.75
     yita_inc_per_update = 0.0075 # (increase to 0.75 in 500 updates)
+    freeze_critic = False
+    
+    yita_shift_method = '-sin'
+    yita_shift_cycle = 1000
+
 
 class StagePlanner:
     def __init__(self, mcv) -> None:
@@ -55,7 +61,8 @@ class StagePlanner:
     def activate_pr(self):
         self.resonance_active = True
         self.freeze_body = True
-        self.trainer.freeze_body()
+        if PolicyRsnConfig.freeze_critic:
+            self.trainer.freeze_body()
 
     def when_pr_inactive(self):
         assert not self.resonance_active
@@ -81,7 +88,28 @@ class StagePlanner:
         '''
             increase self.yita by @yita_inc_per_update per function call
         '''
-        self.yita += PolicyRsnConfig.yita_inc_per_update
-        if self.yita > PolicyRsnConfig.yita_max:
+        if PolicyRsnConfig.yita_shift_method == '-cos':
             self.yita = PolicyRsnConfig.yita_max
-        print亮绿('yita update:', self.yita)
+            t = -math.cos(2*math.pi/PolicyRsnConfig.yita_shift_cycle * self.update_cnt) * PolicyRsnConfig.yita_max
+            if t<=0:
+                self.yita = 0
+            else:
+                self.yita = t
+            print亮绿('yita update:', self.yita)
+
+        elif PolicyRsnConfig.yita_shift_method == '-sin':
+            self.yita = PolicyRsnConfig.yita_max
+            t = -math.sin(2*math.pi/PolicyRsnConfig.yita_shift_cycle * self.update_cnt) * PolicyRsnConfig.yita_max
+            if t<=0:
+                self.yita = 0
+            else:
+                self.yita = t
+            print亮绿('yita update:', self.yita)
+
+        elif PolicyRsnConfig.yita_shift_method == 'slow-inc':
+            self.yita += PolicyRsnConfig.yita_inc_per_update
+            if self.yita > PolicyRsnConfig.yita_max:
+                self.yita = PolicyRsnConfig.yita_max
+            print亮绿('yita update:', self.yita)
+        else:
+            assert False

@@ -178,7 +178,7 @@ class HeteNet(nn.Module):
         # track the number of checkpoints commited
         self.ckpg_input_cnt = 0
         # feature array, arranged according to placeholders
-        self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
+        self.ph_to_feature = torch.tensor(np.array([n.feature for n in self._nets_flat_placeholder_]), dtype=torch.float, device=cfg.device)
         # debug visually
         if AlgorithmConfig.debug:
             from VISUALIZE.mcom import mcom
@@ -243,7 +243,7 @@ class HeteNet(nn.Module):
                 static_nets[k].feature = self.ckpg_info[i]['feature'][k]
 
         # reload the net features
-        self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
+        self.ph_to_feature = torch.tensor(np.array([n.feature for n in self._nets_flat_placeholder_]), dtype=torch.float, device=cfg.device)
         print('parameters reloaded')
 
     def random_select(self, *args, **kwargs):

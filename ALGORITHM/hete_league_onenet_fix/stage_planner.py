@@ -84,10 +84,6 @@ class StagePlanner:
         self.mcv.rec(pr, 'resonance')
         self.mcv.rec(self.yita, 'self.yita')
 
-
-    
-
-
     def _update_yita(self):
         '''
             increase self.yita by @yita_inc_per_update per function call

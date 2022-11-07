@@ -77,13 +77,17 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         from .net import Net
         super().__init__(n_agent, n_thread, space, mcv, team)
         AlgorithmConfig.n_agent = n_agent
-        n_actions = len(ActionConvertLegacy.dictionary_args)
-
+        self.action_converter = ActionConvertLegacy(
+                SELF_TEAM_ASSUME=team, 
+                OPP_TEAM_ASSUME=(1-team), 
+                OPP_NUM_ASSUME=GlobalConfig.ScenarioConfig.N_AGENT_EACH_TEAM[1-team]
+        )
+        n_actions = len(self.action_converter.dictionary_args)
         # change obs format, e.g., converting dead agent obs into NaN
         self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.ScenarioConfig, self.team)
         if self.ScenarioConfig.EntityOriented: rawob_dim = self.ScenarioConfig.obs_vec_length
         else: rawob_dim = space['obs_space']['obs_shape']
-            
+
         # self.StagePlanner, for policy resonance
         from .stage_planner import StagePlanner
         self.stage_planner = StagePlanner(mcv=mcv)
@@ -127,9 +131,11 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         # make sure avail_act is correct
         if AlgorithmConfig.use_avail_act: assert avail_act is not None
 
+        # policy resonance flag reshape
         eprsn = repeat_at(eprsn, -1, self.n_agent)
         thread_index = np.arange(self.n_thread)[threads_active_flag]
 
+        # make decision
         with torch.no_grad():
             action, value, action_log_prob = self.policy.act(obs=obs,
                                                              test_mode=test_mode,
@@ -137,7 +143,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
                                                              eprsn=eprsn,
                                                              )
 
-        # vars named like _x_ are aligned, others are not!
+        # commit obs to buffer, vars named like _x_ are aligned, others are not!
         traj_framefrag = {
             "_SKIP_":        ~threads_active_flag,
             "value":         value,
@@ -239,7 +245,7 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         ''' 
             hook is called when reward and next moment observation is ready,
             now feed them into trajectory manager.
-            Rollout Processor 准备提交Rollout, 以下划线开头和结尾的键值需要对齐(self.n_thread, ...)
+            Rollout Processor | 准备提交Rollout, 以下划线开头和结尾的键值需要对齐(self.n_thread, ...)
             note that keys starting with _ must have shape (self.n_thread, ...), details see fn:mask_paused_env()
         '''
         # strip info, since it is not array

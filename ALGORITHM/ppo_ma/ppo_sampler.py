@@ -85,7 +85,16 @@ class TrajPoolSampler():
             n_sample = min(self.big_batch_size, max_n_sample)
             if not hasattr(self,'reminded'):
                 self.reminded = True
-                print('droping %.1f percent samples..'%((self.big_batch_size-n_sample)/self.big_batch_size*100))
+                drop_percent = (self.big_batch_size-n_sample)/self.big_batch_size*100
+                if self.mcv is not None:
+                    self.mcv.rec(drop_percent, 'drop percent')
+                if drop_percent > 20: 
+                    print_ = print亮红
+                    print_('droping %.1f percent samples..'%(drop_percent))
+                    assert False, "GPU OOM!"
+                else:
+                    print_ = print
+                    print_('droping %.1f percent samples..'%(drop_percent))
             self.sampler = BatchSampler(SubsetRandomSampler(range(n_sample)), n_sample, drop_last=False)
 
         for indices in self.sampler:

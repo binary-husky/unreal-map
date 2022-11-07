@@ -155,7 +155,7 @@ class HeteNet(nn.Module):
         self.map_ckpg_phg = {}
         self.ckpg_input_cnt = 0
         self.hete_feature_dim = 10
-        self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
+        self.ph_to_feature = torch.tensor(np.array([n.feature for n in self._nets_flat_placeholder_]), dtype=torch.float, device=cfg.device)
         
     def lock_net(self, i, forbidden=False):
         n = self._nets_flat_placeholder_[i]
@@ -225,7 +225,7 @@ class HeteNet(nn.Module):
                 static_nets[k].forbidden = False
                 static_nets[k].feature = self.ckpg_info[i]['feature'][k]
                 
-        self.ph_to_feature = torch.tensor([n.feature for n in self._nets_flat_placeholder_], dtype=torch.float, device=cfg.device)
+        self.ph_to_feature = torch.tensor(np.array([n.feature for n in self._nets_flat_placeholder_]), dtype=torch.float, device=cfg.device)
         print('parameters reloaded')
 
 

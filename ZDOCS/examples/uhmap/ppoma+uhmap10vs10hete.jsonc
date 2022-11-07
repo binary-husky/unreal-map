@@ -1,6 +1,6 @@
 {
     "config.py->GlobalConfig": {
-        "note": "RVE-drone2-ppoma-run2",
+        "note": "ppoma-uhmap10vs10",
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
         "draw_mode": "Img",
@@ -38,133 +38,37 @@
             "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack"
         ]
     },
-    "MISSION.uhmap.SubTasks.UhmapLargeScaleConf.py->SubTaskConfig": {
+    "MISSION.uhmap.SubTasks.UhmapLargeScaleConf.py->SubTaskConfig":{
         "agent_list": [
-            {
-                "team": 0,
-                "tid": 0,
-                "type": "RLA_UAV_Support",
-                "init_fn_name": "init_air"
-            },
-            {
-                "team": 0,
-                "tid": 1,
-                "type": "RLA_CAR",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 0,
-                "tid": 2,
-                "type": "RLA_CAR_Laser",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 0,
-                "tid": 3,
-                "type": "RLA_CAR",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 0,
-                "tid": 4,
-                "type": "RLA_CAR_Laser",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 0,
-                "tid": 5,
-                "type": "RLA_CAR",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 0,
-                "tid": 6,
-                "type": "RLA_CAR_Laser",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 0,
-                "tid": 7,
-                "type": "RLA_CAR",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 0,
-                "tid": 8,
-                "type": "RLA_CAR_Laser",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 0,
-                "tid": 9,
-                "type": "RLA_UAV_Support",
-                "init_fn_name": "init_air"
-            },
-            {
-                "team": 1,
-                "tid": 0,
-                "type": "RLA_UAV_Support",
-                "init_fn_name": "init_air"
-            },
-            {
-                "team": 1,
-                "tid": 1,
-                "type": "RLA_CAR",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 1,
-                "tid": 2,
-                "type": "RLA_CAR_Laser",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 1,
-                "tid": 3,
-                "type": "RLA_CAR",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 1,
-                "tid": 4,
-                "type": "RLA_CAR_Laser",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 1,
-                "tid": 5,
-                "type": "RLA_CAR",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 1,
-                "tid": 6,
-                "type": "RLA_CAR_Laser",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 1,
-                "tid": 7,
-                "type": "RLA_CAR",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 1,
-                "tid": 8,
-                "type": "RLA_CAR_Laser",
-                "init_fn_name": "init_ground"
-            },
-            {
-                "team": 1,
-                "tid": 9,
-                "type": "RLA_UAV_Support",
-                "init_fn_name": "init_air"
-            }
+            { "team":0,  "tid":0,   "type":"RLA_UAV_Support", "init_fn_name":"init_air"      },
+            { "team":0,  "tid":1,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":2,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":3,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":4,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":5,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":6,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":7,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":8,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":0,  "tid":9,   "type":"RLA_UAV_Support", "init_fn_name":"init_air"      },
+
+            { "team":1,  "tid":0,   "type":"RLA_UAV_Support", "init_fn_name":"init_air"      },
+            { "team":1,  "tid":1,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":2,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":3,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":4,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":5,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":6,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":7,   "type":"RLA_CAR",         "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":8,   "type":"RLA_CAR_Laser",   "init_fn_name":"init_ground"   },
+            { "team":1,  "tid":9,   "type":"RLA_UAV_Support", "init_fn_name":"init_air"      },
         ]
     },
+    // --- Part3: config ALGORITHM 1/2 --- 
     "ALGORITHM.script_ai.uhmap_ls.py->DummyAlgConfig": {
         "reserve": ""
     },
+
+    // --- Part3: config ALGORITHM 2/2 --- 
     "ALGORITHM.ppo_ma.shell_env.py->ShellEnvConfig": {
         "add_avail_act": true
     },

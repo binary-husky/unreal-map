@@ -96,6 +96,7 @@ class PPO():
         return self.ppo_update_cnt
 
     def freeze_body(self):
+        assert False, "function forbidden"
         self.freeze_body = True
         self.parameter_pv = [p_name for p_name, p in self.all_parameter if not any(p_name.startswith(kw)  for kw in ('obs_encoder', 'attention_layer'))]
         self.parameter = [p for p_name, p in self.all_parameter if not any(p_name.startswith(kw)  for kw in ('obs_encoder', 'attention_layer'))]
