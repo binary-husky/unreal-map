@@ -10,10 +10,10 @@ from UTIL.tensor_ops import _2tensor, __hash__, repeat_at
 from config import GlobalConfig as cfg
 from UTIL.gpu_share import GpuShareUnit
 class TrajPoolSampler():
-    def __init__(self, n_div, traj_pool, flag, prevent_batchsize_oom=False):
+    def __init__(self, n_div, traj_pool, flag, prevent_batchsize_oom=False, mcv=None):
         self.n_pieces_batch_division = n_div
         self.prevent_batchsize_oom = prevent_batchsize_oom    
-
+        self.mcv = mcv
         if self.prevent_batchsize_oom:
             assert self.n_pieces_batch_division==1, ('?')
 

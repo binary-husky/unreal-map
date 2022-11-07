@@ -6,7 +6,7 @@
         "env_path": "MISSION.uhmap",
         // "heartbeat_on": "False",
         "draw_mode": "Img",
-        "num_threads": 16,
+        "num_threads": 32,
         "report_reward_interval": 128,
         "test_interval": 1280,
         "test_epoch": 512,

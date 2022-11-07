@@ -23,11 +23,7 @@ class StagePlanner:
         self.update_cnt = 0
         self.mcv = mcv
         self.trainer = None
-        if AlgorithmConfig.wait_norm_stable:
-            self.wait_norm_stable_cnt = 2
-        else:
-            self.wait_norm_stable_cnt = 0
-        return
+
     
     def is_resonance_active(self,):
         return self.resonance_active
@@ -42,12 +38,7 @@ class StagePlanner:
         return PolicyRsnConfig.yita_min_prob
     
     def can_exec_trainning(self):
-        if self.wait_norm_stable_cnt > 0:
-            print亮绿('waiting initial normalization stable, skip training!')
-            self.wait_norm_stable_cnt -= 1
-            return False
-        else:
-            return True
+        return True
 
     def update_plan(self):
         self.update_cnt += 1

@@ -10,6 +10,7 @@ from UTIL.tensor_ops import _2tensor, __hash__, __hashn__
 from config import GlobalConfig as cfg
 from UTIL.gpu_share import GpuShareUnit
 from .ppo_sampler import TrajPoolSampler
+from VISUALIZE.mcom import mcom
 
 class PPO():
     def __init__(self, policy_and_critic, ppo_config, mcv=None):
@@ -65,7 +66,7 @@ class PPO():
     def train_on_traj_(self, traj_pool, task):
 
         ppo_valid_percent_list = []
-        sampler = TrajPoolSampler(n_div=1, traj_pool=traj_pool, flag=task, prevent_batchsize_oom=self.prevent_batchsize_oom)
+        sampler = TrajPoolSampler(n_div=1, traj_pool=traj_pool, flag=task, prevent_batchsize_oom=self.prevent_batchsize_oom, mcv=self.mcv)
         # before_training_hash = [__hashn__(t.parameters()) for t in (self.policy_and_critic._nets_flat_placeholder_)]
         for e in range(self.ppo_epoch):
             sample_iter = sampler.reset_and_get_iter()

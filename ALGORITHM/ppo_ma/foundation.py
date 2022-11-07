@@ -16,7 +16,6 @@ class AlgorithmConfig:
     train_traj_needed = 512
     TakeRewardAsUnity = False
     use_normalization = True
-    wait_norm_stable = True
     add_prob_loss = False
     n_focus_on = 2
     n_entity_placeholder = 11
