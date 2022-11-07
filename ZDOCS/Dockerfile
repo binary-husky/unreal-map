@@ -5,18 +5,10 @@
 
 FROM nvidia/cuda:11.5.1-runtime-ubuntu20.04
 RUN apt-get update
-ARG useProxyNetwork=''
 
 RUN apt-get install -y curl proxychains
 RUN $useProxyNetwork curl cip.cc
 
-# # comment out below if you do not need proxy network | 翻墙 - 从此行向下删除
-# RUN sed -i '$ d' /etc/proxychains.conf
-# RUN sed -i '$ d' /etc/proxychains.conf
-# RUN echo "socks5 127.0.0.1 10880" >> /etc/proxychains.conf
-# ARG useProxyNetwork=proxychains
-# RUN $useProxyNetwork curl cip.cc
-# # comment out above if you do not need proxy network | 翻墙 - 从此行向上删除
 
 ENV TZ=Asia/Shanghai
 ENV LC_ALL zh_CN.UTF-8
@@ -32,6 +24,7 @@ RUN apt-get install -y language-pack-zh-hans \
     gawk \
     psmisc \
     python \
+    python3 \
     python-yaml \
     python-jinja2 \
     python3-urllib3 \
@@ -52,9 +45,9 @@ RUN apt-get install -y language-pack-zh-hans \
     rsync \
     net-tools \
     cron \
-    python3 \
+    swig \
+    cmake \
     redis-tools \
-    python3-pip \
     redis-server\
     iproute2 \
     pkg-config build-essential libssl-dev libffi-dev --fix-missing
@@ -73,15 +66,24 @@ WORKDIR /home/hmp
 USER root
 RUN rm /usr/bin/python
 RUN ln /usr/bin/python3 /usr/bin/python
+ARG useProxyNetwork=''
+RUN $useProxyNetwork curl cip.cc
+# # comment out below if you do not need proxy network | 翻墙 - 从此行向下删除
+# RUN sed -i '$ d' /etc/proxychains.conf
+# RUN sed -i '$ d' /etc/proxychains.conf
+# RUN echo "socks5 127.0.0.1 10880" >> /etc/proxychains.conf
+# ARG useProxyNetwork=proxychains
+# RUN $useProxyNetwork curl cip.cc
+# # comment out above if you do not need proxy network | 翻墙 - 从此行向上删除
 
 # pip install everything we need
 USER hmp
 SHELL ["/bin/bash", "-c"]
 RUN $useProxyNetwork pip install numpy scipy sklearn
-RUN $useProxyNetwork pip install lz4 gym flask numba cython waitress colorama func_timeout setproctitle filelock
+RUN $useProxyNetwork pip install lz4 gym flask cython waitress colorama func_timeout setproctitle filelock
 RUN $useProxyNetwork pip install commentjson matplotlib psutil paramiko ipykernel onedrivedownloader flock
-RUN $useProxyNetwork pip install torch --extra-index-url https://download.pytorch.org/whl/cu113
-RUN $useProxyNetwork pip install pygame cmake redis
+RUN $useProxyNetwork pip install torch --extra-index-url https://download.pytorch.org/whl/cu115
+RUN $useProxyNetwork pip install pygame cmake redis numba
 RUN $useProxyNetwork pip install git+https://github.com/oxwhirl/smac.git
 
 # download and extract UHMAP component
@@ -90,6 +92,10 @@ RUN $useProxyNetwork git clone https://github.com/binary-husky/uhmap-visual-tool
 WORKDIR /home/hmp/uhmap-visual-tool/
 RUN $useProxyNetwork python linux_deploy.py
 RUN $useProxyNetwork python linux_deploy_starcraft_all_versions.py
+# add execute mod to starcraft II (two versions)
+RUN chmod +x /home/hmp/StarCraftIII/Version2410/StarCraftII/Versions/Base75689/ 
+RUN chmod +x /home/hmp/StarCraftIII/Versions/Base69232/SC2_x64
+
 RUN mv /home/hmp/uhmap-visual-tool/UnrealEngine/home/hmp/*  /home/hmp
 
 # download UHMAP main framwork
@@ -98,12 +104,28 @@ RUN $useProxyNetwork git clone https://github.com/binary-husky/hmp2g.git -b mult
 WORKDIR /home/hmp/hmp2g
 # RUN python main.py -c example.jsonc
 
-# Installing Times New Roman font
+# # Installing Times New Roman font
+# USER root
+# # RUN apt-get --reinstall install ttf-mscorefonts-installer
+# # RUN apt-get install msttcorefonts -qq
+# # RUN rm /home/hmp/.cache/matplotlib -rf
+
 USER root
-# RUN apt-get --reinstall install ttf-mscorefonts-installer
-# RUN apt-get install msttcorefonts -qq
-# RUN rm /home/hmp/.cache/matplotlib -rf
+
+# RUN sed -i 's/22/2233/g' /etc/ssh/sshd_config
+RUN echo "Port 2233" >> /etc/ssh/sshd_config
+RUN echo "service ssh start" >> /entrypoint.sh
+RUN echo "redis-server --daemonize yes" >> /entrypoint.sh
+
 
 # exit
 USER hmp
 WORKDIR /home/hmp
+RUN touch /home/hmp/.sudo_as_admin_successful
+COPY ./bashrc_suffix /home/hmp/bashrc_suffix
+RUN cat /home/hmp/bashrc_suffix >> /home/hmp/.bashrc
+
+# docker build --network=host --progress=plain -t py38 .
+# docker run -itd  --name  hmp-fqx --net host --gpus all --shm-size=16G py38:latest && docker exec -it -u 0 hmp-fqx  service ssh start
+# docker exec -it hmp-fqx bash
+# docker stop hmp-fqx && docker rm hmp-fqx
