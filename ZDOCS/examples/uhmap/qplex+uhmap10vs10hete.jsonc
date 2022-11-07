@@ -4,7 +4,7 @@
         "env_name": "uhmap",
         "env_path": "MISSION.uhmap",
         "draw_mode": "Img",
-        "num_threads": 8,
+        "num_threads": 8,  // 请预留 num_threads * 1 GB 的内存空间
         "report_reward_interval": 256,
         "test_interval": 5120,
         "test_epoch": 256,

@@ -6,7 +6,7 @@
         "env_path": "MISSION.uhmap",
         // "heartbeat_on": "False",
         "draw_mode": "Img",
-        "num_threads": 32,
+        "num_threads": 32,  // 请预留 num_threads * 1 GB 的内存空间
         "report_reward_interval": 128,
         "test_interval": 1280,
         "test_epoch": 512,
