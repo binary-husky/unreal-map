@@ -63,12 +63,13 @@ def find_procs_by_name(name):
             ls.append(p)
     return ls
 
-from VISUALIZE.mcom import mcom
-mcv = mcom( 
-        path='TEMP',
-        digit=-1, 
-        rapid_flush=True, draw_mode='Img'
-)
+if __name__ ==  "__main__":
+    from VISUALIZE.mcom import mcom
+    mcv = mcom( 
+            path='TEMP',
+            digit=-1, 
+            rapid_flush=True, draw_mode='Img'
+    )
 
 
 def main(root_name = 'HmapRootProcess'):
@@ -105,7 +106,8 @@ def main(root_name = 'HmapRootProcess'):
     mcv.rec(info['python']['mem'], 'python')
     mcv.rec_show()
 
-while True:
-    main()
-    time.sleep(10) # 十分钟一次
-    # time.sleep(300) # 十分钟一次
+if __name__ ==  "__main__":
+    while True:
+        main()
+        time.sleep(10) # 十分钟一次
+        # time.sleep(300) # 十分钟一次

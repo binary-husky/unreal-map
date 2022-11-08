@@ -137,6 +137,7 @@ ZHECKPOINT/adca-demo/*
 ZHECKPOINT/uhmap_hete10vs10/backup_files
 ZHECKPOINT/uhmap_hete10vs10/logger
 !ZHECKPOINT/uhmap_hete10vs10/model_trained.pt
+ZHECKPOINT/uhmap_hete10vs10/experiment.jsonc
 
 cmd_io.txt
 rec.jpg
@@ -163,3 +164,4 @@ HLT_eval.py
 qplex-pad.jsonc
 raw_exp.jsonc
 info.json
+UTIL/mem_watcher.py

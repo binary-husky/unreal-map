@@ -205,6 +205,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
                     '-Seed=%d'%int(np.random.rand()*1e5), # 如果已经设定了主线程随机数种子，这里随机出来的数字则是确定的
                     '-DebugMod=False',
+                    '-LLMCSV',
                     '-ABSLOG=%s'%os.path.abspath('./TEMP/uhmap/%s/%d.log'%(GlobalConfig.machine_info['ExpUUID'][:8], rank)),
                     '-Version=%s'%ScenarioConfig.UhmapVersion,
                     '-LockGameDuringCom=True',
@@ -223,6 +224,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
                     '-Seed=%d'%int(np.random.rand()*1e5), # 如果已经设定了主线程随机数种子，这里随机出来的数字则是确定的
                     '-DebugMod=False',
+                    '-LLMCSV',
                     '-ABSLOG=%s'%os.path.abspath('./TEMP/uhmap/%s/%d.log'%(GlobalConfig.machine_info['ExpUUID'][:8], rank)),
                     '-Version=%s'%ScenarioConfig.UhmapVersion,
                     '-LockGameDuringCom=True',

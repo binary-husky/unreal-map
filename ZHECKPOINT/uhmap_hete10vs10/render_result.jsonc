@@ -29,14 +29,14 @@
         "StateProvided": false,
         "render": false,
         "UElink2editor": false,
-        "EnableMemReport": true,
         "AutoPortOverride": true,
         "HeteAgents": true,
         "UnrealLevel": "UhmapLargeScale",
         "SubTaskSelection": "UhmapLargeScale",
+        "UhmapVersion": "2.5",
         "UhmapRenderExe": "../WindowsNoEditor/UHMP.exe",
-        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer_Ver2.3/UHMPServer.sh",
-        "TimeDilation": 2,
+        "UhmapServerExe": "../WindowsServer/UHMPServer.exe",
+        "TimeDilation": 64,
         "TEAM_NAMES": [
             "ALGORITHM.hete_league_onenet_fix.foundation->ReinforceAlgorithmFoundation",
             "ALGORITHM.script_ai.uhmap_ls->DummyAlgorithmLinedAttack"
