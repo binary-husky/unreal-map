@@ -1,0 +1,2 @@
+start "" F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Build/BatchFiles/RunUAT.bat  -ScriptsForProject=F:/UHMP/UHMP.uproject  BuildCookRun  -nocompileeditor  -nop4  -project=F:/UHMP/UHMP.uproject  -cook -stage -archive -archivedirectory=F:/UHMP/Build  -package  -ue4exe=F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Binaries/Win64/UE4Editor-Cmd.exe  -compressed -ddc=DerivedDataBackendGraph  -pak -prereqs -nodebuginfo  -targetplatform=Win64 -build -target=UHMP  -clientconfig=Development -utf8output -compile && exit
+pause

@@ -1,0 +1,1 @@
+./7-Zip/7z.exe a -t7z -mx4 -v4g ./Build/UHMP_v1.0.7z   ./  -xr!Binaries -xr!Intermediate -xr!Build -xr!BuildBB -xr!DerivedDataCache -xr!Saved  -xr!".vs" -xr!".Build"
