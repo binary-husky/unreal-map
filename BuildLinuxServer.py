@@ -1,6 +1,7 @@
-
 import subprocess, sys, shutil, time, os
 
+EnginePath = "C:/UnrealEngine/UnrealEngine-4.27.2-release/Engine"
+assert os.path.exists(EnginePath)
 Windows_Only = False
 Build = 'Test' # Development/Test/shipping
 Platform = 'Linux'  # Win64/Linux
@@ -9,10 +10,6 @@ def print亮绿(*kw,**kargs):
 
 time_mark = time.strftime("%Y-%m-%d-%H-%M", time.localtime())
 try:
-    shutil.copytree(
-        'Build/LinuxServer/UHMP/Saved/Profiling/LLM',
-        f'Build/LLM-{time_mark}')
-
     shutil.rmtree('Build/LinuxServer')
 except:
     pass
@@ -22,7 +19,7 @@ print亮绿(f'********* Begin Build: {Build} On {Platform} ***********')
 path = os.path.abspath('./').replace(r'\\', '/')
 
 process = subprocess.Popen([
-    "F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Build/BatchFiles/RunUAT.bat",
+    f"{EnginePath}/Build/BatchFiles/RunUAT.bat",
     f"-ScriptsForProject={path}/UHMP.uproject",  
     "BuildCookRun",
     "-nocompileeditor",
@@ -33,7 +30,7 @@ process = subprocess.Popen([
     "-archive",
     f"-archivedirectory={path}/Build",
     "-package ",
-    "-ue4exe=F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Binaries/Win64/UE4Editor-Cmd.exe",
+    f"-ue4exe={EnginePath}/Binaries/Win64/UE4Editor-Cmd.exe",
     "-compressed",
     "-ddc=DerivedDataBackendGraph",
     "-pak",
@@ -49,7 +46,6 @@ process = subprocess.Popen([
 return_code = process.wait()
 print亮绿('********* ********************** ***********')
 print亮绿('********* ********************** ***********')
-print亮绿('********* End build windows server ***********')
 print亮绿('********* ********************** ***********')
 print亮绿('********* ********************** ***********')
 if (return_code!=0):

@@ -36,7 +36,7 @@ if not Windows_Only:
 print亮绿('********* Begin build windows renderer ***********')
 # build Visual
 process = subprocess.Popen([
-    "F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Build/BatchFiles/RunUAT.bat",
+    "{EnginePath}/Build/BatchFiles/RunUAT.bat",
     "-ScriptsForProject=F:/UHMP/UHMP.uproject",
     "BuildCookRun",
     "-nocompileeditor",
@@ -47,7 +47,7 @@ process = subprocess.Popen([
     "-archive",
     "-archivedirectory=F:/UHMP/Build",
     "-package",
-    "-ue4exe=F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Binaries/Win64/UE4Editor-Cmd.exe",
+    "-ue4exe={EnginePath}/Binaries/Win64/UE4Editor-Cmd.exe",
     "-compressed",
     "-ddc=DerivedDataBackendGraph",
     "-pak",
@@ -77,7 +77,7 @@ if (return_code!=0):
 print亮绿('********* Begin build windows server ***********')
 # build server
 process = subprocess.Popen([
-    "F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Build/BatchFiles/RunUAT.bat",
+    "{EnginePath}/Build/BatchFiles/RunUAT.bat",
     "-ScriptsForProject=F:/UHMP/UHMP.uproject",  
     "BuildCookRun",
     "-nocompileeditor",
@@ -88,7 +88,7 @@ process = subprocess.Popen([
     "-archive",
     "-archivedirectory=F:/UHMP/Build",
     "-package ",
-    "-ue4exe=F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Binaries/Win64/UE4Editor-Cmd.exe",
+    "-ue4exe={EnginePath}/Binaries/Win64/UE4Editor-Cmd.exe",
     "-compressed",
     "-ddc=DerivedDataBackendGraph ",
     "-pak",
@@ -119,7 +119,7 @@ if not Windows_Only:
     print亮绿('********* Begin build linux server ***********')
     # build linux server
     process = subprocess.Popen([
-        "F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Build/BatchFiles/RunUAT.bat",
+        "{EnginePath}/Build/BatchFiles/RunUAT.bat",
         "-ScriptsForProject=F:/UHMP_LINUX/UHMP.uproject",
         "BuildCookRun",
         "-nocompileeditor",
@@ -130,7 +130,7 @@ if not Windows_Only:
         "-archive",
         "-archivedirectory=F:/UHMP_LINUX/Build",
         "-package",
-        "-ue4exe=F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Binaries/Win64/UE4Editor-Cmd.exe",
+        "-ue4exe={EnginePath}/Binaries/Win64/UE4Editor-Cmd.exe",
         "-compressed",
         "-ddc=DerivedDataBackendGraph",
         "-pak",
@@ -159,7 +159,7 @@ if not Windows_Only:
     print亮绿('********* Begin build linux renderer ***********')
     # build linux renderer
     process = subprocess.Popen([
-        "F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Build/BatchFiles/RunUAT.bat",
+        "{EnginePath}/Build/BatchFiles/RunUAT.bat",
         "-ScriptsForProject=F:/UHMP_LINUX/UHMP.uproject",
         "BuildCookRun",
         "-nocompileeditor",
@@ -170,7 +170,7 @@ if not Windows_Only:
         "-archive",
         "-archivedirectory=F:/UHMP_LINUX/Build",
         "-package",
-        "-ue4exe=F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine/Binaries/Win64/UE4Editor-Cmd.exe",
+        "-ue4exe={EnginePath}/Binaries/Win64/UE4Editor-Cmd.exe",
         "-compressed",
         "-ddc=DerivedDataBackendGraph",
         "-pak",

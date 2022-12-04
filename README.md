@@ -19,6 +19,7 @@ Developed with Unreal Engine 4
 
 # 项目打包方法
 运行一下脚本即可。
+- 
 - 其中```Render/Server```代表```包含图形渲染/无界面仅计算```，后者一般用于RL训练。
 - 其中```Win/linux```代表目标操作系统，注意在windows上编译linux程序需要安装```虚幻引擎交叉编译工具```。
 ```
