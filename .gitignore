@@ -18,11 +18,13 @@ Py
 *.xcworkspace
 Python
 
+
+__pycache__
+*-datas
+
 private*
 Content/Model3D
 Content/StarterContent
 Plugins
 7-Zip
 UHMP.uproject
-__pycache__
-*-datas

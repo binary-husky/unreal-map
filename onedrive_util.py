@@ -138,7 +138,7 @@ class Main:
             
 
             size_1Mb = 1024*1024
-            chunk_size = size_1Mb * 64
+            chunk_size = size_1Mb * 128
             file_size = os.path.getsize(path_file_abs)
             def print_upload_progress(offset):
                 print("Uploaded '{}' bytes from '{}'...[{}%]".format(offset, file_size, round(offset / file_size * 100, 2)))
