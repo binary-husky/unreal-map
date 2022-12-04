@@ -130,7 +130,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
             pass
 
         # Restart env, this is very fast, can be a failsafe if there is memory leaking away on UE side
-        self.max_simulation_life = 512
+        self.max_simulation_life = 99999999
         
         self.simulation_life = self.max_simulation_life
         # with a lock, we can initialize UE side one by one (not necessary though)
@@ -205,7 +205,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
                     '-Seed=%d'%int(np.random.rand()*1e5), # 如果已经设定了主线程随机数种子，这里随机出来的数字则是确定的
                     '-DebugMod=False',
-                    '-LLMCSV',
+                    # '-LLMCSV',
                     '-ABSLOG=%s'%os.path.abspath('./TEMP/uhmap/%s/%d.log'%(GlobalConfig.machine_info['ExpUUID'][:8], rank)),
                     '-Version=%s'%ScenarioConfig.UhmapVersion,
                     '-LockGameDuringCom=True',
@@ -224,7 +224,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                     '-IOInterval=%.8f'%ScenarioConfig.StepGameTime,
                     '-Seed=%d'%int(np.random.rand()*1e5), # 如果已经设定了主线程随机数种子，这里随机出来的数字则是确定的
                     '-DebugMod=False',
-                    '-LLMCSV',
+                    # '-LLMCSV',
                     '-ABSLOG=%s'%os.path.abspath('./TEMP/uhmap/%s/%d.log'%(GlobalConfig.machine_info['ExpUUID'][:8], rank)),
                     '-Version=%s'%ScenarioConfig.UhmapVersion,
                     '-LockGameDuringCom=True',

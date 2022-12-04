@@ -24,17 +24,16 @@
     "MISSION.uhmap.uhmap_env_wrapper.py->ScenarioConfig": {
         "n_team1agent": 10,
         "n_team2agent": 10,
-        "MaxEpisodeStep": 125,
+        "MaxEpisodeStep": 142,
         "StepGameTime": 0.5,
         "StateProvided": false,
-        "render": true,
-        "UElink2editor": false, // false, //true
-        "AutoPortOverride": true, // false, //true
+        "render": false,
+        "UElink2editor": true, // false, //true
         "HeteAgents": true,
         "UnrealLevel": "UhmapLargeScale",
         "SubTaskSelection": "UhmapLargeScale",
         "UhmapVersion": "2.5",
-        "UhmapRenderExe": "../WindowsNoEditor/UHMP.exe",
+        "UhmapRenderExe": "../WindowsNoEditor/UHMP.exex",
         "UhmapServerExe": "../WindowsServer/UHMPServer.exe",
         "TimeDilation": 32,
         "TEAM_NAMES": [
