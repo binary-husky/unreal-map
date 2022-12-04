@@ -2,52 +2,28 @@
 
 Developed with Unreal Engine 4
 
-# How to install | 如何安装
-见 “虚幻引擎安装方法 / README.md” 文件
+# 安装方法
+- 第1步，必须从```源代码```安装虚幻引擎，具体方法见虚幻引擎的官方文档：https://docs.unrealengine.com/4.27/zh-CN/ProductionPipelines/DevelopmentSetup/BuildingUnrealEngine/
 
-# 如何将修改同步到远程
-### 0. 首先关闭虚幻引擎！
+- 第2步，克隆本仓库。```git clone https://github.com/binary-husky/unreal-hmp.git```
 
-### 1. 打开vscode，切换到git页面
-<div align="center">
-<img src="Docs/2022-10-17-17-14-13.png" width="300" >
-</div>
+- 第3步，下载github不能管理的大文件。运行```python Please_Run_This_First_To_Fetch_Big_Files.py```。
 
-### 2. 填写message，然后点击commit
-### 3. 再点击sync changes，然后出现下面界面（也有可能直接顺利完成，忽略以下步骤即可）
-<div align="center">
-<img src="Docs/2022-10-17-17-30-42.png" width="300" >
-</div>
-<div align="center">
-<img src="Docs/2022-10-17-17-16-09.png" width="300" >
-</div>
+- 第4步，```右```击上一步下载的```UHMP.uproject```，选择```switch unreal engine version```，再选择```source build at xxxxx```确认。然后打开生成的```UHMP.sln```，编译即可。
 
-### 4. 如果没有“Merge Changes”，再次点击提交即可，但一般都会有若干项“Merge Changes”，即和其他人发生冲突的文件，需要进行处理
+- 最后，双击```UHMP.uproject```进入虚幻引擎编辑器。
 
-### 5. 如有“Merge Changes”，打开终端
-
-#### 5-1 （确实对该文件做出过有意义的修改）如果想保存本地，无视远程文件，强行把本地文件汇入远程：
-终端命令：
-```
-   git checkout --ours /path/to/file
-   git add /path/to/file
-```
-在此例子中，
-```
-   git checkout --ours Content\Assets\DefAction\ParseAction.uasset
-   git add Content\Assets\DefAction\ParseAction.uasset
-```
-#### 5-2 （无意修改此文件，或该文件属于其他人的管辖范围）如果想覆盖本地文件，采纳远程文件：
-终端命令：
-```
-   git checkout --theirs /path/to/file
-   git add /path/to/file
-```
-在此例子中，
-```
-   git checkout --theirs Content\Assets\DefAction\ParseAction.uasset
-   git add Content\Assets\DefAction\ParseAction.uasset
-```
+注意，第1步和第4步较难，建议参考以下视频（视频中前1分46秒为第1步流程，后面为第4步流程）： https://ageasga-my.sharepoint.com/:v:/g/personal/fuqingxu_yiteam_tech/EawfqsV2jF5Nsv3KF7X1-woBH-VTvELL6FSRX4cIgUboLg?e=Vmp67E
 
 
-### 6. 再次点击Commit，完成流程
+
+# 项目打包方法
+运行一下脚本即可。
+- 其中```Render/Server```代表```包含图形渲染/无界面仅计算```，后者一般用于RL训练。
+- 其中```Win/linux```代表目标操作系统，注意在windows上编译linux程序需要安装```虚幻引擎交叉编译工具```。
+```
+python BuildlinuxRender.py
+python BuildLinuxServer.py
+python BuildWinRender.py
+python BuildWinServer.py
+```
