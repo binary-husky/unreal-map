@@ -3,6 +3,8 @@ Build
 DerivedDataCache
 Intermediate
 Saved
+TEMP
+Temp
 Py
 .vscode
 .vs
@@ -16,9 +18,11 @@ Py
 *.xcworkspace
 Python
 
-
+private*
 Content/Model3D
 Content/StarterContent
 Plugins
 7-Zip
 UHMP.uproject
+__pycache__
+*-datas
