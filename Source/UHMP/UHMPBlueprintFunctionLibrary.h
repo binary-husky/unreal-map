@@ -77,6 +77,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SpecialFn")
 		static void MannualGc();
 
+	UFUNCTION(BlueprintCallable, Category = "SpecialFn")
+		static bool IsEditor();
+
 	UFUNCTION(BlueprintPure, Category = "SpecialFn")
 		static FVector FlyingTracking(FVector self_pos, FVector dst_pos, bool maintain_z, float dis_aim);
 };

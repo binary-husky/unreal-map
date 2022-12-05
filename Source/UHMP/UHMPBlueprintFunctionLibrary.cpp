@@ -136,13 +136,15 @@ TArray<int> UUHMPBlueprintFunctionLibrary::GetAffilationArray(const TArray<AAgen
 
 void UUHMPBlueprintFunctionLibrary::MannualGc()
 {
-	if (GEngine) 
-	{
-		// void UEngine::ForceGarbageCollection(bool bForcePurge/*=false*/)
-		GEngine->ForceGarbageCollection(true);
-	}
+	// void UEngine::ForceGarbageCollection(bool bForcePurge/*=false*/)
+	GEngine->ForceGarbageCollection(true);
 }
 
+bool UUHMPBlueprintFunctionLibrary::IsEditor()
+{
+	return GEngine->IsEditor();
+}
+ 
 TArray<float> UUHMPBlueprintFunctionLibrary::GetPerceptionRangeArray(const TArray<AAgentBaseCpp*>& agents)
 {
 	
