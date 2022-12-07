@@ -18,7 +18,6 @@ class AlgorithmConfig:
     use_normalization = True
     add_prob_loss = False
     n_focus_on = 2
-    n_entity_placeholder = 11
 
     load_checkpoint = False
     load_specific_checkpoint = ''
@@ -42,13 +41,14 @@ class AlgorithmConfig:
     
     dual_conc = True
 
+    n_entity_placeholder = 'auto load, do not change'
     n_agent = 'auto load, do not change'
+    entity_distinct = 'auto load, do not change'
 
     ConfigOnTheFly = True
 
 
     
-    entity_distinct = 'auto load, do not change'
 
     policy_resonance = False
 
@@ -76,15 +76,15 @@ class ReinforceAlgorithmFoundation(RLAlgorithmBase):
         from .net import Net
         super().__init__(n_agent, n_thread, space, mcv, team)
         AlgorithmConfig.n_agent = n_agent
-        self.action_converter = ActionConvertLegacy(
-                SELF_TEAM_ASSUME=team, 
-                OPP_TEAM_ASSUME=(1-team), 
-                OPP_NUM_ASSUME=GlobalConfig.ScenarioConfig.N_AGENT_EACH_TEAM[1-team]
-        )
-        n_actions = len(self.action_converter.dictionary_args)
+
         # change obs format, e.g., converting dead agent obs into NaN
         self.shell_env = ShellEnvWrapper(n_agent, n_thread, space, mcv, self, AlgorithmConfig, GlobalConfig.ScenarioConfig, self.team)
-        if self.ScenarioConfig.EntityOriented: rawob_dim = self.ScenarioConfig.obs_vec_length
+
+        n_actions = len(self.shell_env.action_converter.dictionary_args)
+
+        if self.ScenarioConfig.EntityOriented: 
+            AlgorithmConfig.n_entity_placeholder = GlobalConfig.ScenarioConfig.obs_n_entity
+            rawob_dim = self.ScenarioConfig.obs_vec_length
         else: rawob_dim = space['obs_space']['obs_shape']
 
         # self.StagePlanner, for policy resonance

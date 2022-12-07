@@ -10,7 +10,7 @@
         "test_epoch": 128,
         "interested_team": 0,
         "seed": 2721,
-        "device": "cuda",
+        "device": "cpu",
         "max_n_episode": 5000000,
         "fold": 1,
         "backup_files": [

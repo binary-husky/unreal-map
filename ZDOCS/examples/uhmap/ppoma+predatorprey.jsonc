@@ -1,0 +1,73 @@
+{
+    // --- Part1: config HMP core --- 
+    "config.py->GlobalConfig": {
+        "note": "ppoma-predatorprey",// http://localhost:59547
+        "env_name": "uhmap",
+        "env_path": "MISSION.uhmap",
+        // "heartbeat_on": "False",
+        "draw_mode": "Img",
+        "num_threads": 1,  // 请预留 num_threads * 1 GB 的内存空间
+        "report_reward_interval": 128,
+        "test_interval": 1280,
+        "test_epoch": 512,
+        "interested_team": 0,
+        "seed": 10098,
+        "device": "cpu",
+        "max_n_episode": 5000000,
+        "fold": 1,
+        "backup_files": [
+            "MISSION/uhmap"
+        ]
+    },
+
+
+    // --- Part2: config MISSION --- 
+    "MISSION.uhmap.uhmap_env_wrapper.py->ScenarioConfig": {
+        "N_AGENT_EACH_TEAM": [10, 3],
+        "MaxEpisodeStep": 100,
+        "StepGameTime": 0.5,
+        "StateProvided": false,
+        "render": false, // note: random seed has different impact on renderer and server
+        "UElink2editor": true,
+        "HeteAgents": true,
+        "UnrealLevel": "UhmapLargeScale",
+        "SubTaskSelection": "UhmapPreyPredator",
+        // "UhmapRenderExe": "./../../WindowsNoEditor/UHMP.exe",
+        // "UhmapServerExe": "./../../WindowsServer/UHMPServer.exe",
+        "UhmapVersion":"2.4",
+        "UhmapRenderExe": "../WindowsNoEditor/UHMP.exe",
+        "UhmapServerExe": "/home/hmp/fuqingxu/UHMP/Build/LinuxServer_Ver2.4/UHMPServer.sh",
+        "TimeDilation": 2, // simulation time speed up, larger is faster
+        "TEAM_NAMES": [
+            "ALGORITHM.ppo_ma.foundation->ReinforceAlgorithmFoundation",
+            "TEMP.ppo_ma.foundation->ReinforceAlgorithmFoundation",
+        ]
+    },
+
+
+    // --- Part3: config ALGORITHM 1/2 --- 
+    "ALGORITHM.script_ai.uhmap_ls.py->DummyAlgConfig": {
+        "reserve": ""
+    },
+
+    // --- Part3: config ALGORITHM 2/2 --- 
+    "ALGORITHM.ppo_ma.shell_env.py->ShellEnvConfig": {
+        "add_avail_act": true
+    },
+    "ALGORITHM.ppo_ma.foundation.py->AlgorithmConfig": {
+        "train_traj_needed": 64,
+        "use_normalization": true,
+        "load_specific_checkpoint": "",
+        "gamma": 0.99,
+        "gamma_in_reward_forwarding": "True",
+        "gamma_in_reward_forwarding_value": 0.95,
+        "prevent_batchsize_oom": "True",
+        "lr": 0.0004,
+        "ppo_epoch": 24,
+        "policy_resonance": false,
+        "debug": true,
+        "n_entity_placeholder": 11
+    },
+
+    
+}
