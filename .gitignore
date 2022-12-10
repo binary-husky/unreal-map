@@ -22,9 +22,12 @@ Python
 __pycache__
 *-datas
 
+# private*
 private*
 Content/Model3D
 Content/StarterContent
 Plugins
 7-Zip
 UHMP.uproject
+EnvDesignTutorial.pptx
+EnvDesignTutorial.zip

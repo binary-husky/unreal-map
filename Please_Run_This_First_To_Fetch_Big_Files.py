@@ -1,15 +1,14 @@
 import os, commentjson, shutil, subprocess, tqdm, shutil, distutils
 from onedrivedownloader import download
 
+try:
+    os.makedirs('./TEMP')
+except:
+    shutil.rmtree('./TEMP')
+    os.makedirs('./TEMP')
 
 def download_from_shared_server(key = 'cat'):
     # download uhmap file manifest | 下载manifest目录文件
-    try:
-        os.makedirs('./TEMP')
-    except:
-        shutil.rmtree('./TEMP')
-        os.makedirs('./TEMP')
-
     print('download uhmap file manifest | 下载manifest目录文件')
     manifest_url = "https://ageasga-my.sharepoint.com/:u:/g/personal/fuqingxu_yiteam_tech/EVmCQMSUWV5MgREWaxiz_GoBalBRV3DWBU3ToSJ5OTQaLQ?e=I8yjl9"
 
@@ -28,6 +27,9 @@ def download_from_shared_server(key = 'cat'):
     except:
         print(f'download timeout | 下载失败, 您可能需要翻墙才能下载资源。另外如果您想手动下载的话: {uhmap_url}')
     return file
+
+download_from_shared_server('EnvDesignTutorial') 
+distutils.dir_util.copy_tree('./TEMP/UNZIP', './')
 
 download_from_shared_server('uhmp-big-file-v3.1') 
 distutils.dir_util.copy_tree('./TEMP/UNZIP', './')

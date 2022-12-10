@@ -7,7 +7,7 @@ from datetime import datetime
 def get_onedrive_handle():
     # 第一步获取OneDrive访问句柄
     email = "fuqingxu@yiteam.tech"
-    password = input()
+    password = input('password please?')
     endpoint = "https://ageasga-my.sharepoint.com/personal/fuqingxu_yiteam_tech"
     type = "onedrive"
     session = OneDrive(email=email, password=password, endpoint=endpoint, type=type)
@@ -38,8 +38,13 @@ def add_file_to_onedrive(session, key, path_file_name_local):
     print('success')
 
 
+# add_file_to_onedrive(
+#     session = get_onedrive_handle(), 
+#     key = 'uhmp-big-file-v3.1', 
+#     path_file_name_local = 'PrivateUpload/uhmp-big-file-v3.1.zip')
+
+
 add_file_to_onedrive(
     session = get_onedrive_handle(), 
-    key = 'uhmp-big-file-v3.1', 
-    path_file_name_local = 'PrivateUpload/uhmp-big-file-v3.1.zip')
-
+    key = 'EnvDesignTutorial', 
+    path_file_name_local = 'EnvDesignTutorial.zip')
