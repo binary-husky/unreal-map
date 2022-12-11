@@ -2,7 +2,7 @@
 基于UnrealEngine开发，文档正在完善中。Developed with Unreal Engine, documenting is in process.
 
 此项目处于活跃开发阶段，请打星关注哦。 
-**Your encouragement is extremely important to us as researchers, Please ```star``` this Github project. **
+**Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```**
 
 Contact us: 
 - Qingxu Fu, CASIA, fuqingxu@ia.ac.cn，QQ505030475
