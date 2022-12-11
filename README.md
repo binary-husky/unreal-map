@@ -32,8 +32,12 @@ UHMAP面向对抗性异构多智能体强化学习场景。
 </div>
 
 <div align="center">
-<img src="Docs/Demo/uhmap-island.jpg" width="300" >
+<img src="Docs/Demo/uhmap-hete.jpg" width="300" >
 </div>
+
+<!-- <div align="center">
+<img src="Docs/Demo/uhmap-island.jpg" width="300" >
+</div> -->
 
 # 安装方法
 - 第1步，必须从```源代码```安装虚幻引擎，具体方法见虚幻引擎的官方文档：https://docs.unrealengine.com/4.27/zh-CN/ProductionPipelines/DevelopmentSetup/BuildingUnrealEngine/
