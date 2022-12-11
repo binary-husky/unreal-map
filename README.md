@@ -1,13 +1,14 @@
 # UHMAP
 基于UnrealEngine开发，文档正在完善中。Developed with Unreal Engine, documenting is in process.
 
-此项目处于活跃开发阶段，请打星关注哦。 ** Your encouragement is extremely important to us as researchers, Please ```star``` this Github project. **
+此项目处于活跃开发阶段，请打星关注哦。 
+** Your encouragement is extremely important to us as researchers, Please ```star``` this Github project. **
 
 Contact us: 
-Qingxu Fu, CASIA, fuqingxu@ia.ac.cn，QQ505030475
-Tianyi Hu, CASIA, hutianyi2021@ia.ac.cn
-Yifan Xu, CASIA, xuyifan2021@ia.ac.cn
-单位：中科院自动化研究所，yiteam群体智能课题组
+- Qingxu Fu, CASIA, fuqingxu@ia.ac.cn，QQ505030475
+- Tianyi Hu, CASIA, hutianyi2021@ia.ac.cn
+- Yifan Xu, CASIA, xuyifan2021@ia.ac.cn
+- 单位：中科院自动化研究所，yiteam群体智能课题组
 
 # 简介
 
