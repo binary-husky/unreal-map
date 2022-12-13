@@ -5,10 +5,14 @@
 **Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```**
 
 Contact us: 
-- Qingxu Fu, CASIA, fuqingxu@ia.ac.cn，QQ505030475
+- Qingxu Fu, CASIA, fuqingxu2019@ia.ac.cn，QQ505030475
 - Tianyi Hu, CASIA, hutianyi2021@ia.ac.cn
 - Yifan Xu, CASIA, xuyifan2021@ia.ac.cn
-- 单位：中科院自动化研究所，yiteam群体智能课题组
+- Organization：
+- - Institute of Automation, Chinese Academy of Sciences
+- - School of Artificial Intelligence, University of Chinese Academy of Sciences
+- - Yiteam Swarm Intelligent Research Group
+
 
 # 简介
 
