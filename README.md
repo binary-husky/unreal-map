@@ -56,6 +56,10 @@ UHMAP面向对抗性异构多智能体强化学习场景。
 
 注意，第1步和第4步较难，建议参考以下视频（视频中前1分46秒为第1步流程，后面为第4步流程）： https://ageasga-my.sharepoint.com/:v:/g/personal/fuqingxu_yiteam_tech/EawfqsV2jF5Nsv3KF7X1-woBH-VTvELL6FSRX4cIgUboLg?e=Vmp67E
 
+# 直接安装编译后的二进制客户端
+
+见 https://github.com/binary-husky/hmp2g/blob/master/ZDOCS/use_unreal_hmap.md
+
 # 环境设计方法
 文档正在完善，简单demo的视频教程见```EnvDesignTutorial.pptx```（需要完成安装步骤3以下载此pptx文件）
 
