@@ -132,7 +132,7 @@ FString AHmpPythonIO::TcpServerRecvBlocked(bool checkEOF, float& tcpWaitTime, fl
 		double t2 = FPlatformTime::Seconds();
 		tcpWaitTime = t2 - t1;
 		if (!TcpAccpetedSocket->HasPendingData(BytesPendingdata)) {
-			ensureMsgf(false, TEXT("Tcp wait timeout! The uhmap will exit now because nothing plays with it in 24 hours!"));
+			ensureMsgf(false, TEXT("Tcp connection with Python is broken! Exiting ..."));
 			return "";
 		}
 		TcpAccpetedSocket->Recv(&RecvBuffer[currenthead], ReceiveBufferSize, BytesRead);
