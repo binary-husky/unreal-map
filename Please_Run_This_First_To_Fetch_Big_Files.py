@@ -1,5 +1,6 @@
-import os, commentjson, shutil, subprocess, tqdm, shutil, distutils
+import os, commentjson, shutil, subprocess, tqdm, shutil
 from onedrivedownloader import download
+from distutils import dir_util
 
 try: os.makedirs('./TEMP')
 except: pass
@@ -26,9 +27,9 @@ def download_from_shared_server(key = 'cat'):
     return file
 
 download_from_shared_server('EnvDesignTutorial') 
-distutils.dir_util.copy_tree('./TEMP/UNZIP', './')
+dir_util.copy_tree('./TEMP/UNZIP', './')
 
 download_from_shared_server('uhmp-big-file-v3.1') 
-distutils.dir_util.copy_tree('./TEMP/UNZIP', './')
+dir_util.copy_tree('./TEMP/UNZIP', './')
 
 print('完成! (如果因网络原因下载失败, 删除TEMP文件夹然后再试一次)')
