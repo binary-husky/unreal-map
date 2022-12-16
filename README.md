@@ -50,7 +50,7 @@ UHMAP面向对抗性异构多智能体强化学习场景。
 
 - 第3步，下载github不能管理的大文件。运行```python Please_Run_This_First_To_Fetch_Big_Files.py```。
 
-- 第4步，```右```击上一步下载的```UHMP.uproject```，选择```switch unreal engine version```，再选择```source build at xxxxx```确认。然后打开生成的```UHMP.sln```，编译即可。
+- 第4步，```右```击第3步下载得到的```UHMP.uproject```，选择```switch unreal engine version```，再选择```source build at xxxxx```确认。然后打开生成的```UHMP.sln```，编译即可。
 
 - 最后，双击```UHMP.uproject```进入虚幻引擎编辑器。
 

@@ -13,6 +13,7 @@ def get_onedrive_handle():
     session = OneDrive(email=email, password=password, endpoint=endpoint, type=type)
     return session
 
+session = get_onedrive_handle()
 
 def add_file_to_onedrive(session, key, path_file_name_local):
 
@@ -24,8 +25,6 @@ def add_file_to_onedrive(session, key, path_file_name_local):
 
     # 创建公开链接
     share_link = session.share_folder(os.path.join(shareserver_remote_root, os.path.basename(path_file_name_local)), is_edit=False)
-
-
 
     # 读取manifest目录
     dir_name = f"./{ datetime.now().strftime('%d-%m-%Y') }-datas"
@@ -44,27 +43,20 @@ def add_file_to_onedrive(session, key, path_file_name_local):
     print('success')
 
 
-# add_file_to_onedrive(
-#     session = get_onedrive_handle(), 
-#     key = 'uhmp-big-file-v3.1', 
-#     path_file_name_local = 'PrivateUpload/uhmp-big-file-v3.1.zip')
+def get_current_version():
+    with open('current_version', 'r', encoding='utf8') as f:
+        version = f.read()
+        return version
 
 
-# add_file_to_onedrive(
-#     session = get_onedrive_handle(), 
-#     key = 'EnvDesignTutorial', 
-#     path_file_name_local = 'EnvDesignTutorial.zip')
+desired_version = get_current_version()
 
-# desired_version = "3.2"
-# plat = "Windows"
-# key = f"Uhmap_{plat}_Build_Version{desired_version}"
-# add_file_to_onedrive(
-#     session = get_onedrive_handle(), 
-#     key = key, 
-#     path_file_name_local = f'Build/{key}.zip')
+os.system(f'.\\7-Zip\\7z.exe a -tzip -mx4 ./Build/uhmp-big-file-v{desired_version}.zip  ./Content/Model3D   ./Plugins  ./7-Zip  ./UHMP.uproject  ./EnvDesignTutorial.pptx')
+add_file_to_onedrive(
+    session = session, 
+    key = f'uhmp-big-file-v{desired_version}', 
+    path_file_name_local = f'Build/uhmp-big-file-v{desired_version}.zip')
 
-session = get_onedrive_handle()
-desired_version = "3.3"
 plat = "Linux"
 key = f"Uhmap_{plat}_Build_Version{desired_version}"
 os.system('python BuildLinuxRender.py')
@@ -74,9 +66,6 @@ add_file_to_onedrive(
     session = session, 
     key = key, 
     path_file_name_local = f'Build/{key}.zip')
-
-
-
 
 plat = "Windows"
 key = f"Uhmap_{plat}_Build_Version{desired_version}"

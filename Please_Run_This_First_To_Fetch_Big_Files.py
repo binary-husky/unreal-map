@@ -26,10 +26,13 @@ def download_from_shared_server(key = 'cat'):
         print(f'download timeout | 下载失败, 您可能需要翻墙才能下载资源。另外如果您想手动下载的话: {uhmap_url}')
     return file
 
-download_from_shared_server('EnvDesignTutorial') 
-dir_util.copy_tree('./TEMP/UNZIP', './')
-
-download_from_shared_server('uhmp-big-file-v3.1') 
+def get_current_version():
+    with open('current_version', 'r', encoding='utf8') as f:
+        version = f.read()
+        return version
+        
+version = get_current_version()
+download_from_shared_server(f'uhmp-big-file-v{version}') 
 dir_util.copy_tree('./TEMP/UNZIP', './')
 
 print('完成! (如果因网络原因下载失败, 删除TEMP文件夹然后再试一次)')
