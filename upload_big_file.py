@@ -51,7 +51,7 @@ def get_current_version():
 
 desired_version = get_current_version()
 
-os.system(f'.\\7-Zip\\7z.exe a -tzip -mx4 ./Build/uhmp-big-file-v{desired_version}.zip  ./Content/Model3D   ./Plugins  ./7-Zip  ./UHMP.uproject  ./EnvDesignTutorial.pptx')
+os.system(f'.\\7-Zip\\7z.exe a -tzip -mx4 ./Build/uhmp-big-file-v{desired_version}.zip  -ir!Content/Model3D   Plugins  7-Zip  UHMP.uproject  EnvDesignTutorial.pptx')
 add_file_to_onedrive(
     session = session, 
     key = f'uhmp-big-file-v{desired_version}', 
