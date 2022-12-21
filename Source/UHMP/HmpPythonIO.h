@@ -43,8 +43,8 @@ protected:
 	double dur_toc_second = 0.0f;
 	double dur_sum_second = 0.0f;
 
-	int32 SendBufferSize = 4096 * 32;
-	int32 ReceiveBufferSize = 4096 * 32;
+	int32 SendBufferSize = 1024 * 1024 * 16;
+	int32 ReceiveBufferSize = 1024 * 1024 * 16;
 	uint8* SendBuffer = new uint8[SendBufferSize];
 	uint8* RecvBuffer = new uint8[ReceiveBufferSize];
 	uint8* RecvDecompressBuffer = new uint8[ReceiveBufferSize];

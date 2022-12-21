@@ -143,27 +143,18 @@ FString AHmpPythonIO::TcpServerRecvBlocked(bool checkEOF, float& tcpWaitTime, fl
 		if (checkEOF) 
 		{
 			if (currenthead >= 8 &&
-				RecvBuffer[currenthead - 1] == 0x55 &&
-				RecvBuffer[currenthead - 2] == 0xaa &&
-				RecvBuffer[currenthead - 3] == 'P' &&
-				RecvBuffer[currenthead - 4] == 'M' &&
-				RecvBuffer[currenthead - 5] == 'H' &&
-				RecvBuffer[currenthead - 6] == 0xaa &&
-				RecvBuffer[currenthead - 7] == 0x55 &&
-				RecvBuffer[currenthead - 8] == 0xaa)
+				RecvBuffer[currenthead - 1] == 0x55 && RecvBuffer[currenthead - 2] == 0xaa &&
+				RecvBuffer[currenthead - 3] == 'P'  && RecvBuffer[currenthead - 4] == 'M'  && RecvBuffer[currenthead - 5] == 'H' &&
+				RecvBuffer[currenthead - 6] == 0xaa && RecvBuffer[currenthead - 7] == 0x55 && RecvBuffer[currenthead - 8] == 0xaa)
 			{
 				// data ends with pre-defined marker, clear the marker, convert to String
-				RecvBuffer[currenthead - 8] = '\0';
-				RecvBuffer[currenthead - 7] = '\0';
-				RecvBuffer[currenthead - 6] = '\0';
-				RecvBuffer[currenthead - 5] = '\0';
-				RecvBuffer[currenthead - 4] = '\0';
-				RecvBuffer[currenthead - 3] = '\0';
-				RecvBuffer[currenthead - 2] = '\0';
-				RecvBuffer[currenthead - 1] = '\0';
+				RecvBuffer[currenthead - 8] = '\0'; RecvBuffer[currenthead - 7] = '\0'; RecvBuffer[currenthead - 6] = '\0';
+				RecvBuffer[currenthead - 5] = '\0'; RecvBuffer[currenthead - 4] = '\0'; RecvBuffer[currenthead - 3] = '\0';
+				RecvBuffer[currenthead - 2] = '\0'; RecvBuffer[currenthead - 1] = '\0';
 
 				// decompress
 				int dst_read = XLZ4_decompress_safe((const char*)RecvBuffer, (char*)RecvDecompressBuffer, currenthead - 8, ReceiveBufferSize);
+				ensureMsgf((dst_read>0), TEXT("Recv Buffer Overflow!"));	// Buffer overflow!
 				RecvDecompressBuffer[dst_read] = '\0'; // seal the top of buffer
 
 				FString RecvString = FString(UTF8_TO_TCHAR(RecvDecompressBuffer));
@@ -197,10 +188,8 @@ FParsedDataInput AHmpPythonIO::ParsedTcpInData(FString TcpLatestRecvString)
 	}
 	catch (...) 
 	{
-
 		TcpParsedTcpInData.valid = false;
 		return TcpParsedTcpInData;
-
 	}
 
 
