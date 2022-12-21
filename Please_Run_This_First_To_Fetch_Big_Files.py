@@ -38,6 +38,8 @@ version = get_current_version()
 success = download_from_shared_server(f'uhmp-big-file-v{version}') 
 
 if success:
+    print('Copying downloaded files to project root')
+    print('This will take a while if you are not using SSD...')
     dir_util.copy_tree('./TEMP/UNZIP', './')
     print('下载完成')
 else:
