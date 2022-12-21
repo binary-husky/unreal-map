@@ -1,7 +1,7 @@
 import subprocess, sys, shutil, time, os
 
-EnginePath = "C:/UnrealEngine/UnrealEngine-4.27.2-release/Engine"
-assert os.path.exists(EnginePath)
+EnginePath = "F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine"
+assert os.path.exists(EnginePath), f"Cannot find Unreal Engine at this path {EnginePath}"
 Windows_Only = False
 Build = 'Test' # Development/Test/shipping
 Platform = 'Linux'  # Win64/Linux
