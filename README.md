@@ -93,3 +93,10 @@ python BuildLinuxServer.py
 python BuildWinRender.py
 python BuildWinServer.py
 ```
+
+# 项目开发日志
+
+- 2022-12-22 版本3.6融入master分支
+- 2022-12-21 修复超大规模智能体数量情况下缓存区溢出的问题
+- 2022-12-18 优化大文件下载脚本
+- 2022-12-17 版本3.5融入master分支
