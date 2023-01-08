@@ -62,7 +62,7 @@ UHMAP面向对抗性异构多智能体强化学习场景。
 - Step 1, you must install the Unreal Engine from the source code. For details, see the official document of the Unreal Engine: ```https://docs.unrealengine.com/4.27/zh-CN/ProductionPipelines/DevelopmentSetup/BuildingUnrealEngine/```
 - Step 2: Clone the git resp ```git clone https://github.com/binary-husky/unreal-hmp.git```
 - Step 3: Download large files that github cannot manage. Run ```python Please_ Run_ This_ First_ To_ Fetch_ Big_ Files.py```
-- Step 4: Right click the ```UHMP. upproject``` downloaded in step 3, select ```switch unreal engine version```, and then select ```source build at xxxxx``` to confirm. Then open the generated ```UHMP. sln``` and compile it
+- Step 4: Right click the ```UHMP.upproject``` downloaded in step 3, select ```switch unreal engine version```, and then select ```source build at xxxxx``` to confirm. Then open the generated ```UHMP. sln``` and compile it
 - Finally, double-click ```UHMP. upproject``` to enter the Unreal Engine Editor.
 
 Note that steps 1 and 4 are difficult. It is recommended to refer to the following video (the 0:00->1:46 in the video is the steps 1, and 1:46->end is steps 4): ```https://ageasga-my.sharepoint.com/:v:/g/personal/fuqingxu_yiteam_tech/EawfqsV2jF5Nsv3KF7X1-woBH-VTvELL6FSRX4cIgUboLg?e=Vmp67E```
@@ -84,21 +84,21 @@ Note that steps 1 and 4 are difficult. It is recommended to refer to the followi
 The document is being improved. For the video tutorial of simple demo, see ```EnvDesignTutorial.pptx``` (you need to complete step 3 of installation to download this pptx file)
 
 Directory:
-- Chapter I Illusory Engine
+- Chapter I. Unreal Engine
 - - Build a map (Level)
 - - Establish Agent Actor
 - - Design agent blueprint program logic
 - - Episode key event notification mechanism
 - - Define actions (Unreal Engine side) (doc unfinished)
 - - The Python side controls the custom parameters of the agent
-- Chapter II Python Interface
+- Chapter II. Python Interface
 - - Create a task file (SubTask)
 - - Modify agent initialization code
 - - Modify the agent reward code
 - - Select the control algorithm of each team
 - - Full closed loop debugging method
-- Chapter III Appendix
-- - No rendering acceleration and cross compiling Linux binary package
+- Chapter III. Appendix
+- - Headless acceleration and cross-compiling Linux package
 - - Custom actions (doc unfinished)
 - - Installation guide for cross compilation tool chain
 
