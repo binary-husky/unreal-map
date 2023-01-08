@@ -1,8 +1,8 @@
 # Unreal-HMAP
-基于UnrealEngine开发，文档正在完善中。Developed with Unreal Engine, documenting is in process.
+Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开发，文档正在完善中。
 
-此项目处于活跃开发阶段，请打星关注哦。 
-**Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```**
+
+**Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** 此项目处于活跃开发阶段，请打星关注哦。 
 
 Contact us: 
 - Qingxu Fu, CASIA, fuqingxu2019@ia.ac.cn，QQ505030475
@@ -14,7 +14,21 @@ Contact us:
 - - Yiteam Swarm Intelligent Research Group
 
 
-# 简介
+# Intro 简介
+Unreal-Based Hybrid Multiagent Playground (Unreal HMAP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
+This platform supports adversial training between swarms & algorithms, and it is the first (and currently the only) Extensible RL environment based on the Unreal Engine to support multi-team training.
+UHMAP is oriented to adversarial heterogeneous multi-agent reinforcement learning scenarios.
+The interface is written in Python,
+The Unreal Engine part uses C++ to handle the communication interface with Python, and other parts use blueprints.
+The project introduces libs such as xtensor to accelerate the mathematical operations of C++.
+In terms of scientific research and experiment:
+- Pure computing mode that can be compiled into Headless (i.e. dedicated server for training)
+- Simulation acceleration at any rate can be achieved until the CPU burns
+- Strong repeatability. We have already solved various butterfly effect factors in Unreal Engine that would cause unrepeatable experiments when repeating random seed.
+- Support large-scale Swarm. The communication protocol with Python is highly optimized to avoid IO jam caused by the increase of the number of agents
+- Very efficient, extremely CPU efficient. The Unreal engine itself is far more efficient than expected.
+- Cross platform. Whether Windows, Linux, or MacOs can compile Headless mode and rendering mode clients
+- You can connect the headless process in training across OS, and even watch the environment in training
 
 Unreal-Based Hybrid Multiagent Playground (Unreal-HMAP) 是基于虚幻引擎的新一代多智能体环境仿真环境。
 该平台支持多队伍对抗，为第一个（也是目前为止唯一一个）基于虚幻引擎的多智能体+多队伍强化学习环境。
@@ -43,15 +57,21 @@ UHMAP面向对抗性异构多智能体强化学习场景。
 <img src="Docs/Demo/uhmap-island.jpg" width="300" >
 </div> -->
 
-# 安装方法
+# Install 安装方法
+
+- Step 1, you must install the Unreal Engine from the source code. For details, see the official document of the phantom engine: ```https://docs.unrealengine.com/4.27/zh-CN/ProductionPipelines/DevelopmentSetup/BuildingUnrealEngine/```
+- Step 2: Clone the git resp ```git clone https://github.com/binary-husky/unreal-hmp.git```
+- Step 3: Download large files that github cannot manage. Run ```python Please_ Run_ This_ First_ To_ Fetch_ Big_ Files.py```
+- Step 4: Right click the ```UHMP. upproject``` downloaded in step 3, select ```switch unreal engine version```, and then select ```source build at xxxxx``` to confirm. Then open the generated ```UHMP. sln``` and compile it
+- Finally, double-click ```UHMP. upproject``` to enter the Unreal Engine Editor.
+
+Note that steps 1 and 4 are difficult. It is recommended to refer to the following video (the 0:00~1:46 in the video is the steps 1, and 1:46~end is steps 4): ```https://ageasga-my.sharepoint.com/:v:/g/personal/fuqingxu_yiteam_tech/EawfqsV2jF5Nsv3KF7X1-woBH-VTvELL6FSRX4cIgUboLg?e=Vmp67E```
+
+
 - 第1步，必须从```源代码```安装虚幻引擎，具体方法见虚幻引擎的官方文档：https://docs.unrealengine.com/4.27/zh-CN/ProductionPipelines/DevelopmentSetup/BuildingUnrealEngine/
-
 - 第2步，克隆本仓库。```git clone https://github.com/binary-husky/unreal-hmp.git```
-
 - 第3步，下载github不能管理的大文件。运行```python Please_Run_This_First_To_Fetch_Big_Files.py```。
-
 - 第4步，```右```击第3步下载得到的```UHMP.uproject```，选择```switch unreal engine version```，再选择```source build at xxxxx```确认。然后打开生成的```UHMP.sln```，编译即可。
-
 - 最后，双击```UHMP.uproject```进入虚幻引擎编辑器。
 
 注意，第1步和第4步较难，建议参考以下视频（视频中前1分46秒为第1步流程，后面为第4步流程）： https://ageasga-my.sharepoint.com/:v:/g/personal/fuqingxu_yiteam_tech/EawfqsV2jF5Nsv3KF7X1-woBH-VTvELL6FSRX4cIgUboLg?e=Vmp67E
