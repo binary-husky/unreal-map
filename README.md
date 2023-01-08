@@ -140,6 +140,8 @@ python BuildWinServer.py
 
 # Dev log 项目开发日志
 
+- 2023-1-8 update readme
+- 2023-12-25 covid is not a flu /(ㄒoㄒ)/
 - 2022-12-22 版本3.6融入master分支
 - 2022-12-21 解决智能体scale!=1的情况下，飞行智能体高度越来越低的问题
 - 2022-12-21 修复超大规模智能体数量情况下缓存区溢出的问题
