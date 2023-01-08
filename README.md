@@ -59,7 +59,7 @@ UHMAP面向对抗性异构多智能体强化学习场景。
 
 # Install 安装方法
 
-- Step 1, you must install the Unreal Engine from the source code. For details, see the official document of the phantom engine: ```https://docs.unrealengine.com/4.27/zh-CN/ProductionPipelines/DevelopmentSetup/BuildingUnrealEngine/```
+- Step 1, you must install the Unreal Engine from the source code. For details, see the official document of the Unreal Engine: ```https://docs.unrealengine.com/4.27/zh-CN/ProductionPipelines/DevelopmentSetup/BuildingUnrealEngine/```
 - Step 2: Clone the git resp ```git clone https://github.com/binary-husky/unreal-hmp.git```
 - Step 3: Download large files that github cannot manage. Run ```python Please_ Run_ This_ First_ To_ Fetch_ Big_ Files.py```
 - Step 4: Right click the ```UHMP. upproject``` downloaded in step 3, select ```switch unreal engine version```, and then select ```source build at xxxxx``` to confirm. Then open the generated ```UHMP. sln``` and compile it
@@ -89,7 +89,7 @@ Directory:
 - - Establish Agent Actor
 - - Design agent blueprint program logic
 - - Episode key event notification mechanism
-- - Define actions (phantom engine side) (to be continued)
+- - Define actions (Unreal Engine side) (doc unfinished)
 - - The Python side controls the custom parameters of the agent
 - Chapter II Python Interface
 - - Create a task file (SubTask)
@@ -99,7 +99,7 @@ Directory:
 - - Full closed loop debugging method
 - Chapter III Appendix
 - - No rendering acceleration and cross compiling Linux binary package
-- - Custom actions (to be continued)
+- - Custom actions (doc unfinished)
 - - Installation guide for cross compilation tool chain
 
 文档正在完善，简单demo的视频教程见```EnvDesignTutorial.pptx```（需要完成安装步骤3以下载此pptx文件）
