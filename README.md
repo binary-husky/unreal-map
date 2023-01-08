@@ -76,11 +76,32 @@ Note that steps 1 and 4 are difficult. It is recommended to refer to the followi
 
 注意，第1步和第4步较难，建议参考以下视频（视频中前1分46秒为第1步流程，后面为第4步流程）： https://ageasga-my.sharepoint.com/:v:/g/personal/fuqingxu_yiteam_tech/EawfqsV2jF5Nsv3KF7X1-woBH-VTvELL6FSRX4cIgUboLg?e=Vmp67E
 
-# 直接安装编译后的二进制客户端
+# Only install compiled binary 直接安装编译后的二进制客户端
 
-见 https://github.com/binary-husky/hmp2g/blob/master/ZDOCS/use_unreal_hmap.md
+```https://github.com/binary-husky/hmp2g/blob/master/ZDOCS/use_unreal_hmap.md```
 
-# 环境设计方法
+# Tutorial 环境设计方法
+The document is being improved. For the video tutorial of simple demo, see ```EnvDesignTutorial.pptx``` (you need to complete step 3 of installation to download this pptx file)
+
+Directory:
+- Chapter I Illusory Engine
+- - Build a map (Level)
+- - Establish Agent Actor
+- - Design agent blueprint program logic
+- - Episode key event notification mechanism
+- - Define actions (phantom engine side) (to be continued)
+- - The Python side controls the custom parameters of the agent
+- Chapter II Python Interface
+- - Create a task file (SubTask)
+- - Modify agent initialization code
+- - Modify the agent reward code
+- - Select the control algorithm of each team
+- - Full closed loop debugging method
+- Chapter III Appendix
+- - No rendering acceleration and cross compiling Linux binary package
+- - Custom actions (to be continued)
+- - Installation guide for cross compilation tool chain
+
 文档正在完善，简单demo的视频教程见```EnvDesignTutorial.pptx```（需要完成安装步骤3以下载此pptx文件）
 
 设计方法目录：
@@ -102,9 +123,12 @@ Note that steps 1 and 4 are difficult. It is recommended to refer to the followi
 - -  自定义动作（未完待续）
 - -  交叉编译工具链的安装指南
 
-# 编译二进制客户端的方法
+# Build binary 编译二进制客户端的方法
+Run following scripts.
+- Among them, ```Render/Server``` represents ```including graphic rendering / only computing```, the later is generally used for RL training.
+- Among them, ```Windows/linux``` represents the target operating system. Note that you need to install ```Unreal Engine Cross Compilation Tool``` to compile Linux programs on Windows.
+
 运行一下脚本即可。
-- 
 - 其中```Render/Server```代表```包含图形渲染/无界面仅计算```，后者一般用于RL训练。
 - 其中```Win/linux```代表目标操作系统，注意在windows上编译linux程序需要安装```虚幻引擎交叉编译工具```。
 ```
@@ -114,7 +138,7 @@ python BuildWinRender.py
 python BuildWinServer.py
 ```
 
-# 项目开发日志
+# Dev log 项目开发日志
 
 - 2022-12-22 版本3.6融入master分支
 - 2022-12-21 解决智能体scale!=1的情况下，飞行智能体高度越来越低的问题
