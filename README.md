@@ -102,11 +102,12 @@ Directory:
 - - Custom actions (doc unfinished)
 - - Installation guide for cross compilation tool chain
 
-文档正在完善，简单demo的视频教程见```EnvDesignTutorial.pptx```（需要完成安装步骤3以下载此pptx文件）
+文档正在完善，简单demo的视频教程见```EnvDesignTutorial.pptx```（需要完成安装步骤3以下载此pptx文件） 
+以及```https://www.bilibili.com/video/BV1pK411z77c/?spm_id_from=333.999.0.0```
 
 设计方法目录：
 - 第一章 虚幻引擎部分
-- -  建立地图（Level）
+- -  建立地图（Level）: ```https://www.bilibili.com/video/BV1U24y1D7i4/?spm_id_from=333.999.0.0&vd_source=e3bc3eddd1d2414cb64ae72b6a64df55```
 - -  建立智能体蓝图（Agent Actor）
 - -  设计智能体蓝图程序逻辑
 - -  Episode关键事件通知机制
