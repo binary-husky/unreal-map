@@ -1,4 +1,4 @@
-# Unreal-HMAP
+# Unreal-HMAP (U-Map)
 Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开发，文档正在完善中。
 
 
@@ -15,9 +15,9 @@ Contact us:
 
 
 # Intro 简介
-Unreal-Based Hybrid Multiagent Playground (Unreal HMAP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
+Unreal-Based Multi-Agent Playground (U-Map, previously called UHMAP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
 This platform supports adversial training between swarms & algorithms, and it is the first (and currently the only) Extensible RL environment based on the Unreal Engine to support multi-team training.
-UHMAP is oriented to adversarial heterogeneous multi-agent reinforcement learning scenarios.
+U-Map is oriented to adversarial heterogeneous multi-agent reinforcement learning scenarios.
 The interface is written in Python,
 The Unreal Engine part uses C++ to handle the communication interface with Python, and other parts use blueprints.
 The project introduces libs such as xtensor to accelerate the mathematical operations of C++.
@@ -30,9 +30,9 @@ In terms of scientific research and experiment:
 - Cross platform. Whether Windows, Linux, or MacOs can compile Headless mode and rendering mode clients
 - You can connect the headless process in training across OS, and even watch the environment in training
 
-Unreal-Based Hybrid Multiagent Playground (Unreal-HMAP) 是基于虚幻引擎的新一代多智能体环境仿真环境。
+Unreal-Based Multi-Agent Playground (U-Map, 之前的名称是UHMP) 是基于虚幻引擎的新一代多智能体环境仿真环境。
 该平台支持多队伍对抗，为第一个（也是目前为止唯一一个）基于虚幻引擎的多智能体+多队伍强化学习环境。
-UHMAP面向对抗性异构多智能体强化学习场景。
+U-Map面向对抗性异构多智能体强化学习场景。
 接口部分采用Python编写，
 虚幻引擎部分采用C++处理与Python的通讯接口，其他部分采用蓝图。
 项目引入xtensor用于加速C++部分的数学运算。
@@ -140,7 +140,7 @@ python BuildWinServer.py
 ```
 
 # Dev log 项目开发日志
-
+- 2023-2-1 将读起来蹩脚的UHMAP缩写名称改为U-Map
 - 2023-1-8 update readme
 - 2023-12-25 covid is not a flu /(ㄒoㄒ)/
 - 2022-12-22 版本3.6融入master分支
