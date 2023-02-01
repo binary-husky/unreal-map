@@ -15,7 +15,7 @@ Contact us:
 
 
 # Intro 简介
-Unreal-Based Multi-Agent Playground (U-Map, previously called UHMAP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
+Unreal-Based Multi-Agent Playground (U-Map, previously called UHMP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
 This platform supports adversial training between swarms & algorithms, and it is the first (and currently the only) Extensible RL environment based on the Unreal Engine to support multi-team training.
 U-Map is oriented to adversarial heterogeneous multi-agent reinforcement learning scenarios.
 The interface is written in Python,
