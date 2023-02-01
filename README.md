@@ -1,5 +1,5 @@
-# Unreal-MAP (Project old name: UHMP)
-Unreal-Based Multi-Agent Playground (U-Map, previous name UHMP ~~for Hybrid Unreal-Based Multi-agent Playground~~)
+# Unreal-MAP (Previous name: UHMP)
+Unreal-Based Multi-Agent Playground (U-Map, previous project name is UHMP for ~~Hybrid Unreal-Based Multi-agent Playground~~)
 
 Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开发，文档正在完善中。
 
