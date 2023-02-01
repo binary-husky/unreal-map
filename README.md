@@ -1,5 +1,5 @@
 # Unreal-MAP (Previous name: UHMP)
-Unreal-Based Multi-Agent Playground (U-Map, previous project name is UHMP for ~~Hybrid Unreal-Based Multi-agent Playground~~)
+Unreal-based Multi-Agent Playground (U-Map, previous project name is UHMP for ~~Hybrid Unreal-based Multi-agent Playground~~)
 
 Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开发，文档正在完善中。
 
@@ -17,7 +17,7 @@ Contact us:
 
 
 # Intro 简介
-Unreal-Based Multi-Agent Playground (U-Map, previously called UHMP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
+Unreal-based Multi-Agent Playground (U-Map, previously called UHMP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
 This platform supports adversial training between swarms & algorithms, and it is the first (and currently the only) Extensible RL environment based on the Unreal Engine to support multi-team training.
 U-Map is oriented to adversarial heterogeneous multi-agent reinforcement learning scenarios.
 The interface is written in Python,
@@ -32,7 +32,7 @@ In terms of scientific research and experiment:
 - Cross platform. Whether Windows, Linux, or MacOs can compile Headless mode and rendering mode clients
 - You can connect the headless process in training across OS, and even watch the environment in training
 
-Unreal-Based Multi-Agent Playground (U-Map, 之前的名称是UHMP) 是基于虚幻引擎的新一代多智能体环境仿真环境。
+Unreal-based Multi-Agent Playground (U-Map, 之前的名称是UHMP) 是基于虚幻引擎的新一代多智能体环境仿真环境。
 该平台支持多队伍对抗，为第一个（也是目前为止唯一一个）基于虚幻引擎的多智能体+多队伍强化学习环境。
 U-Map面向对抗性异构多智能体强化学习场景。
 接口部分采用Python编写，
