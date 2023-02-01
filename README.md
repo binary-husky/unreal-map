@@ -1,4 +1,4 @@
-# Unreal-HMAP (Project old name: UHMP)
+# Unreal-MAP (Project old name: UHMP)
 Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开发，文档正在完善中。
 
 
