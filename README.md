@@ -18,7 +18,9 @@ Contact us:
 - - School of Artificial Intelligence, University of Chinese Academy of Sciences
 - - Yiteam Swarm Intelligent Research Group
 
-
+<div align="center">
+<img src="Docs/unreal-island.jpg" height="250" width="425"/> <img src="Docs/Demo/2023-02-12 152119.jpg" height="250" width="425"/> 
+</div>
 
 # Intro 简介
 Unreal-based Multi-Agent Playground (U-Map, previously called UHMP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
@@ -52,16 +54,12 @@ U-Map面向对抗性异构多智能体强化学习场景。
 - 可跨OS连接训练中的Headless进程，甚至可以观看训练中的环境.
 
 <div align="center">
-<img src="Docs/Demo/uhmap-bbad.jpg" width="300" >
+<img src="Docs/Demo/uhmap-bbad.jpg" height="250" width="425"/> <img src="Docs/Demo/uhmap-hete.jpg" height="250" width="425"/> 
 </div>
 
-<div align="center">
-<img src="Docs/Demo/uhmap-hete.jpg" width="300" >
-</div>
 
-<div align="center">
-<img src="Docs/unreal-island.jpg" width="300" >
-</div>
+
+
 
 # Install 安装方法
 
