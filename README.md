@@ -1,7 +1,7 @@
 > **Note**
 > Please note that after git clone, you need to run ```Please_Run_This_First_To_Fetch_Big_Files.py``` to fetch **all** files. 
 > 
-> 在git clone步骤之后，您还需要运行```Please_Run_This_First_To_Fetch_Big_Files.py```去下载另外一部分（非核心但必要）的文件和PPT文档
+> 在git clone步骤之后，您还需要运行```Please_Run_This_First_To_Fetch_Big_Files.py```去下载另外一部分（非核心但必要）的文件和文档
 
 
 # Unreal-MAP (Previous name: UHMP)
