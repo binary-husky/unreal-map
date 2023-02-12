@@ -56,7 +56,7 @@ U-Map面向对抗性异构多智能体强化学习场景。
 </div>
 
 <div align="center">
-<img src="Docs/uhmap-island.jpg" width="300" >
+<img src="Docs/unreal-island.jpg" width="300" >
 </div>
 
 # Install 安装方法
