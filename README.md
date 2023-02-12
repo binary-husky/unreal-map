@@ -4,7 +4,9 @@ Unreal-based Multi-Agent Playground (U-Map, previous project name is UHMP for ~~
 Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开发，文档正在完善中。
 
 
-**Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** 此项目处于活跃开发阶段，请打星关注哦。 
+> __Warning__
+> Please note that after git clone, you need to run ```Please_Run_This_First_To_Fetch_Big_Files.py``` to fetch **all** files.
+> **Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** 此项目处于活跃开发阶段，请打星关注哦。 
 
 Contact us: 
 - Qingxu Fu, CASIA, fuqingxu2019@ia.ac.cn，QQ505030475
@@ -15,8 +17,6 @@ Contact us:
 - - School of Artificial Intelligence, University of Chinese Academy of Sciences
 - - Yiteam Swarm Intelligent Research Group
 
-> __Warning__
-> Please note that the project is not yet complete after git clone, you need to run ```Please_Run_This_First_To_Fetch_Big_Files.py``` to fetch all files.
 
 
 # Intro 简介
