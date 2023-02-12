@@ -1,6 +1,7 @@
 # Unreal-MAP (Previous name: UHMP)
-Unreal-based Multi-Agent Playground (U-Map, previous project name is UHMP for ~~Hybrid Unreal-based Multi-agent Playground~~)
+This is Unreal-based Multi-Agent Playground (U-Map, previous project name is UHMP for ~~Hybrid Unreal-based Multi-agent Playground~~)
 
+In U-Map, you can use all the capability of Enreal Engine (blueprints, behavior tree, physics engine, AI navigation, 3D models/animations and rich plugin resources, etc) to build elegant (but also computational efficient) and magnificent (but also experimentally reproducible) MARL tasks.
 Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开发，文档正在完善中。
 
 
