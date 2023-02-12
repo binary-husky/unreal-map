@@ -5,8 +5,9 @@ Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开�
 
 
 > __Warning__
-> Please note that after git clone, you need to run ```Please_Run_This_First_To_Fetch_Big_Files.py``` to fetch **all** files.
-> **Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** 此项目处于活跃开发阶段，请打星关注哦。 
+> Please note that after git clone, you need to run ```Please_Run_This_First_To_Fetch_Big_Files.py``` to fetch **all** files. 在git clone步骤之后，您还需要运行```Please_Run_This_First_To_Fetch_Big_Files.py```去下载另外一部分文件和PPT文档
+
+**Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** 此项目处于活跃开发阶段，请打星关注哦。 
 
 Contact us: 
 - Qingxu Fu, CASIA, fuqingxu2019@ia.ac.cn，QQ505030475
