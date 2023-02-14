@@ -118,22 +118,27 @@ Directory:
 
 设计方法目录：
 - 第一章 虚幻引擎部分
-- -  建立地图（Level）: ```https://www.bilibili.com/video/BV1U24y1D7i4/?spm_id_from=333.999.0.0&vd_source=e3bc3eddd1d2414cb64ae72b6a64df55```
-- -  建立智能体蓝图（Agent Actor）
-- -  设计智能体蓝图程序逻辑
-- -  Episode关键事件通知机制
-- -  定义动作（虚幻引擎侧）（未完待续）
-- -  由Python端控制Agent的自定义参数
+- -  1.1 建立地图（Level）: ```https://www.bilibili.com/video/BV1U24y1D7i4/?spm_id_from=333.999.0.0&vd_source=e3bc3eddd1d2414cb64ae72b6a64df55```
+- -  1.2 建立智能体蓝图（Agent Actor）
+- -  1.3 设计智能体蓝图程序逻辑
+- -  1.4 Episode关键事件通知机制
+- -  1.5 自定义动作（虚幻引擎侧）（见第三章）
+- -  1.6 由Python端控制Agent的自定义参数
 - 第二章 Python接口部分
-- -  建立任务文件（SubTask）
-- -  修改智能体初始化代码
-- -  修改智能体奖励代码
-- -  选择各队伍的控制算法
-- -  全闭环调试方法
+- -  2.1 建立任务文件（SubTask）
+- -  2.2 修改智能体初始化代码
+- -  2.3 修改智能体奖励代码
+- -  2.4 选择各队伍的控制算法
+- -  2.5 全闭环调试方法（Python-UMAP回环）
 - 第三章 附录
-- -  无渲染加速与交叉编译Linux二进制包
-- -  自定义动作（未完待续）
-- -  交叉编译工具链的安装指南
+- -  3.1 无渲染加速与交叉编译Linux二进制包
+- -  3.2 自定义动作 （需要首先熟悉2.5全闭环调试方法）
+- - - 3.2.1 起草动作清单
+- - - 3.2.2 Python侧动作生成
+- - - 3.2.3 UE侧动作解析与执行
+- - - 3.2.4 强化学习动作离散化
+
+- -  3.3 交叉编译工具链的安装指南
 
 # Build binary 编译二进制客户端的方法
 Run following scripts.
@@ -151,6 +156,9 @@ python BuildWinServer.py
 ```
 
 # Dev log 项目开发日志
+- 2023-2-14 3.7上传中
+- 2023-2-14 ```EnvDesignTutorial.pptx```中更新了自定义动作的文档
+- 2023-2-14 上传了一个微缩版的hmp代码，作为入门用的U-MAP驱动，文档待写
 - 2023-2-1 将读起来蹩脚的UHMAP缩写名称改为U-Map
 - 2023-1-8 update readme
 - 2023-12-25 covid is not a flu /(ㄒoㄒ)/
