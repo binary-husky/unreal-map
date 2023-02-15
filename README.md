@@ -39,7 +39,7 @@ In terms of scientific research and experiment:
 - Simulation acceleration at any rate can be achieved until the CPU burns
 - Strong repeatability. We have already solved various butterfly effect factors in Unreal Engine that would cause unrepeatable experiments when repeating random seed.
 - Support large-scale Swarm. The communication protocol with Python is highly optimized to avoid IO jam caused by the increase of the number of agents
-- Very efficient, extremely CPU efficient. The Unreal engine itself is far more efficient than expected.
+- Very efficient, extremely CPU efficient. The Unreal Engine itself is far more efficient than expected.
 - Cross platform. Whether Windows, Linux, or MacOs can compile Headless mode and rendering mode clients
 - You can connect the headless process in training across OS, and even watch the environment in training
 
