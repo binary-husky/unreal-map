@@ -1,0 +1,162 @@
+# how to build: docker build --network=host --progress=plain -t py311 . 
+
+# 此文件用于构建 HMAP + Starcraft(难易两个版本) + 虚幻引擎组件
+# 可能需要翻墙，请自行搭梯子，然后解开下面相关的注释，并进行适当修改（socks5地址和端口）
+
+FROM nvidia/cuda:11.7.1-runtime-ubuntu20.04
+RUN apt-get update
+RUN apt-get install -y curl proxychains software-properties-common
+RUN add-apt-repository ppa:deadsnakes/ppa -y
+ENV TZ=Asia/Shanghai
+ENV LC_ALL zh_CN.UTF-8
+RUN apt-get install -y language-pack-zh-hans \
+    libmysqlclient-dev \
+    dialog \
+    nano \
+    vim \
+    joe \
+    wget \
+    curl \
+    jq \
+    gawk \
+    psmisc \
+    python-dev \
+    python3.11-dbg \
+    python3.11-dev \
+    python3.11-distutils \
+    python3.11-examples \
+    python3.11-full \
+    python3.11-gdbm-dbg \
+    python3.11-gdbm \
+    python3.11-lib2to3 \
+    python3.11-minimal \
+    python3.11-tk-dbg \
+    python3.11-tk \
+    python3.11-venv \
+    python3.11 \
+    openjdk-8-jre \
+    openjdk-8-jdk \
+    openssh-server \
+    openssh-client \
+    git \
+    sudo \
+    htop \
+    inotify-tools \
+    rsync \
+    net-tools \
+    cron \
+    swig \
+    cmake \
+    redis-tools \
+    redis-server\
+    iproute2 \
+    pkg-config build-essential libssl-dev libffi-dev --fix-missing
+
+RUN locale-gen zh_CN.UTF-8 && localedef -c -f UTF-8 -i zh_CN zh_CN.utf8 
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# create user and add to sudoers
+RUN useradd -m hmp && echo "hmp:hmp" | chpasswd && adduser hmp sudo
+USER hmp
+CMD /bin/bash
+# RUN echo hmp|sudo -S apt-get install -y nano
+WORKDIR /home/hmp
+
+# use python3 as the system default python
+USER root
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
+RUN rm /usr/bin/python /usr/bin/python3
+RUN ln /usr/bin/python3.11 /usr/bin/python
+RUN ln /usr/bin/python3.11 /usr/bin/python3
+
+
+ARG useProxyNetwork=''
+RUN $useProxyNetwork curl cip.cc
+# # comment out below if you do not need proxy network | 翻墙 - 从此行向下删除
+RUN sed -i '$ d' /etc/proxychains.conf
+RUN sed -i '$ d' /etc/proxychains.conf
+RUN echo "socks5 172.18.116.161 10880" >> /etc/proxychains.conf
+ARG useProxyNetwork=proxychains
+RUN $useProxyNetwork curl cip.cc
+# # comment out above if you do not need proxy network | 翻墙 - 从此行向上删除
+
+# pip install everything we need
+USER hmp
+SHELL ["/bin/bash", "-c"]
+RUN $useProxyNetwork pip install numpy scipy scikit-learn
+RUN $useProxyNetwork pip install lz4 gym flask cython waitress colorama func_timeout setproctitle filelock
+RUN $useProxyNetwork pip install commentjson matplotlib psutil paramiko ipykernel onedrivedownloader flock
+RUN $useProxyNetwork pip install cmake redis sacred
+RUN $useProxyNetwork pip install pygame --pre
+RUN $useProxyNetwork pip install git+https://github.com/oxwhirl/smac.git
+
+RUN $useProxyNetwork pip install torch --extra-index-url https://download.pytorch.org/whl/cu117
+
+# # download and extract UHMAP component
+# WORKDIR /home/hmp
+# RUN $useProxyNetwork git clone https://github.com/binary-husky/uhmap-visual-tool.git
+# WORKDIR /home/hmp/uhmap-visual-tool/
+# RUN python linux_deploy.py
+# RUN python linux_deploy_starcraft_all_versions.py
+
+# RUN chmod +x /home/hmp/StarCraftIII/Version2410/StarCraftII/Versions/Base75689/ 
+# RUN chmod +x /home/hmp/StarCraftIII/Versions/Base69232/SC2_x64
+
+# RUN mv /home/hmp/uhmap-visual-tool/UnrealEngine/home/hmp/*  /home/hmp
+
+# download UHMAP main framwork
+WORKDIR /home/hmp
+RUN $useProxyNetwork git clone https://github.com/binary-husky/hmp2g.git
+WORKDIR /home/hmp/hmp2g
+# RUN python main.py -c example.jsonc
+
+# # Installing Times New Roman font
+# USER root
+# # RUN apt-get --reinstall install ttf-mscorefonts-installer
+# # RUN apt-get install msttcorefonts -qq
+# # RUN rm /home/hmp/.cache/matplotlib -rf
+
+USER root
+
+# RUN sed -i 's/22/2233/g' /etc/ssh/sshd_config
+RUN echo "Port 2233" >> /etc/ssh/sshd_config
+RUN echo "service ssh start" >> /entrypoint.sh
+RUN echo "redis-server --daemonize yes" >> /entrypoint.sh
+
+# CMD ["/bin/bash -c echo clara | sudo -S /entrypoint.sh"]
+
+
+
+
+# # install numba, never should have used this 
+# WORKDIR /home/hmp
+# RUN wget https://github.com/numba/llvmlite/archive/refs/tags/v0.39.1.tar.gz
+# RUN tar -xf v0.39.1.tar.gz
+# WORKDIR /home/hmp/llvmlite-0.39.1/
+# RUN sed -i 's/3.11/3.12/g' setup.py
+# RUN pip install .
+
+
+# WORKDIR /home/hmp
+# RUN wget https://github.com/numba/numba/archive/refs/tags/0.56.3.tar.gz
+# RUN tar -xf 0.56.3.tar.gz
+# WORKDIR /home/hmp/numba-0.56.3/
+# RUN sed -i 's/3.11/3.12/g' setup.py
+# RUN sed -i 's/0.40/0.60/g' setup.py
+# RUN pip install .
+
+
+
+
+
+# exit
+USER hmp
+WORKDIR /home/hmp
+RUN touch /home/hmp/.sudo_as_admin_successful
+COPY ./bashrc_suffix /home/hmp/bashrc_suffix
+RUN cat /home/hmp/bashrc_suffix >> /home/hmp/.bashrc
+
+# docker build --network=host --progress=plain -t py311 .
+# docker run -itd  --name  hmp-fqx --net host --gpus all --shm-size=16G py311:latest && docker exec -it -u 0 hmp-fqx  service ssh start
+# docker exec -it hmp-fqx bash
+# docker stop hmp-fqx && docker rm hmp-fqx

@@ -1,0 +1,13 @@
+ulimit -n 4096
+alias nv='watch -n 0.35 nvidia-smi'
+alias xrdp_reset='rm -f /var/run/xrdp/xrdp-sesman.pid'
+alias fq='proxychains'
+alias killhmp='kill -9 $(ps -ef | grep Hmap | grep hmp | grep -v grep | awk '"'"'{print $ 2}'"'"')'
+alias killpy='kill -9 $(ps -ef | grep python | grep hmp | grep -v grep | awk '"'"'{print $ 2}'"'"')'
+alias killsc='kill -9 $(ps -ef | grep StarCraft | grep hmp | grep -v grep | awk '"'"'{print $ 2}'"'"')'
+alias killvs='kill -9 $(ps -ef | grep vscode | grep hmp | grep -v grep | awk '"'"'{print $ 2}'"'"')'
+alias killnb='kill -9 $(ps -ef | grep ipykernel | grep hmp | grep -v grep | awk '"'"'{print $ 2}'"'"')'
+alias hmp='python main.py --cfg'
+alias vscode='code --no-sandbox'
+alias killue='kill -9 $(ps -ef | grep UHMP | grep hmp | grep -v grep | awk '"'"'{print $ 2}'"'"')'
+alias ftop='top -E g -s'

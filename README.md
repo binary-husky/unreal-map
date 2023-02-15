@@ -100,7 +100,7 @@ Directory:
 - - Establish Agent Actor
 - - Design agent blueprint program logic
 - - Episode key event notification mechanism
-- - Define actions (Unreal Engine side) (doc unfinished)
+- - Define Custom actions (Unreal Engine side)
 - - The Python side controls the custom parameters of the agent
 - Chapter II. Python Interface
 - - Create a task file (SubTask)
@@ -110,7 +110,11 @@ Directory:
 - - Full closed loop debugging method
 - Chapter III. Appendix
 - - Headless acceleration and cross-compiling Linux package
-- - Custom actions (doc unfinished)
+- - Define Custom actions (Need to be familiar with the full closed-loop debugging method first)
+- - - Draft a list of actions
+- - - Python side action generation
+- - - UE-side action parse and execution
+- - - Action discretization
 - - Installation guide for cross compilation tool chain
 
 文档正在完善，简单demo的视频教程见```EnvDesignTutorial.pptx```（需要完成安装步骤3以下载此pptx文件） 
@@ -154,6 +158,9 @@ python BuildLinuxServer.py
 python BuildWinRender.py
 python BuildWinServer.py
 ```
+
+- After adding new ActionSets in ```Content/Assets/DefAction/ParseAction.uasset```. You may encounter ```Ensure condition failed: !FindPin(FFunctionEntryHelper::GetWorldContextPinName())``` error during packaging, if so, find and remove an extra blueprint function parameter named ```__WorldContext``` that you created by accident in ```ParseAction.uasset```.  如果在添加新的自定义动作之后遇到上述错误，说明你无意间添加了一个叫```__WorldContext```的蓝图函数参数，找到并删除它即可。 ```https://forums.unrealengine.com/t/ensure-condition-failed-on-project-start/469587```.
+
 
 # Dev log 项目开发日志
 - 2023-2-14 3.7上传中
