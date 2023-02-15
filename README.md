@@ -163,6 +163,7 @@ python BuildWinServer.py
 
 
 # Dev log 项目开发日志
+- 2023-2-15 版本3.7融入master分支
 - 2023-2-14 3.7上传中
 - 2023-2-14 ```EnvDesignTutorial.pptx```中更新了自定义动作的文档
 - 2023-2-14 上传了一个微缩版的hmp代码，作为入门用的U-MAP驱动，文档待写
