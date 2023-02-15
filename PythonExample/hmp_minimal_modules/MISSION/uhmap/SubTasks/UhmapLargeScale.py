@@ -228,43 +228,45 @@ class UhmapLargeScale(UhmapCommonFn, UhmapEnv):
         # the last part of observation is the list of core game objects
         MAX_OBJ_NUM_ACCEPT = 1
         self.N_Obj = len(self.key_obj)
+        if self.N_Obj > 0:
+            OBJ_UID_OFFSET = 32768
 
-        OBJ_UID_OFFSET = 32768
+            obs_arr = RawObsArray(key = 'GameObj')
 
-        obs_arr = RawObsArray(key = 'GameObj')
-
-        for i, obj in enumerate(self.key_obj):
-            assert obj['uId'] - OBJ_UID_OFFSET == i
-            obs_arr.append(
-                -self.uid_binary[i] # reverse uid binary, self.uid_binary[i]
-            )
-            obs_arr.append([
-                obj['uId'] - OBJ_UID_OFFSET,    #agent.index,
-                -1,                             #agent.team,
-                True,                           #agent.alive,
-                obj['uId'] - OBJ_UID_OFFSET,    #agent.uid_remote,
-            ])
-            # tear_num_arr(agent.pos3d, n_digits=6, base=10, mv_left=0)
-            obs_arr.append(
+            for i, obj in enumerate(self.key_obj):
+                assert obj['uId'] - OBJ_UID_OFFSET == i
+                obs_arr.append(
+                    -self.uid_binary[i] # reverse uid binary, self.uid_binary[i]
+                )
+                obs_arr.append([
+                    obj['uId'] - OBJ_UID_OFFSET,    #agent.index,
+                    -1,                             #agent.team,
+                    True,                           #agent.alive,
+                    obj['uId'] - OBJ_UID_OFFSET,    #agent.uid_remote,
+                ])
+                # tear_num_arr(agent.pos3d, n_digits=6, base=10, mv_left=0)
+                obs_arr.append(
+                    [
+                        obj['location']['x'], obj['location']['y'], obj['location']['z']  # agent.pos3d
+                    ]
+                    # tear_num_arr([
+                    #     obj['location']['x'], obj['location']['y'], obj['location']['z']  # agent.pos3d
+                    # ], 6, ScenarioConfig.ObsBreakBase, 0)
+                )
+                
+                obs_arr.append([
+                    obj['velocity']['x'], obj['velocity']['y'], obj['velocity']['z']  # agent.vel3d
+                ]+
                 [
-                    obj['location']['x'], obj['location']['y'], obj['location']['z']  # agent.pos3d
-                ]
-                # tear_num_arr([
-                #     obj['location']['x'], obj['location']['y'], obj['location']['z']  # agent.pos3d
-                # ], 6, ScenarioConfig.ObsBreakBase, 0)
-            )
-            
-            obs_arr.append([
-                obj['velocity']['x'], obj['velocity']['y'], obj['velocity']['z']  # agent.vel3d
-            ]+
-            [
-                -1,                         # hp
-                obj['rotation']['yaw'],     # yaw 
-                0,                          # max_speed
-            ])
-        OBS_GameObj = my_view(obs_arr.get(), [len(self.key_obj), -1])[:MAX_OBJ_NUM_ACCEPT, :]
-        OBS_GameObj = repeat_at(OBS_GameObj, insert_dim=0, n_times=self.n_agents)
-        OBS_ALL_AGENTS = np.concatenate((OBS_ALL_AGENTS, OBS_GameObj), axis=1)
+                    -1,                         # hp
+                    obj['rotation']['yaw'],     # yaw 
+                    0,                          # max_speed
+                ])
+
+            OBS_GameObj = my_view(obs_arr.get(), [len(self.key_obj), -1])
+            OBS_GameObj = OBS_GameObj[:MAX_OBJ_NUM_ACCEPT, :]
+            OBS_GameObj = repeat_at(OBS_GameObj, insert_dim=0, n_times=self.n_agents)
+            OBS_ALL_AGENTS = np.concatenate((OBS_ALL_AGENTS, OBS_GameObj), axis=1)
 
         return OBS_ALL_AGENTS
 

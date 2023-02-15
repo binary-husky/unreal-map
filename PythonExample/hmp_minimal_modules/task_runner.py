@@ -313,7 +313,7 @@ class Runner(object):
         if beat is None: beat = self.info_runner['Current-Obs-Step']
         beat = beat % len(sym)
         beat = beat[:int(width*0.2)]
-        beat.astype(np.int)
+        beat.astype(int)
         beat = [sym[t] for t in beat]
         return ''.join(beat)
 

@@ -52,7 +52,10 @@ class RawObsArray(object):
             self.guards_group = np.concatenate(self.guards_group)
             self.raw_obs_size[self.key] = len(self.guards_group)
         return self.guards_group
-        
+
+    def get_group_size(self):
+        return len(self.guards_group)
+
     def get_raw_obs_size(self):
-        assert self.key in self.raw_obs_size > 0
+        assert self.key in self.raw_obs_size
         return self.raw_obs_size[self.key]
