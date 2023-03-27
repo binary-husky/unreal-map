@@ -14,18 +14,8 @@ Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开�
 
 **Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** 此项目处于活跃开发阶段，请打星关注哦。 
 
-Contact us: 
-- Qingxu Fu, CASIA, fuqingxu2019@ia.ac.cn，QQ505030475
-- Tianyi Hu, CASIA, hutianyi2021@ia.ac.cn
-- Yifan Xu, CASIA, xuyifan2021@ia.ac.cn
-- Organization：
-- - Institute of Automation, Chinese Academy of Sciences
-- - School of Artificial Intelligence, University of Chinese Academy of Sciences
-- - Yiteam Swarm Intelligent Research Group
 
-<div align="center">
-<img src="Docs/unreal-island.jpg" height="250" width="400"/> <img src="Docs/Demo/2023-02-12 152119.jpg" height="250" width="400"/> 
-</div>
+
 
 # Intro 简介
 Unreal-based Multi-Agent Playground (U-Map, previously called UHMP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
@@ -57,13 +47,6 @@ U-Map面向对抗性异构多智能体强化学习场景。
 - 非常高效，极其节省CPU。Unreal引擎本身的效率远超预想。
 - 跨平台。不管是Windows、Linux还是MacOs都能编译Headless模式和渲染模式的客户端
 - 可跨OS连接训练中的Headless进程，甚至可以观看训练中的环境.
-
-<div align="center">
-<img src="Docs/Demo/uhmap-bbad.jpg" height="250" width="400"/> <img src="Docs/Demo/uhmap-hete.jpg" height="250" width="400"/> 
-</div>
-<div align="center">
-<img src="Docs/Demo/2023-02-12 155956.jpg" height="250" width="400"/> <img src="Docs/Demo/2023-02-12 151938.jpg" height="250" width="400"/> 
-</div>
 
 
 
