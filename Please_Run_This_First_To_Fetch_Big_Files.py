@@ -8,8 +8,7 @@ except: pass
 def download_from_shared_server(key = 'cat'):
     # download uhmap file manifest | 下载manifest目录文件
     print('Download uhmap file manifest | 下载manifest目录文件')
-    manifest_url = "https://ageasga-my.sharepoint.com/:u:/g/personal/fuqingxu_yiteam_tech/EVmCQMSUWV5MgREWaxiz_GoBalBRV3DWBU3ToSJ5OTQaLQ?e=I8yjl9"
-
+    assert False, "Unable to find required resources, please connect qingxu.fu@oulook.com"
     try:
         download(manifest_url, filename="./TEMP/", force_download=True)
     except:
