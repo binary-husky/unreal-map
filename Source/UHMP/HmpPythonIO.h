@@ -12,7 +12,75 @@
 #include "Misc/UObjectToken.h"
 #include "IOCompress/lz4.h"
 #include "DataStruct.h"
+#include "libipc/ipc.h"
 #include "HmpPythonIO.generated.h"
+
+
+class ShareMemServer
+{
+public:
+	std::string server_listen_channel;
+	std::string client_listen_channel;
+	std::atomic<bool> is_quit__{ false };
+
+	ipc::channel* server_listen_ipc = nullptr;
+	ipc::channel* client_listen_ipc = nullptr;
+	bool debug = true;
+
+
+	ShareMemServer(std::string channel, bool debug_network) { // Constructor with parameters
+		debug = debug_network;
+		server_listen_channel = channel + "-server";
+		client_listen_channel = channel + "-client";
+		if (debug)
+		{
+			std::cout << "server_listen_channel: " << server_listen_channel << std::endl;
+			std::cout << "client_listen_channel: " << client_listen_channel << std::endl;
+		}
+		server_listen_ipc = new ipc::channel{ server_listen_channel.c_str(), ipc::receiver };
+		client_listen_ipc = new ipc::channel{ client_listen_channel.c_str(), ipc::sender };
+	}
+	~ShareMemServer() {
+		server_listen_ipc->disconnect();
+		client_listen_ipc->disconnect();
+		if (debug)
+		{
+			std::cout << "server_listen_ipc->disconnect(); " << std::endl;
+			std::cout << "client_listen_ipc->disconnect(); " << std::endl;
+		}
+	}
+public:
+	std::string wait_next_dgram()
+	{
+		if (debug)
+		{
+			std::cout << "wait_next_dgram" << std::endl;
+		}
+		ipc::buff_t recv = server_listen_ipc->recv();
+		std::string dat{ recv.get<char const*>(), recv.size() - 1 };
+		if (debug)
+		{
+			std::cout << "[wait_next_dgram] get data" << dat << std::endl;
+		}
+		return dat;
+	}
+
+	void reply(std::string reply_buffer) {
+		if (debug)
+		{
+			std::cout << "reply sending: " << reply_buffer << std::endl;
+		}
+		bool success = client_listen_ipc->try_send(reply_buffer, 0/*tm*/);
+		if (debug)
+		{
+			std::cout << "reply success?" << success << std::endl;
+		}
+
+	}
+
+};
+
+
 
 UCLASS()
 class UHMP_API AHmpPythonIO : public AActor
@@ -35,6 +103,9 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 		float RecvBufferUsage = 0.0f;
 
+
+	std::string channelx = "debug2";
+	ShareMemServer *server = new ShareMemServer("debug2", false);
 
 	double tic_second = 0.0f;
 	double toc_second = 0.0f;
