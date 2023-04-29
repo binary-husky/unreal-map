@@ -65,15 +65,9 @@ void AHmpPythonIO::TcpServerSendJson(TSharedPtr<FJsonxObject> ReplyJson, float& 
 
 
 	// add checkEOF
-	SendBuffer[buffsize_raw]     = 0xaa;
-	SendBuffer[buffsize_raw + 1] = 0x55;
-	SendBuffer[buffsize_raw + 2] = 0xaa;
-	SendBuffer[buffsize_raw + 3] = 'H';
-	SendBuffer[buffsize_raw + 4] = 'M';
-	SendBuffer[buffsize_raw + 5] = 'P';
-	SendBuffer[buffsize_raw + 6] = 0xaa;
-	SendBuffer[buffsize_raw + 7] = 0x55;
-	SendBuffer[buffsize_raw + 8] = '\0';
+	SendBuffer[buffsize_raw]     = 0xaa; SendBuffer[buffsize_raw + 1] = 0x55; SendBuffer[buffsize_raw + 2] = 0xaa;
+	SendBuffer[buffsize_raw + 3] = 'H'; SendBuffer[buffsize_raw + 4] = 'M'; SendBuffer[buffsize_raw + 5] = 'P';
+	SendBuffer[buffsize_raw + 6] = 0xaa; SendBuffer[buffsize_raw + 7] = 0x55; SendBuffer[buffsize_raw + 8] = '\0';
 
 	ensureMsgf((buffsize_raw + 8 < SendBufferSize), TEXT("send buffer overflow!"));	// prevent buffer overflow!
 	SendBufferUsage = (float)(buffsize_raw + 8) / SendBufferSize;

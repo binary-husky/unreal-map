@@ -8,7 +8,7 @@ except: pass
 def download_from_shared_server(key = 'cat'):
     # download uhmap file manifest | 下载manifest目录文件
     print('Download uhmap file manifest | 下载manifest目录文件')
-    assert False, "Unable to find required resources, please connect qingxu.fu@oulook.com"
+    assert False, "五一放假中"
     try:
         download(manifest_url, filename="./TEMP/", force_download=True)
     except:
