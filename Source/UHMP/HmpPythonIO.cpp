@@ -22,6 +22,10 @@ void AHmpPythonIO::BeginDestroy()
 	{
 		ListenSocket->Close();
 	}
+	if (shm_server)
+	{
+		shm_server->close();
+	}
 }
 
 
@@ -41,6 +45,9 @@ void AHmpPythonIO::StartTcpServer(int32 InListenPort)
 	ListenSocket->SetReceiveBufferSize(ReceiveBufferSize, setBufferSizeRes);
 	ListenSocket->SetSendBufferSize(SendBufferSize, setBufferSizeRes);
 	ListenSocket->Listen(8);
+	if (use_shared_memory){
+		shm_server = new ShareMemServer("ShmComWithPort_" + std::to_string(InListenPort), true);
+	}
 
 }
 
@@ -74,8 +81,14 @@ void AHmpPythonIO::TcpServerSendJson(TSharedPtr<FJsonxObject> ReplyJson, float& 
 	int32 BytesSent;
 
 
+	if (use_shared_memory) {
+		shm_server->reply(SendBuffer, buffsize_raw + 8, BytesSent);
+	}
+	else {
+		TcpAccpetedSocket->Send(SendBuffer, buffsize_raw + 8, BytesSent);	// tcp send
+	}
 
-	TcpAccpetedSocket->Send(SendBuffer, buffsize_raw + 8, BytesSent);	// tcp send
+
 	ensureMsgf((BytesSent == buffsize_raw + 8), TEXT("send buffer incomplete!"));
 
 	double t3 = FPlatformTime::Seconds();
@@ -90,22 +103,24 @@ void AHmpPythonIO::TcpServerWaitClient()
 	ListenSocket->WaitForPendingConnection(bHasPendingConnection, timespan);
 	TSharedPtr<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 	TcpAccpetedSocket = ListenSocket->Accept(*Addr, TEXT("tcp-client"));
-
 }
-
 
 bool AHmpPythonIO::TcpServerHasWaitingClient()
 {
 	bool bHasPendingConnection = false;
 	ListenSocket->HasPendingConnection(bHasPendingConnection);
 	return bHasPendingConnection;
-
 }
 
 bool AHmpPythonIO::TcpServerHasRecvData()
 {
 	uint32 BytesPendingdata = 0;
-	return TcpAccpetedSocket->HasPendingData(BytesPendingdata);
+	if (use_shared_memory) {
+		return shm_server->HasPendingData();
+	}
+	else {
+		return TcpAccpetedSocket->HasPendingData(BytesPendingdata);
+	}
 }
 
 FString AHmpPythonIO::TcpServerRecvBlocked(bool checkEOF, float& tcpWaitTime, float &decodeTime)
@@ -121,15 +136,24 @@ FString AHmpPythonIO::TcpServerRecvBlocked(bool checkEOF, float& tcpWaitTime, fl
 		int32 BytesRead = 0;
 		uint32 BytesPendingdata = 0;
 		double t1 = FPlatformTime::Seconds();
-		// 24小时，有时候测试之间的间隔很长，长达1小时也是有可能的
-		TcpAccpetedSocket->Wait(ESocketWaitConditions::WaitForRead, FTimespan::FromHours(24));
-		double t2 = FPlatformTime::Seconds();
-		tcpWaitTime = t2 - t1;
-		if (!TcpAccpetedSocket->HasPendingData(BytesPendingdata)) {
-			ensureMsgf(false, TEXT("Tcp connection with Python is broken! Exiting ..."));
-			return "";
+		
+		if (use_shared_memory) {
+			shm_server->wait_next_dgram(&RecvBuffer[currenthead], ReceiveBufferSize, BytesRead);
+			double t21 = FPlatformTime::Seconds();
+			tcpWaitTime = t21 - t1;
 		}
-		TcpAccpetedSocket->Recv(&RecvBuffer[currenthead], ReceiveBufferSize, BytesRead);
+		else {
+			TcpAccpetedSocket->Wait(ESocketWaitConditions::WaitForRead, FTimespan::FromHours(24)); // 24小时，有时候测试之间的间隔很长，长达1小时也是有可能的
+			double t21 = FPlatformTime::Seconds();
+			tcpWaitTime = t21 - t1;
+			if (!TcpAccpetedSocket->HasPendingData(BytesPendingdata)) {
+				ensureMsgf(false, TEXT("Tcp connection with Python is broken! Exiting ..."));
+				return "";
+			}
+			TcpAccpetedSocket->Recv(&RecvBuffer[currenthead], ReceiveBufferSize, BytesRead);
+		}
+		double t2 = FPlatformTime::Seconds();
+
 		currenthead = currenthead + BytesRead;
 		ensureMsgf((currenthead + 1 < ReceiveBufferSize), TEXT("recv buffer overflow"));	// Buffer overflow!
 		RecvBufferUsage = (float)(currenthead + 1) / ReceiveBufferSize;
@@ -229,29 +253,6 @@ void AHmpPythonIO::ConvertOutDataToJsonAndSendTcp(TArray<FAgentDataOutput> TcpOu
 		}
 	}
 	JsonReply->SetArrayField("dataArr", J_DataArrNew);
-
-
-	//for (auto t : J_DataArr->AsArray()) 
-	//{
-	//	auto tt = t->AsObject();
-	//	if (tt) {
-	//		bool alive = true;
-	//		if (tt->TryGetBoolField("agentAlive", alive)) {
-	//			if (!alive) {
-	//				TSharedPtr<FJsonxObject> replacement = MakeShareable(new FJsonxObject);
-	//				// five core property
-	//				replacement->SetBoolField("valid", true);
-	//				replacement->SetBoolField("agentAlive", false);
-	//				replacement->SetNumberField("agentTeam", (int)(tt->GetNumberField("agentTeam")));
-	//				replacement->SetNumberField("indexInTeam", (int)(tt->GetNumberField("indexInTeam")));
-	//				replacement->SetNumberField("uID", (int)(tt->GetNumberField("uID") ));
-	//				*tt = *replacement;
-	//			}
-	//		}
-	//	}
-	//}
-
-
 
 	TcpServerSendJson(JsonReply, encTime, sendTime);
 }

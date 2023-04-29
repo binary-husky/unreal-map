@@ -15,7 +15,7 @@
 #include "libipc/ipc.h"
 #include "HmpPythonIO.generated.h"
 
-
+#pragma optimize("", off)
 class ShareMemServer
 {
 public:
@@ -26,7 +26,6 @@ public:
 	ipc::channel* server_listen_ipc = nullptr;
 	ipc::channel* client_listen_ipc = nullptr;
 	bool debug = true;
-
 
 	ShareMemServer(std::string channel, bool debug_network) { // Constructor with parameters
 		debug = debug_network;
@@ -50,36 +49,32 @@ public:
 		}
 	}
 public:
-	std::string wait_next_dgram()
+	bool HasPendingData()
 	{
-		if (debug)
-		{
-			std::cout << "wait_next_dgram" << std::endl;
-		}
+		std::size_t recv_count = server_listen_ipc->recv_count();
+		std::cout << recv_count;
+		return (recv_count != 0);
+	}
+
+	void wait_next_dgram(uint8* data, uint32 size, int32& bufferread)
+	{
 		ipc::buff_t recv = server_listen_ipc->recv();
-		std::string dat{ recv.get<char const*>(), recv.size() - 1 };
-		if (debug)
-		{
-			std::cout << "[wait_next_dgram] get data" << dat << std::endl;
-		}
-		return dat;
+		bufferread = recv.size() - 1;
+		auto data2 = recv.get<char const*>();
+		memcpy((void*) data2, (void*) data, bufferread);
 	}
 
-	void reply(std::string reply_buffer) {
-		if (debug)
-		{
-			std::cout << "reply sending: " << reply_buffer << std::endl;
-		}
-		bool success = client_listen_ipc->try_send(reply_buffer, 0/*tm*/);
-		if (debug)
-		{
-			std::cout << "reply success?" << success << std::endl;
-		}
-
+	void reply(uint8* data, uint32 size, int32& buffersend) {
+		bool success = client_listen_ipc->try_send(data, size, 0);
+		buffersend = size;
 	}
 
+	void close() {
+		server_listen_ipc->disconnect();
+		client_listen_ipc->disconnect();
+	}
 };
-
+#pragma optimize("", on)
 
 
 UCLASS()
@@ -104,8 +99,10 @@ protected:
 		float RecvBufferUsage = 0.0f;
 
 
-	std::string channelx = "debug2";
-	ShareMemServer *server = new ShareMemServer("debug2", false);
+	// std::string channelx = "debug2";
+	// = new ShareMemServer("debug2", false);
+	ShareMemServer* shm_server = NULL;
+	bool use_shared_memory = true;
 
 	double tic_second = 0.0f;
 	double toc_second = 0.0f;

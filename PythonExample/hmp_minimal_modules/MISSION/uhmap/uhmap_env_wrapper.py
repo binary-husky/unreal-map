@@ -1,7 +1,9 @@
 import json, os, subprocess, time, stat, platform, importlib
 import numpy as np
 from UTIL.colorful import print蓝, print靛, print亮红
-from UTIL.network import TcpClientP2PWithCompress, find_free_port_no_repeat, get_host_ip
+from UTIL.network import find_free_port_no_repeat, get_host_ip
+# from UTIL.network import TcpClientP2PWithCompress
+from UTIL.network import ShmClientP2PWithCompress as TcpClientP2PWithCompress
 from UTIL.config_args import ChainVar
 from config import GlobalConfig
 from ..common.base_env import BaseEnv

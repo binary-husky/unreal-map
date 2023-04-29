@@ -7,6 +7,7 @@ public class UHMP : ModuleRules
 {
 	public UHMP(ReadOnlyTargetRules Target) : base(Target)
 	{
+
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Sockets", "Networking", "Jsonx", "JsonxUtilities", "XtensorAPI" });
@@ -16,7 +17,6 @@ public class UHMP : ModuleRules
         CMakeTarget.add(Target, this, "ipc", Path.Combine(this.ModuleDirectory, "../Deps/cppipc"), "");
 		
 		bEnableExceptions = true;
-
 
 	}
 }

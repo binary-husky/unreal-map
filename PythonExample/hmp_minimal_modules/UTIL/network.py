@@ -646,6 +646,88 @@ class TcpClientP2PWithCompress(StreamingPackageSep):
     def close(self):
         self.client.close()
 
+class ShmClientP2PWithCompress():
+    def __init__(self, target_ip_port, self_ip_port=None, obj='bytes') -> None:
+        from cppipc_python import py_channel
+        import lz4.block as lz4block
+        self.lz4block = lz4block
+        self.try_decom_usize = 255
+        self.target_ip_port = target_ip_port
+        
+        self.tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server = py_channel(f"ShmComWithPort_{target_ip_port}-server", "receiver")
+        self.client = py_channel(f"ShmComWithPort_{target_ip_port}-client", "sender")
+        self.convert_str = (obj=='str')
+
+        assert not (obj=='str')
+        self.connected = False
+        atexit.register(self.__del__)
+
+    
+    def __del__(self):
+        self.close_shm()
+        return
+
+
+    def close_shm(self):
+        try:
+            self.client.py_close()
+            self.server.py_close()
+            self.tcp_client.close()
+        except:
+            pass
+
+    def decompress(self, data):
+        while True:
+            try:
+                decompressed = self.lz4block.decompress(data, uncompressed_size=self.try_decom_usize)
+                return decompressed
+            except:
+                self.try_decom_usize *= 2
+                if self.try_decom_usize > 10485760: # 10 MB
+                    assert False, "compression failure"
+        return None
+
+    def compress(self, data):
+        compressed = self.lz4block.compress(data, store_size=False)
+        return compressed
+
+    def send_dgram_to_target(self, data):
+        data = bytes(data, encoding='utf8')
+        if not self.connected: self.tcp_client.connect(self.target_ip_port); self.connected = True
+        data = self.compress(data)
+
+        # self.lower_send(data, self.client)
+        self.server.py_send(data, 500)
+
+        if DEBUG_NETWORK: print('send_targeted_dgram :', self.client, ' data :', data)
+        return
+
+    def manual_connect(self):
+        if not self.connected: 
+            self.tcp_client.connect(self.target_ip_port)
+            self.connected = True
+
+    def lower_recv(self):
+        while True:
+            res = self.client.py_recv(300)    # 等待300ms
+            if (res is not None) and len(res) != 0:
+                return res
+            if DEBUG_NETWORK: print('Get Nothing')
+
+    def send_and_wait_reply(self, data):
+        data = bytes(data, encoding='utf8')
+        if not self.connected: self.tcp_client.connect(self.target_ip_port); self.connected = True
+        data = self.compress(data)
+        # self.lower_send(data, self.client)
+        self.server.py_send(data, 500)
+
+        data = self.lower_recv()
+        data = self.decompress(data)
+        if DEBUG_NETWORK: print('get_reply :', self.client, ' data :', data)
+        return data
+
+
 class QueueOnTcpClient():
     def __init__(self, ip):
         TCP_IP, TCP_PORT = ip.split(':')
