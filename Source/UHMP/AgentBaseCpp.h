@@ -18,8 +18,6 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 		FGenericTeamId GenericTeamNo;
 
-	UPROPERTY(BlueprintReadWrite)
-		float PerceptionRange = 1500;
 
 protected:
 	// Called when the game starts or when spawned

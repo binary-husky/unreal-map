@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Stack.h"
 #include "Misc/UObjectToken.h"
+#include "EngineUtils.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -71,8 +72,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI")
 		static TArray<int> GetAffilationArray(const TArray<AAgentBaseCpp*> &agents);
 
-	UFUNCTION(BlueprintCallable, Category = "AI")
-		static TArray<float> GetPerceptionRangeArray(const TArray<AAgentBaseCpp*>& agents);
+
 
 	UFUNCTION(BlueprintCallable, Category = "SpecialFn")
 		static void MannualGc();
@@ -82,6 +82,16 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "SpecialFn")
 		static FVector FlyingTracking(FVector self_pos, FVector dst_pos, bool maintain_z, float dis_aim);
+
+	UFUNCTION(BlueprintCallable, Category = "SpecialFn")
+		static void SortActorListBy(TArray<AActor*> InActors, TArray<float> ScoreList, TArray<AActor*>& OutActors);
+
+	//UFUNCTION(BlueprintCallable, Category = "Utilities", meta = (WorldContext = "WorldContextObject", DeterminesOutputType = "ActorClass", DynamicOutputParam = "OutActors"))
+	//	static void MyGetAllActorsOfClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, TArray<AActor*>& OutActors);
+
+	UFUNCTION(BlueprintCallable, Category = "SpecialFn", meta = (WorldContext = "WorldContextObject", DeterminesOutputType = "ActorClass", DynamicOutputParam = "OutActors"))
+		static void TarrayChangeClass(TArray<AActor*> InActors, TSubclassOf<AActor> ActorClass, TArray<AActor*>& OutActors);
+
 };
 
 

@@ -145,25 +145,7 @@ bool UUHMPBlueprintFunctionLibrary::IsEditor()
 	return GEngine->IsEditor();
 }
  
-TArray<float> UUHMPBlueprintFunctionLibrary::GetPerceptionRangeArray(const TArray<AAgentBaseCpp*>& agents)
-{
 	
-	TArray<float> AffilationArray;
-	for (auto agent : agents)
-	{
-		
-		if (agent)
-		{
-			float PerceptionRange = agent->PerceptionRange;
-			AffilationArray.Add(PerceptionRange);
-		}
-		else
-		{
-			AffilationArray.Add(-1);
-		}
-	}
-	return AffilationArray;
-}
 
 FVector UUHMPBlueprintFunctionLibrary::FlyingTracking(FVector self_pos, FVector dst_pos, bool maintain_z, float dis_aim)
 {
@@ -179,7 +161,7 @@ FVector UUHMPBlueprintFunctionLibrary::FlyingTracking(FVector self_pos, FVector 
 	}
 	else
 	{
-		PrintStringSpecial("z_delta > dis_aim !");
+		// PrintStringSpecial("z_delta > dis_aim !");
 	}
 	// remove z, and normalize
 	delta_vec.Z = 0;
@@ -197,3 +179,54 @@ FVector UUHMPBlueprintFunctionLibrary::FlyingTracking(FVector self_pos, FVector 
 	return dst_posx;
 }
 
+
+//void bubble_sort(T arr[], int len) {
+//	int i, j;
+//	for (i = 0; i < len - 1; i++)
+//		for (j = 0; j < len - 1 - i; j++)
+//			if (arr[j] > arr[j + 1])
+//				swap(arr[j], arr[j + 1]);
+//}
+
+void UUHMPBlueprintFunctionLibrary::SortActorListBy(TArray<AActor*> InActors, TArray<float> ScoreList, TArray<AActor*>& OutActors)
+{
+	OutActors.Reset();
+	int i, j;
+	int len = InActors.Num();
+	for (i = 0; i < len - 1; i++)
+	{
+		for (j = 0; j < len - 1 - i; j++)
+		{
+			if (ScoreList[j] > ScoreList[j + 1]) {
+				ScoreList.Swap(j, j + 1);
+				InActors.Swap(j, j + 1);
+			}
+		}
+	}
+	OutActors = InActors;
+}
+
+
+//void UUHMPBlueprintFunctionLibrary::MyGetAllActorsOfClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, TArray<AActor*>& OutActors)
+//{
+//	OutActors.Reset();
+//
+//	// We do nothing if no is class provided, rather than giving ALL actors!
+//	if (ActorClass)
+//	{
+//		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+//		{
+//			for (TActorIterator<AActor> It(World, ActorClass); It; ++It)
+//			{
+//				AActor* Actor = *It;
+//				OutActors.Add(Actor);
+//			}
+//		}
+//	}
+//}
+//
+
+void UUHMPBlueprintFunctionLibrary::TarrayChangeClass(TArray<AActor*> InActors, TSubclassOf<AActor> ActorClass, TArray<AActor*>& OutActors)
+{
+	OutActors = InActors;
+}
