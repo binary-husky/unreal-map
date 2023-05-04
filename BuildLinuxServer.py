@@ -1,6 +1,14 @@
+"""
+After you have installed the toolchain for cross-compilation, 
+you must open the solution for the engine in Rider (or VisualStudio) and 
+build (rebuild is not necessary) the editor for Win64 (yes, that is Win64 and not Linux). 
+This will create the needed folder “Engine/Binaries/Win64/Linux”. 
+Then restart your editor, and packaging LinuxServer will work.
+"""
+
 import subprocess, sys, shutil, time, os
 
-EnginePath = "F:/UnrealSourceCode/UnrealEngine-4.27.2-release/Engine"
+EnginePath = "F:/UnrealEngine-4.27.2-release/Engine"
 assert os.path.exists(EnginePath), f"Cannot find Unreal Engine at this path {EnginePath}"
 Windows_Only = False
 Build = 'Test' # Development/Test/shipping

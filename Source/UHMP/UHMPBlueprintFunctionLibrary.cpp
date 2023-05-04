@@ -230,3 +230,94 @@ void UUHMPBlueprintFunctionLibrary::TarrayChangeClass(TArray<AActor*> InActors, 
 {
 	OutActors = InActors;
 }
+
+
+void UUHMPBlueprintFunctionLibrary::GetAllActorsOfClassWithOrder(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, TArray<AActor*>& OutActors)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(UGameplayStatics_GetAllActorsOfClass);
+	OutActors.Reset();
+
+	// We do nothing if no is class provided, rather than giving ALL actors!
+	if (ActorClass)
+	{
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+		{
+			for (TActorIterator<AActor> It(World, ActorClass); It; ++It)
+			{
+				AActor* Actor = *It;
+				OutActors.Add(Actor);
+			}
+			// Sort the actors according to their z-axis location
+			OutActors.Sort([](const AActor& Actor1, const AActor& Actor2)
+				{
+					if (Actor1.GetActorLocation().X != Actor2.GetActorLocation().X) return Actor1.GetActorLocation().X > Actor2.GetActorLocation().X;
+					if (Actor1.GetActorLocation().Y != Actor2.GetActorLocation().X) return Actor1.GetActorLocation().X > Actor2.GetActorLocation().Y;
+					// if (Actor1.GetActorLocation().Z != Actor2.GetActorLocation().Z) return Actor1.GetActorLocation().Z > Actor2.GetActorLocation().Z;
+					return Actor1.GetActorLocation().Z > Actor2.GetActorLocation().Z;
+				});
+
+		}
+	}
+}
+
+
+void UUHMPBlueprintFunctionLibrary::GetAllActorsWithTagWithOrder(const UObject* WorldContextObject, FName Tag, TArray<AActor*>& OutActors)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(UGameplayStatics_GetAllActorsWithTag);
+	OutActors.Reset();
+
+	// We do nothing if no tag is provided, rather than giving ALL actors!
+	if (!Tag.IsNone())
+	{
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+		{
+			for (FActorIterator It(World); It; ++It)
+			{
+				AActor* Actor = *It;
+				if (Actor->ActorHasTag(Tag))
+				{
+					OutActors.Add(Actor);
+				}
+			}
+			// Sort the actors according to their z-axis location
+			OutActors.Sort([](const AActor& Actor1, const AActor& Actor2)
+				{
+					if (Actor1.GetActorLocation().X != Actor2.GetActorLocation().X) return Actor1.GetActorLocation().X > Actor2.GetActorLocation().X;
+					if (Actor1.GetActorLocation().Y != Actor2.GetActorLocation().X) return Actor1.GetActorLocation().X > Actor2.GetActorLocation().Y;
+					// if (Actor1.GetActorLocation().Z != Actor2.GetActorLocation().Z) return Actor1.GetActorLocation().Z > Actor2.GetActorLocation().Z;
+					return Actor1.GetActorLocation().Z > Actor2.GetActorLocation().Z;
+				});
+
+		}
+	}
+}
+
+
+void UUHMPBlueprintFunctionLibrary::GetAllActorsOfClassWithTagWithOrder(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, FName Tag, TArray<AActor*>& OutActors)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(UGameplayStatics_GetAllActorsOfClass);
+	OutActors.Reset();
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+
+	// We do nothing if no is class provided, rather than giving ALL actors!
+	if (ActorClass && World)
+	{
+		for (TActorIterator<AActor> It(World, ActorClass); It; ++It)
+		{
+			AActor* Actor = *It;
+			if (Actor && !Actor->IsPendingKill() && Actor->ActorHasTag(Tag))
+			{
+				OutActors.Add(Actor);
+			}
+		}
+		// Sort the actors according to their z-axis location
+		OutActors.Sort([](const AActor& Actor1, const AActor& Actor2)
+			{
+				if (Actor1.GetActorLocation().X != Actor2.GetActorLocation().X) return Actor1.GetActorLocation().X > Actor2.GetActorLocation().X;
+				if (Actor1.GetActorLocation().Y != Actor2.GetActorLocation().X) return Actor1.GetActorLocation().X > Actor2.GetActorLocation().Y;
+				// if (Actor1.GetActorLocation().Z != Actor2.GetActorLocation().Z) return Actor1.GetActorLocation().Z > Actor2.GetActorLocation().Z;
+				return Actor1.GetActorLocation().Z > Actor2.GetActorLocation().Z;
+			});
+	}
+}
