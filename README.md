@@ -1,6 +1,3 @@
-> **Note**
-> 核心代码正在维护，五一之后之后开放拓展代码下载
-> 
 
 
 # Unreal-MAP (Previous name: UHMP)
