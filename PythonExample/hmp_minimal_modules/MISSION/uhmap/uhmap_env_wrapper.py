@@ -321,7 +321,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
 
 
     def terminate_simulation(self):
-        if (self.sim_thread is not None) and (self.client is not None):
+        if hasattr(self,'sim_thread') and (self.sim_thread is not None) and (self.client is not None):
             # self.sim_thread.terminate()
             # send terminate command to unreal side
             self.client.send_dgram_to_target(json.dumps({

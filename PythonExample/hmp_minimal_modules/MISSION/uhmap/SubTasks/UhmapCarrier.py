@@ -6,14 +6,14 @@ from ..actset_lookup import digit2act_dictionary, AgentPropertyDefaults
 from ..actset_lookup import decode_action_as_string, decode_action_as_string
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
-from .UhmapLargeScaleConf import SubTaskConfig
+from .UhmapCarrierConf import SubTaskConfig
 from .cython_func import tear_num_arr
 from .SubtaskCommonFn import UhmapCommonFn
 
 
 
 
-class UhmapLargeScale(UhmapCommonFn, UhmapEnv):
+class UhmapCarrier(UhmapCommonFn, UhmapEnv):
     def __init__(self, rank) -> None:
         super().__init__(rank)
         self.observation_space = self.make_obs(get_shape=True)
@@ -274,8 +274,7 @@ class UhmapLargeScale(UhmapCommonFn, UhmapEnv):
         return OBS_ALL_AGENTS
 
 
-
-    def init_ground(self, agent_info, pos_ro):
+    def init_drone(self, agent_info, pos_ro):
         N_COL = 2
         agent_class = agent_info['type']
         team = agent_info['team']
@@ -290,15 +289,16 @@ class UhmapLargeScale(UhmapCommonFn, UhmapEnv):
         assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
         agent_property = copy.deepcopy(AgentPropertyDefaults)
         agent_property.update({
+
                 'DebugAgent': False,
                 # max drive/fly speed
-                'MaxMoveSpeed':  720          if agent_class == 'RLA_CAR_Laser' else 600,
+                'MaxMoveSpeed':  400,
                 # also influence object mass, please change it with causion!
-                'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
+                'AgentScale'  : { 'x': 0.7,  'y': 0.7, 'z': 0.7, },
                 # probability of escaping dmg 闪避
                 "DodgeProb": 0.0,
                 # ms explode dmg
-                "ExplodeDmg": 20,           
+                "ExplodeDmg": 75,           
                 # team belonging
                 'AgentTeam': team,
                 # choose ue class to init
@@ -306,15 +306,15 @@ class UhmapLargeScale(UhmapCommonFn, UhmapEnv):
                 # Weapon CD
                 'WeaponCD': 1,
                 # open fire range
-                "PerceptionRange":  2000       if agent_class == 'RLA_CAR_Laser' else 2500,
-                "GuardRange":       1400       if agent_class == 'RLA_CAR_Laser' else 1700,
-                "FireRange":        750        if agent_class == 'RLA_CAR_Laser' else 1400,
+                "PerceptionRange":  2000,
+                "GuardRange":       1400,
+                "FireRange":        750 ,
                 # debugging
-                'RSVD1': '-Ring1=2000 -Ring2=1400 -Ring3=750' if agent_class == 'RLA_CAR_Laser' else '-Ring1=2500 -Ring2=1700 -Ring3=1400',
+                'RSVD1': f'-CarrierName=T0-0 -NumDrone={self.n_team_agent[team]-1}' if team==0 else f'-CarrierName=T1-0 -NumDrone={self.n_team_agent[team]-1}',
                 # regular
                 'RSVD2': '-InitAct=ActionSet2::Idle;AsFarAsPossible',
                 # agent hp
-                'AgentHp':np.random.randint(low=95,high=105) if agent_class == 'RLA_CAR_Laser' else np.random.randint(low=145,high=155),
+                'AgentHp':np.random.randint(low=180,high=220),
                 # the rank of agent inside the team
                 'IndexInTeam': tid, 
                 # the unique identity of this agent in simulation system
@@ -328,7 +328,7 @@ class UhmapLargeScale(UhmapCommonFn, UhmapEnv):
         }),
         return agent_property
 
-    def init_air(self, agent_info, pos_ro):
+    def init_carrier(self, agent_info, pos_ro):
         N_COL = 2
         agent_class = agent_info['type']
         team = agent_info['team']
@@ -348,7 +348,7 @@ class UhmapLargeScale(UhmapCommonFn, UhmapEnv):
                 # max drive/fly speed
                 'MaxMoveSpeed':  900,
                 # also influence object mass, please change it with causion!
-                'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
+                'AgentScale'  : { 'x': 1.0,  'y': 1.0, 'z': 1.0, },
                 # probability of escaping dmg 闪避
                 "DodgeProb": 0.0,
                 # ms explode dmg
@@ -364,11 +364,11 @@ class UhmapLargeScale(UhmapCommonFn, UhmapEnv):
                 "GuardRange":       1800,
                 "FireRange":        1700,
                 # debugging
-                'RSVD1': '-ring1=2500 -ring2=1800 -ring3=1700',
+                'RSVD1': '',
                 # regular
                 'RSVD2': '-InitAct=ActionSet2::Idle;StaticAlert',
                 # agent hp
-                'AgentHp':50,
+                'AgentHp':np.random.randint(low=40,high=60),
                 # the rank of agent inside the team
                 'IndexInTeam': tid, 
                 # the unique identity of this agent in simulation system

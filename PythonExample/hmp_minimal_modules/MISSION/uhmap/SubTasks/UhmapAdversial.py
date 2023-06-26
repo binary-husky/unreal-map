@@ -116,8 +116,11 @@ class UhmapAdversial(UhmapCommonFn, UhmapEnv):
         # dis_mat = distance_matrix(pos3d_arr)    # dis_mat is a matrix, shape = (n_agent, n_agent)
         dis_mat = resp['dataGlobal']['distanceMat']
         alive_all = np.array([agent.alive for agent in self.agents])
-        dis_mat[~alive_all,:] = +np.inf
-        dis_mat[:,~alive_all] = +np.inf
+        try:
+            dis_mat[~alive_all,:] = +np.inf
+            dis_mat[:,~alive_all] = +np.inf
+        except:
+            pass
 
         # get team list
         team_belonging = np.array([agent.team for agent in self.agents])

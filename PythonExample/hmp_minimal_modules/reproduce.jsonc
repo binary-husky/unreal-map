@@ -1,0 +1,52 @@
+{
+    // --- Part1: config HMP core --- 
+    "config.py->GlobalConfig": {
+        "note": "random-reproduce",// http://localhost:59547
+        "env_name": "uhmap",
+        "env_path": "MISSION.uhmap",
+        // "heartbeat_on": "False",
+        "draw_mode": "Img",
+        "num_threads": 1,  // 请预留 num_threads * 1 GB 的内存空间
+        "report_reward_interval": 128,
+        "test_interval": 1280,
+        "mt_act_order": "new_method",
+        "test_epoch": 512,
+        "interested_team": 0,
+        "seed": 10098,
+        "device": "cpu",
+        "max_n_episode": 5000000,
+        "fold": 1,
+        "backup_files": [
+            "MISSION/uhmap"
+        ]
+    },
+
+
+      // --- Part2: config MISSION ---
+    "MISSION.uhmap.uhmap_env_wrapper.py->ScenarioConfig": {
+      "N_AGENT_EACH_TEAM": [ 200 ], // 8 agent, single team
+      "MaxEpisodeStep": 50,
+      "StepGameTime": 0.5,
+      "StateProvided": false,
+      "render": false, // note: random seed has different impact on renderer and server
+      "UElink2editor": false,
+      "HeteAgents": false,
+      "UnrealLevel": "UhmapReproduce",
+      "SubTaskSelection": "UhmapReproduce",
+      "UhmapVersion":"3.8",
+      "UhmapRenderExe": "../../Build/WindowsNoEditor/UHMP.exe",
+      "UhmapServerExe": "../../Build/WindowsServer/UHMPServer.exe",
+      // "UhmapRenderExe": "/home/hmp/UnrealHmapBinary/Version3.8/LinuxNoEditor/UHMP.sh",
+      // "UhmapServerExe": "/home/hmp/UnrealHmapBinary/Version3.8/LinuxServer/UHMPServer.sh",
+      "TimeDilation": 1, // simulation time speed up, larger is faster
+      "TEAM_NAMES": [
+        "ALGORITHM.script_ai.a_test_reproduce->TestReproduce",
+      ]
+    },
+
+    // --- Part3: config ALGORITHM 1/2 --- 
+    "ALGORITHM.script_ai.a_test_reproduce.py->AlgorithmConfig": {
+    },
+
+    
+}

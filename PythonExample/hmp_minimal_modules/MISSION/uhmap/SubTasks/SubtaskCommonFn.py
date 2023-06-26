@@ -32,7 +32,8 @@ class UhmapCommonFn(UhmapEnv):
             self.SubTaskConfig.agent_list[i]['uid'] = i
             self.SubTaskConfig.agent_list[i]['tid'] = n_team_agent[team]
             n_team_agent[team] += 1
-
+            
+        self.n_team_agent = n_team_agent
         # push agent init info one by one
         for i, agent_info in enumerate(self.SubTaskConfig.agent_list):
             team = agent_info['team']
@@ -270,8 +271,11 @@ class UhmapCommonFn(UhmapEnv):
         # dis_mat = distance_matrix(pos3d_arr)    # dis_mat is a matrix, shape = (n_agent, n_agent)
         dis_mat = resp['dataGlobal']['distanceMat']
         alive_all = np.array([agent.alive for agent in self.agents])
-        dis_mat[~alive_all,:] = +np.inf
-        dis_mat[:,~alive_all] = +np.inf
+        try:
+            dis_mat[~alive_all,:] = +np.inf
+            dis_mat[:,~alive_all] = +np.inf
+        except:
+            pass
         # get team list
         team_belonging = np.array([agent.team for agent in self.agents])
 

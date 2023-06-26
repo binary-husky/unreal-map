@@ -5,14 +5,22 @@ from ...common.base_env import RawObsArray
 from ..actionset_v3 import digitsToStrAction
 from ..agent import Agent
 from ..uhmap_env_wrapper import UhmapEnv, ScenarioConfig
-from .UhmapPreyPredatorConf import SubTaskConfig
-from .SubtaskCommonFn import UhmapCommonFn
+from .UhmapAttackPostConf import SubTaskConfig
 from .cython_func import tear_num_arr
 
+def init_position_helper(x_max, x_min, y_max, y_min, total, this):
+    n_col = np.ceil(np.sqrt(np.abs(x_max-x_min) * total / np.abs(y_max-y_min)))
+    n_row = np.ceil(total / n_col)
+
+    which_row = this // n_col
+    which_col = this % n_col
+
+    x = x_min + (which_col/n_col)*(x_max-x_min)
+    y = y_min + (which_row/n_row)*(y_max-y_min)
+    return x, y
 
 
-
-class UhmapPreyPredator(UhmapCommonFn, UhmapEnv):
+class UhmapAttackPost(UhmapEnv):
     def __init__(self, rank) -> None:
         super().__init__(rank)
         self.observation_space = self.make_obs(get_shape=True)
@@ -21,47 +29,105 @@ class UhmapPreyPredator(UhmapCommonFn, UhmapEnv):
         assert os.path.basename(inspect.getfile(SubTaskConfig)) == type(self).__name__+'Conf.py', \
                 ('make sure you have imported the correct SubTaskConfig class')
 
+    def reset(self):
+        """
+            Reset function, it delivers reset command to unreal engine to spawn all agents
+            环境复位,每个episode的开始会执行一次此函数中会初始化所有智能体
+        """
+        super().reset()
+        self.t = 0
+        pos_ro = np.random.rand()*2*np.pi
+        # spawn agents
+        AgentSettingArray = []
 
-    def init_ground(self, agent_info, pos_ro):
-        N_COL = 4
-        agent_class = agent_info['type']
-        team = agent_info['team']
-        n_team_agent = 50
-        tid = agent_info['tid']
-        uid = agent_info['uid']
-        x = 0 + 800*(tid - n_team_agent//2) //N_COL
-        y = (400* (tid%N_COL) + 2000) * (-1)**(team+1)
-        x,y = np.matmul(np.array([x,y]), np.array([[np.cos(pos_ro), -np.sin(pos_ro)], [np.sin(pos_ro), np.cos(pos_ro)] ]))
-        z = 500 # 500 is slightly above the ground
-        yaw = 90 if team==0 else -90
-        assert np.abs(x) < 15000.0 and np.abs(y) < 15000.0
-        agent_property = copy.deepcopy(SubTaskConfig.AgentPropertyDefaults)
-        agent_property.update({
-                'DebugAgent': False,
-                # max drive/fly speed
-                'MaxMoveSpeed':  720          if agent_class == 'RLA_CAR_Laser' else 600,
-                # also influence object mass, please change it with causion!
-                'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
-                # team belonging
-                'AgentTeam': team,
-                # choose ue class to init
-                'ClassName': agent_class,
-                # debugging
-                'RSVD1': '-Ring1=2000 -Ring2=1400 -Ring3=750',
-                # the rank of agent inside the team
-                'IndexInTeam': tid, 
-                # the unique identity of this agent in simulation system
-                'UID': uid, 
-                # show color
-                'Color':'(R=0,G=1,B=0,A=1)' if team==0 else '(R=0,G=0,B=1,A=1)',
-                # initial location
-                'InitLocation': { 'x': x,  'y': y, 'z': z, },
-                # initial facing direction et.al.
-                'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': yaw, },
-        }),
-        return agent_property
+        # count the number of agent in each team
+        n_team_agent = {}
+        for i, agent_info in enumerate(SubTaskConfig.agent_list):
+            team = agent_info['team']
+            if team not in n_team_agent: n_team_agent[team] = 0
+            SubTaskConfig.agent_list[i]['uid'] = i
+            SubTaskConfig.agent_list[i]['tid'] = n_team_agent[team]
+            n_team_agent[team] += 1
+
+        # push agent init info one by one
+        for i, agent_info in enumerate(SubTaskConfig.agent_list):
+            team = agent_info['team']
+            agent_info['n_team_agent'] = n_team_agent[team]
+            init_fn = getattr(self, agent_info['init_fn_name'])
+            AgentSettingArray.append(init_fn(agent_info, pos_ro))
+
+        self.agents  = [Agent(team=a['team'], team_id=a['tid'], uid=a['uid']) for a in SubTaskConfig.agent_list]
+        
+        # refer to struct.cpp, FParsedDataInput
+        resp = self.client.send_and_wait_reply(json.dumps({
+            'valid': True,
+            'DataCmd': 'reset',
+            'NumAgents' : len(SubTaskConfig.agent_list),
+            'AgentSettingArray': AgentSettingArray,  # refer to struct.cpp, FAgentProperty
+            'TimeStepMax': ScenarioConfig.MaxEpisodeStep,
+            'TimeStep' : 0,
+            'Actions': None,
+        }))
+        resp = json.loads(resp)
+        # make sure the map (level in UE) is correct
+        # assert resp['dataGlobal']['levelName'] == 'UhmapLargeScale'
+
+        assert len(resp['dataArr']) == len(AgentSettingArray)
+        return self.parse_response_ob_info(resp)
 
 
+    def step(self, act):
+        """
+            step 函数,act中包含了所有agent的决策
+        """
+        assert len(act) == self.n_agents
+
+        # translate actions to the format recognized by unreal engine
+        if ScenarioConfig.ActionFormat == 'Single-Digit':
+            act_send = [digit2act_dictionary[a] for a in act]
+        elif ScenarioConfig.ActionFormat == 'Multi-Digit':
+            act_send = [decode_action_as_string(a) for a in act]
+        elif ScenarioConfig.ActionFormat == 'ASCII':            
+            act_send = [digitsToStrAction(a) for a in act]
+        else:
+            raise "ActionFormat is wrong!"
+
+        # simulation engine IO
+        resp = json.loads(self.client.send_and_wait_reply(json.dumps({
+            'valid': True,
+            'DataCmd': 'step',
+            'TimeStep': self.t,
+            'Actions': None,
+            'StringActions': act_send,
+        })))
+
+        # get obs for RL, info for script AI
+        ob, info = self.parse_response_ob_info(resp)
+
+        # generate reward, get the episode ending infomation
+        RewardForAllTeams, WinningResult = self.gen_reward_and_win(resp)
+        if WinningResult is not None: 
+            info.update(WinningResult)
+            assert resp['dataGlobal']['episodeDone']
+            done = True
+        else:
+            done = False
+
+        if resp['dataGlobal']['timeCnt'] >= ScenarioConfig.MaxEpisodeStep:
+            assert done
+
+        return (ob, RewardForAllTeams, done, info)  # choose this if RewardAsUnity
+
+    def parse_event(self, event):
+        """
+            解析环境返回的一些关键事件,
+            如智能体阵亡,某队伍胜利等等。
+            关键事件需要在ue中进行定义.
+            该设计极大地简化了python端奖励的设计流程,
+            减小了python端的运算量。
+        """
+        if not hasattr(self, 'pattern'): self.pattern = re.compile(r'<([^<>]*)>([^<>]*)')
+        return {k:v for k,v  in re.findall(self.pattern, event)}
 
     def extract_key_gameobj(self, resp):
         """
@@ -95,7 +161,7 @@ class UhmapPreyPredator(UhmapCommonFn, UhmapEnv):
                 PreyRank = -1
                 PreyReward = 0
                 EndReason = event_parsed['EndReason']
-                # According to MISSION\uhmap\SubTasks\UhmapPreyPredatorConf.py, team 0 is prey team, team 1 is predator team
+                # According to MISSION\uhmap\SubTasks\UhmapAttackPostConf.py, team 0 is prey team, team 1 is predator team
                 if EndReason == "AllPreyCaught" or EndReason == "Team_0_AllDead":
                     PredatorWin = True; PredatorRank = 0; PredatorReward = 1
                     PreyWin = False; PreyRank = 1; PreyReward = -1
@@ -111,7 +177,71 @@ class UhmapPreyPredator(UhmapCommonFn, UhmapEnv):
         # print(reward)
         return reward, WinningResult
 
+    def step_skip(self):
+        """
+            跳过一次决策,无用的函数
+        """
+        return self.client.send_and_wait_reply(json.dumps({
+            'valid': True,
+            'DataCmd': 'skip_frame',
+        }))
 
+    def find_agent_by_uid(self, uid):
+        """
+            用uid查找智能体(带缓存加速机制)
+        """
+        if not hasattr(self, 'uid_to_agent_dict'):
+            self.uid_to_agent_dict = {}
+            self.uid_to_agent_dict.update({agent.uid:agent for agent in self.agents}) 
+            if isinstance(uid, str):
+                self.uid_to_agent_dict.update({str(agent.uid):agent for agent in self.agents}) 
+        return self.uid_to_agent_dict[uid]
+
+
+
+    def parse_response_ob_info(self, resp):
+        """
+            粗解析智能体的观测,例如把死智能体的位置替换为inf(无穷远),
+            将智能体的agentLocation从字典形式转变为更简洁的(x,y,z)tuple形式
+        """
+        assert resp['valid']
+        resp['dataGlobal']['distanceMat'] = np.array(resp['dataGlobal']['distanceMat']['flat_arr']).reshape(self.n_agents,self.n_agents)
+        
+        if len(resp['dataGlobal']['events'])>0:
+            tmp = [kv.split('>') for kv in resp['dataGlobal']['events'][0].split('<') if kv]
+            info_parse = {t[0]:t[1] for t in tmp}
+
+        info_dict = resp
+        for info in info_dict['dataArr']: 
+            alive = info['agentAlive']
+
+            if alive:
+                agentLocation = info.pop('agentLocation')
+                agentRotation = info.pop('agentRotation')
+                agentVelocity = info.pop('agentVelocity')
+                agentScale = info.pop('agentScale')
+                info['agentLocationArr'] = (agentLocation['x'], agentLocation['y'], agentLocation['z'])
+                info['agentVelocityArr'] = (agentVelocity['x'], agentVelocity['y'], agentVelocity['z'])
+                info['agentRotationArr'] = (agentRotation['yaw'], agentRotation['pitch'], agentRotation['roll'])
+                info['agentScaleArr'] = (agentScale['x'], agentScale['y'], agentScale['z'])
+                info.pop('previousAction')
+                info.pop('availActions')
+                # info.pop('rSVD1')
+                info.pop('interaction')
+            else:
+                inf = float('inf')
+                info['agentLocationArr'] = (inf, inf, inf)
+                info['agentVelocityArr'] = (inf, inf, inf)
+                info['agentRotationArr'] = (inf, inf, inf)
+
+        info = resp['dataArr']
+        for i, agent_info in enumerate(info):
+            self.agents[i].update_agent_attrs(agent_info)
+
+        self.key_obj = self.extract_key_gameobj(resp)
+
+        # return ob, info
+        return self.make_obs(resp), info_dict
 
 
 
@@ -304,3 +434,75 @@ class UhmapPreyPredator(UhmapCommonFn, UhmapEnv):
         return OBS_ALL_AGENTS
 
 
+    def init_defence(self, agent_info, pos_ro):
+        team = agent_info['team']
+        tid = agent_info['tid']
+        uid = agent_info['uid']
+        agent_class = agent_info['type']
+        x = 0
+        y = tid * 1000
+        z = 0
+        agent_property = copy.deepcopy(SubTaskConfig.AgentPropertyDefaults)
+        agent_property.update({
+            'DebugAgent': False,
+            # max drive/fly speed
+            'MaxMoveSpeed':  0,
+            # also influence object mass, please change it with causion!
+            'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
+            "DodgeProb": 0.0,           # probability of escaping dmg 闪避概率, test ok
+            # team belonging
+            'AgentTeam': team,
+            # choose ue class to init
+            'ClassName': agent_class,
+            # debugging
+            'RSVD1': '',
+            # the rank of agent inside the team
+            'IndexInTeam': tid, 
+            # the unique identity of this agent in simulation system
+            'UID': uid, 
+            # show color
+            'Color':'(R=0,G=1,B=0,A=1)',
+            # 预留参数接口
+            'RSVD1':'-LaserDmg=70',
+            # initial location
+            'InitLocation': { 'x': x,  'y': y, 'z': z, },
+            # initial facing direction et.al.
+            'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': 0, },
+        }),
+        return agent_property
+
+
+    def init_attack(self, agent_info, pos_ro):
+        team = agent_info['team']
+        tid = agent_info['tid']
+        uid = agent_info['uid']
+        agent_class = agent_info['type']
+        x,y = init_position_helper(x_max=3500.0, x_min=10000.0, y_max=-4470.0, y_min=4470.0, total=8, this=tid)   # 脚本-白给
+        # x,y = init_position_helper(x_max=3500.0, x_min=5000.0, y_max=-4470.0, y_min=4470.0, total=8, this=tid)  # 脚本-击杀
+        z = 500
+        agent_property = copy.deepcopy(SubTaskConfig.AgentPropertyDefaults)
+        agent_property.update({
+            'DebugAgent': False,
+            # max drive/fly speed
+            'MaxMoveSpeed':  1000,
+            # also influence object mass, please change it with causion!
+            'AgentScale'  : { 'x': 1,  'y': 1, 'z': 1, },
+            "DodgeProb": 0.0,           # probability of escaping dmg 闪避概率, test ok
+            # team belonging
+            'AgentTeam': team,
+            # choose ue class to init
+            'ClassName': agent_class,
+            # debugging
+            'RSVD1': '',
+            # the rank of agent inside the team
+            'IndexInTeam': tid, 
+            # the unique identity of this agent in simulation system
+            'UID': uid, 
+            # show color
+            'Color':'(R=0,G=1,B=0,A=1)',
+            # initial location
+            'InitLocation': { 'x': x,  'y': y, 'z': z, },
+            # initial facing direction et.al.
+            'InitRotator': { 'pitch': 0,  'roll': 0, 'yaw': 0, },
+        }),
+        return agent_property
