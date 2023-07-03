@@ -41,15 +41,7 @@ class DummyAlgorithmBase():
         actions = np.swapaxes(actions, 0, 1)
         return actions, {}
 
-
-pre_def_color = [
-    '(R=1,G=0,B=0,A=1)', 
-    '(R=0,G=1,B=0,A=1)', 
-    '(R=0,G=0,B=1,A=1)', 
-]
-# sel_l = [-8, -7, -8, -5, -4, -4, -4, -2, 0, -3, -1, -1, 3, 2, 2, 5, 4, 5, 6, 6, -8, -6, -7, -3, -4, -5, -2, -3, -2, 0, 0, 0, 3, 4, 2, 2, 3, 4, 8, 7, -7, -6, -7, -5, -4, -3, -4, -2, -1, -2, -1, 2, 2, 1, 1, 4, 4, 5, 8, 4, -7, -5, -4, -5, -3, -3, -2, -2, -3, 0, -1, 0, 1, 2, 3, 3, 5, 5, 4, 7, -8, -5, -6, -5, -3, -4, -3, -4, -3, -2, 0, 0, 3, 2, 4, 5, 4, 5, 5, 8, -7, -6, -4, -4, -4, -5, -3, -3, -3, -1, 0, 1, 0, 3, 3, 5, 3, 6, 7, 6, -7, -5, -6, -6, -1, -4, -2, -1, -1, 0, -1, 1, 1, 2, 3, 4, 5, 4, 4, 5, -7, -4, -6, -6, -3, -3, -1, -2, 0, -1, 0, -1, 3, 1, 2, 3, 3, 1, 7, 7, -5, -7, -6, -4, -3, -3, -2, 0, 0, -2, 0, 1, 1, 0, 3, 1, 2, 3, 4, 6, -7, -5, -4, -5, -4, -3, -3, -2, -2, 1, 0, 2, 0, 2, 1, 4, 5, 4, 4, 5]
-# sel_l = [-8, -7, -8, -5, -4, -4, -4, -2, 0, -3, -1, -1, 3, 2, 2, 5, 4, 5, 6, 6, -8, -6, -7, -3, -4, -5, -2, -3, -2, 0, 0, 0, 3, 4, 2, 2, 3, 4, 8, 7, -7, -6, -7, -5, -4, -3, -4, -2, -1, -2, -1, 2, 2, 1, 1, 4, 4, 5, 8, 4, -7, -5, -4, -5, -3, -3, -2, -2, -3, 0, -1, 0, 1, 2, 3, 3, 5, 5, 4, 7, -8, -5, -6, -5, -3, -4, -3, -4, -3, -2, 0, 0, 3, 2, 4, 5, 4, 5, 5, 8, -7, -6, -4, -4, -4, -5, -3, -3, -3, -1, 0, 1, 0, 3, 3, 5, 3, 6, 7, 6, -7, -5, -6, -6, -1, -4, -2, -1, -1, 0, -1, 1, 1, 2, 3, 4, 5, 4, 4, 5, -7, -4, -6, -6, -3, -3, -1, -2, 0, -1, 0, -1, 3, 1, 2, 3, 3, 1, 7, 7, -5, -7, -6, -4, -3, -3, -2, 0, 0, -2, 0, 1, 1, 0, 3, 1, 2, 3, 4, 6, -7, -5, -4, -5, -4, -3, -3, -2, -2, 1, 0, 2, 0, 2, 1, 4, 5, 4, 4, 5]
-class TestReproduce(DummyAlgorithmBase):
+class EscapeGreenPreprogramBaseline(DummyAlgorithmBase):
     def interact_with_env(self, State_Recall):
         assert State_Recall['Latest-Obs'] is not None, ('make sure obs is ok')
         ENV_PAUSE = State_Recall['ENV-PAUSE']
@@ -66,16 +58,46 @@ class TestReproduce(DummyAlgorithmBase):
 
         for thread in range(self.n_thread):
             if ENV_PAUSE[thread]: 
+                # 如果,该线程停止，不做任何处理
                 continue
-            sel_l = [] # 1
-            x_arr = np.array([d['agentLocationArr'][0] for d in np.array(State_Recall['Latest-Team-Info'][thread]['dataArr'])[self_agent_uid_range]]) # 1
-            for a in range(self.n_agent):
-                # sel = sel_l[a] # 2
-                sel = (x_arr[a] + 35) // 70 # 1
-                sel_l.append(int(sel)) # 1
-                actions[thread, a] = strActionToDigits(f'ActionSet1::ChangeColor;{pre_def_color[int(sel)%3]}')
+            x_arr = np.array([d['agentLocationArr'][0] for d in np.array(State_Recall['Latest-Team-Info'][thread]['dataArr'])[self_agent_uid_range]])
+            x_arr_valid = np.array([x for x in x_arr if np.isfinite(x)])
+            x_avg = x_arr_valid.mean()
+            for index, x in enumerate(x_arr):
+                if not np.isfinite(x): pass
 
-        print(sel_l)
+                actions[thread, index] = strActionToDigits(f'ActionSet2::SpecificAttacking;T1-0')
+
+            # actions[thread, :] = strActionToDigits(f'ActionSet2::SpecificAttacking;T1-0')
+
+        # set actions of in-active threads to NaN (will be done again in multi_team.py, this line is not necessary)
+        actions[ENV_PAUSE] = np.nan
+        return actions, {}
+    
+class EscapeRedPreprogramBaseline(DummyAlgorithmBase):
+    def interact_with_env(self, State_Recall):
+        assert State_Recall['Latest-Obs'] is not None, ('make sure obs is ok')
+        ENV_PAUSE = State_Recall['ENV-PAUSE']
+        ENV_ACTIVE = ~ENV_PAUSE
+        assert self.n_thread == len(ENV_ACTIVE), ('the number of thread is wrong?')
+
+        actions = np.zeros(shape=(self.n_thread, self.n_agent, ActDigitLen))
+        self_agent_uid_range = GlobalConfig.ScenarioConfig.AGENT_ID_EACH_TEAM[self.team]
+
+        for thread in range(self.n_thread):
+            if ENV_PAUSE[thread]: 
+                # 如果,该线程停止，不做任何处理
+                continue
+            x_arr = np.array([d['agentLocationArr'][0] for d in np.array(State_Recall['Latest-Team-Info'][thread]['dataArr'])[self_agent_uid_range]])
+            x_arr_valid = np.array([x for x in x_arr if np.isfinite(x)])
+            x_avg = x_arr_valid.mean()
+            for index, x in enumerate(x_arr):
+                if not np.isfinite(x): pass
+                if index <2:
+                    actions[thread, index] = strActionToDigits(f'ActionSet4::MoveToDirection;X=-1.0 Y=0.0 Z=0.0')
+                else:
+                    actions[thread, index] = strActionToDigits(f'ActionSet4::MoveToDirection;X=+1.0 Y=0.0 Z=0.0')
+
         # set actions of in-active threads to NaN (will be done again in multi_team.py, this line is not necessary)
         actions[ENV_PAUSE] = np.nan
         return actions, {}
