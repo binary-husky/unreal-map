@@ -59,9 +59,9 @@ desired_version = get_current_version()
 
 plat = "Linux"
 key = f"Uhmap_{plat}_Build_Version{desired_version}"
-# os.system('python BuildLinuxRender.py')
-# os.system('python BuildLinuxServer.py')
-# os.system(f'.\\7-Zip\\7z.exe a -tzip -mx4 ./Build/{key}.zip  ./Build/LinuxNoEditor   ./Build/LinuxServer')
+os.system('python BuildLinuxRender.py')
+os.system('python BuildLinuxServer.py')
+os.system(f'.\\7-Zip\\7z.exe a -tzip -mx4 ./Build/{key}.zip  ./Build/LinuxNoEditor   ./Build/LinuxServer')
 add_file_to_onedrive(
     session = session, 
     key = key, 
