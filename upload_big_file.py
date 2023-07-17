@@ -67,12 +67,12 @@ add_file_to_onedrive(
     key = key, 
     path_file_name_local = f'Build/{key}.zip')
 
-# plat = "Windows"
-# key = f"Uhmap_{plat}_Build_Version{desired_version}"
-# os.system('python BuildWindowsRender.py')
-# os.system('python BuildWindowsServer.py')
-# os.system(f'.\\7-Zip\\7z.exe a -tzip -mx4 ./Build/{key}.zip  ./Build/WindowsNoEditor   ./Build/WindowsServer')
-# add_file_to_onedrive(
-#     session = session, 
-#     key = key, 
-#     path_file_name_local = f'Build/{key}.zip')
+plat = "Windows"
+key = f"Uhmap_{plat}_Build_Version{desired_version}"
+os.system('python BuildWindowsRender.py')
+os.system('python BuildWindowsServer.py')
+os.system(f'.\\7-Zip\\7z.exe a -tzip -mx4 ./Build/{key}.zip  ./Build/WindowsNoEditor   ./Build/WindowsServer')
+add_file_to_onedrive(
+    session = session, 
+    key = key, 
+    path_file_name_local = f'Build/{key}.zip')

@@ -308,13 +308,13 @@ class UhmapCarrier(UhmapCommonFn, UhmapEnv):
                 # open fire range
                 "PerceptionRange":  2000,
                 "GuardRange":       1400,
-                "FireRange":        750 ,
+                "FireRange":        1300 ,
                 # debugging
                 'RSVD1': f'-CarrierName=T0-0 -NumDrone={self.n_team_agent[team]-1}' if team==0 else f'-CarrierName=T1-0 -NumDrone={self.n_team_agent[team]-1}',
                 # regular
-                'RSVD2': '-InitAct=ActionSet2::Idle;AsFarAsPossible',
+                'RSVD2': '-InitAct=ActionSet2::Idle;StaticAlert',
                 # agent hp
-                'AgentHp':np.random.randint(low=180,high=220),
+                'AgentHp': 110,
                 # the rank of agent inside the team
                 'IndexInTeam': tid, 
                 # the unique identity of this agent in simulation system
@@ -352,7 +352,7 @@ class UhmapCarrier(UhmapCommonFn, UhmapEnv):
                 # probability of escaping dmg 闪避
                 "DodgeProb": 0.0,
                 # ms explode dmg
-                "ExplodeDmg": 10,           
+                "ExplodeDmg": 100,           
                 # team belonging
                 'AgentTeam': team,
                 # choose ue class to init
@@ -360,15 +360,15 @@ class UhmapCarrier(UhmapCommonFn, UhmapEnv):
                 # Weapon CD
                 'WeaponCD': 3,
                 # open fire range
-                "PerceptionRange":  2500,
-                "GuardRange":       1800,
-                "FireRange":        1700,
+                "PerceptionRange":  5000,
+                "GuardRange":       4800,
+                "FireRange":        4800,
                 # debugging
                 'RSVD1': '',
                 # regular
                 'RSVD2': '-InitAct=ActionSet2::Idle;StaticAlert',
                 # agent hp
-                'AgentHp':np.random.randint(low=40,high=60),
+                'AgentHp': 500,
                 # the rank of agent inside the team
                 'IndexInTeam': tid, 
                 # the unique identity of this agent in simulation system

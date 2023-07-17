@@ -38,9 +38,9 @@
       "UhmapServerExe": "/home/hmp/UnrealHmapBinary/Version3.8/LinuxServer/UHMPServer.sh",
       "TimeDilation": 64, // simulation time speed up, larger is faster
       "TEAM_NAMES": [
-        "ALGORITHM.random.foundation->RandomControllerWithActionSetV2",
+        "ALGORITHM.random.foundation->RandomControllerWithActionSetV1",
         // "ALGORITHM.random.foundation->RandomControllerWithActionSetV2",
-        "TEMP.TEAM2.ALGORITHM.random.foundation->RandomControllerWithActionSetV2",
+        "TEMP.TEAM2.ALGORITHM.random.foundation->RandomControllerWithActionSetV1",
       ]
     },
 
