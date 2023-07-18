@@ -190,7 +190,7 @@ class UhmapEnv(BaseEnv, UhmapEnvParseHelper):
                 self.hmp_ue_port, release_port_fn = find_free_port_no_repeat()   # port for hmp data exchanging
             if not ScenarioConfig.UElink2editor:
                 self.ue_vis_port, release_port_fn = find_free_port_no_repeat()    # port for remote visualizing
-                self.ue_vis_port = 32222
+                # self.ue_vis_port = 32222
                 print蓝('Port %d will be used by hmp, port %d will be used by UE internally'%(self.hmp_ue_port, self.ue_vis_port))
             if (not self.render) and (not ScenarioConfig.UElink2editor):
                 print蓝('To visualize on Windows, run "./UHMP.exe -OpenLevel=%s:%d -WINDOWED -TimeDilation=%.8f -FrameRate=%.8f -IOInterval=%.8f -DebugMod=False -LockGameDuringCom=True"'%(
