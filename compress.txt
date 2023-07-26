@@ -1,1 +1,5 @@
 ./7-Zip/7z.exe a -t7z -mx4 -v4g ./Build/UHMP_v1.0.7z   ./  -xr!Binaries -xr!Intermediate -xr!Build -xr!BuildBB -xr!DerivedDataCache -xr!Saved  -xr!".vs" -xr!".Build"
+
+
+ssh -p 3366 hmp@172.18.116.161 "mkdir -p /home/hmp/UnrealHmapBinary/Version3.13/"
+scp -P 3366 -r './Build/Linux*' hmp@172.18.116.161:/home/hmp/UnrealHmapBinary/Version3.13/
