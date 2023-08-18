@@ -57,16 +57,20 @@ def shutil_rmtree(p):
     if os.path.exists(p): 
         shutil.rmtree(p)
 
+"""
+检查：是否注册了地图
+检查：是否注册了智能体
+"""
+
+
+
 plat = "Linux"
 key = f"Uhmap_{plat}_Build_Version{desired_version}"
 shutil_rmtree('./Build/LinuxNoEditor')
 shutil_rmtree('./Build/LinuxServer')
 os.system('python BuildLinuxRender.py')
 os.system('python BuildLinuxServer.py')
-add_file_to_onedrive(
-    session = session, 
-    key = key, 
-    path_file_name_local = f'Build/{key}.zip')
+os.system(f'.\\7-Zip\\7z.exe a -tzip -mx4 ./Build/{key}.zip  ./Build/LinuxNoEditor   ./Build/LinuxServer')
 
 
 
@@ -77,6 +81,12 @@ shutil_rmtree('./Build/WindowsServer')
 os.system('python BuildWindowsRender.py')
 os.system('python BuildWindowsServer.py')
 os.system(f'.\\7-Zip\\7z.exe a -tzip -mx4 ./Build/{key}.zip  ./Build/WindowsNoEditor   ./Build/WindowsServer')
+
+add_file_to_onedrive(
+    session = session, 
+    key = key, 
+    path_file_name_local = f'Build/{key}.zip')
+
 add_file_to_onedrive(
     session = session, 
     key = key, 
