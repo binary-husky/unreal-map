@@ -147,6 +147,7 @@ python BuildWinServer.py
 
 - After adding new ActionSets in ```Content/Assets/DefAction/ParseAction.uasset```. You may encounter ```Ensure condition failed: !FindPin(FFunctionEntryHelper::GetWorldContextPinName())``` error during packaging, if so, find and remove an extra blueprint function parameter named ```__WorldContext``` that you created by accident in ```ParseAction.uasset```.  如果在添加新的自定义动作之后遇到上述错误，说明你无意间添加了一个叫```__WorldContext```的蓝图函数参数，找到并删除它即可。 ```https://forums.unrealengine.com/t/ensure-condition-failed-on-project-start/469587```.
 
+- 如果在迁移项目后发生BuildCMakeLib.Automation.cs(45,54): error CS1002，请在VS中重新生成 (**Rebuild**, not Build!) AutomationTool即可。```https://forums.unrealengine.com/t/unreal-engine-version-4-27-2-i-get-an-error-when-trying-to-package-any-project/270627```
 
 # Dev log 项目开发日志
 - 2023-4-30 版本3.8，引入标准化的高效感知模块
