@@ -149,7 +149,18 @@ python BuildWinServer.py
 
 - 如果在迁移项目后发生BuildCMakeLib.Automation.cs(45,54): error CS1002，请在VS中重新生成 (**Rebuild**, not Build!) AutomationTool即可。```https://forums.unrealengine.com/t/unreal-engine-version-4-27-2-i-get-an-error-when-trying-to-package-any-project/270627```
 
+# cite this project
+```
+@misc{fu2023unrealmap,
+  author = {Qingxu Fu and Tianyi Hu},
+  title = {U-Map: Developing Complex Multi-Agent Reinforcement Learning Benchmarks with Unreal Engine.},
+  howpublished = {\url{https://github.com/binary-husky/unreal-map/}},
+  year = {2023}
+}
+```
+
 # Dev log 项目开发日志
+- 2023-10-18 版本3.14
 - 2023-4-30 版本3.8，引入标准化的高效感知模块
 - 2023-3-9 正在尝试用共享内存通讯替换tcp通讯，以提高IO效率，待上传到4.0版本
 - 2023-3-1 实现高效感知模块，待上传到4.0版本
