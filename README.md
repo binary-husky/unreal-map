@@ -1,3 +1,6 @@
+> The present study aims to identify potential collaboration partners. If interested in this research project, please feel free to contact our office at CASIA: tenghai.qiu@ia.ac.cn.
+> 
+> 我们（中科院自动化研究所，群体智能团队）欢迎来自各院所的合作伙伴，可分享拓展资源（地图，智能体建模等），请通过以下邮箱联系我们：`tenghai.qiu@ia.ac.cn`
 
 
 # Unreal-MAP (Previous name: UHMP)
@@ -11,7 +14,7 @@ Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开�
 **Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** 此项目处于活跃开发阶段，请打星关注哦。 
 
 <div align="center">
-<img src="Docs/unreal-island.jpg" height="250" width="400"/> <img src="Docs/Demo/2023-02-12 152119.jpg" height="250" width="400"/> 
+<img src="Docs/unreal-island.jpg" height="250" width="400"/> <img src="https://github.com/binary-husky/unreal-map/assets/96192199/985c2c27-bc0a-4c90-a036-ec676d7aec1d" height="250" width="400"/> 
 </div>
 
 
