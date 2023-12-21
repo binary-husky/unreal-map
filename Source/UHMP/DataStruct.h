@@ -175,6 +175,9 @@ struct FAgentDataOutput
 		TArray<int> AvailActions;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		TArray<int> AgentPerception;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		float Reward;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)

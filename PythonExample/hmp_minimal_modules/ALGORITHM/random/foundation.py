@@ -30,6 +30,36 @@ class RandomController(object):
         return actions, StateRecall 
 
 
+class DummyRandomControllerWithActionSetV1(object):
+
+    def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
+        from .actionset import ActionConvertV1Dummy
+        self.n_agent = n_agent
+        self.n_thread = n_thread
+        self.space = space
+        self.mcv = mcv
+        self.actions_set = ActionConvertV1Dummy(
+            SELF_TEAM_ASSUME=team, 
+            OPP_TEAM_ASSUME=(1-team), 
+            OPP_NUM_ASSUME=GlobalConfig.ScenarioConfig.N_AGENT_EACH_TEAM[1-team]
+        )
+        self.n_action = self.actions_set.n_act
+
+    def interact_with_env(self, StateRecall):
+        obs = StateRecall['Latest-Obs']
+        P = StateRecall['ENV-PAUSE']
+
+        active_thread_obs = obs[~P]
+        actions = np.random.randint(low=0,high=self.n_action, size=(self.n_thread, self.n_agent, 1))
+
+        act_converted = np.array(
+                            list(map(lambda x: self.actions_set.convert_act_arr(None, x), 
+                            actions.flatten()))).reshape(self.n_thread, self.n_agent, self.actions_set.ActDigitLen)
+
+        StateRecall['_hook_'] = None
+        return act_converted, StateRecall 
+
+
 class RandomControllerWithActionSetV2(object):
 
     def __init__(self, n_agent, n_thread, space, mcv=None, team=None):
