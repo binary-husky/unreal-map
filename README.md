@@ -1,6 +1,6 @@
 > The present study aims to identify potential collaboration partners. If interested in this research project, please feel free to contact our office at CASIA: tenghai.qiu@ia.ac.cn.
 > 
-> 我们（中科院自动化研究所，群体智能团队）欢迎来自各院所的合作伙伴，可分享拓展资源（地图，智能体建模等），请通过以下邮箱联系我们：`tenghai.qiu@ia.ac.cn`
+> 我们（中科院自动化研究所，群体智能团队）欢迎来自各院所的合作伙伴，可分享拓展资源（地图，智能体建模等），请通过以下邮箱联系我们：`tenghai.qiu@ia.ac.cn`，`hutianyi2021@ia.ac.cn`
 
 
 # Unreal-MAP (Previous name: UHMP)
