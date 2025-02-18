@@ -25,7 +25,7 @@ Unreal-MAP can not only be used to develop conventional multi-agent simulation e
 
 
 <div align="center">
-<img src="Docs/Imgs/Overall.png"/ width="500"> 
+<img src="Docs/Imgs/Overall.png"/ width="600"> 
 </div>
 
 # Introduction
