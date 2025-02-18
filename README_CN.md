@@ -69,6 +69,14 @@ U-Map面向对抗性异构多智能体强化学习场景。
 </div>
 
 
+- 可以利用虚幻引擎商城中的巨量资源自由构建真实的任务
+- 同时支持大规模、异构、多队伍仿真
+- 训练高效，（Timestep per second）TPS可达10k+, (Frame per second) FPS可达10M+
+- 可控仿真时间，可以加速仿真以加快训练（直到跑满CPU，加速并不占用更多内存和显存），也可以减速仿真以进行慢动作分析。
+- 可重复性强。排除了UnrealEngine中各种会造成实验不可重复的蝴蝶效应因素
+- 多平台支持。可以在Windows、Linux、MacOs上编译Headless模式和渲染模式的客户端。
+- 丰富的渲染机制。支持 a) rendering in the UE editor, b) on a compiled pure rendering client, c) cross-platform real-time rendering.
+
 # Install 安装方法
 
 - Step 1, you must install the Unreal Engine from the source code. For details, see the official document of the Unreal Engine: ```https://docs.unrealengine.com/4.27/zh-CN/ProductionPipelines/DevelopmentSetup/BuildingUnrealEngine/```
