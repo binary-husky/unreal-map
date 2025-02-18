@@ -3,16 +3,16 @@
 > 我们（中科院自动化研究所，群体智能团队）欢迎来自各院所的合作伙伴，可分享拓展资源（地图，智能体建模等），请通过以下邮箱联系我们：`tenghai.qiu@ia.ac.cn`，`hutianyi2021@ia.ac.cn`
 
 
-# Unreal-MAP (原名: UHMP)
+# Unreal-MAP
 
 [English](README.md) | [中文](README_CN.md)
 
-[![版本](https://img.shields.io/badge/version-3.14-blue)](https://github.com/binary-husky/unreal-map)
-[![许可证](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Version](https://img.shields.io/badge/version-3.14-blue)](https://github.com/binary-husky/unreal-map)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.7+-blue)](https://www.python.org/)
-[![虚幻引擎](https://img.shields.io/badge/Unreal%20Engine-4.27-blue)](https://www.unrealengine.com/)
+[![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-4.27-blue)](https://www.unrealengine.com/)
 [![stars](https://img.shields.io/github/stars/binary-husky/unreal-map)](https://github.com/binary-husky/unreal-map)
-[![文档](https://img.shields.io/badge/文档-中文-blue)](README_CN.md)
+
 
 
 This is Unreal-based Multi-Agent Playground (U-Map, previous project name is UHMP for ~~Hybrid Unreal-based Multi-agent Playground~~)
@@ -68,14 +68,6 @@ U-Map面向对抗性异构多智能体强化学习场景。
 <img src="Docs/Demo/2023-02-12 155956.jpg" height="250" width="400"/> <img src="Docs/Demo/2023-02-12 151938.jpg" height="250" width="400"/> 
 </div>
 
-
-- 可以利用虚幻引擎商城中的巨量资源自由构建真实的任务
-- 同时支持大规模、异构、多队伍仿真
-- 训练高效，（Timestep per second）TPS可达10k+, (Frame per second) FPS可达10M+
-- 可控仿真时间，可以加速仿真以加快训练（直到跑满CPU，加速并不占用更多内存和显存），也可以减速仿真以进行慢动作分析。
-- 可重复性强。排除了UnrealEngine中各种会造成实验不可重复的蝴蝶效应因素
-- 多平台支持。可以在Windows、Linux、MacOs上编译Headless模式和渲染模式的客户端。
-- 丰富的渲染机制。支持 a) rendering in the UE editor, b) on a compiled pure rendering client, c) cross-platform real-time rendering.
 
 # Install 安装方法
 
