@@ -28,10 +28,12 @@ Unreal-MAP can not only be used to develop conventional multi-agent simulation e
 <img src="Docs/Imgs/Overall.png"/ width="600"> 
 </div>
 
-# Introduction
+# 1. Introduction
+### 1.1 Basic Introduction
 Unreal-based Multi-Agent Playground (Unreal-MAP) is a new generation of multi-agent general platform based on the Unreal Engine.
 This platform supports adversial training between swarms & algorithms, and it is the first (and currently the only) extensible RL/MARL environment based on the Unreal Engine to support multi-team training.
 
+### 1.2 Architecture
 <div align="center">
 <img src="Docs/Imgs/Architecture.png"/ width="800"> 
 </div>
@@ -41,6 +43,8 @@ where each layer builds upon the previous one. From bottom
 to top,the five layers are: *native layer*, *specification layer*, *base class layer*, ***advanced module layer***, and ***interface layer***.
 layer. **You only need to focus on the *advanced module layer* (Blueprint) and the *interface layer* (Python).** 
 From the perspective of creating a standard MARL environment, using these two layers is sufficient to modify all elements in the task (e.g., POMDP) such as states, actions, observations, transitions, etc.
+
+### 1.3 Features
 
 Unreal-MAP can be used to develop various multi-agent simulation scenarios. Our case studies have already included scenarios with large-scale, heterogeneous, and multi-team characteristics.
 **Compared to other RL general platforms** such as [Unity ML-Agents](https://unity-technologies.github.io/ml-agents/), Unreal-MAP has the following advantages in terms of scientific research and experiment:
@@ -74,9 +78,25 @@ Unreal-MAP can be used to develop various multi-agent simulation scenarios. Our 
 </div>
 
 
-# How to Install 
+### 1.4 Some Future Works
 
-## Full-blood version
+Unreal-MAP introduces modern game engines into the MARL field with tremendous potential. This potential is mainly reflected in two dimensions: **Scalability** and **Realism**. In terms of scalability, users can not only ***freely*** construct environments using the extremely rich resources from the Unreal Engine community, but can also ***quickly*** build environments according to their ideas using Unreal Engine's future generative AI plugins (such as [ACE](https://developer.nvidia.com/ace.)).
+
+In terms of realism, users can leverage Unreal-MAP to build ***highly realistic*** MARL environments and even develop ***digital twins*** of real-world scenarios. We attempted a sim2real demo using Unreal-MAP. In this demo, we first deployed a multi-UAV-UGV gaming scenario in the experimental field, then recreated the scenario using Unreal-MAP (including model proportions, agent kinematics and dynamics, etc.). We conducted training in the sim environment and then validated it in the real-world scenario, achieving preliminary positive results. In the current solution, Unreal-MAP not only serves as a simulation environment creator, but also acts as a data transmission intermediary, connecting data from the real-world scenario with the algorithmic side.
+
+<div align="center">
+<img src="Docs/Imgs/Sim2RealEXP.png" width="800"/> 
+</div>
+
+<div align="center">
+<img src="Docs/Imgs/Sim2RealFra.png" width="800"/> 
+</div>
+
+
+
+# 2. How to Install 
+
+## 2.1 Professional version
 
 - Step 1, you must install the Unreal Engine from the source code. For details, see the official document of the Unreal Engine: ```https://docs.unrealengine.com/4.27/zh-CN/ProductionPipelines/DevelopmentSetup/BuildingUnrealEngine/```
 - Step 2: Clone the git resp ```git clone https://github.com/binary-husky/unreal-hmp.git```
@@ -88,11 +108,11 @@ Note that steps 1 and 4 are difficult. It is recommended to refer to the followi
 
 
 
-## Only compiled binary version 
+## 2.2 Only compiled binary version 
 
 ```https://github.com/binary-husky/hmp2g/blob/master/ZDOCS/use_unreal_hmap.md```
 
-# Tutorial 
+# 3. Tutorial 
 The document is being improved. For the video tutorial of simple demo, see ```EnvDesignTutorial.pptx``` (you need to complete step 3 of installation to download this pptx file)
 
 Directory:
@@ -120,7 +140,7 @@ Directory:
 
 
 
-# How to Build Binary Client
+# 4. How to Build Binary Client
 Run following scripts.
 ```
 python BuildlinuxRender.py
