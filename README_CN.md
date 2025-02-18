@@ -3,25 +3,26 @@
 > 我们（中科院自动化研究所，群体智能团队）欢迎来自各院所的合作伙伴，可分享拓展资源（地图，智能体建模等），请通过以下邮箱联系我们：`tenghai.qiu@ia.ac.cn`，`hutianyi2021@ia.ac.cn`
 
 
-# Unreal-MAP (Previous name: UHMP)
+# Unreal-MAP (原名: UHMP)
 
 [English](README.md) | [中文](README_CN.md)
 
-[![Version](https://img.shields.io/badge/version-3.14-blue)](https://github.com/binary-husky/unreal-map)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![版本](https://img.shields.io/badge/version-3.14-blue)](https://github.com/binary-husky/unreal-map)
+[![许可证](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.7+-blue)](https://www.python.org/)
-[![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-4.27-blue)](https://www.unrealengine.com/)
+[![虚幻引擎](https://img.shields.io/badge/Unreal%20Engine-4.27-blue)](https://www.unrealengine.com/)
 [![stars](https://img.shields.io/github/stars/binary-husky/unreal-map)](https://github.com/binary-husky/unreal-map)
-[![Documentation](https://img.shields.io/badge/docs-English-blue)](README.md)
+[![文档](https://img.shields.io/badge/文档-中文-blue)](README_CN.md)
 
 
-This is **Unreal Multi-Agent Playground** (Unreal-Map), an multi-agent general platform based on [Unreal Engine](https://www.unrealengine.com/).
+This is Unreal-based Multi-Agent Playground (U-Map, previous project name is UHMP for ~~Hybrid Unreal-based Multi-agent Playground~~)
+
 Here you can use all the capabilities of Unreal Engine (Blueprints, Behavior tree, Physics engine, AI navigation, 3D models/animations and Plugin resources, etc) to build elegant (but also computational efficient) and magnificent (but also experimentally reproducible) multi-agent environments.
 
-Developed with Unreal Engine, documenting is in process.
+Developed with Unreal Engine, documenting is in process. 基于UnrealEngine开发，文档正在完善中。
 
 
-**Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** !
+**Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** 此项目处于活跃开发阶段，请打星关注哦。 
 
 <div align="center">
 <img src="Docs/unreal-island.jpg" height="250" width="400"/> <img src="https://github.com/binary-husky/unreal-map/assets/96192199/985c2c27-bc0a-4c90-a036-ec676d7aec1d" height="250" width="400"/> 
@@ -29,7 +30,7 @@ Developed with Unreal Engine, documenting is in process.
 
 
 
-# Introduction
+# Intro 简介
 Unreal-based Multi-Agent Playground (U-Map, previously called UHMP) is a new generation of multi-agent environment simulation environment based on the Unreal Engine.
 This platform supports adversial training between swarms & algorithms, and it is the first (and currently the only) Extensible RL environment based on the Unreal Engine to support multi-team training.
 U-Map is oriented to adversarial heterogeneous multi-agent reinforcement learning scenarios.
