@@ -22,12 +22,10 @@ Unreal-MAP can not only be used to develop conventional multi-agent simulation e
 
 **Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** !
 
-<!-- <div align="center">
-<img src="Docs/unreal-island.jpg" height="250" width="400"/> <img src="https://github.com/binary-husky/unreal-map/assets/96192199/985c2c27-bc0a-4c90-a036-ec676d7aec1d" height="250" width="400"/> 
-</div> -->
+
 
 <div align="center">
-<img src="Docs/Imgs/Overall.png"/ width="800"> 
+<img src="Docs/Imgs/Overall.png"/ width="500"> 
 </div>
 
 # Introduction
@@ -64,7 +62,9 @@ Unreal-MAP can be used to develop various multi-agent simulation scenarios. Our 
 - **Multi-platform support**: compile both Headless mode and rendering mode clients on Windows, Linux, and MacOS. 
 - **Rich rendering mechanisms**: supports a) rendering in the UE editor, b) on a compiled pure rendering client, c) cross-platform real-time rendering.
 
-
+<div align="center">
+<img src="Docs/unreal-island.jpg" height="250" width="400"/> <img src="https://github.com/binary-husky/unreal-map/assets/96192199/985c2c27-bc0a-4c90-a036-ec676d7aec1d" height="250" width="400"/> 
+</div>
 
 <div align="center">
 <img src="Docs/Demo/uhmap-bbad.jpg" height="250" width="400"/> <img src="Docs/Demo/uhmap-hete.jpg" height="250" width="400"/> 
