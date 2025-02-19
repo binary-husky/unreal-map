@@ -10,22 +10,22 @@
 [![Documentation](https://img.shields.io/badge/docs-English-blue)](README.md)
 
 
-This is **Unreal Multi-Agent Playground** (Unreal-Map), an multi-agent general platform based on [Unreal Engine](https://www.unrealengine.com/).
+This is **Unreal Multi-Agent Playground** (Unreal-Map), a multi-agent general platform based on [Unreal Engine](https://www.unrealengine.com/).
 Here you can use all the capabilities of Unreal Engine (Blueprints, Behavior tree, Physics engine, AI navigation, 3D models/animations and Plugin resources, etc) to build elegant (but also computational efficient) and magnificent (but also experimentally reproducible) multi-agent environments.
 
-Unreal-MAP can not only be used to develop conventional multi-agent simulation environments, but has also been specifically optimized for Multi-Agent Reinforcement Learning (MARL) simulation. You can use it to develop various realistic and complex MARL scenarios. You can also use Unreal-MAP together with our developed [HMAP](https://github.com/binary-husky/hmp2g) (a powerful MARL-specific experimental framework) to easily develop MARL scenarios and quickly deploy cutting-edge algorithms.
+Unreal-MAP can not only be used to develop conventional multi-agent simulation environments, but has also been optimized for Multi-Agent Reinforcement Learning (MARL) simulation. You can use it to develop various realistic and complex MARL scenarios. You can also use Unreal-MAP together with our developed [HMAP](https://github.com/binary-husky/hmp2g) (a powerful MARL-specific experimental framework) to easily develop MARL scenarios and quickly deploy cutting-edge algorithms.
 
 
 > The present study aims to identify potential collaboration partners. If interested in this research project, please feel free to contact our office at CASIA: tenghai.qiu@ia.ac.cn, hutianyi2021@ia.ac.cn.
 > 
 
 
-**Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-hmp```** !
+**Please ```star``` the Github project. Your encouragement is extremely important to us as researchers: ```https://github.com/binary-husky/unreal-map```** !
 
 
 
 <div align="center">
-<img src="Docs/Imgs/Overall.png"/ width="600"> 
+<img src="Docs/Imgs/Overall.png"/ width="550"> 
 </div>
 
 # 1. Introduction
@@ -42,7 +42,7 @@ Unreal-MAP employs a hierarchical five-layer architecture,
 where each layer builds upon the previous one. From bottom
 to top,the five layers are: *native layer*, *specification layer*, *base class layer*, ***advanced module layer***, and ***interface layer***.
 layer. **You only need to focus on the *advanced module layer* (Blueprint) and the *interface layer* (Python).** 
-From the perspective of creating a standard MARL environment, using these two layers is sufficient to modify all elements in the task (e.g., POMDP) such as states, actions, observations, transitions, etc.
+From the perspective of creating a standard MARL scenario, using these two layers is sufficient to modify all elements in the task (e.g., POMDP) such as states, actions, observations, transitions, etc.
 
 ### 1.3 Features
 
@@ -64,17 +64,17 @@ Unreal-MAP can be used to develop various multi-agent simulation scenarios. Our 
 - **Controllable simulation time**: you can accelerate simulation to speed up training (until CPU is fully utilized, acceleration doesn't consume extra memory or VRAM), or decelerate for slow-motion analysis.
 - **Strong reproducibility**: eliminated various butterfly effect factors in Unreal Engine that could cause experimental irreproducibility.
 - **Multi-platform support**: compile both Headless mode and rendering mode clients on Windows, Linux, and MacOS. 
-- **Rich rendering mechanisms**: supports a) rendering in the UE editor, b) on a compiled pure rendering client, c) cross-platform real-time rendering.
+- **Rich rendering mechanisms**: supports a) rendering in the UE editor, b) on a compiled pure rendering client, c) cross-platform real-time rendering. You can train on a Linux server and render on Windows host at the same time!
 
 <div align="center">
-<img src="Docs/unreal-island.jpg" height="250" width="400"/> <img src="https://github.com/binary-husky/unreal-map/assets/96192199/985c2c27-bc0a-4c90-a036-ec676d7aec1d" height="250" width="400"/> 
+<img src="Docs/unreal-island.jpg" height="200" width="320"/> <img src="https://github.com/binary-husky/unreal-map/assets/96192199/985c2c27-bc0a-4c90-a036-ec676d7aec1d" height="200" width="320"/> 
 </div>
 
 <div align="center">
-<img src="Docs/Demo/uhmap-bbad.jpg" height="250" width="400"/> <img src="Docs/Demo/uhmap-hete.jpg" height="250" width="400"/> 
+<img src="Docs/Demo/uhmap-bbad.jpg" height="200" width="320"/> <img src="Docs/Demo/uhmap-hete.jpg" height="200" width="320"/> 
 </div>
 <div align="center">
-<img src="Docs/Demo/2023-02-12 155956.jpg" height="250" width="400"/> <img src="Docs/Demo/2023-02-12 151938.jpg" height="250" width="400"/> 
+<img src="Docs/Demo/2023-02-12 155956.jpg" height="200" width="320"/> <img src="Docs/Demo/2023-02-12 151938.jpg" height="200" width="320"/> 
 </div>
 
 
@@ -89,7 +89,7 @@ In terms of realism, users can leverage Unreal-MAP to build ***highly realistic*
 </div>
 
 <div align="center">
-<img src="Docs/Imgs/Sim2RealFra.png" width="800"/> 
+<img src="Docs/Imgs/Sim2RealFra.png" width="700"/> 
 </div>
 
 
