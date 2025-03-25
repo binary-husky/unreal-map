@@ -138,13 +138,12 @@ python BuildWinServer.py
 - 如果在项目迁移后遇到BuildCMakeLib.Automation.cs(45,54): error CS1002，请在Visual Studio中**重新构建**（不是构建！）AutomationTool。更多详情：```https://forums.unrealengine.com/t/unreal-engine-version-4-27-2-i-get-an-error-when-trying-to-package-any-project/270627```
 
 # 引用
-注意：我们将很快发布关于这个项目的arxiv论文！
 ```
-@misc{fu2023unrealmap,
-  author = {Qingxu Fu and Tianyi Hu},
-  title = {Unreal-MAP: Unreal-Engine-Based General Platform for Multi-Agent Reinforcement Learning.},
-  howpublished = {\url{https://github.com/binary-husky/unreal-map/}},
-  year = {2023}
+@article{unrealmap,
+  title={Unreal-MAP: Unreal-Engine-Based General Platform for Multi-Agent Reinforcement Learning},
+  author={Hu, Tianyi and Fu, Qingxu and Pu, Zhiqiang and Wang, Yuan and Qiu, Tenghai},
+  journal={arXiv preprint arXiv:2503.15947},
+  year={2025}
 }
 ```
 
