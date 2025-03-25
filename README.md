@@ -159,13 +159,13 @@ python BuildWinServer.py
 - If you encounter BuildCMakeLib.Automation.cs(45,54): error CS1002 after project migration, please **Rebuild** (not Build!) the AutomationTool in Visual Studio. For more details: ```https://forums.unrealengine.com/t/unreal-engine-version-4-27-2-i-get-an-error-when-trying-to-package-any-project/270627```
 
 # Cite this project !
-NOTE: We will release an arxiv paper about this project soon !
+
 ```
-@misc{fu2023unrealmap,
-  author = {Qingxu Fu and Tianyi Hu},
-  title = {Unreal-MAP: Unreal-Engine-Based General Platform for Multi-Agent Reinforcement Learning.},
-  howpublished = {\url{https://github.com/binary-husky/unreal-map/}},
-  year = {2023}
+@article{unrealmap,
+  title={Unreal-MAP: Unreal-Engine-Based General Platform for Multi-Agent Reinforcement Learning},
+  author={Hu, Tianyi and Fu, Qingxu and Pu, Zhiqiang and Wang, Yuan and Qiu, Tenghai},
+  journal={arXiv preprint arXiv:2503.15947},
+  year={2025}
 }
 ```
 
